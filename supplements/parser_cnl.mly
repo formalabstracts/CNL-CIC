@@ -1,161 +1,15 @@
 %{
 
-(*open Program *)
+(* open Program *)
+type exp_t = 
+| prop_t
+| proof_t
+| type_t
+| term_t 
+[@@deriving show]
 
  %}
 
-
-%token <string> STRING
-%token <string> CONTROLSEQ (* \cs *)
-
-%token <string> NUMBER (*digit+ *)
-%token <string> DECIMAL (*digit+ . digit+ *)
-%token <string> NUMERIC (*(+|-)? (number | decimal) *)
-%token <string> SYMBOL 
-%token <string> L_PAREN
-%token <string> R_PAREN
-%token <string> L_BRACK
-%token <string> R_BRACK
-%token <string> L_BRACE
-%token <string> R_BRACE
-%token <string> PERIOD
-%token <string> COMMA
-%token <string> SEMI
-%token <string> ASSIGN
-%token <string> BLANK (* _*)
-%token <string> ALT
-%token <string> SLASH
-%token <string> SLASHDASH
-%token <string> VAR (*alpha (digit | ')* *)
-%token <string> TOKEN
-%token <string> WORD (*alpha (alphanum)**)
-%token <string> XX (*error*)
-
-%token <string>
-LIT_A
-LIT_ALL
-LIT_AN
-LIT_ANALYSIS
-LIT_AND
-LIT_ANY
-LIT_APPLICABLE
-LIT_ARE
-LIT_ARTICLE
-LIT_ASSUME
-LIT_ASSUMING
-LIT_BE
-LIT_BY
-LIT_CAN
-LIT_CANONICAL
-LIT_CASE
-LIT_CONJECTURE
-LIT_CONTRADICTION
-LIT_CONTRARY
-LIT_COROLLARY
-LIT_DEF
-LIT_DEFINED
-LIT_DEFINITION
-LIT_DENOTE
-LIT_DO
-LIT_DOCUMENT
-LIT_DOES
-LIT_DONE
-LIT_DUMP
-LIT_EACH
-LIT_ELSE
-LIT_EMBEDDED
-LIT_END
-LIT_EQUAL
-LIT_EVERY
-LIT_EXHAUSTIVE
-LIT_EXIST
-LIT_EXISTS
-LIT_EXIT
-LIT_FALSE
-LIT_FIXED
-LIT_FIXING
-LIT_FOR
-LIT_FORALL
-LIT_FUN
-LIT_FUNCTION
-LIT_HAS
-LIT_HAVE
-LIT_HAVING
-LIT_HENCE
-LIT_IF
-LIT_IFF
-LIT_IMPLICIT
-LIT_IN
-LIT_INDEED
-LIT_INDUCTION
-LIT_INDUCTIVE
-LIT_IS
-LIT_IT
-LIT_LEMMA
-LIT_LET
-LIT_LIBRARY
-LIT_MATCH
-LIT_NO
-LIT_NOT
-LIT_NOTATION
-LIT_NOTION
-LIT_OBVIOUS
-LIT_OF
-LIT_OFF
-LIT_ON
-LIT_ONLY
-LIT_ONTORED
-LIT_OR
-LIT_PAIRWISE
-LIT_PARAMETERS
-LIT_PARAMETRIC
-LIT_PRINTGOAL
-LIT_PROOF
-LIT_PROP
-LIT_PROPOSITION
-LIT_PROPPED
-LIT_QED
-LIT_READ
-LIT_RECURSION
-LIT_SATISFYING
-LIT_SECTION
-LIT_SOME
-LIT_STAND
-LIT_STRUCTURE
-LIT_SUBSECTION
-LIT_SUBSUBSECTION
-LIT_SUCH
-LIT_SUPPOSE
-LIT_THAT
-LIT_THE
-LIT_THEN
-LIT_THEOREM
-LIT_THERE
-LIT_THEREFORE
-LIT_THESIS
-LIT_THIS
-LIT_TIMELIMIT
-LIT_TO
-LIT_TOTAL
-LIT_TRIVIAL
-LIT_TRUE
-LIT_TYPE
-LIT_TYPEABLE
-LIT_UNIQUE
-LIT_US
-LIT_VARIANT
-LIT_WE
-LIT_WELL
-LIT_WELLDEFINED
-LIT_WELL_DEFINED
-LIT_WELL_PROPPED
-LIT_WITH
-LIT_WITHOUT
-LIT_WRONG
-LIT_YES
-
-
-%token EOF
 
 
 %start <string> program
@@ -164,322 +18,513 @@ LIT_YES
 
 program : {}
 
-(*% CNL literals are LIT_WORD standing for word *)
+(* parametrized nonterminals *)
+paren(X) : L_PAREN x = X R_PAREN { x }
+bracket(X) : L_BRACK x = X R_BRACK { x }
+brace(X) : L_BRACE x = X R_BRACE { x }
+brace_semi(X) : brace(separated_nonempty_list(SEMI,X) {}) {}
 
-a_an : LIT_A | LIT_AN {}
-article : a_an | LIT_THE {}
-prose_sep : LIT_AND | COMMA {}
+comma_nonempty_list(X) : separated_nonempty_list(COMMA,X) {}
+comma_list(X) : separated_list(COMMA,X) {}
+opt_comma_nonempty_list(X) : separated_nonempty_list(option(COMMA),X) {}
+sep_list(X) : separated_list(sep_and_comma,X) {}
+
+(* from phrase_lists.txt. These will need to be
+expanded in the working parser. *)
+phrase_list_transition : XX {}
+phrase_list_filler : XX {}
+phrase_list_proof_statement : XX {}
+
+(* literals *)
+
+lit_a : LIT_A | LIT_AN {}
+article : lit_a | LIT_THE {}
+sep_and_comma : LIT_AND | COMMA {}
 separator : COMMA | SEMI | PERIOD {}
 delimiter : L_PAREN | R_PAREN | L_BRACK | R_BRACK | L_BRACE | R_BRACE {}
-symb_or_sep : separator | SYMBOL {}
-symb_token : SYMBOL {}
-| symb_sep nonempty_list(symb_sep) {}
+identifier : ATOMIC_IDENTIFIER | HIERARCHICAL_IDENTIFIER {}
+
+(* more literals *)
+lit_define : option(LIT_WE) LIT_DEFINE {}
+lit_defined_as : LIT_SAID LIT_TO LIT_BE 
+| LIT_DEFINED LIT_AS
+| LIT_DEFINED LIT_TO LIT_BE {}
+lit_iff : LIT_IFF | LIT_IF LIT_AND LIT_ONLY LIT_IF {}
+lit_denote : LIT_STAND LIT_FOR | LIT_DENOTE {}
+lit_do : LIT_DO | LIT_DOES {}
+lit_is : LIT_IS | LIT_ARE | option(LIT_TO) LIT_BE {}
+lit_has : LIT_HAS | LIT_HAVE {}
+lit_with : LIT_WITH | LIT_OF | LIT_HAVING {}
+lit_true : LIT_ON | LIT_TRUE | LIT_YES {}
+lit_false : LIT_OFF | LIT_FALSE | LIT_NO {}
+lit_its_wrong : LIT_IT LIT_IS LIT_WRONG LIT_THAT {}
+lit_any : (* can extend: finitely many, almost all, etc. *)
+| LIT_EVERY 
+| LIT_EACH 
+| LIT_EACH LIT_AND LIT_EVERY 
+| LIT_ALL 
+| LIT_ANY 
+| LIT_SOME 
+| LIT_NO {}
+lit_exist : LIT_EXIST | LIT_EXISTS {}
+lit_def : LIT_DEF | LIT_DEFINITION {}
+lit_axiom : LIT_AXIOM | LIT_CONJECTURE | LIT_HYPOTHESIS {}
+lit_theorem : 
+| LIT_PROPOSITION 
+| LIT_THEOREM 
+| LIT_LEMMA 
+| LIT_COROLLARY {}
+lit_lets : LIT_LET LIT_US | LIT_WE option(LIT_CAN) {}
+lit_assume : LIT_ASSUME | LIT_SUPPOSE {}
+lit_then : LIT_THEN | LIT_THEREFORE | LIT_HENCE {}
+lit_choose : LIT_TAKE | LIT_CHOOSE {}
+lit_prove : LIT_PROVE | LIT_SHOW {}
+lit_we_say : LIT_WE LIT_SAY option(LIT_THAT) {}
+
+label : ATOMIC_IDENTIFIER {}
+
+
+(* symb_or_sep : separator | SYMBOL {}
+ symb_token : SYMBOL {}
+| symb_sep nonempty_list(symb_sep) {} *)
 var_modifier : LIT_FIXED | LIT_IMPLICIT {}
-tvar : var | L_PAREN option(var_modifier) var COLON ctype R_PAREN {}
-tvar2 : tvar COMMA tvar | L_PAREN var option(COMMA) var COLON ctype {}
-pvars : L_PAREN option(var_modifier) separated_nonempty_list(option(COMMA),var) COLON ctype R_PAREN {}
-ptvars : pvars | tvar {}
-tvars : separated_nonempty_list(option(COMMA), ptvar) {} 
-names : separated_nonempty_list(option(COMMA),tvar) {}
+tvar : VAR | paren(option(var_modifier) VAR colon_type {}) {}
+tvar2 : tvar COMMA tvar | paren(VAR option(COMMA) VAR colon_type {}) {}
+pvars : paren(option(var_modifier) opt_comma_nonempty_list(VAR) colon_type {}) {}
+ptvar : pvars | tvar {}
+tvars : opt_comma_nonempty_list( ptvar) {} 
+names : opt_comma_nonempty_list(tvar) {}
+
+colon_type : COLON type_expr {}
+opt_colon_type : option(colon_type) {}
 
 
 punctuation : delimiter | separator {}
-lexeme : NUMERIC | WORD | symb_token | punctuation {}
+lexeme : NUMERIC | identifier | FIELD_ACCESSOR | SYMBOL | punctuation {}
 
-(*% primitives *)
+(* primitives *)
 
-prim_classifier : {} (* meta-type words like "function" "element" "object" "number" "quotient" "dependent function" "thing" *) 
+prim_classifier : {} (* meta-type words like "function" "element" "object" "number" "quotient" "dependent function" "thing" "class" "map" "structure" "term" "binary relation" "relation" "operator" "binary operator" *) 
 
 prim_symbol_cs : {} 
 prim_alpha_cs : {}
 
 prim_lambda_binder : {}(* term binders *)
 prim_pi_binder : {}(* type binders*)
+prim_binder_prop : {}
 
-prim_type : {} (* correspond to Lean types, quotient of type by term, type of term, etc. *)
+prim_typed_name : {} (* correspond to Lean types, quotient of type by term, type of term, etc. *)
 prim_universe : LIT_TYPE | LIT_PROP {}
 prim_quantifier_prop : {} (* used in quantifier scoping (class_relation) *)
 prim_adjective : {}
-prim_adjectiveM : {}
+prim_adjective_mutual : {}
 
 prim_simple_adjective : {} (* autogenerated, those with no args *)
-prim_simple_adjectiveM : {} (* mutual version, autogenerated from prim_adjectiveM, no args *)
+prim_simple_adjective_mutual : {} (* mutual version, autogenerated from prim_adjective_mutual, no args *)
 
 prim_definite_noun : {} (* functions and terms *)
 prim_plain_noun : {} (* autogenerated from prim_definite_noun *)
 prim_prefix_function : {} (* functions like sin,cos,exp *)
 prim_possessed_noun : {} (* autogenerated as in Forthel *)
 prim_verb : {}
-prim_verbM : {} (* mutual version *)
-prim_structure : {} (* CiC structures *)
+prim_verb_mutual : {} (* mutual version *)
+prim_structure : {} (* CIC structures *)
 prim_op : {} (* symbolic operators on terms *)
 prim_relation : {} (* prop-valued *)
 
 
-(*% Instructions - See Naproche-SAD github Instr.hs *)
+(* Instructions - See Naproche-SAD github Instr.hs. Test:Instructions  *)
+instruction :
+| instruct_command
+| instruct_synonym
+| instruct_string 
+| instruct_bool 
+| instruct_int {}
 
-prim_keyword_command : LIT_EXIT {}
-prim_keyword_int : LIT_TIMELIMIT {}
-prim_keyword_bool : LIT_PRINTGOAL | LIT_DUMP | LIT_ONTORED {}
+  instruct_keyword_command : LIT_EXIT {}
+  instruct_keyword_int : LIT_TIMELIMIT {}
+  instruct_keyword_bool : LIT_PRINTGOAL | LIT_DUMP | LIT_ONTORED {}
 
-bool_true : LIT_ON | LIT_TRUE | LIT_YES {}
-bool_false : LIT_OFF | LIT_FALSE | LIT_NO {}
-prim_keyword_string : LIT_READ | LIT_LIBRARY {}
+  instruct_keyword_string : LIT_READ | LIT_LIBRARY {}
 
-instruct_command : L_BRACK prim_keyword_command R_BRACK {}
-instruct_int : L_BRACK prim_keyword_int number R_BRACK {}
-bool_tf : bool_true | bool_false {}
-instruct_bool : L_BRACK prim_keyword_bool bool_tf R_BRACK {}
-instruct_string : L_BRACK prim_keyword_string token R_BRACK {}
-instruct_sep : SLASH | SLASHDASH {} 
-instruct_variant : L_BRACK LIT_VARIANT nonempty_separated_list (option(instruct_sep),token) R_BRACK {}
-instruction : instruct_command | instruct_variant | instruct_string | instruct_bool | instruct_int {}
+  instruct_command : bracket( instruct_keyword_command) {}
+  instruct_int : bracket(instruct_keyword_int NUMBER {}) {}
+  bool_tf : lit_true | lit_false {}
+  instruct_bool : bracket(instruct_keyword_bool bool_tf {}){}
+  instruct_string : bracket(instruct_keyword_string TOKEN {}) {}
+  instruct_sep : SLASH | SLASHDASH {} 
+  instruct_synonym : bracket(LIT_SYNONYM 
+    separated_nonempty_list (instruct_sep,nonempty_list(TOKEN)) {}) {}
 
-
-
-
-
-(*% SECTIONS *)
-section_tag : LIT_DOCUMENT | LIT_ARTICLE | LIT_SECTION | LIT_SUBSECTION | LIT_SUBSUBSECTION {} 
-section_header : section_tag option(word) PERIOD {}
-
-(*% Declaration this statements. *)
-this_def : LIT_THIS separated_nonempty_list(SEP,this_def_pred) {} 
-this_def_pred : LIT_IS separated_nonempty_list(prose_sep,this_def_adjective) | this_def_verb {}
-this_def_adjective : LIT_UNIQUE | LIT_CANONICAL | LIT_WELLDEFINED | LIT_WELL_DEFINED | LIT_WELL LIT_DEFINED | LIT_TOTAL | LIT_WELL LIT_PROPPED | LIT_WELL_PROPPED | LIT_EXHAUSTIVE {}
-this_def_right_attr : LIT_BY LIT_RECURSION {}
-this_def_verb : LIT_EXISTS option(this_def_right_attr){}
-
-(*% MODULES (XX insert) *)
-
-(*% PATTERNS AND MACROS *)
+(* PATTERNS AND MACROS *)
 
 
-assuming : LIT_ASSUMING option(LIT_THAT) statement{}
-insection : LIT_IN LIT_THIS section_tag {}
-macro : option(insection) separated_list(sep,assuming) macroBody {}
-
-macro_pattern_item : list(nonempty_list(token) tvar {}) {}
-macro_pattern : nonempty_list(token) option(tvar list(macro_pattern_item) {}) {}
-symbP : option(tvar) symbToken list(tvar symbToken {}) option(tvar) {}
-| word L_PAREN tvar list(sep tvar {}) R_PAREN {}
-| word option(tvar) {}
-notionP : option(aAn) macro_pattern {}
-functionP : LIT_THE macro_pattern | symbP {}
-predicateP : tvar LIT_IS macro_pattern {}
-| tvar macro_pattern {}
-| symbP {}
-denote : LIT_STAND LIT_FOR | LIT_DENOTE {}
-macroBody :notionMacro | functionMacro | predicateMacro {}
-notionMacro : LIT_LET notionP denote aAn ctype PERIOD {}
-functionMacro : LIT_LET functionP denote term {}
-predicateMacro : LIT_LET predicateP denote statement {}
+macro : option(insection) sep_list(assuming) macro_body {}
+  assuming : LIT_ASSUMING option(LIT_THAT) statement{}
+  insection : LIT_IN LIT_THIS section_tag {}
+  macro_body : notion_macro | function_macro | predicate_macro {}
+  notion_macro : LIT_LET notion_pattern lit_denote lit_a type_expr PERIOD {}
+  function_macro : LIT_LET function_pattern lit_denote term {}
+  predicate_macro : 
+  | LIT_LET predicate_token_pattern lit_denote statement {}
+  | LIT_LET symbol_pattern lit_denote statement {}
 
 
+(* token_pattern_item : list(tokens tvar {}) {} *)
+token_pattern : tokens list(tvar tokens {}) option(tvar) {}
+tokens : nonempty_list(TOKEN) {} 
+(* restriction: no token should be a variant of the verb to be, or iff *)
+symbol_pattern : option(tvar) SYMBOL list(tvar SYMBOL {}) option(tvar) {}
+| identifier paren(tvar list(COMMA tvar {}) {}) {}
+| identifier option(tvar) {}
+notion_pattern : option(lit_a) token_pattern {}
+function_pattern : LIT_THE token_pattern | symbol_pattern {}
+predicate_token_pattern : 
+| tvar LIT_IS token_pattern {}
+| tvar token_pattern {}
 
 
-defS :notionDef | functionDef | predicateDef {}
-isJunction : LIT_IS | assign {}
-notionDef :notionHead isJunction aAn ctype {}
-functionDef : functionHead isJunction option(LIT_EQUAL LIT_TO {}) option(LIT_THE) term {}
-iffJunction : LIT_IFF | LIT_IF LIT_AND LIT_ONLY LIT_IF {}
-predicateDef : predicateHead iffJunction statement {}
+(* ATTRIBUTES (FORTHEL STYLE) *)
 
+left_attribute : prim_simple_adjective | prim_simple_adjective_mutual {}
 
-
-
-notionHead : option(aAn) primType | notionP {}
-functionHead :option(LIT_THE) primDefiniteNoun | functionPattern {}
-predicateHead :tvar LIT_IS primAdjective {}
-| tvar2 LIT_ARE primAdjectiveM
-| tvar primVerb
-| tvar2 primVerbM
-| primRelation
-| predicateP {}
-
-
-
-
-leftAttrib : primSimpleAdjective | primSimpleAdjectiveM {}
-rightAttrib : isPred list(sep isPred {}) {}
-| LIT_THAT doesPred list(sep doesPred {}) {}
+right_attribute : sep_list(is_pred) {}
+| LIT_THAT sep_list(does_pred) {}
 | LIT_SUCH LIT_THAT statement {}
 
 
 
 
-notions : option(aAn) notion list(sep option(aAn) notion {}) {}
-notion :ctype | quantifier_prop {}
-ctype : list(leftAttrib) primType option(rightAttrib) {}
-parenClassRelation : primClassRelation | L_PAREN primClassRelation R_PAREN {}
-quantifier_prop : list(leftAttrib) parenClassRelation option(rightAttrib) {}
-lit_qadj : LIT_EVERY | LIT_EACH | LIT_EACH LIT_AND LIT_EVERY | LIT_ALL | LIT_ANY | LIT_SOME | LIT_NO {}
-quantifiedNotion : lit_qadj LIT_NOTION {}
+named_terms : sep_list(option(lit_a) named_term {}) {}
+named_term : type_expr | quantifier_prop {}
+
+paren_class_relation : prim_quantifier_prop 
+| paren(prim_quantifier_prop {}) {}
+
+quantifier_prop : list(left_attribute) paren_class_relation option(right_attribute) {}
+quantified_notion : lit_any LIT_NOTION {}
+
+(* syntax for types.*)
+
+type_expr : 
+| arrow_type
+| agda_pi_type
+| paren_type
+| annotated_type
+| app_type
+| const_type
+| var_type
+| subtype {}
+
+(* root_type : prim_typed_name | paren_type | annotated_type | const_type | var_type{} *)
+attribute_names  : list(left_attribute) prim_typed_name option(right_attribute) {}
+arrow_type : type_expr ARROW type_expr {}
+agda_pi_type : paren(var_term colon_type {}) ARROW type_expr {}
+paren_type : paren(type_expr) {}
+annotated_type : paren(type_expr COLON LIT_TYPE {}) {}
+
+app_type : type_expr nonempty_list(expr) {}
+
+type_identifier : identifier {}
+const_type : type_identifier {}
+var_type : VAR {}
+
+subtype :  brace(term option(LIT_FIXING comma_nonempty_list(VAR) {}) LIT_MMID term {}) {}
 
 
 
 
 
-term :matchExpr| XX {}
-terms :term list(sep term {}) {}
-proofterm :qed {}
-universe : LIT_PROP | LIT_TYPE{}
-prop : XX {}
-varNameType : XX {}
+(* inductive and mutual inductive are distinguished by context not keyword mutual.*)
+
+inductive_type : LIT_INDUCTIVE type_identifier list(pvars) opt_colon_type
+list(inductive_constructor) LIT_END{}
+
+mutual_inductive_type : LIT_INDUCTIVE
+comma_nonempty_list(type_identifier) list(pidentifiers)
+list(LIT_WITH ATOMIC_IDENTIFIER list(pidentifiers) colon_type
+ list(ALT identifier_term list(pidentifiers) colon_type {}) {}) LIT_END{}
+
+pidentifiers : paren(opt_comma_nonempty_list(ATOMIC_IDENTIFIER) opt_colon_type {}) {}
+inductive_constructor : ALT identifier_term list(pidentifiers) opt_colon_type{}
 
 
 
 
 
-matchExpr : LIT_MATCH matchSeq LIT_WITH nonempty_list(ALT matchPats ASSIGN term {}) LIT_END {}
-matchSeq : separated_nonempty_list(COMMA,term) {}
-matchPats : separated_nonempty_list(pattern list(sep matchPat {}) {}) {}
-matchPat : term {}
+
+(* unsorted *)
+
+var_name_type : XX {}
+
+(* syntax for props *)
 
 
-(* Case staement. *)
-caseExpr : LIT_CASE term LIT_OF nonempty_list(casePattern) LIT_END {}
-casePattern : ALT prop ASSIGN term {} 
+prop : binder_prop 
+| identifier_prop {}
 
-(* Haskell style where expression *)
-whereExpr : L_BRACE separated_nonempty_list(SEMI,tvar ASSIGN term {}) R_BRACE {}
+binder_prop : prim_binder_prop option(opt_arg) tvars COMMA prop {}
 
-(* Lean style make. (We have freed up curly brackets.) *)
-makeExpr : L_BRACE separated_nonempty_list(SEMI, identifier option(ASSIGN term {}) {}) option(SEMI BLANK {}) R_BRACE option(COLON ctype {}) {}
+identifier_prop : identifier {}
 
 
-lambda_term :prim_lambda_binder option(opt_arg) tvars COMMA term {}
-lambda_fun : LIT_FUN word option(opt_arg {}) tvars option(SEMI ctype {}) ASSIGN term {}
-opt_arg : L_BRACE separated_nonempty_list(SEMI, word option(COLON ctype {}) {}) R_BRACE{}
-opt_arg_assign_term : L_BRACE separated_nonempty_list(SEMI,word ASSIGN term {}) R_BRACE (* function named args.*) {}
-lambda_function : LIT_FUNCTION word option(opt_arg) tvars option(SEMI ctype {}) nonempty_list(ALT matchPats ASSIGN term {}) LIT_END {}
 
-list_term : L_BRACK separated_list(SEMI,term) R_BRACK {}
+(* syntax for proofs *)
+proof_expr : SYMBOL_QED {}
 
-tuple_term : L_PAREN term COMMA separated_nonempty_list(COMMA,term) R_PAREN {}
 
-set_enum_term : L_BRACE separated_list(COMMA,term) R_BRACE {}
-set_comprehension_term : L_BRACE term option(LIT_FIXING separated_nonempty_list(COMMA,var) {}) ALT term R_BRACE {}
+(* Lean style syntax for terms *)
+
+term : 
+match_term
+| case_term 
+| make_term 
+| app_term 
+| identifier_term 
+| var_term 
+| lambda_term 
+| let_term 
+| annotated_term 
+| list_term 
+| tuple_term 
+| set_enum_term 
+| set_comprehension_term 
+| if_then_else_term 
+| BLANK {}
+terms : sep_list(term) {}
+
+app_term : term nonempty_list(expr) {}
+
+var_term : VAR {}
+annotated_term : paren(term colon_type {}) {}
+identifier_term : identifier {}
+
+match_term : LIT_MATCH match_seq LIT_WITH nonempty_list(ALT match_pats ASSIGN term {}) LIT_END {}
+  match_seq : comma_nonempty_list(term) {}
+  match_pats : comma_nonempty_list(match_pat) {}
+  match_pat : term {}
+
+(* case staement. *)
+case_term : LIT_CASE term LIT_OF nonempty_list(case_pattern) LIT_END {}
+  case_pattern : ALT prop ASSIGN term {} 
+
+(* Haskell style "where" expression *)
+where_term : brace_semi(tvar opt_colon_type ASSIGN term {}) {}
+
+(* Lean style make. (We have freed up braces.) *)
+make_term : brace_semi(identifier option(ASSIGN term {}) option(SEMI BLANK {}) {}) opt_colon_type {}
+
+
+lambda_term : prim_lambda_binder option(opt_arg) tvars COMMA term {}
+lambda_fun : LIT_FUN identifier option(opt_arg {}) tvars opt_colon_type ASSIGN term {}
+opt_arg : brace_semi(identifier opt_colon_type {}) {}
+opt_arg_assign_term : brace_semi(identifier ASSIGN term {}) (* function named args.*) {}
+lambda_function : LIT_FUNCTION identifier option(opt_arg) tvars opt_colon_type nonempty_list(ALT match_pats ASSIGN term {}) LIT_END {}
+
+list_term : bracket(separated_list(SEMI,term) {}) {}
+
+tuple_term : paren(term COMMA comma_nonempty_list(term) {}) {}
+
+set_enum_term : brace(comma_list(term) {}) {}
+set_comprehension_term : brace(term option(LIT_FIXING comma_nonempty_list(VAR) {}) LIT_MID term {}) {}
 
 (* let includes destructuring*)
 let_term : LIT_LET term ASSIGN term LIT_IN term {}
 if_then_else_term : LIT_IF prop LIT_THEN term LIT_ELSE term {}
 
 
-(*% TYPES *)
+(* EXPRESSIONS *)
 
-(* inductive and mutual inductive are distinguished by context not keyword mutual.*)
-pidentifiers : L_PAREN separated_nonempty_list(option(COMMA),identifier) option(COLON ctype {}) R_PAREN{}
-inductive_constructor : ALT identifier list(pidentifiers) option(COLON ctype {}){}
+expr : type_expr | term | prop | proof_expr {}
 
-inductive_type : LIT_INDUCTIVE identifier list(pvars) option(COLON ctype {})
- list(inductive_constructor) LIT_END{}
+(* declaration of structure *)
 
-mutual_inductive_type : LIT_INDUCTIVE
-identifier  nonempty_list(COMMA identifier {})  list(pidentifiers)
-list(LIT_WITH  identifier  list(pidentifiers) COLON  ctype
- list(ALT  identifier list(pidentifiers) COLON  ctype {}) {}) LIT_END{}
-
-
-
-
-
-
-(* function specs *)
-
-
-structure : option(aAn) primStructure LIT_IS aAn anonStructure {}
-anonStructure : LIT_STRUCTURE option(withParam) fields option(satisfyingPreds) {}
-fieldKey : LIT_EMBEDDED | LIT_PARAMETRIC | LIT_TYPEABLE | LIT_APPLICABLE {}
-withParam : LIT_WITH LIT_PARAMETERS tvars {}
+structure : option(lit_a) prim_structure LIT_IS lit_a anon_structure {}
+anon_structure : LIT_STRUCTURE option(with_param) fields 
+  option(satisfying_preds) {}
+field_key : LIT_EMBEDDED 
+| LIT_PARAMETRIC 
+| LIT_TYPEABLE 
+| LIT_APPLICABLE {}
+with_param : LIT_WITH LIT_PARAMETERS tvars {}
 fields : LIT_WITH nonempty_list(field) {}
-fieldPrefix : ALT list(fieldKey) {}
-fieldSuffix : LIT_WITHOUT LIT_NOTATION | fieldAssign {}
-field_name : word COLON ctype | varNameType {}
-field : fieldPrefix field_name  option(fieldSuffix) {}
-satisfyingPreds : LIT_SATISFYING nonempty_list(satisfyingPred) {}
-satisfyingPred : ALT option(word COLON {}) predicate {}
-fieldAssign : ASSIGN term {}
+field_prefix : ALT list(field_key) {}
+field_suffix : LIT_WITHOUT LIT_NOTATION | field_assign {}
+field_name : ATOMIC_IDENTIFIER colon_type | var_name_type {}
+field : field_prefix field_name option(field_suffix) {}
+satisfying_preds : LIT_SATISFYING nonempty_list(satisfying_pred) {}
+satisfying_pred : ALT option(ATOMIC_IDENTIFIER COLON {}) prop {}
+field_assign : ASSIGN term {}
+
+symbol_term : tvar | XX {}
+
+definite_term : symbol_term
+| option(LIT_THE) prim_definite_noun
+| paren(option(LIT_THE) prim_definite_noun {}) {}
 
 
+(* predicates *)
+does_pred : option(lit_do) option(LIT_NOT) prim_verb {}
+| option(lit_do) option(LIT_NOT) prim_verb_mutual
+| lit_has has_pred
+| lit_is sep_list(is_pred)
+| lit_is sep_list(is_aPred {}) {}
 
-symbTerm : tvar | XX {}
+is_pred : option(LIT_NOT) prim_adjective {}
+| option(LIT_NOT) option(LIT_PAIRWISE) prim_adjective_mutual
+| lit_with has_pred {}
+
+is_aPred : option(LIT_NOT) option(lit_a) type_expr {}
+| option(LIT_NOT) definite_term {}
+
+has_pred : sep_list(article possessed_noun {}) {}
+| LIT_NO possessed_noun {}
+
+possessed_noun : list(left_attribute) prim_possessed_noun option(right_attribute) {}
+
+(* statements *)
+(* This might be merged with TDOP prop parsing *)
+
+statement : head_statement | chain_statement {}
+  head_statement : LIT_FOR sep_list(quantified_notion {}) statement {}
+  | LIT_IF statement COMMA LIT_THEN statement (* != if-then-else *)
+  | lit_its_wrong statement {}
+  chain_statement : and_chain option(LIT_AND head_statement {}) 
+  | or_chain option(LIT_OR head_statement {}) {}
+  | and_or_chain LIT_IFF statement {}
+  and_or_chain : and_chain | or_chain {}
+  and_chain : separated_nonempty_list(LIT_AND, primary_statement {}) {}
+  or_chain : separated_nonempty_list(LIT_OR, primary_statement {}) {}
+
+(* primary statement *)
+primary_statement : 
+  | simple_statement {}
+  | there_is_statement
+  | option(phrase_list_filler) symbol_statement
+  | option(phrase_list_filler) const_statement {}
+  simple_statement : terms separated_nonempty_list(LIT_AND, does_pred) {}
+  there_is_statement : LIT_THERE lit_exist named_terms {}
+  | LIT_THERE lit_exist LIT_NO named_term {}
+  const_statement : option(LIT_THE) LIT_THESIS {}
+  | option(LIT_THE) LIT_CONTRARY
+  | lit_a LIT_CONTRADICTION {}
+  symbol_statement : 
+  | LIT_FORALL quantifier_prop COMMA 
+    symbol_statement {} 
+  | LIT_EXISTS quantifier_prop COMMA symbol_statement
+  | prim_relation
+  | LIT_NOT symbol_statement
+  | paren(statement)
+  | symbol_predicate {}
+  symbol_predicate : XX {}
 
 
+(* SECTIONS test:Sections *)
 
-lit_do : LIT_DO | LIT_DOES {}
-is : LIT_IS | LIT_ARE | LIT_BE {}
-has : LIT_HAS | LIT_HAVE {}
-doesPred : option(lit_do) option(LIT_NOT) primVerb {}
-| option(lit_do) option(LIT_NOT) primVerbM
-| has hasPred
-| is isPred list(sep isPred {})
-| is isAPred list(sep isAPred {}) {}
-lit_with : LIT_WITH | LIT_OF | LIT_HAVING {}
-isPred : option(LIT_NOT) primAdjective {}
-| option(LIT_NOT) option(LIT_PAIRWISE) primAdjectiveM
-|  lit_with hasPred {}
-isAPred : option(LIT_NOT) option(aAn) ctype {}
-| option(LIT_NOT) definiteTerm {}
-hasPred : article possNoun list(sep article possNoun {}) {}
-| no possNoun {}
-possNoun : list(leftAttrib) primPossessNoun option(rightAttrib) {}
+section_preamble : section_tag option(label) PERIOD {}
+  section_tag : LIT_DOCUMENT 
+  | LIT_ARTICLE 
+  | LIT_SECTION 
+  | LIT_SUBSECTION 
+  | LIT_SUBSUBSECTION {} 
+
+(* NAMESPACES  *)
+
+cnl_module : XX {}
 
 
-statement : headS | chainS {}
-headS : LIT_FOR quantifiedNotion list(sep quantifiedNotion {}) statement {}
-| LIT_IF statement LIT_THEN statement(* prose then-statement, there is also if-then-else. *)
-| LIT_IT LIT_IS LIT_WRONG LIT_THAT statement {}
-chainS : andChain option(LIT_AND headS {}) | orChain option(LIT_OR headS {}) {}
-andChain : primaryS list(LIT_AND primaryS {}) {}
-orChain : primaryS list(LIT_OR primaryS {}) {}
-
-
-primaryS : simpleS {}
-| thereIsS
-| option(LIT_WE LIT_HAVE {}) symbS
-| option(LIT_WE LIT_HAVE {}) constS {}
-simpleS : terms doesPred list(LIT_AND doesPred {}) {}
-lit_exist : LIT_EXIST | LIT_EXITS {}
-thereIsS : LIT_THERE lit_exist notions {}
-| LIT_THERE lit_exist LIT_NO notion {}
-constS : option(LIT_THE) LIT_THESIS {}
-| option(LIT_THE) LIT_CONTRARY
-| aAn LIT_CONTRADICTION {}
-symbS : LIT_FORALL quantifier_prop COMMA symbS(* class_relation in Forthel *) {}
-| LIT_EXISTS quantifier_prop COMMA symbS
-| primRelation
-| LIT_NOT symbS
-| L_PAREN statement R_PAREN
-| symbolPredicate {}
-
-
-text_item : cnl_module | macro | sectionHeader | toplevel | instruction {}
+(* text *)
 text : list(text_item) {}
-toplevel : axiom | def | proposition {}
-axiom : axiomHeader list(assume) axiomAffirm {}
-axiomHeader : axiom option(label) PERIOD {}
-def : defHeader list(assume) defAffirm {}
-lit_def : LIT_DEF | LIT_DEFINITION {}
-defHeader :  lit_def option(label) PERIOD {}
-proposition : propositionHeader list(assume) affirm {}
-lit_prop : LIT_CONJECTURE | LIT_PROPOSITION | LIT_THEOREM | LIT_LEMMA | LIT_COROLLARY {} 
-propositionHeader : lit_prop option(label) PERIOD {}
-label : word {}
-assume : asmPrefix statement PERIOD {}
-lit_lets : LIT_LET LIT_US | LIT_WE LIT_CAN {}
-lit_assume :LIT_ASSUME | LIT_SUPPOSE {}
-asmPrefix : LIT_LET | lit_lets lit_assume  option(LIT_THAT) {}
-axiomAffirm : statement PERIOD {}
-defAffirm : defS PERIOD option(thisDef) {}
-affirm : affPrefix statement option(ref) PERIOD option(prfHeader proof qed PERIOD {}) {}
-lit_then :LIT_THEN | LIT_THEREFORE | LIT_HENCE {}
-affPrefix : option(lit_then){}
-prfHeader : LIT_PROOF option(LIT_BY prf_method {}) PERIOD | LIT_INDEED {}
-prf_method : LIT_CONTRADICTION | LIT_CASE LIT_ANALYSIS | LIT_INDUCTION option(LIT_ON term {}) {}
-proof :{} 
-ref : L_PAREN LIT_BY label option(sep list(label) {}) R_PAREN {}
-qed : LIT_QED | LIT_OBVIOUS | LIT_TRIVIAL{}
+  text_item : cnl_module 
+    | macro 
+    | section_preamble 
+    | declaration 
+    | instruction {}
 
-program : LIT_DONE { "done" } 
+(* declaration test:declaration *)
+declaration : axiom | definition | theorem  {}
+
+(* axiom *)
+axiom : axiom_preamble list(assumption) affirm_prefix statement PERIOD {}
+  axiom_preamble : lit_axiom option(label) PERIOD {}
+  assumption : assumption_prefix statement PERIOD {}
+  assumption_prefix : LIT_LET | lit_lets lit_assume option(LIT_THAT) {}
+
+(* definition *)
+definition : definition_preamble list(assumption) definition_affirm {}
+  definition_preamble : lit_def option(label) PERIOD {}
+  definition_affirm : definition_statement PERIOD option(this_exists) {}
+
+definition_statement : notion_def | function_def | predicate_def {}
+  macro_junction : lit_is option(lit_defined_as) | ASSIGN | lit_denote {}
+  iff_junction : lit_iff {} 
+
+  notion_def : notion_head macro_junction lit_a type_expr {}
+    notion_head : option(lit_a) prim_typed_name | notion_pattern {}
+
+  function_def : function_head macro_junction option(LIT_EQUAL LIT_TO {}) 
+    option(LIT_THE) term {}
+    function_head : option(lit_define) option(LIT_THE) prim_definite_noun 
+    | function_pattern {}
+
+  predicate_def : predicate_head iff_junction statement {}
+  predicate_head : option(lit_we_say) tvar LIT_IS option(LIT_CALLED) 
+    prim_adjective {}
+  | option(lit_we_say) tvar2 LIT_ARE option(LIT_CALLED) 
+    prim_adjective_mutual
+  | option(lit_we_say) tvar prim_verb
+  | option(lit_we_say) tvar2 prim_verb_mutual
+  | option(lit_we_say) prim_relation
+  | option(lit_we_say) predicate_token_pattern {}
+
+
+(* theorem *)
+theorem : theorem_preamble list(assumption) affirm {}
+  theorem_preamble : lit_theorem option(label) PERIOD {}
+  affirm : affirm_prefix statement option(ref) PERIOD 
+    option(proof_preamble proof_script qed {})
+  | affirm_prefix statement option(ref) PERIOD 
+    LIT_INDEED short_proof_script {}
+  | proof_prefix statement option(ref) PERIOD proof_script qed {}
+  affirm_prefix : option(LIT_THEN){}
+
+(* proofs *)
+proof_script : list(proof_body) proof_tail{}
+  proof_body : affirm | choose | assumption | case {}
+  proof_tail : affirm | choose | case {}
+  proof_preamble : LIT_PROOF option(LIT_BY proof_method {}) PERIOD
+  | LIT_INDEED {}
+  short_proof_script : affirm {}
+  proof_method : LIT_CONTRADICTION 
+    | LIT_CASE LIT_ANALYSIS 
+    | LIT_INDUCTION option(LIT_ON term {}) {}
+  proof_prefix : option(lit_lets) 
+    lit_prove option(LIT_BY proof_method {}) option(LIT_THAT) {}
+  case : LIT_CASE statement PERIOD proof_script qed {}
+  choose : choose_prefix named_terms option(ref) PERIOD 
+    option(proof_prefix proof_script qed {}) {}
+  choose_prefix : affirm_prefix option(lit_lets) lit_choose {}
+  ref : paren(LIT_BY sep_list(label) {}) {}
+  qed : LIT_QED | LIT_OBVIOUS | LIT_TRIVIAL PERIOD {}
+
+(* This exists and is well-defined. *)
+this_exists : LIT_THIS 
+  sep_list(this_directive_pred) PERIOD {} 
+  this_directive_pred : LIT_IS 
+    sep_list(this_directive_adjective) 
+    | this_directive_verb {}
+  this_directive_adjective : 
+    | LIT_UNIQUE 
+    | LIT_CANONICAL 
+    | LIT_WELLDEFINED 
+    | LIT_WELL_DEFINED 
+    | LIT_WELL LIT_DEFINED 
+    | LIT_TOTAL 
+    | LIT_WELL LIT_PROPPED 
+    | LIT_WELL_PROPPED 
+    | LIT_EXHAUSTIVE {}
+  this_directive_right_attr : LIT_BY LIT_RECURSION {}
+  this_directive_verb : LIT_EXISTS option(this_directive_right_attr){}
+
+program : text { "done" } 
 

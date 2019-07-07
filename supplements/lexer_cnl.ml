@@ -54,7 +54,11 @@ let alphanum = [%sedlex.regexp? alphabet | numeral10 | '_' | "'"]
 let controlseq = [%sedlex.regexp? '\\', Plus(alphabet)]
 let var = [%sedlex.regexp? alphabet, Star(numeral10 | "'" | "_")]
 let token = [%sedlex.regexp? Plus(alphabet) ]
-let word = [%sedlex.regexp? alphabet, Star(alphanum) ]          
+
+
+(* identifier should be generalized to include PERIOD for namespaces and
+   field accessors *)
+let identifier = [%sedlex.regexp? alphabet, Star(alphanum) ]          
 
 (* numerical literals *)
 
@@ -69,8 +73,10 @@ let rbrace = [%sedlex.regexp? '}' ]
 
 let period = [%sedlex.regexp? '.']           
 let comma = [%sedlex.regexp? ',']
+let colon = [%sedlex.regexp? ':']
 let semi = [%sedlex.regexp? ';']           
 let assign = [%sedlex.regexp? ":="]
+let arrow = [%sedlex.regexp? "->"]
 let alt = [%sedlex.regexp? "|"]
 let slash = [%sedlex.regexp? "/"]
 let slashdash = [%sedlex.regexp? "/-"]
@@ -111,15 +117,17 @@ let rec lex_token buf =
     | rbrace -> R_BRACE (lexeme buf)
     | period -> PERIOD (lexeme buf)
     | comma -> COMMA (lexeme buf)
+      | colon -> COLON (lexeme buf)
     | semi -> SEMI (lexeme buf)
     | assign -> ASSIGN (lexeme buf)
+    | arrow -> ARROW (lexeme buf)
     | alt -> ALT (lexeme buf)
     | slash -> SLASH (lexeme buf)
     | slashdash -> SLASHDASH (lexeme buf)
     | blank -> BLANK (lexeme buf)
     | var -> VAR (lexeme buf)
     | token -> TOKEN (lexeme buf)
-    | word -> WORD (lexeme buf)
+    | identifier -> IDENTIFIER (lexeme buf)
     | eof -> EOF
     | any -> failwith (lexeme buf)
     | _  -> failwith (lexeme buf)

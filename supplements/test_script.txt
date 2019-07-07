@@ -1,0 +1,141 @@
+% Test scripts for CNL-CIC.
+
+% Sections. 
+
+Article .
+article.
+Article The_Riemann_Hypothesis .
+
+Section.
+section analytic_continuation.
+
+subsection.
+Subsection Riemann_zeta_function.
+
+Subsubsection.
+SubSubSection critical_strip .
+
+%% labels can be any atomic identifier.
+
+article A1'.
+article A_iii.
+article A''.
+article A'1'2.
+% error periods are not allowed in labels: section 1.2.
+
+Section test_instruction.
+
+Subsection test_command.
+
+[exit]
+[Exit]
+[ exit ]
+
+Subsection test_synonym.
+
+% Synonyms should be recognized in any context
+% where tokens are expected.
+
+[synonym set/-s]
+[ synonym number /- s ]
+[ synonym element / elements /elemental ]
+[synonym almost everywhere / ae ]
+[ synonym almost all/all but finitely many]
+
+Subsection test_string_instruction.
+
+[read "algebra.cnl"]
+[ library "analysis" ]
+[ Read "topology.cnl" ]
+
+Subsection test_int_instruction
+
+[timelimit 1000]
+
+Subsection test_bool_instruction
+
+[printgoal true]
+[ PRINTGOAL on ]
+[Dump off]
+[ dump on ]
+
+Section test_declaration.
+
+Subsection test_axiom.
+
+% XX We need to introduce natural number, positive, ...
+
+Let nat be a type.
+Let x, y, z, w, r, t, s stand for nat.
+
+Axiom. (x : nat) is positive.
+
+axiom Zero_np. (x : nat) is not positive.
+
+Axiom.  Let x be positive.  Then (x : nat) is positive.
+
+% test assumptions.
+axiom random''. Let x be positive.  We assume y is positive.
+We suppose z is positive.  Let us assume w is positive.
+We can suppose that r is positive.
+Let us assume that t is positive.
+We can assume s is positive.
+(x : nat) is not positive.
+
+conjecture. (x : nat) is positive.
+
+Conjecture pos_33'. (x : nat) is positive .
+
+hypothesis A_A . (x : nat) is positive.
+
+Hypothesis A'B.  (x : nat) is positive.
+
+Subsection test_definition.
+
+Subsubsection test_predicate_definition.
+
+Definition X1. 
+We say that x is remarkable iff x is positive.
+
+Definition X2.
+(x : nat) is more remarkable iff x is positive.
+
+Definition X3.
+x is called most remarkable iff x is positive.
+
+Definition X4.
+We say x is called fully remarkable iff x is positive.
+
+Definition X5.
+We say that x gobbles y iff x is positive and y is positive.
+
+Definition X6.
+x half gobbles y iff x is positive and y is positive.
+
+Definition X7.
+x contracts onto y iff x is positive and y is positive.
+
+Definition X8.
+We say that x converges iff x is positive.
+
+Definition X9.
+We say that x converges to y in the mean iff x is positive.
+
+Definition X10.
+We say that x > y iff x is positive.
+
+Definition X11.
+We say that x ++ y -- z iff y is positive.
+
+Definition X12.
+We say that x ..>.. y iff x is positive.
+
+Definition X13.
+x! iff x is positive.
+
+
+
+
+
+
+

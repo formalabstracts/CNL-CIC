@@ -1,0 +1,100 @@
+(* Forthel to CNL bilingual dictionary of nonterminals based on
+   Paskevich's "syntax and semantics of the ForTheL language. *)
+
+FORTHEL   CNL
+lexeme -
+word - 
+alphanum - 
+alpha - 
+small - 
+capital - 
+numeric - 
+symbol - 
+whitespace - 
+whitetoken - 
+comment - 
+space - 
+newline - 
+variable - 
+
+1.3.1 Syntactic primitives
+pattern - 
+token - 
+symbPattern - 
+symbToken - 
+tokenGroup - 
+
+1.3.2 Notions - 
+primClassNoun - 
+primClassRelation - 
+names - 
+leftAttribute - 
+rightAttribute - 
+primSimpleAdjective - 
+primSimpleAdjectiveM - 
+notion - 
+classNoun - 
+classRelation - quantifier_prop
+
+1.3.3 Terms - 
+term - 
+quantifiedNotion - 
+definiteTerm - 
+symbTerm - 
+symbTermTighter - 
+symbTermTightest - 
+primDefiniteNoun - 
+primInfixOperator - 
+primPrefixOperator - 
+primPostfixOperator - 
+plainTerm - 
+primPlainNoun - 
+
+1.3.4 Predicates
+doesPredicate - 
+isPredicate - 
+is_aPredicate - 
+hasPredicate - 
+primVerb - 
+primAdjective - 
+primVerM - 
+primAdjectiveM - 
+possessedNoun - 
+primPossessedNoun - 
+
+1.3.5 Statements
+primaryStatement - 
+simpleStatement - 
+terms - 
+thereIsStatement - 
+notions - 
+symbStatement - 
+primRelation - 
+symbTerms - 
+constStatement - 
+statement - 
+headStatement - 
+chainStatement - 
+andChain - 
+orChain - 
+
+1.3.6 Special statements and synonym declarations
+defStatement - 
+sigStatement - 
+notionDef - 
+notionSig - 
+functionDef - 
+functionSig - 
+predicateDef - 
+predicateSig - 
+notionHead - 
+notionPattern - 
+functionHead - 
+functionPattern - 
+predicateHead - 
+predicatePattern - 
+synonym - 
+notionSyn - 
+functionSyn - 
+predicateSyn - 
+
