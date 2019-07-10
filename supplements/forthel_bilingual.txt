@@ -25,8 +25,8 @@ symbToken -
 tokenGroup - 
 
 1.3.2 Notions - 
-primClassNoun - 
-primClassRelation - 
+primClassNoun - prim_typed_name
+primClassRelation - prim_free_predicate
 names - 
 leftAttribute - 
 rightAttribute - 
@@ -34,7 +34,7 @@ primSimpleAdjective -
 primSimpleAdjectiveM - 
 notion - 
 classNoun - 
-classRelation - quantifier_prop
+classRelation - free_predicate
 
 1.3.3 Terms - 
 term - 
@@ -80,20 +80,20 @@ orChain -
 
 1.3.6 Special statements and synonym declarations
 defStatement - 
-sigStatement - 
+sigStatement - NOT_IMPLEMENTED
 notionDef - 
-notionSig - 
+notionSig - NOT_IMPLEMENTED
 functionDef - 
-functionSig - 
+functionSig - NOT_IMPLEMENTED
 predicateDef - 
-predicateSig - 
+predicateSig - NOT_IMPLEMENTED
 notionHead - 
 notionPattern - 
 functionHead - 
 functionPattern - 
 predicateHead - 
 predicatePattern - 
-synonym - 
+synonym - macro
 notionSyn - 
 functionSyn - 
 predicateSyn - 

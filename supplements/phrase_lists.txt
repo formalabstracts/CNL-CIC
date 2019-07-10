@@ -1,5 +1,5 @@
 (*
-Here's a list of phrases that a proof sentences can start with.
+Here's a list of phrases that proof sentences can start with.
 Multiple phrases are allowed in each sentence.
 
 In the current version,
@@ -114,12 +114,11 @@ we claim that?
 we emphasize that?
 we first show that?
 we get
-we have
 we have seen that
 we have that?
 we know that?
 we may? check that?
-we obtain
+we obtain that?
 we remark that?
 we say that?
 we see that
@@ -158,7 +157,7 @@ reconstruction.
 phrase_list_proof_statement : 
 *)
 We proceed as follows.
-The (lemma | theorem | proposition | corollary) now follows.
+The (result | lemma | theorem | proposition | corollary) now? follows.
 The other cases are similar.
 The proof is (obvious|trivial|easy|routine).
 

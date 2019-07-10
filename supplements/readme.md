@@ -32,3 +32,9 @@ Build
  * dune build
  * dune runtest
  
+
+References:
+ * Paskevich "The syntax and semantics of the ForTheL language" 
+   (Dec 2007)
+ * Avigad, Ebner, Ullrich "The Lean Reference Manual Release 3.3.0" 
+   (Oct 24, 2017)
