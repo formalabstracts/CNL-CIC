@@ -1,6 +1,10 @@
+{-
+Author(s): Jesse Michael Han (2019)
+-}
+
 module Main where
 
-import Lib
+import CNLean.Test
 
 main :: IO ()
-main = someFunc
+main = helloWorld
