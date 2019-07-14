@@ -32,13 +32,13 @@ leftAttribute -
 rightAttribute - 
 primSimpleAdjective - 
 primSimpleAdjectiveM - 
-notion - 
+notion - named_term
 classNoun - 
 classRelation - free_predicate
 
 1.3.3 Terms - 
 term - 
-quantifiedNotion - 
+quantifiedNotion - any_name
 definiteTerm - 
 symbTerm - 
 symbTermTighter - 

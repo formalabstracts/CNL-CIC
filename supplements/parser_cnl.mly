@@ -8,6 +8,7 @@ Thomas C. Hales, 2019.
 (* documentation *)
 
  (* 
+
   Beware of conflicting terminology between Forthel and Lean,
   including variables, attributes, sections, proof, pattern,
   names vs. namespaces. if,then vs. if-then-else.
@@ -18,16 +19,43 @@ Thomas C. Hales, 2019.
   start of line comments (regexp "^(").
 
   TDOP top down operator precedence terms and formulas are
-  identified by the grammar but not reduced.
+  identified by the grammar but not reduced. They should be handled
+  by a separate parser. 
 
   ioption = menhir inlined option. This is needed in a few
   places to remove reduce/reduce conflicts. 
- 
+
+  Fake symbols PA0, PA1,... PL1, PL2 will be removed from the
+  final grammar.  The have been inserted to reduced the number
+  of ambiguities in trying to write this as an LR(1) grammar.
+  The implemented verion will use Parsec will arbitrary lookahead. 
+
+  I have lost track of keeping parentheses to a necessary minimum.  
  *)
+
+ (*
+
+  Features not implemented: 
+
+  Specific lines of the file are marked NOT_IMPLEMENTED.
+
+  *)
 
 %{
 
- (* open Program *)
+ (*
+  The grammar of expressions should fall into four sorts:
+  props, proofs, types, and terms.  Here a term is an expression that
+  is not any of the other three.  
+
+  The parser of the langauge is not expected do to Lean-style type checking,
+  but it should do type checking according to these four sorts. 
+
+  In particular, parsing of primitives should read expressions of the right
+  sort into the slots of the primitive. 
+  *)
+
+
 type exp_t =
 | prop_t
 | proof_t
@@ -43,25 +71,26 @@ type exp_t =
 
 %%
 
-punctuation : delimiter | separator {}
-lexeme : NUMERIC | identifier | FIELD_ACCESSOR | SYMBOL | punctuation {}
+ (* These are not used, but they document the lexical structure. 
+  delimiter : L_PAREN | R_PAREN | L_BRACK | R_BRACK | L_BRACE | R_BRACE {}
+  separator : COMMA | SEMI | PERIOD {}
+  punctuation : delimiter | separator {}
+  lexeme : NUMERIC | identifier | FIELD_ACCESSOR | SYMBOL | punctuation {}
+ *)
 
 
 (* parametrized nonterminals *)
 
 paren(X) : L_PAREN x = X R_PAREN { x }
- (* opt_paren(X) : 
-| X
-| paren(X) {} *)
 bracket(X) : L_BRACK x = X R_BRACK { x }
 brace(X) : L_BRACE x = X R_BRACE { x }
 brace_semi(X) : brace(separated_nonempty_list(SEMI,X) {}) {}
+opt_paren(X) : X | paren(X) {}
 
 comma_nonempty_list(X) : separated_nonempty_list(COMMA,X) {}
 comma_list(X) : separated_list(COMMA,X) {}
 opt_comma_nonempty_list(X) : separated_nonempty_list(option(COMMA),X) {}
 sep_list(X) : separated_list(sep_and_comma,X) {}
-(* separated_nonempty2_list(S,X) : X S separated_nonempty_list(S,X) {} *)
 
 cs_brace(X) : X list(brace(expr) {}) {} (* control sequence args *)
 
@@ -76,8 +105,6 @@ phrase_list_proof_statement : PL3 {}
 lit_a : LIT_A | LIT_AN {}
 article : lit_a | LIT_THE {}
 sep_and_comma : LIT_AND | COMMA {}
-separator : COMMA | SEMI | PERIOD {}
-delimiter : L_PAREN | R_PAREN | L_BRACK | R_BRACK | L_BRACE | R_BRACE {}
 identifier : ATOMIC_IDENTIFIER | HIERARCHICAL_IDENTIFIER {}
 lit_binder_comma : COMMA {}
 
@@ -94,6 +121,9 @@ lit_with : LIT_WITH | LIT_OF | LIT_HAVING {}
 lit_true : LIT_ON | LIT_TRUE | LIT_YES {}
 lit_false : LIT_OFF | LIT_FALSE | LIT_NO {}
 lit_its_wrong : LIT_IT LIT_IS LIT_WRONG LIT_THAT {}
+lit_we_record : 
+| LIT_WE LIT_RECORD option(LIT_THAT) 
+| LIT_WE LIT_REGISTER option(LIT_THAT) {}
 lit_any : (* can extend: finitely many, almost all, etc. *)
 | LIT_EVERY
 | LIT_EACH
@@ -133,42 +163,27 @@ lit_location :
 | lit_theorem 
 | lit_axiom
 | lit_def {}
-lit_implicit : LIT_FIXED | LIT_IMPLICIT | LIT_RESOLVED {}
 lit_sort : LIT_TYPE | LIT_PROP {}
 lit_classifier : LIT_CLASSIFIER | LIT_CLASSIFIERS {}
+lit_varmod : LIT_FIXED | LIT_IMPLICIT | LIT_RESOLVED | LIT_REMOVE {}
+
 
 label : ATOMIC_IDENTIFIER {}
 
-(* stub rules suppressing errors for unused nonterminals. *)
+(* stub rules suppress errors for unused nonterminals. *)
 stub_nonterminal :
-| stub_prim
 | stub_token
 | stub_misc
 {}
 
-stub_token :
-| EOF
-| LIT_DONE
-| LIT_NOTION
-| NOT_DEBUGGED
-{}
+  stub_token :
+  | NOT_DEBUGGED
+  {}
 
-stub_misc :
-| where_term
-| controlseq_macro
-| delimiter
-| lexeme
-| punctuation
-{}
-
-stub_prim :
-| prim_relation 
-| prim_pi_binder
-| prim_binder_prop
-| prim_plain_noun
-| prim_possessed_noun
-| prim_structure
-{}
+  stub_misc :
+  | controlseq_macro
+  | make_term_opt_colon_type (* NOT_IMPLEMENTED instance declaration *)
+  {}
 
 (* primitives *)
 
@@ -222,8 +237,8 @@ prim_binder_prop : PA5 {}
     inductive types, mutual inductive types  *) 
 prim_typed_name : PA6 {} 
 
- (* from NOT_IMPLEMENTED *)
-prim_free_predicate : PA7 {} (* used in quantifier scoping *)
+ (* from NOT_IMPLEMENTED. Forthel: primClassRelation *)
+ (* prim_free_predicate : PA7 {} *) (* used in quantifier scoping *)
 
  (* from adjective_pattern *)
 prim_adjective : PA8 {} 
@@ -241,13 +256,10 @@ prim_simple_adjective_multisubject : PA11 {}
 prim_definite_noun : PA12 {} (* functions and terms *)
 
  (* from NOT_IMPLEMENTED *)
-prim_identifier_term : PA12a {} (* all identifiers that are terms *)
+prim_identifier_term : PA13 {} (* all identifiers that are terms *)
 
  (* from NOT_IMPLEMENTED *)
 prim_prefix_function : PA14 {} (* symbolic functions like sin,cos,exp *)
-
- (* derived from prim_definite_noun *)
-prim_plain_noun : PA13 {} 
 
  (* derived as in Forthel *)
 prim_possessed_noun : PA15 {} 
@@ -259,6 +271,13 @@ prim_verb : PA16 {}
 prim_verb_multisubject : PA17 {} 
 
  (* from structure_def *)
+ (* NOT_IMPLEMENTED. 
+    This is a stub for Cabarete mode structure notation, such as a
+    vector_space over R.  Note that LIT_OVER is used to debundle parameters. 
+    The syntax of prim_structures should be something like this:
+    prim_structure_literal names option(LIT_OVER debundled_args) {}
+ *)
+
 prim_structure : PA18 {} 
 
  (* from type_def, when infix with precedence *)
@@ -313,36 +332,38 @@ instruction :
 
 (* variables *)
 
- (* modifiers
-    fixed = Lean-style section parameter.
-    implicit = Lean-style { } implicit function parameter.
+ (* Variables can be given modifiers. 
+
+  LIT_FIXED means that the variable is a Lean-style section parameter. 
+  Such a variable can appear on the right-hand side of macros and definitions 
+  without appearing on the left-hand side. 
+
+  LIT_RESOLVED (NOT_IMPLEMENTED) stub for Lean type class resolution. 
+
+  LIT_IMPLICIT (NOT_IMPLEMENTED) stub for Lean implicit function parameters. 
+
+
   *)
 
-var_modifier : option(lit_implicit) {}
-annotated_var : paren(var_modifier VAR colon_type {}) {}
-annotated_vars : paren(var_modifier nonempty_list(VAR) colon_type {}) {}
+var_modifier : option(lit_varmod) {}
+annotated_var : paren(var_modifier VAR opt_colon_type {}) {}
+annotated_vars : paren(var_modifier nonempty_list(VAR) opt_colon_type {}) {}
 
 tvar : VAR | annotated_var {}
-
- (* tvars : VAR | annotated_vars {} *)
-
- (* vars_bound : nonempty_list(tvars) {} *)
-
-var_multisubject :
-| tvar COMMA tvar
-| paren(VAR COMMA VAR colon_type {}) {}
 
 record_assign_term :
   brace_semi(var_or_atomic opt_colon_type ASSIGN expr {})  {}
 
-app_args :
-  record_assign_term nonempty_list(expr_nonapp) {}
+app_args :  (* can be empty *)
+  option(AT record_assign_term {}) list(tightest_expr) {}
 
 
-(* function and binder parameters *)
-args : opt_args required_args {}
+(* function and binder parameters. *)
+
+args : option(AT opt_args {}) required_args {}
+
   opt_args : 
-    option(brace_semi(var_or_atomics opt_colon_type {}) {}) {}
+    brace_semi(var_or_atomics opt_colon_type {}) {}
 
   required_args : list(required_arg) {}
 
@@ -351,21 +372,73 @@ args : opt_args required_args {}
     | paren(var_or_atomics opt_colon_type {})
     | var_or_atomic {}
 
+
   var_or_atomic : VAR | ATOMIC_IDENTIFIER {}
   var_or_atomics : nonempty_list(var_or_atomic) {}   
 
+ (*
+  Consider 
+
+  lambda t, f
+
+  All variables x of t are extracted
+  as well as the field names of structures mentioned in t.
+
+  Then the translation becomes roughly (lambda x, let t := x in f), with
+  pattern matching on t.  The pattern t should be exhaustive as
+  in a structure or tuple. 
+
+  For example,
+  lambda ({ carrier ; op } : group), f 
+
+  *)
+
+ (* unambiguous boundaries of terms needed here *)
+ (* This allows too much. We should restrict further to admissible patterns. *)
+generalized_args : opt_args list(generalized_arg) {}
+
+  generalized_arg : 
+  | tightest_term
+  | paren(var_or_atomic var_or_atomics opt_colon_type {})
+  {}  
+
+ (*
+  LIT_HOLDING Forthel extracts the variables from certain expressions, then 
+  creates a binder over those variables. 
+  For example, 
+    'forall x + y > 3, we have x + y > 0' translates to
+    'forall x y, x + y > 3 -> x + y > 0'. 
+  Sometimes, some variables should be held from binder. In
+    'forall 1 < i < j < n, we have ...' 
+  we might want to hold the variable n from binding so that translation gives
+    'forall i j, 1 < i < j < n -> ...' 
+  We need a purely syntactic rule to hold n.
+    'forall 1 < i < j < n holding n, we have ...'
+  Forthel solves this problem by putting strong restrictions on the form
+  of quantifiedNotion.  We wish to relax these restrictions. 
+
+  In HOL-LIGHT, the extended set comprehension syntax does something related. 
+  There are two vertical bars:    { s | t | P }.
+  The term t in the middle is used to determine
+  which of the free variables of s are to be bound by the comprehension. 
+ *)
+
+holding_var : option(LIT_HOLDING comma_nonempty_list(VAR) {}) {}
+
 (* expressions *)
 
-expr : type_expr | term | prop | proof_expr | sort_expr {}
+expr : general_type | term | prop | proof_expr | sort_expr {}
 
-expr_nonapp : (* what is allowed as an arg to function calls *)
-| term_nonapp
-| NOT_IMPLEMENTED 
+tightest_expr : (* what is allowed as an arg to function calls *)
+| tightest_term
+| tightest_prop
+| tightest_type
+| proof_expr
 {}
 
 (* sorts *)
 
-sort_expr : (* args should be nonempty *)
+sort_expr : (* Side condition: args should be nonempty *)
 | option(args ARROW {}) lit_sort 
 {}
 
@@ -375,10 +448,7 @@ opt_colon_sort : option(colon_sort) {}
 
 (* types *)
 
-type_nonapp_expr :
-| arrow_type
-| agda_pi_type
-| binop_type
+tightest_type :
 | paren_type
 | annotated_type
 | controlseq_type
@@ -390,51 +460,74 @@ type_nonapp_expr :
 | structure
 {}
 
-type_expr :
-| app_type
-| type_nonapp_expr {}
+paren_type : paren(general_type) {}
 
-colon_type : COLON type_expr {}
-
-opt_colon_type : option(colon_type) {}
-
-arrow_type : type_expr ARROW type_expr {}
-
-agda_pi_type : nonempty_list(annotated_vars) ARROW type_expr {}
-
- (* for product types A * B, sum types A + B, etc. *)
-binop_type : type_operand nonempty_list(type_op type_operand {}) {}
-
-  type_op :
-  | prim_type_op 
-  | cs_brace(prim_type_op_controlseq)
-  {}
-
-  type_operand : (* any type with unambiguous boundaries *)
-  | paren_type 
-  | annotated_type
-  | const_type
-  | var_type
-  | subtype 
-  {}
-
-
-
-paren_type : paren(type_expr) {}
-
-annotated_type : paren(type_expr COLON LIT_TYPE {}) {}
-
-app_type : type_nonapp_expr app_args {}
+annotated_type : paren(general_type COLON LIT_TYPE {}) {}
 
 controlseq_type : cs_brace(prim_type_controlseq) {}
 
 const_type : type_identifier {}
   type_identifier : identifier {}
 
-var_type : VAR {}
+var_type : 
+| VAR 
+| paren(VAR COLON LIT_TYPE {}) {}
 
-subtype :  brace(term fixing_var LIT_SUBTYPEMID term {}) {}
-  fixing_var : option(LIT_FIXING comma_nonempty_list(VAR) {}) {}
+subtype :  brace(term holding_var LIT_SUBTYPEMID statement {}) {}
+
+app_type : tightest_type app_args {}
+
+binder_type : 
+| app_type 
+| prim_pi_binder generalized_args lit_binder_comma binder_type 
+{}
+
+(** binop_type *)
+ (* for product types A * B, sum types A + B, 
+    including arrows A -> B,
+    including Agda style dependent arrows (x:A) -> B.
+    all type operators are right assoc with the same precedence *)
+binop_type : type_operand list(type_op type_operand {}) {}
+
+  type_op :
+  | prim_type_op 
+  | cs_brace(prim_type_op_controlseq)
+  {}
+
+  type_operand :
+  | binder_type
+  | dependent_vars {} (* for Agda style dependent typing *)
+
+  dependent_vars : option(AT opt_args {})
+    nonempty_list(annotated_vars) {}
+
+opentail_type :
+| binop_type
+| quotient_type
+| coercion_type
+| prim_structure
+{}
+
+ (* agda_pi_type : nonempty_list(annotated_vars) ARROW opentail_type {} *)
+
+quotient_type : LIT_QUOTIENT option(LIT_OF) general_type LIT_BY term {}
+
+coercion_type : 
+| PL4 term  (* implicit coercion from a term to a type *)
+| COERCION term (* explicit coercion *)
+{}
+
+
+general_type : opentail_type {}
+
+
+
+
+colon_type : COLON general_type {}
+
+opt_colon_type : option(colon_type) {}
+
+
 
 (** inductive types *)
 
@@ -468,98 +561,49 @@ structure : option(LIT_NOTATIONAL) LIT_STRUCTURE
   satisfying_preds : brace_semi(satisfying_pred) {}
   satisfying_pred : ALT option(ATOMIC_IDENTIFIER COLON {}) prop {}
 
-(* props *)
-
-prop : 
-| binder_prop
-| identifier_prop 
-| tdop_rel_op
-| tdop_prop
-
-{}
-
-binder_prop : prim_binder_prop args
-  lit_binder_comma prop {}
-
-identifier_prop : identifier {}
-
 (* proof expressions (distinct from proof scripts). *)
 
-proof_expr : SYMBOL_QED {}
+proof_expr : 
+| SYMBOL_QED 
+| paren(proof_expr)
+{}
 
-(* terms *)
+(* tightest terms *)
 
-term_nonapp :
-| controlseq_term
-| match_term
-| case_term
-| make_term
-| lambda_term
-| lambda_fun
-| lambda_function
-| prim_identifier_term
-| var_term
-| lambda_term
-| let_term
+tightest_term : tightest_prefix option(FIELD_ACCESSOR) {}
+
+  tightest_prefix :
+  | NUMERIC
+  | STRING
+  | DECIMAL
+  | BLANK 
+  | VAR
+  | prim_identifier_term
+  | prim_prefix_function
+  | controlseq_term
+  | delimited_term
+  | alt_term
+  {}
+
+
+controlseq_term : cs_brace(prim_term_controlseq) {}
+
+(** delimited term *)
+
+delimited_term :
+| paren(term)
 | annotated_term
+| make_term
 | list_term
 | tuple_term
 | set_enum_term
 | set_comprehension_term
-| if_then_else_term
-| tdop_term
-| NUMERIC
-| STRING
-| DECIMAL
-| BLANK {}
-
-term : 
-| term_nonapp
-| app_term {}
-
-terms : sep_list(term) {}
-
-symbol_term : tvar | NOT_IMPLEMENTED {}
-
-app_term : term_nonapp app_args {}
-
-var_term : VAR {}
+{}
 
 annotated_term : paren(term colon_type {}) {}
 
-controlseq_term : cs_brace(prim_term_controlseq) {}
-
- (* identifier_term : identifier {} *)
-
-
-match_term : LIT_MATCH match_seq LIT_WITH 
-  nonempty_list(ALT match_pats ASSIGN term {}) LIT_END {}
-  match_seq : comma_nonempty_list(term) {}
-  match_pats : comma_nonempty_list(match_pat) {}
-  match_pat : term {}
-
-(** case statement. *)
-case_term : LIT_CASE term LIT_OF 
-  nonempty_list(alt_case) LIT_END {}
-  alt_case : ALT prop ASSIGN term {}
-
-(** where (Haskell style) *)
-where_term : brace_semi(tvar opt_colon_type ASSIGN term {}) {}
-
-(** make. *)
-make_term : brace_semi(identifier 
-  option(ASSIGN term {}) option(SEMI BLANK {}) {}) 
-  opt_colon_type {}
-
-lambda_term : prim_lambda_binder args 
-  lit_binder_comma term {}
-
-lambda_fun : LIT_FUN identifier args 
-  opt_colon_type ASSIGN term {}
-
-lambda_function : LIT_FUNCTION identifier args 
-  opt_colon_type nonempty_list(ALT match_pats ASSIGN term {})
-  LIT_END {}
+make_term : brace_semi(var_or_atomic 
+  option(ASSIGN term {}) option(SEMI BLANK {}) {}) {}
 
 list_term : bracket(separated_list(SEMI,term) {}) {}
 
@@ -567,12 +611,98 @@ tuple_term : paren(term COMMA comma_nonempty_list(term) {}) {}
 
 set_enum_term : brace(comma_list(term) {}) {}
 
-set_comprehension_term : brace(term fixing_var LIT_MID term {}) {}
+set_comprehension_term : brace(term holding_var LIT_MID statement {}) {} 
+
+(** alt_term *)
+
+alt_term : (* These bind tightly because of terminating END *)
+| case_term
+| match_term
+| lambda_function
+{}
+
+(*
+ Case statements generate an obligation for exhaustive cases. 
+ Matches must also be exhaustive. 
+ *)
+case_term : LIT_CASE term LIT_OF 
+  nonempty_list(alt_case) LIT_END {}
+  alt_case : ALT prop ASSIGN term {}
+
+match_term : LIT_MATCH match_seq LIT_WITH 
+  nonempty_list(ALT match_pats ASSIGN term {}) LIT_END {}
+
+  match_seq : comma_nonempty_list(term) {}
+  match_pats : comma_nonempty_list(match_pat) {}
+  match_pat : term {} (* Variables that do not appear in match_seq are assumed fresh. *)
+
+lambda_function : LIT_FUNCTION identifier args 
+  opt_colon_type nonempty_list(ALT match_pats ASSIGN term {})
+  LIT_END {}
+
+(* term *)
+
+app_term : tightest_term app_args {}
+
+opentail_term : 
+| lambda_term
+| lambda_fun
+| let_term
+| if_then_else_term
+| tdop_term
+{}
+
+lambda_term : 
+| prim_lambda_binder generalized_args lit_binder_comma opentail_term
+| generalized_arg MAPSTO opentail_term 
+{}
+
+lambda_fun : LIT_FUN identifier generalized_args 
+  opt_colon_type ASSIGN opentail_term {}
 
   (* let includes destructuring*)
-let_term : LIT_LET term ASSIGN term LIT_IN term {}
+let_term : LIT_LET term ASSIGN term LIT_IN opentail_term {}
 
-if_then_else_term : LIT_IF prop LIT_THEN term LIT_ELSE term {}
+if_then_else_term : LIT_IF prop LIT_THEN term LIT_ELSE opentail_term {}
+
+symbolic_term : opentail_term option(where_suffix) {}
+
+definite_term : 
+| symbolic_term
+| option(LIT_THE) prim_definite_noun
+| paren(option(LIT_THE) prim_definite_noun {}) {}
+
+ (* where (Haskell style) *)
+  where_suffix : brace_semi(tvar opt_colon_type ASSIGN term {}) {}
+
+term : 
+| definite_term 
+| any_name {}  
+
+terms : sep_list(term) {}
+
+(** plain term *)
+ (*
+  Following Forthel 1.3.3,
+  a plain_term contains no quantifier of the form lit_any inside.  
+  We implement this with a separate check that the term is plain,
+  rather than build plain terms as a separate nonterminal. 
+  We write plain(term) as a term that passes the plainness check. 
+  We require plain terms on the right-hand-side of definitions.
+  Also, in dependent types, the terms should be plain.
+  *)
+
+ (* NOT_IMPLEMENTED 
+    When implemented, this should give a check 
+    that the term is plain *) 
+plain_term : plain(term) {}
+  plain(X) : X {} 
+
+(* loose ends *)
+
+
+(** make. *)
+make_term_opt_colon_type : make_term opt_colon_type {}
 
 (* TDOP symbolic terms and formulas *)
  (* top down operator precedence formulas. 
@@ -582,12 +712,15 @@ if_then_else_term : LIT_IF prop LIT_THEN term LIT_ELSE term {}
     * prop operators; (precedence < 0) 
     * binary relation operators such as "="; (precedence=0)
     * term operators.  (precedence > 0).
-    This allows us to distinguish terms from props.
+    This allows us to distinguish terms from props and types.
   *)
 
  (* prec > 0 *)
-tdop_term : ioption(tdop_operand) term_ops
-  list(tdop_operand term_ops {}) option(tdop_operand) {}
+tdop_term : 
+| ioption(app_term) term_ops
+    list(app_term term_ops {}) option(app_term)
+| app_term
+{}
 
   term_ops : nonempty_list(term_op) {}
 
@@ -595,51 +728,23 @@ tdop_term : ioption(tdop_operand) term_ops
   | prim_term_op
   | cs_brace(prim_term_op_controlseq) {}
 
-  tdop_operand : (* any "simple" term with unambiguous boundaries *)
-  | tvar
-  | STRING
-  | NUMBER
-  | controlseq_term
-  | tdop_app
-  | make_term
-  | list_term
-  | tuple_term
-  | set_enum_term
-  | set_comprehension_term
-  | annotated_term
-  | NUMERIC
-  | STRING
-  | DECIMAL
-  | BLANK {}
-
-  tdop_app : (* including paren(term) *)
-  | paren(term) option(app_args)
-  | prim_prefix_function option(app_args) {}
-
-
  (* prec = 0 *)
  (* We allow x,y < z < w. The first arg can be a list. *)
-tdop_rel_op : 
-  tdop_rel_operands 
-  nonempty_list(binary_relation_op tdop_rel_operand {}) {}
+tdop_rel_prop : 
+  tdop_terms
+  nonempty_list(binary_relation_op tdop_term {}) {}
 
   binary_relation_op :
   | prim_binary_relation_op
   | cs_brace(prim_binary_relation_controlseq)
   {}
 
-  tdop_rel_operand :
-  | tdop_term
-  | tdop_operand {}
-
-  tdop_rel_operands :
-  | tdop_term
-  | comma_nonempty_list(tdop_operand) {}
+  tdop_terms : comma_nonempty_list(tdop_term) {}
 
  (* prec < 0 *)
 tdop_prop :
-  option(tdop_prop_operand) prop_ops
-  list(tdop_prop_operand prop_ops {}) option(tdop_prop_operand) {}
+  option(binder_prop) prop_ops
+  list(binder_prop prop_ops {}) option(binder_prop) {}
 
   prop_ops : nonempty_list(prop_op) {}
 
@@ -648,16 +753,33 @@ tdop_prop :
   | cs_brace(prim_propositional_op_controlseq)
   {}
 
-  tdop_prop_operand : (* any prop with unambiguous boundaries *)
-  | paren(statement)
-  | tdop_rel_op 
-  | NOT_IMPLEMENTED
-  {}
+(* props *)
+
+tightest_prop :
+| paren(statement)
+| identifier_prop 
+| VAR
+| annotated_prop
+{}
+
+identifier_prop : identifier {}
+
+annotated_prop : paren(prop COLON LIT_PROP {}) {}
+
+app_prop : tightest_prop app_args {} 
+
+binder_prop :
+| app_prop
+| tdop_rel_prop 
+| prim_binder_prop args lit_binder_comma binder_prop {}
+
+prop : 
+| binder_prop
+| tdop_prop
+{}
+
 
 (* statements *)
-  (* NOT_DEBUGGED 
-     statements, tdop_prop, and prop need further integration. 
-   *)
 
 (** predicates *)
 does_pred : option(lit_do) option(LIT_NOT) prim_verb {}
@@ -670,13 +792,8 @@ is_pred : option(LIT_NOT) prim_adjective {}
 | option(LIT_NOT) option(LIT_PAIRWISE) prim_adjective_multisubject
 | lit_with has_pred {}
 
-is_aPred : option(LIT_NOT) option(lit_a) type_expr {}
+is_aPred : option(LIT_NOT) option(lit_a) general_type {}
 | option(LIT_NOT) definite_term {}
-
-  definite_term : 
-  | symbol_term
-  | option(LIT_THE) prim_definite_noun
-  | paren(option(LIT_THE) prim_definite_noun {}) {}
 
 has_pred : 
 | sep_list(article possessed_noun {}) {}
@@ -703,27 +820,31 @@ typed_name : attribute(typed_name_without_attribute) {}
   | prim_typed_name
   | tvar
   | prim_classifier tvar 
-  | VAR lit_with LIT_TYPE type_expr
+  | VAR lit_with LIT_TYPE general_type
   | paren(typed_name_without_attribute)
   {}
 
 named_terms : sep_list(option(lit_a) named_term {}) {}
 
-named_term : typed_name | free_predicate {} (* type_expr *)
+named_term : typed_name | free_predicate {} (* general_type *)
 
+ (* 
+  The relevant variables for binding in the first case are all unheld vars. 
+  In the case of a binary relation only vars2 enter the binder. 
+  *)
 free_predicate : attribute(free_predicate_without_attribute) {} 
   free_predicate_without_attribute : 
-  | prim_free_predicate
-  | paren(prim_free_predicate) {}
-
-
+  (* N.B. This might allow too much. It was prim_free_predicate, rather than prop. *)
+  | opt_paren(prop holding_var {}) 
+  | vars2 binary_relation_op tdop_term {}
+  vars2 : tvar comma_nonempty_list(tvar) {}
 
 (** statement *)
 
 statement : head_statement | chain_statement {}
 
   head_statement : 
-  | LIT_FOR sep_list(any_type {}) option(COMMA) statement {}
+  | LIT_FOR sep_list(any_name {}) option(COMMA) statement {}
   | LIT_IF statement COMMA LIT_THEN statement (* != if-then-else *)
   | lit_its_wrong statement {}
 
@@ -738,14 +859,25 @@ statement : head_statement | chain_statement {}
   or_chain : separated_nonempty_list(LIT_OR, primary_statement {}) 
     LIT_OR head_primary {}
   head_primary : head_statement | primary_statement {}
-  any_type : lit_any type_expr {} 
+
+  any_name : 
+  | lit_any comma_nonempty_list(any_arg) 
+  | lit_any typed_name
+  | lit_any free_predicate
+  | lit_any general_type
+  {}
+  any_arg :
+  | VAR
+  | annotated_vars {}
 
 (** primary statement *)
 primary_statement :
   | simple_statement {}
   | there_is_statement
-  | option(phrase_list_filler) symbol_statement
-  | option(phrase_list_filler) const_statement {}
+  | filler symbol_statement
+  | filler const_statement {}
+
+  filler : PL2a option(phrase_list_filler) {}
 
   simple_statement : terms separated_nonempty_list(LIT_AND, does_pred) {}
 
@@ -764,9 +896,9 @@ primary_statement :
   | LIT_NOT symbol_statement
   | paren(statement)
   | prop
-  | symbol_predicate {}
+  {}
 
-  symbol_predicate : NOT_IMPLEMENTED {}
+
 
 (* text *)
 text : list(text_item) {}
@@ -841,7 +973,7 @@ proof_script : proof_preamble option(list(canned_prefix proof_body {})
   by_method : option(LIT_BY proof_method {}) {}
   proof_method : LIT_CONTRADICTION
     | LIT_CASE LIT_ANALYSIS
-    | LIT_INDUCTION option(LIT_ON term {}) {}
+    | LIT_INDUCTION option(LIT_ON plain_term {}) {}
   by_ref : option(paren(LIT_BY ref_item {})) {}
   ref_item : sep_list(option(lit_location) label {}) {}
 
@@ -892,16 +1024,17 @@ definition_statement :
   classifier_def : LIT_LET class_tokens lit_is lit_a lit_classifier {}
     class_tokens : comma_nonempty_list(TOKEN) {}
 
-  type_def : type_head copula lit_a type_expr {}
+  type_def : type_head copula lit_a general_type {}
 
     type_head :  
     | type_pattern 
+    | identifier_pattern 
     | controlseq_pattern 
     | binary_controlseq_pattern option(paren_precedence_level)
     {} 
 
   function_def : opt_define function_head
-    copula option(lit_equal) option(LIT_THE) term {}
+    copula option(lit_equal) option(LIT_THE) plain_term {}
 
     function_head :
     | function_token_pattern
@@ -921,9 +1054,9 @@ definition_statement :
   structure_def : option(lit_a) identifier_pattern LIT_IS 
     lit_a structure {}
 
-  inductive_def : NOT_IMPLEMENTED {}
+  inductive_def : opt_define inductive_type {}
   
-  mutual_inductive_def : NOT_IMPLEMENTED {}
+  mutual_inductive_def : opt_define mutual_inductive_type {}
 
  (*
 
@@ -956,12 +1089,15 @@ definition_statement :
   identifier patterns start with an identifier.
 
   Types use the copula.
-   (* XX need to disambiguiate *)
+   (* NOT_DEBUGGED need to disambiguiate *)
   *)
 
 (* macro *)
 
- (* NOT_DEBUGGED *)
+ (* 
+  NOT_IMPLEMENTED. NOT_DEBUGGED. This section should be roughly parallel to the
+  definitions section.  It still needs much work. 
+  *)
 
 macro : option(insection) sep_list(assuming) macro_bodies {}
   assuming : LIT_ASSUMING option(LIT_THAT) statement {}
@@ -973,13 +1109,14 @@ macro : option(insection) sep_list(assuming) macro_bodies {}
   | function_macro 
   | predicate_macro 
   | let_annotation 
+  | instance_macro (* for type class resolution *)
   {}
 
   type_macro : LIT_LET type_pattern
-    lit_denote lit_a type_expr {}
+    lit_denote lit_a general_type {}
 
   function_macro : LIT_LET function_token_pattern
-    lit_denote term {}
+    lit_denote plain_term {}
 
   controlseq_macro : NOT_IMPLEMENTED  {}
 
@@ -989,11 +1126,13 @@ macro : option(insection) sep_list(assuming) macro_bodies {}
 
   let_annotation : LIT_LET comma_nonempty_list(annotated_vars) {}
 
- (* restriction: tokens in pattern cannot be a variant of
-    "to be", called, no iff,
-    cannot start with "the"  *)
+  instance_macro : lit_we_record NOT_IMPLEMENTED {}
 
 (* pattern *)
+
+ (* restriction: tokens in pattern cannot be a variant of
+    "to be", "called", "iff" "a" "stand" "denote"
+    cannot start with "the"  *)
 
 token_pattern : tokens list(tvar tokens {}) option(tvar) {}
 
@@ -1011,10 +1150,19 @@ predicate_token_pattern :
 {}
 
   adjective_pattern : tvar LIT_IS option(LIT_CALLED) token_pattern {}
+
   adjective_multisubject_pattern : 
     var_multisubject LIT_ARE option(LIT_CALLED) token_pattern {} 
+
   verb_pattern : tvar token_pattern {} 
+
   verb_multisubject_pattern : var_multisubject token_pattern {}
+
+  var_multisubject :
+  | tvar COMMA tvar
+  | paren(VAR COMMA VAR colon_type {}) {}
+
+
 
 identifier_pattern :
 | identifier args opt_colon_type {}
@@ -1031,7 +1179,7 @@ paren_precedence_level :
 | paren(precedence_level) {}
 
   precedence_level :
-  | LIT_WITH LIT_PRECEDENCE NUMBER
+  | LIT_WITH LIT_PRECEDENCE NUMERIC
     option(LIT_AND lit_left LIT_ASSOCIATIVITY {}) {}
 
 (* program *)

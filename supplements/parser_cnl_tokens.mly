@@ -12,13 +12,15 @@
 %token <string> R_BRACK
 %token <string> L_BRACE
 %token <string> R_BRACE
+%token <string> AT (* @ *)
+%token <string> MAPSTO (* |-> *)
 %token <string> PERIOD
 %token <string> COMMA
 %token <string> SEMI
 %token <string> COLON
 %token <string> ASSIGN
 %token <string> ARROW (* -> *)
-%token <string> BLANK (* _*)
+%token <string> BLANK (* _ *)
 %token <string> ALT
 %token <string> SLASH
 %token <string> SLASHDASH
@@ -26,9 +28,12 @@
 %token <string> TOKEN
 %token <string> ATOMIC_IDENTIFIER (*alpha (alphanum)**)
 %token <string> HIERARCHICAL_IDENTIFIER (* period separated atomics *)
-%token <string> FIELD_ACCESSOR (* period then hier-identifier *)
+%token <string> FIELD_ACCESSOR (* period then hier-identifier or NUMBER *)
+%token <string> COERCION (* coercion symbol *)
 %token <string> NOT_IMPLEMENTED (*placeholder *)
 %token <string> NOT_DEBUGGED (*placeholder *)
+
+%token <string> EOF
 
 %token <string>
 LIT_A
@@ -66,7 +71,6 @@ LIT_DENOTE
 LIT_DO
 LIT_DOCUMENT
 LIT_DOES
-LIT_DONE
 LIT_DUMP
 LIT_EACH
 LIT_ELSE
@@ -80,7 +84,6 @@ LIT_EXISTS
 LIT_EXIT
 LIT_FALSE
 LIT_FIXED
-LIT_FIXING
 LIT_FOR
 LIT_FORALL
 LIT_FUN
@@ -89,6 +92,7 @@ LIT_HAS
 LIT_HAVE
 LIT_HAVING
 LIT_HENCE
+LIT_HOLDING
 LIT_HYPOTHESIS
 LIT_IF
 LIT_IFF
@@ -109,7 +113,6 @@ LIT_NO
 LIT_NOT
 LIT_NOTATION
 LIT_NOTATIONAL
-LIT_NOTION
 LIT_OBVIOUS
 LIT_OF
 LIT_OFF
@@ -128,8 +131,12 @@ LIT_PROVE
 LIT_PROPOSITION
 LIT_PROPPED
 LIT_QED
+LIT_QUOTIENT
 LIT_READ
+LIT_RECORD
+LIT_REGISTER
 LIT_RECURSION
+LIT_REMOVE
 LIT_RESOLVED
 LIT_RIGHT
 LIT_SAID
@@ -181,19 +188,17 @@ PA1a
 PA1b
 PA1c
 PA1d
-PA1e
 PA2
 PA3
 PA4
 PA5
 PA6
-PA7
+(* PA7 *)
 PA8
 PA9
 PA10
 PA11
 PA12
-PA12a
 PA13
 PA14
 PA15
@@ -208,8 +213,10 @@ PA22
 
 PL1
 PL2
+PL2a
 PL3
+PL4
 
-%token EOF
+
 
 %%
