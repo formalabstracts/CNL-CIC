@@ -1,3 +1,9 @@
+{-
+Author(s): Jesse Michael Han (2019)
+
+Instruction parsing.
+-}
+
 {-# LANGUAGE OverloadedStrings #-}
 module CNLean.Test (
 helloWorld
@@ -10,6 +16,8 @@ import Text.Megaparsec.Char
 import Data.Text (Text, pack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L
+
+import CNLean.Basic
 
 type Parser = Parsec Void Text
 
@@ -54,24 +62,6 @@ example2 = String LitRead ["FOO","BAR"]
 example3 :: Instr
 example3 = Bool PrintGoal True
 
-sc :: Parser ()
-sc = L.space
-  space1
-  (L.skipLineComment "---")
-  (L.skipBlockComment "/--" "--/")
-
-symbol :: Text -> Parser Text
-symbol arg = L.symbol sc arg
-
-not_space_aux :: Parser Char
-not_space_aux = (satisfy (\x -> x /= ' '))
-
-not_space :: Parser Text
-not_space = (many not_space_aux) >>= return . pack
-
-item :: Parser Char
-item = satisfy (\_ -> True)
-
 myToken :: Parser Text
 myToken = not_space <* sc
 
@@ -87,8 +77,7 @@ parseBrackets :: Parser a -> Parser a
 parseBrackets p = between (symbol "[") (symbol "]") p
 
 parseSlash :: Parser (Tokens Text)
-parseSlash = (symbol "/")
-  
+parseSlash = (symbol "/")  
 
 parseSlashDash :: Parser (Tokens Text)
 parseSlashDash = do (symbol "/-")
@@ -101,7 +90,7 @@ parseSynonym =
   return $ Synonym k tks
 
 tksTest :: Parser [Text]
-tksTest = sepBy1 (myToken) $ (parseSlashDash <|> parseSlash)
+tksTest = sepBy1 myToken $ (parseSlashDash <|> parseSlash)
 
 -- parseTest (tksTest <* eof) "a / b /- c / d"
 
