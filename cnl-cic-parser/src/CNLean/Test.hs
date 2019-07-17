@@ -19,8 +19,6 @@ import qualified Text.Megaparsec.Char.Lexer as L
 
 import CNLean.Basic
 
-type Parser = Parsec Void Text
-
 data KeywordCommand =
   LitExit
   deriving (Show, Eq)

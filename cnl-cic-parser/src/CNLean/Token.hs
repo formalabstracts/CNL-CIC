@@ -480,8 +480,7 @@ parseFieldAcc = do
   p   <- (B.char '.')
   x <- (hierid <|> B.number)
   return $ FieldAcc $ p <> x
-  
-  
+    
 parseCoercion :: Parser Token
 parseCoercion = (B.string "↑" <|> B.string "^|") >> return Coercion
 
