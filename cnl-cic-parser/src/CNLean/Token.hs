@@ -34,6 +34,7 @@ data Lit =
   | ARE
   | ARTICLE
   | AS
+  | AT
   | ASSOCIATIVITY
   | ASSUME
   | ASSUMING
@@ -180,12 +181,13 @@ parseLit_aux l = case l of
   A -> parseDataHelper A "a"
   ALL -> parseDataHelper ALL "all"
   AN -> parseDataHelper AN "an"
+  AT -> parseDataHelper AT "at"
   ANALYSIS -> parseDataHelper ANALYSIS "analysis"
   AND -> parseDataHelper AND "and"
   ANY -> parseDataHelper ANY "any"
   APPLICABLE -> parseDataHelper APPLICABLE "applicable"
   ARE -> parseDataHelper ARE "are"
-  ARTICLE -> parseDataHelper ARTICLE "article"  
+  ARTICLE -> parseDataHelper ARTICLE "article"
   AS -> parseDataHelper AS "as"
   ASSOCIATIVITY -> parseDataHelper ASSOCIATIVITY "associativity"
   ASSUME -> parseDataHelper ASSUME "assume"
@@ -326,6 +328,7 @@ memsOfLit :: [Lit]
 memsOfLit = [A
   , ALL
   , AN
+  , AT
   , ANALYSIS
   , AND
   , ANY
