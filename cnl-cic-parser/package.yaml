@@ -32,6 +32,7 @@ dependencies:
 - split
 - uuid
 - threads
+- parser-combinators
 
 library:
   source-dirs: src
