@@ -1043,7 +1043,7 @@ this_exists : LIT_THIS
   this_directive_right_attr : LIT_BY LIT_RECURSION {}
   this_directive_verb : LIT_EXISTS option(this_directive_right_attr){}
 
-(** definition *)
+(* definition *)
 definition : definition_preamble list(assumption) 
   definition_affirm {}
 
@@ -1243,5 +1243,4 @@ paren_precedence_level :
 program_text : text | stub_nonterminal { "done" }
 
 program : program_text EOF {}
-
 

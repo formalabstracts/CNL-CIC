@@ -1,10 +1,10 @@
-{-# LANGUAGE TypeOperators #-}
 {-
 Author(s): Jesse Michael Han (2019)
 
 Basic parser combinators.
 -}
 
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverloadedStrings #-}
 module CNLean.Basic where
 
@@ -92,13 +92,10 @@ str :: Text -> Parser Text
 str t = do
   Text.Megaparsec.Char.string t
 
--- str' :: Text -> Parser Text
--- str t = string' t
-
 str_eq' :: Text -> Text -> Prelude.Bool
 str_eq' t1 t2 = (toLower t1) == (toLower t2)
 
--- backtracking version of many
+---- backtracking version of many, used to implement backtracking versions of sepby and sepby1
 many' :: Parser a -> Parser [a]
 many' p = (do
   a <- p
@@ -120,7 +117,7 @@ fail_if_empty p = do
 sepby1 :: (Eq a) => Parser a -> Parser b -> Parser [a]
 sepby1 p sep = fail_if_empty $ sepby p sep
 
----- lookAhead' strictly looks ahead, returning no values upon success  
+---- lookAhead' strictly looks ahead, returning no values upon success
 lookAhead' :: Parser a -> Parser ()
 lookAhead' p = (lookAhead p >> return ()) <||> fail "lookahead failed"
 
