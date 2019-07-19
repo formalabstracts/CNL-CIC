@@ -5,9 +5,7 @@ Instruction parsing.
 -}
 
 {-# LANGUAGE OverloadedStrings #-}
-module CNLean.Test (
-helloWorld
-) where
+module CNLean.Instr where
 
 import Prelude hiding (Int, Bool, String, drop)
 import qualified Prelude

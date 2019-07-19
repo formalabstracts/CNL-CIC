@@ -7,7 +7,7 @@ High-level parsing.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module CNLean.Token where
+module CNLean.Core where
 
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
@@ -22,12 +22,33 @@ import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
 import CNLean.Basic
 import CNLean.Token
+import CNLean.Namespace
+import CNLean.SectionPreamble
+import CNLean.Declaration
+import CNLean.Macro
 import CNLean.Instr
 
 data TextItem =
-    Namespace    
-  | SectionPreamble
-  | Declaration
-  | Macro
+    Namespace Namespace
+  | SectionPreamble SectionPreamble
+  | Declaration Declaration
+  | Macro Macro
   | Instr Instr
+  deriving (Show, Eq)
+
+parseTextItem :: Parser TextItem
+parseTextItem = (parseNamespace >>= return . Namespace)
+          <||>  (parseSectionPreamble >>= return . SectionPreamble)
+          <||>  (parseDeclaration >>= return . Declaration)
+          <||>  (parseMacro >>= return . Macro)
+          <||>  (parseInstr >>= return . Instr)
+
+newtype ProgramText = Mk [TextItem]
+  deriving (Show, Eq)
+
+parseProgramText :: Parser ProgramText
+parseProgramText = (many' parseTextItem) >>= return . Mk
+
+parseProgram :: Parser ProgramText
+parseProgram = parseProgramText <* eof
 
