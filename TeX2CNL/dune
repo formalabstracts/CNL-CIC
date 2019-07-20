@@ -1,0 +1,35 @@
+(rule
+(targets parser_tex.ml)
+(deps parser_tex.mly parser_tex_tokens.mly)
+(action (run menhir %{deps} --base parser_tex --explain))
+)
+
+
+;deriving show (works?)
+;; generate lexer -- temporary hack, see https://gitlab.inria.fr/fpottier/menhir/issues/6
+;; https://github.com/smolkaj/ocaml-parsing/blob/master/src/dune
+;(rule
+; (targets lexer_tex.ml)
+; (deps    (:f lexer_tex.cppo.ml) parser_tex.ml)
+; (action  (run cppo %{f} -n -o %{targets})))
+
+;doesn't work:
+;(rule
+; (targets lexer_tex.mli)
+; (deps    (:f lexer_tex.ml))
+; (action  (run corebuild %{f}  > %{targets})))
+
+(menhir
+(modules parser_tex.ml)
+(flags (--external-tokens Parse_tex) --explain)
+)
+
+(library
+(name tex_parse)
+(public_name tex_parse)
+(wrapped true)
+;(modules (:standard \ validate))
+(libraries sedlex batteries menhirlib)
+(virtual_deps menhir)
+(preprocess (pps ppx_deriving.std  sedlex.ppx))
+)

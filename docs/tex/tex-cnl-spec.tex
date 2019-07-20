@@ -1,0 +1,325 @@
+\documentclass[12pt]{amsart}
+
+
+% PACKAGES
+\usepackage{url}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+
+% for underscores https://texfaq.org/FAQ-underscore
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+
+\usepackage{textcomp}
+
+
+\usepackage[
+bookmarksopen,
+bookmarksdepth=2,
+%breaklinks=true
+colorlinks=true,
+urlcolor=blue]{hyperref}
+
+% GLOBAL FORMATTING
+%\linenumbers
+\parindent=0pt
+\parskip=0.5\baselineskip
+\raggedbottom
+
+% TITLE AUTHOR DATE
+\title{Notes on translating \TeX\ to a controlled natural language}
+
+\date{July 17, 2019}                                           % Activate to display a given date or no date
+\author{Thomas Hales}
+
+% THEOREMS 
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}[definition]{Theorem}
+\newtheorem{lemma}[definition]{Lemma}
+\newtheorem{specification}[definition]{Specification}
+
+% COMMANDS
+\renewcommand\labelitemi{-}
+
+
+% ENVIRONMENTS
+
+% \leavevmode\par is to make remark work when it is the first item in a subsection.
+\newenvironment{remark}
+{\leavevmode\par\begin{tabular}{|p{13cm}}\parskip=\baselineskip{\bf Remark.}}
+{\end{tabular}}
+
+\newenvironment{oblongo}{}{}
+
+\newenvironment{prule}%
+               {\begin{itemize}}%
+               {\end{itemize}}
+\newcommand{\ptem}{\item}
+\newcommand{\nt}[1]{{\tt #1}}
+\newcommand{\rw}{$\quad\to\quad$}
+
+
+
+% DOCUMENT
+
+\begin{document}
+\maketitle
+
+
+
+\section{\TeX-CNL translation specification}
+
+The notes here add detail to the
+ \href{https://github.com/formalabstracts/CNL-CIC/wiki/Conversion-from-LaTeX}{CNL-CIC Wiki}.
+
+A \TeX\ file written in CNL-enabled \TeX\ can be processed 
+by the \TeX\ engine in
+two different modes: presentation mode and CNL mode.
+
+A boolean flag {\tt isPresentation} in the \TeX\ source determines
+which mode is used for processing.
+
+The presentation mode is used to process the file as an ordinary
+\TeX\ source, typeset in the usual way to a .dvi or .pdf file.  When
+we talk about the pdf display, we mean the output with the
+presentation mode.
+
+The CNL mode is used to generate tables and indexes needed to
+translate the \TeX\ source file into the CNL grammar.  The CNL image
+means the output of the \TeX\ to CNL translation.  The CNL image is a
+text file written in the CNL grammar.
+
+
+\subsection{Differences in CNL-enabled files}
+
+There are some visible differences between a typical \TeX\ source
+and a CNL-enabled one.
+
+The vertical bar | is redefined have an escape catcode (and \verb!\!
+also remains an escape character).  The two escape characters are used
+in different ways.  
+
+Roughly, the vertical bar is used with macros that
+have special translation rules to CNL.  In CNL mode, various control
+sequences are redefined to include write commands to an external
+file.  Macros are expanded by the \TeX\ engine and their expansions
+are printed to the external file.  The \TeX\ to CNL translation software
+uses this external file to perform the translation.  The two escape characters
+are used to control where the write commands are inserted and whether
+a given macro is expanded or left unexpanded in the dump to the external
+file.  
+
+
+In presentation mode, the vertical bar is the only symbol given a new
+catcode.  Likewise CNL mode, the vertical bar is given a new catcode.
+Moreover, the subscript and superscript symbols are given the other catcode.
+
+\subsection{Variables and Identifiers}
+
+Identifiers can appear with the underscore character.  They must be
+processed specially.
+
+\subsubsection{identifiers}
+In the \TeX\ source, 
+\begin{itemize}
+\item write \verb!|var|x|! or (\verb!$x$!) 
+to produce a variable $x$.
+\item Write \verb!|id|my_identifier|! to
+produce the identifier \verb!my_identifier!.
+\item Write \verb!|id|mynamespace.my_namespace|! for
+a hierarchical identifier.
+\item Write \verb!|hier|mynamespace|my_namespace|! for
+a hierarchical identifier in which \verb!mynamespace! is
+not displayed in the pdf, but appears in the CNL.
+\item Insert curly braces after an underscore to make parts
+of the identifier display in the pdf as an underscore.
+In the CNL image, the braces are stripped, and the content
+between the braces becomes part of the identifier.
+\item To make the subscript a function call, place it outside
+the vertical bars: \verb!|id|A|_{ij}! for $\hbox{|id|A|}_{ij}$.
+\item In CNL-mode, the parentheses are around the function
+and the subscript, not around terms within the subscript.
+\verb!f_{i j}! is translated to $(f~i~j)$ rather than $f (i j)$
+\item In CNL-mode, the underscore is given the catcode other.
+\end{itemize}
+
+\subsubsection{labels}
+
+Labels must be valid CNL identifiers.
+
+
+References \verb!\ref{xyz}! or \verb!\eqref{xyz}!  in the
+\TeX\ translate to the corresponding labels statements {\it by label}
+in CNL.
+
+
+\subsection{Special characters}
+
+\subsubsection{superscripts}
+
+\begin{itemize}
+\item The use of the superscript mark \verb!^! should be restricted
+to places where it acts as an infix (right associative) binary
+operator for raising the term to a power.
+\item When the superscript mark is used in connection with
+subscripts as function call, the interpretation of \verb!f_i^n! is
+the $n$th power of $f_i$, that is, $(f_i)^n$. 
+Thus, this should be written in this
+order rather than \verb!f^n_i! (which, would suggest the $n$th iterate
+of $f$ applied to $i$).
+\item the superscript mark is given the other catcode in CNL-mode.
+\item macros should be used when the meaning of a superscript is
+not a power.
+\end{itemize}
+
+\subsubsection{invisible characters}
+
+Invisible characters are generally given by macros
+(with convention that their names end with $I$).  For example
+\verb!\mulI! is the invisible multiplication operator.
+\verb!x\mulI y! has pdf display $x y$, but the CNL image
+preserves the binary operation \verb!x\mulI y!.
+
+
+
+\subsubsection{stripped characters}
+
+In translating to the CNL image, 
+many formatting characters are removed from the \TeX\ source files.
+
+This include instructions to change among different
+\TeX\ modes:  
+
+\verb!$ \( \) \begin{math} \end{math}!, 
+
+\verb!\[ \] $$ \begin{displaymath} \end{displaymath}!.
+
+Rules, glues, and space \verb!\  \, \medskip, \quad!, etc.
+
+Most curly braces are stripped.  Some are converted to
+parentheses.
+
+
+In material originating in \TeX horizontal mode, 
+the CNL image is
+stripped of many of the foreign accents.
+
+\begin{itemize}
+\item G\"odel - Godel
+\item \'etale - etale
+\end{itemize}
+
+
+
+
+\subsubsection{special characters}
+
+It is better to use the letter version of control
+sequences rather than the escaped forms:
+use \verb!\percent! not \verb!\%!, \verb!\dollar! not
+\verb!\$! etc.
+
+\subsubsection{ambiguous notations}
+
+Lean elaboration does substantial work to resolve
+notational ambiguities.  Some of these ambiguities
+may be resolved directly by the author in the
+\TeX\ source files, with notations that appear identical
+in the pdf display.
+
+For example,
+\begin{itemize}
+\item \verb!\closedInterval{a}{b}! -\qquad $[a,b]$
+\item \verb!\LieCommutator{a}{b}! -\qquad $[a,b]$
+\item \verb!\groupCommutator{a}{b}! -\qquad $[a,b]$
+\item \verb!\image{f}{S}! -\qquad $f(S)$
+\item \verb!f(S)! -\qquad $f(S)$
+\item \verb!\fieldDegree{K}{F}! -\qquad $[K:F]$
+\item \verb!\subgroupIndex{G}{H}! -\qquad $[G:H]$
+\end{itemize}
+
+\section{environments}
+
+In CNL mode, everything is ignored outside the
+\verb!\begin{cnl}...\end{cnl}! environment.
+
+In CNL mode, there is a list of ignored environments, such as the
+\verb!remark! environment.
+
+In CNL mode, there is a list of translated environments, with custom
+translation for each of them, such as the \verb!definition!  and
+\verb!theorem! environments.
+
+
+\subsection{specific environments}
+
+Here we describe what happens to the \TeX sources, 
+upon translation to CNL-image.
+
+% https://latex.wikia.org/wiki/List_of_LaTeX_environments
+% http://www.personal.ceu.hu/tex/environ.htm
+
+\subsubsection{definition environment}
+
+Theorems, Definitions, etc. can carry labels.  In fact, labels are
+encouraged.  The labels should be valid atomic identifiers.  In the
+CNL image, these labels become CNL labels.
+
+Theorems, etc. can also carry optional names
+
+\verb!\begin{theorem}[optional_name]\label{optional_name}!
+
+When a name is given, the label should also appear, and the two should
+be the same.
+
+
+\subsubsection{paragraph environments}
+
+\begin{description}
+\item [center] Environment begin/end stripped, leaving enclosed text.
+\item [flushleft, flushright, minipage, quotation, quote, verse]  begin/end as well as formatting options are stripped, leaving enclosed text.
+\item [figure, picture, remark, thebibliography, titlepage] Environment begin/end and enclosed text stripped.
+\item [tabbing]  begin/end stripped as well as tabbing characters \verb!\= \> \+ \-!
+\item [tabular] not supported.
+\end{description}
+
+\subsubsection{equation alignment environments}
+
+\begin{description}
+\item [array] The begin/end and column format
+instructions are stripped.  The array is converted
+to a matrix (list of lists) in the CNL image.
+\item [align, eqnarray, gather] begin/end and \verb!&! stripped.
+A list is created with separator \verb!\\! translated
+to separator \verb!;!
+\item [equation,equation*]
+begin/end and \verb!&! stripped.
+Translation to CNL-Equation.  Any label is translated.
+\item [multline, split]  begin/end and \verb!& \\! stripped.
+\item [flalign, flalign*]  Not supported.
+\end{description}
+
+\subsubsection{matrix environments}
+
+\begin{description}
+\item [matrix, pmatrix, bmatrix, Bmatrix, vmatrix, Vmatrix, smallmatrix]   begin/end is stripped. The data is converted to a list of lists.
+\item [cases] Not supported.
+\end{description}
+
+
+
+\subsection{itemize environment}
+
+This includes itemize, enumerate, description.
+
+Many objects can be itemized in the CNL.  We create
+custom itemize environments for them.
+This includes special \TeX\ support for match, function matching,
+cases, inductive
+and mutual inductive type declarations, structures, etc.
+These custom itemize environments are translated to the
+appropriate language constructs in the CNL image.
+
+
+\end{document}
