@@ -23,13 +23,22 @@ import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 import CNLean.Basic
 import CNLean.Token
 
-data Assumption =
-    AssumptionAssumptionPrefix AssumptionPrefix Statement -- parsed with period at end
-  | AssumptionLetAnnotation LetAnnotation -- parsed with period at end
+-- data Assumption =
+--     AssumptionAssumptionPrefix AssumptionPrefix Statement -- parsed with period at end
+--   | AssumptionLetAnnotation LetAnnotation -- parsed with period at end
+--   deriving (Show, Eq)
   
 data AssumptionPrefix =
     LitLet Token -- LIT_LET
-  | LitLets Token Token Token (Maybe Token) -- lit_lets lit_assume option(LIT_THAT) {}
+  | LitLets [Token] Token (Maybe Token) -- lit_lets lit_assume option(LIT_THAT) {}
+  deriving (Show, Eq)
+
+parseAssumptionPrefix :: Parser AssumptionPrefix
+parseAssumptionPrefix = (do tks <- parseLitLets
+                            tk  <- parseLitAssume
+                            o   <- option $ parseLit_aux THAT >>= return . Lit
+                            return $ LitLets tks tk o)
+                      <||> (parseLit_aux LET >>= return . LitLet . Lit)
 
 
 

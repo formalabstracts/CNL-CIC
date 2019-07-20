@@ -752,8 +752,6 @@ newtype Label = Label Token
 parseLabel :: Parser Label
 parseLabel = parseAtomicId >>= return . Label
 
-newtype LitLets = LitLets [Token]
-
 parseLitLets :: Parser [Token]
 parseLitLets = (do a <- parseLit_aux LET
                    x <- option (parseLit_aux US)
@@ -767,6 +765,8 @@ parseLitLets = (do a <- parseLit_aux LET
                          (Just b) -> [Lit a, Lit b]
                          Nothing -> [Lit a])
 
+parseLitAssume :: Parser Token
+parseLitAssume = parseLit_aux ASSUME <||> parseLit_aux SUPPOSE >>= return . Lit
 
 litTestString :: Text
 litTestString = "a any APPLICABLE induction"
