@@ -27,4 +27,5 @@ data Macro = DummyConstructor
   deriving (Show, Eq)
 
 parseMacro :: Parser Macro
-parseMacro = return DummyConstructor
+parseMacro = do xs <- (many1 item)
+                return DummyConstructor

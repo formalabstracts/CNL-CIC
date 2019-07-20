@@ -1,106 +1,172 @@
 {-
 Author(s): Jesse Michael Han (2019)
 
-Instruction parsing.
+Parsing instructions.
 -}
 
 {-# LANGUAGE OverloadedStrings #-}
 module CNLean.Instr where
 
-import Prelude hiding (Int, Bool, String, drop)
+import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
-import Text.Megaparsec
+import qualified Control.Applicative.Combinators as PC
+import Text.Megaparsec hiding (Token)
+import Control.Monad (guard)
 import Text.Megaparsec.Char
-import Data.Text (Text, pack)
+import qualified Data.Char as C
+import Data.Text (Text, pack, unpack)
 import Data.Void
-import qualified Text.Megaparsec.Char.Lexer as L
+import Data.Foldable
+import qualified Data.Text.IO as TIO
+import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
 import CNLean.Basic
+import CNLean.Token
 
 data KeywordCommand =
-  LitExit
+  KeywordCommandMk Token
   deriving (Show, Eq)
+
+parseKeywordCommand :: Parser KeywordCommand
+parseKeywordCommand = do
+  parseLit_aux EXIT >>= return . KeywordCommandMk . Lit
 
 data KeywordString =
-  LitRead | LitLibrary
+  KeywordStringToken Token
   deriving (Show, Eq)
+
+parseKeywordString :: Parser KeywordString
+parseKeywordString = do
+  (parseLit_aux READ <||> parseLit_aux LIBRARY) >>= return . KeywordStringToken . Lit
 
 data KeywordBool =
-  PrintGoal | Dump | Ontored
+  KeywordBoolToken Token
   deriving (Show, Eq)
+
+parseKeywordBool :: Parser KeywordBool
+parseKeywordBool = do
+  (parseLit_aux PRINTGOAL <||> parseLit_aux DUMP <||> parseLit_aux ONTORED) >>= return . KeywordBoolToken . Lit
 
 data KeywordInt =
-  LitTimeLimit
+  KeywordIntToken Token
   deriving (Show, Eq)
+
+parseKeywordInt :: Parser KeywordInt
+parseKeywordInt = do
+  parseLit_aux TIMELIMIT >>= return . KeywordIntToken . Lit
 
 data KeywordSynonym =
-  LitSynonym
+  KeywordSynonymToken CNLean.Token.Token
   deriving (Show, Eq)
-
-data InstrSep =
-  Slash | SlashDash
-  deriving (Show, Eq)
-
-data Instr =
-    Command KeywordCommand
-  | Synonym KeywordSynonym [Tokens Text]
-  | String KeywordString [Tokens Text]
-  | Bool KeywordBool Prelude.Bool
-  | Int KeywordInt Prelude.Int
-  deriving (Show, Eq)
-
-example1 :: Instr
-example1 = Synonym LitSynonym ["HELLO", "TOM"]
-
-example2 :: Instr
-example2 = String LitRead ["FOO","BAR"]
-
-example3 :: Instr
-example3 = Bool PrintGoal True
-
-myToken :: Parser Text
-myToken = not_space <* sc
-
-myToken' :: Parser Text
-myToken' = (many $ notFollowedBy (parseSlashDash <|> parseSlash <|> (symbol "]")) >> item) >>= return . pack
 
 parseKeywordSynonym :: Parser KeywordSynonym
 parseKeywordSynonym = do
-  symbol "synonym"  
-  return LitSynonym
+  parseLit_aux SYNONYM >>= return . KeywordSynonymToken . Lit
 
-parseBrackets :: Parser a -> Parser a
-parseBrackets p = between (symbol "[") (symbol "]") p
+data InstrSep =
+  InstrSepToken CNLean.Token.Token
+  deriving (Show, Eq)
 
-parseSlash :: Parser (Tokens Text)
-parseSlash = (symbol "/")  
+parseInstrSep :: Parser InstrSep
+parseInstrSep = do
+  (parseSlash <||> parseSlashDash) >>= return . InstrSepToken
 
-parseSlashDash :: Parser (Tokens Text)
-parseSlashDash = do (symbol "/-")
+data Instr =
+    InstructCommand KeywordCommand
+  | InstructSynonym KeywordSynonym [Token]
+  | InstructString KeywordString [Token]
+  | InstructBool KeywordBool Token
+  | InstructInt KeywordInt Token
+  deriving (Show, Eq)
 
-parseSynonym :: Parser Instr
-parseSynonym =
-  parseBrackets $ do
-  k   <- parseKeywordSynonym
-  tks <- sepBy1 (myToken') $ parseSlashDash <|> parseSlash
-  return $ Synonym k tks
+parseInstructCommand :: Parser Instr
+parseInstructCommand = do
+  parseKeywordCommand >>= return . InstructCommand
 
-tksTest :: Parser [Text]
-tksTest = sepBy1 myToken $ (parseSlashDash <|> parseSlash)
+parseInstructSynonym :: Parser Instr
+parseInstructSynonym = do
+  s <- parseKeywordSynonym
+  tks <- (sepby1 parseTk (parseInstrSep))
+  return $ InstructSynonym s tks
 
--- parseTest (tksTest <* eof) "a / b /- c / d"
+parseInstructString :: Parser Instr
+parseInstructString = do
+  s <- parseKeywordString
+  tks <- (sepby1 parseTk (parseInstrSep))
+  return $ InstructString s tks
 
-parseBracketsTest :: Parser Text
-parseBracketsTest =
-  parseBrackets $ (many $ satisfy (\_ -> True)) >>= return . pack
+parseInstructBool :: Parser Instr
+parseInstructBool = do
+  k <- parseKeywordBool
+  t <- (parseLit_aux TRUE <||> parseLit_aux FALSE >>= return . Lit)
+  return $ InstructBool k t
+
+parseInstructInt :: Parser Instr
+parseInstructInt = do
+  k <- parseKeywordInt
+  n <- parseNumber
+  return $ InstructInt k n
 
 parseInstr :: Parser Instr
-parseInstr = do
-  return example3
+parseInstr = between parseLBrack parseRBrack $
+        parseInstructCommand
+  <||>  parseInstructSynonym
+  <||>  parseInstructString
+  <||>  parseInstructBool
+  <||>  parseInstructInt
 
-helloWorld :: IO ()
-helloWorld = do
-  parseTest (parseSynonym <* eof) "[ synonym number /- s ]"
-  parseTest (parseSynonym <* eof) "[ synonym element / elements /elemental ]"
-  parseTest (parseSynonym <* eof) "[synonym almost everywhere / ae ]"
-  parseTest (parseSynonym <* eof) "[ synonym almost all/all but finitely many]"
+-- -- example1 :: Instr
+-- -- example1 = Synonym LitSynonym ["HELLO", "TOM"]
+
+-- -- example2 :: Instr
+-- -- example2 = String LitRead ["FOO","BAR"]
+
+-- -- example3 :: Instr
+-- -- example3 = Bool PrintGoal True
+
+-- -- myToken :: Parser Text
+-- -- myToken = not_space <* sc
+
+-- -- myToken' :: Parser Text
+-- -- myToken' = (many $ notFollowedBy (parseSlashDash <|> parseSlash <|> (symbol "]")) >> item) >>= return . pack
+
+-- -- parseKeywordSynonym :: Parser KeywordSynonym
+-- -- parseKeywordSynonym = do
+-- --   symbol "synonym"  
+-- --   return LitSynonym
+
+-- -- parseBrackets :: Parser a -> Parser a
+-- -- parseBrackets p = between (symbol "[") (symbol "]") p
+
+-- -- parseSlash :: Parser (Tokens Text)
+-- -- parseSlash = (symbol "/")  
+
+-- -- parseSlashDash :: Parser (Tokens Text)
+-- -- parseSlashDash = do (symbol "/-")
+
+-- -- parseSynonym :: Parser Instr
+-- -- parseSynonym =
+-- --   parseBrackets $ do
+-- --   k   <- parseKeywordSynonym
+-- --   tks <- sepBy1 (myToken') $ parseSlashDash <|> parseSlash
+-- --   return $ Synonym k tks
+
+-- -- tksTest :: Parser [Text]
+-- -- tksTest = sepBy1 myToken $ (parseSlashDash <|> parseSlash)
+
+-- -- -- parseTest (tksTest <* eof) "a / b /- c / d"
+
+-- -- parseBracketsTest :: Parser Text
+-- -- parseBracketsTest =
+-- --   parseBrackets $ (many $ satisfy (\_ -> True)) >>= return . pack
+
+-- -- parseInstr :: Parser Instr
+-- -- parseInstr = (many1' item) >> return example3
+
+-- helloWorld :: IO ()
+-- helloWorld = do
+--   parseTest parseInstr "[synonym foo/bar]"
+  -- parseTest (parseSynonym <* eof) "[ synonym number /- s ]"
+  -- parseTest (parseSynonym <* eof) "[ synonym element / elements /elemental ]"
+  -- parseTest (parseSynonym <* eof) "[synonym almost everywhere / ae ]"
+  -- parseTest (parseSynonym <* eof) "[ synonym almost all/all but finitely many]"

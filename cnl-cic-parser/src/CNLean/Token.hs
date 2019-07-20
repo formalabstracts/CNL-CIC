@@ -176,6 +176,9 @@ parseDataHelper l arg = ((do
   x <- not_whitespace
   (if str_eq' x arg then return l else fail "parseDataHelper failed to match")) <||> fail "parseDataHelper failed to match'") <* sc
 
+parseDataHelper0 :: a -> Text -> (Parser a)
+parseDataHelper0 l arg = (str' arg >> return l) <* sc
+
 parseLit_aux :: Lit -> (Parser Lit)
 parseLit_aux l = case l of
   A -> parseDataHelper A "a"
@@ -187,7 +190,7 @@ parseLit_aux l = case l of
   ANY -> parseDataHelper ANY "any"
   APPLICABLE -> parseDataHelper APPLICABLE "applicable"
   ARE -> parseDataHelper ARE "are"
-  ARTICLE -> parseDataHelper ARTICLE "article"
+  ARTICLE -> parseDataHelper0 ARTICLE "article"
   AS -> parseDataHelper AS "as"
   ASSOCIATIVITY -> parseDataHelper ASSOCIATIVITY "associativity"
   ASSUME -> parseDataHelper ASSUME "assume"
@@ -224,7 +227,7 @@ parseLit_aux l = case l of
   EXHAUSTIVE -> parseDataHelper EXHAUSTIVE "exhaustive"
   EXIST -> parseDataHelper EXIST "exist"
   EXISTS -> parseDataHelper EXISTS "exists"
-  EXIT -> parseDataHelper EXIT "exit"
+  EXIT -> parseDataHelper0 EXIT "exit"
   FALSE -> parseDataHelper FALSE "false"
   FIXED -> parseDataHelper FIXED "fixed"
   FOR -> parseDataHelper FOR "for"
@@ -285,13 +288,13 @@ parseLit_aux l = case l of
   SAID -> parseDataHelper SAID "said"
   SATISFYING -> parseDataHelper SATISFYING "satisfying"
   SAY -> parseDataHelper SAY "say"
-  SECTION -> parseDataHelper SECTION "section"
+  SECTION -> parseDataHelper0 SECTION "section"
   SHOW -> parseDataHelper SHOW "show"
   SOME -> parseDataHelper SOME "some"
   STAND -> parseDataHelper STAND "stand"
   STRUCTURE -> parseDataHelper STRUCTURE "structure"
-  SUBSECTION -> parseDataHelper SUBSECTION "subsection"
-  SUBSUBSECTION -> parseDataHelper SUBSUBSECTION "subsubsection"
+  SUBSECTION -> parseDataHelper0 SUBSECTION "subsection"
+  SUBSUBSECTION -> parseDataHelper0 SUBSUBSECTION "subsubsection"
   SUBTYPEMID -> parseDataHelper SUBTYPEMID "subtypemid"
   SUCH -> parseDataHelper SUCH "such"
   SUPPOSE -> parseDataHelper SUPPOSE "suppose"
@@ -650,11 +653,11 @@ parseTk = do
   -- (many1 alpha) >>= return . Tk . join) <* sc
 
 atomicid :: Parser Text
-atomicid = do
+atomicid = (do
   alph <- alpha
-  rest <- alphanum -- currently, any single alpha character must be a variable
-  guard (any C.isAlpha (unpack rest))
-  return $ alph <> rest
+  rest <- (many' $ alpha <||> digit <||> ch '_') >>= return . join
+  -- guard $ (any C.isAlpha (unpack rest)) || (any (\x -> x == (pack . pure $ '_')) rest) -- TODO fix this
+  return $ alph <> rest) <* sc
 
 parseAtomicId :: Parser Token
 parseAtomicId = atomicid >>= return . AtomicId

@@ -21,10 +21,44 @@ import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
 import CNLean.Basic
-import CNLean.Token
+import CNLean.Token 
 
-data SectionPreamble = DummyConstructor
+data SectionPreamble = SectionPreamble { sectionTag :: SectionTag
+                                       , maybeLabel :: Label } deriving (Show, Eq)
+
+newtype Label =
+  MaybeToken (Maybe Token)
   deriving (Show, Eq)
 
+parseLabel :: Parser Label
+parseLabel = (parseAtomicId >>= return . MaybeToken . Just) <||> (sc *> (return $ MaybeToken Nothing))
+
+newtype SectionTag =
+  LitDocument LitDocument
+  deriving (Show, Eq)
+
+data LitDocument =
+    Document
+  | Article
+  | Section
+  | Subsection
+  | Subsubsection
+  deriving (Show, Eq)
+
+parseLitDocument :: Parser LitDocument
+parseLitDocument = (parseLit_aux DOCUMENT >> return Document)
+              <||> (parseLit_aux ARTICLE  >> return Article)
+              <||> (parseLit_aux SECTION  >> return Section)
+              <||> (parseLit_aux SUBSECTION >> return Subsection)
+              <||> (parseLit_aux SUBSUBSECTION >> return Subsubsection)
+
+parseSectionTag :: Parser SectionTag
+parseSectionTag = parseLitDocument >>= return . LitDocument
+
 parseSectionPreamble :: Parser SectionPreamble
-parseSectionPreamble = return DummyConstructor
+parseSectionPreamble = do
+  secTag <- parseSectionTag
+  label  <- parseLabel
+  parsePeriod
+  return $ SectionPreamble secTag label
+

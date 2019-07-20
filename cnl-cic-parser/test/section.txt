@@ -1,0 +1,22 @@
+% Sections. 
+
+Article .
+article.
+Article The_Riemann_Hypothesis .
+
+Section.
+section analytic_continuation.
+
+subsection.
+Subsection Riemann_zeta_function.
+
+Subsubsection.
+SubSubSection critical_strip .
+
+%% labels can be any atomic identifier.
+
+article A1.
+article A_iii.
+article A.
+article A12.
+

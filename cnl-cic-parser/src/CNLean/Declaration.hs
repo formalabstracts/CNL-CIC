@@ -27,4 +27,5 @@ data Declaration = DummyConstructor
   deriving (Show, Eq)
 
 parseDeclaration :: Parser Declaration
-parseDeclaration = return DummyConstructor
+parseDeclaration = do xs <- (many1 item)
+                      return DummyConstructor

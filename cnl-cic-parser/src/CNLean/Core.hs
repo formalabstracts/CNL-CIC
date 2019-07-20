@@ -38,17 +38,16 @@ data TextItem =
 
 parseTextItem :: Parser TextItem
 parseTextItem = (parseNamespace >>= return . Namespace)
-          <||>  (parseSectionPreamble >>= return . SectionPreamble)
+          <||>  (parseSectionPreamble >>= return . CNLean.Core.SectionPreamble)
           <||>  (parseDeclaration >>= return . Declaration)
           <||>  (parseMacro >>= return . Macro)
           <||>  (parseInstr >>= return . Instr)
 
-newtype ProgramText = Mk [TextItem]
+newtype ProgramText = TextItems [TextItem]
   deriving (Show, Eq)
 
 parseProgramText :: Parser ProgramText
-parseProgramText = (many' parseTextItem) >>= return . Mk
+parseProgramText = (many1' parseTextItem) >>= return . TextItems
 
 parseProgram :: Parser ProgramText
 parseProgram = parseProgramText <* eof
-

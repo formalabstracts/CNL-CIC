@@ -19,8 +19,13 @@ import qualified Text.Megaparsec.Char.Lexer as L
 
 type Parser = Parsec Void Text
 
+repeatN :: Int -> Parser a -> Parser a
+repeatN n p = foldr (>>) p $ replicate (n-1) p
+
+infixl 3 <||>
 (<||>) :: Parser a -> Parser a -> Parser a
 p <||> q = (try p) <|> q
+
 
 (<+>) :: Parser Text -> Parser Text -> Parser Text
 p <+> q = do
@@ -64,7 +69,7 @@ item = satisfy (\_ -> True)
 not_whitespace_aux :: Parser Char
 not_whitespace_aux = do
   b <- succeeds $ lookAhead spaceChar
-  if b then fail "white character ahead, failing"
+  if b then fail "whitespace character ahead, failing"
        else item
 
 fold :: [Parser a] -> Parser a
@@ -72,6 +77,9 @@ fold ps = foldr (<||>) empty ps
 
 not_whitespace :: Parser Text
 not_whitespace = (many1 not_whitespace_aux) >>= return . pack
+
+word :: Parser Text
+word = not_whitespace <* sc
 
 digit :: Parser Text
 digit = digitChar >>= return . pack . pure
@@ -83,7 +91,7 @@ alpha :: Parser Text
 alpha = (upperChar <||> lowerChar) >>= return . pack . pure
 
 alphanum :: Parser Text
-alphanum = (many1 (alpha <|> digit)) >>= return . join
+alphanum = (many1 (alpha <||> digit)) >>= return . join
 
 ch :: Char -> Parser Text
 ch c = Text.Megaparsec.Char.char c >>= return . pack . pure
@@ -91,6 +99,10 @@ ch c = Text.Megaparsec.Char.char c >>= return . pack . pure
 str :: Text -> Parser Text
 str t = do
   Text.Megaparsec.Char.string t
+
+str' :: Text -> Parser Text
+str' t = do
+  Text.Megaparsec.Char.string' t
 
 str_eq' :: Text -> Text -> Prelude.Bool
 str_eq' t1 t2 = (toLower t1) == (toLower t2)
@@ -101,6 +113,13 @@ many' p = (do
   a <- p
   as <- many' p
   return (a:as) ) <||> return []
+
+---- backtracking version of many1. fails unless if p succeeds at least once
+many1' :: Parser a -> Parser [a]
+many1' p = do
+  a  <- p
+  as <- (many' p)
+  return $ a : as
 
 sepby_aux :: Parser a -> Parser b -> Parser [a]
 sepby_aux p sep =

@@ -27,4 +27,8 @@ data Namespace = DummyConstructor
   deriving (Show, Eq)
 
 parseNamespace :: Parser Namespace
-parseNamespace = return DummyConstructor
+parseNamespace = empty
+
+-- parseNamespace :: Parser Namespace
+-- parseNamespace = do xs <- (many1' item)
+--                     return DummyConstructor
