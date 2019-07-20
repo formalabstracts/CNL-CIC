@@ -69,13 +69,13 @@ data InstrSep =
 
 parseInstrSep :: Parser InstrSep
 parseInstrSep = do
-  (parseSlash <||> parseSlashDash) >>= return . InstrSepToken
+  (parseSlashDash <||> parseSlash) >>= return . InstrSepToken
 
 data Instr =
     InstructCommand KeywordCommand
-  | InstructSynonym KeywordSynonym [Token]
-  | InstructString KeywordString [Token]
-  | InstructBool KeywordBool Token
+  | InstructSynonym KeywordSynonym [[Token]]
+  | InstructString KeywordString [[Token]]
+  | InstructBool KeywordBool Bool
   | InstructInt KeywordInt Token
   deriving (Show, Eq)
 
@@ -86,19 +86,20 @@ parseInstructCommand = do
 parseInstructSynonym :: Parser Instr
 parseInstructSynonym = do
   s <- parseKeywordSynonym
-  tks <- (sepby1 parseTk (parseInstrSep))
+  tks <- (sepby1 (many1' parseTk) (parseInstrSep))
   return $ InstructSynonym s tks
 
 parseInstructString :: Parser Instr
 parseInstructString = do
   s <- parseKeywordString
-  tks <- (sepby1 parseTk (parseInstrSep))
+  tks <- (sepby1 (many1' parseTk) (parseInstrSep))
   return $ InstructString s tks
 
 parseInstructBool :: Parser Instr
 parseInstructBool = do
   k <- parseKeywordBool
-  t <- (parseLit_aux TRUE <||> parseLit_aux FALSE >>= return . Lit)
+  t <- (parseLit_aux TRUE <||> parseLit_aux ON <||> parseLit_aux YES >> return True)
+        <||> (parseLit_aux FALSE <||> parseLit_aux OFF <||> parseLit_aux NO >> return False)
   return $ InstructBool k t
 
 parseInstructInt :: Parser Instr

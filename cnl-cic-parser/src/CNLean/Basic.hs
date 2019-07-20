@@ -26,8 +26,7 @@ infixl 3 <||>
 (<||>) :: Parser a -> Parser a -> Parser a
 p <||> q = (try p) <|> q
 
-
-(<+>) :: Parser Text -> Parser Text -> Parser Text
+(<+>) :: Semigroup a => Parser a -> Parser a -> Parser a
 p <+> q = do
   a <- p
   b <- q

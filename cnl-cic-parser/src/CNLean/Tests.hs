@@ -35,3 +35,8 @@ testSectionPreamble :: IO ()
 testSectionPreamble = do
   txt <- TIO.readFile "/home/pv/org/projects/jmh-CNL-CIC/cnl-cic-parser/test/section.txt"
   parseTest (many1 $ sc *> parseSectionPreamble <* sc) txt
+
+testInstr :: IO ()
+testInstr = do
+  txt <- TIO.readFile "/home/pv/org/projects/jmh-CNL-CIC/cnl-cic-parser/test/instruction.txt"
+  parseTest (many1 $ sc *> parseInstr <* sc) txt
