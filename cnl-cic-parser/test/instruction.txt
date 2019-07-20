@@ -19,9 +19,9 @@
 
 % Subsection test_string_instruction.
 
-% [ read "algebra.cnl" ] % commented out for now because double quotes are noncompliant with token specification
-% [ library "analysis" ]
-% [ Read "topology.cnl" ]
+[ read "algebra.cnl" ]
+[ library "analysis" ]
+[ Read "topology.cnl" ]
 
 % Subsection test_int_instruction
 

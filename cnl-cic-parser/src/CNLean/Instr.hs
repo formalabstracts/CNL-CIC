@@ -74,7 +74,7 @@ parseInstrSep = do
 data Instr =
     InstructCommand KeywordCommand
   | InstructSynonym KeywordSynonym [[Token]]
-  | InstructString KeywordString [[Token]]
+  | InstructString KeywordString Token
   | InstructBool KeywordBool Bool
   | InstructInt KeywordInt Token
   deriving (Show, Eq)
@@ -92,8 +92,8 @@ parseInstructSynonym = do
 parseInstructString :: Parser Instr
 parseInstructString = do
   s <- parseKeywordString
-  tks <- (sepby1 (many1' parseTk) (parseInstrSep))
-  return $ InstructString s tks
+  str <- parseString
+  return $ InstructString s str
 
 parseInstructBool :: Parser Instr
 parseInstructBool = do

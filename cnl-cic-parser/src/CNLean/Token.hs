@@ -632,7 +632,7 @@ parseTk = do
   return $ Tk . join $ as
 
 parseString :: Parser Token
-parseString = between (ch '"') (ch '"') str >>= return . String
+parseString = (between (ch '"') (ch '"') str >>= return . String) <* sc
   where str = (many $ (ch '\\' <+> item) <||> not_ch '"') >>= return . join
 
 
