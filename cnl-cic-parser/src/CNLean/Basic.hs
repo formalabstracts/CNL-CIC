@@ -146,11 +146,15 @@ sepby1 p sep = fail_if_empty $ sepby p sep
 lookAhead' :: Parser a -> Parser ()
 lookAhead' p = (lookAhead p >> return ()) <||> fail "lookahead failed"
 
+option :: Parser a -> Parser (Maybe a)
+option p =
+  (p >>= return . Just) <||> return Nothing
+  
+
 -- sepBy' :: Parser a -> Parser b -> Parser [a]
 -- sepBy' p sep = do
 --   x <- try p
 --   xs <- try (sepBy' sep *> p)
 --   return $ x:xs
-  
   
   

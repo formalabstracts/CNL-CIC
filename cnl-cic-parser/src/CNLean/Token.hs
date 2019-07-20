@@ -12,7 +12,7 @@ module CNLean.Token where
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
 import qualified Control.Applicative.Combinators as PC
-import Text.Megaparsec hiding (Token)
+import Text.Megaparsec hiding (Token, Label)
 import Control.Monad (guard)
 import Text.Megaparsec.Char
 import qualified Data.Char as C
@@ -745,6 +745,12 @@ parseTokens =
   <|> do tks <- many1 parseToken
          eof <- parseEOF
          return $ tks ++ [eof])
+
+newtype Label = Label Token
+  deriving (Show, Eq)
+
+parseLabel :: Parser Label
+parseLabel = parseAtomicId >>= return . Label
 
 
 litTestString :: Text

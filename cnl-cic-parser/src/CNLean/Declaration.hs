@@ -1,7 +1,7 @@
 {-
 Author(s): Jesse Michael Han (2019)
 
-Declarations.
+Parsing declarations.
 -}
 
 {-# LANGUAGE OverloadedStrings #-}
@@ -22,10 +22,23 @@ import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
 import CNLean.Basic
 import CNLean.Token
+import CNLean.Axiom
+import CNLean.Definition
+import CNLean.Theorem
 
-data Declaration = DummyConstructor
-  deriving (Show, Eq)
+data Declaration =
+  DeclarationAxiom Axiom | DeclarationDefinition Definition | DeclarationTheorem Theorem
 
 parseDeclaration :: Parser Declaration
-parseDeclaration = do xs <- (many1 item)
-                      return DummyConstructor
+parseDeclaration = (parseAxiom >>= return . DeclarationAxiom) <||>
+                   (parseDefinition >>= return . DeclarationDefinition) <||>
+                   (parseTheorem >>= return . DeclarationTheorem)
+  
+
+-- data Definition =
+
+-- data Theorem = 
+
+-- parseDeclaration :: Parser Declaration
+-- parseDeclaration = do xs <- (many1 item)
+--                       return DummyConstructor

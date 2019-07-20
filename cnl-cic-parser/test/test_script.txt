@@ -177,7 +177,7 @@ Definition X25.
 We say that TotallyPositive33 x y z iff x is positive.
 
 Definition X26.
-We say that IsOrdered { z : C} (x y : A) r (s : B) iff x is positive.
+We say that IsOrdered { z : C } (x y : A) r (s : B) iff x is positive.
 
 Subsection test_function_definition.
 

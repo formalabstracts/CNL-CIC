@@ -1,18 +1,18 @@
 {-
 Author(s): Jesse Michael Han (2019)
 
-Macros.
+Parsing theorems.
 -}
 
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module CNLean.Macro where
+module CNLean.Theorem where
 
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
 import qualified Control.Applicative.Combinators as PC
-import Text.Megaparsec hiding (Token)
+import Text.Megaparsec hiding (Token, Label, option)
 import Control.Monad (guard)
 import Text.Megaparsec.Char
 import qualified Data.Char as C
@@ -23,11 +23,12 @@ import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 import CNLean.Basic
 import CNLean.Token
 
-data Macro = DummyConstructor
+data TheoremPreamble = TheoremPreamble Token (Maybe Label) -- parse (Lit AXIOM), maybe a label, optional period.
   deriving (Show, Eq)
 
-parseMacro :: Parser Macro
-parseMacro = empty
-
-  -- do xs <- (many1 item)
-             --    return DummyConstructor
+parseTheoremPreamble :: Parser TheoremPreamble
+parseTheoremPreamble = do
+  tk <- ((parseLit_aux THEOREM) <||> (parseLit_aux PROPOSITION) <||> (parseLit_aux LEMMA) <||> (parseLit_aux COROLLARY) >>= return . Lit)
+  maybeLabel <- option (parseLabel)
+  try (parsePeriod)
+  return $ TheoremPreamble tk maybeLabel
