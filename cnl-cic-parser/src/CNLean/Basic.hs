@@ -54,19 +54,19 @@ many1 p = do
 symbol' :: Text -> Parser Text
 symbol' arg = L.symbol' sc arg
 
-not_space_aux :: Parser Char
-not_space_aux = (satisfy (\x -> x /= ' '))
+not_ch :: Char -> Parser Text
+not_ch c = (satisfy $ \x -> x /= c) >>= return . pack . pure
 
 not_space :: Parser Text
-not_space = (many1 not_space_aux) >>= return . pack
+not_space = (many1 $ not_ch ' ') >>= return . join
 
 succeeds :: Parser a -> Parser Bool
 succeeds p = (p >> return True) <|> return False
 
-item :: Parser Char
-item = satisfy (\_ -> True)
+item :: Parser Text
+item = satisfy (\_ -> True) >>= return . pack . pure
 
-not_whitespace_aux :: Parser Char
+not_whitespace_aux :: Parser Text
 not_whitespace_aux = do
   b <- succeeds $ lookAhead spaceChar
   if b then fail "whitespace character ahead, failing"
@@ -76,7 +76,7 @@ fold :: [Parser a] -> Parser a
 fold ps = foldr (<||>) empty ps
 
 not_whitespace :: Parser Text
-not_whitespace = (many1 not_whitespace_aux) >>= return . pack
+not_whitespace = (many1 not_whitespace_aux) >>= return . join
 
 word :: Parser Text
 word = not_whitespace <* sc

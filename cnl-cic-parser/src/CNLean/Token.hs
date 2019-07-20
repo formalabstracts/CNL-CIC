@@ -506,6 +506,7 @@ data Token =
   | SlashDash
   | Var Text
   | Tk Text
+  | String Text
   | AtomicId Text
   | HierId [Token]
   | FieldAcc Token
@@ -630,6 +631,10 @@ parseTk = do
   notFollowedBy (char '.' >> (alpha <||> digit))
   return $ Tk . join $ as
 
+parseString :: Parser Token
+parseString = between (ch '"') (ch '"') str >>= return . String
+  where str = (many $ (ch '\\' <+> item) <||> not_ch '"') >>= return . join
+
 
   -- (do
   -- as <- many1 alpha <* sc -- the nested lookAheads look insane, but seem to work
@@ -701,6 +706,7 @@ parseToken =
   <||> parseLitToken
   <||> parseVar
   <||> parseTk
+  <||> parseString
   <||> parseControlSequence
   <||> parseFieldAcc
   <||> parseHierId 
