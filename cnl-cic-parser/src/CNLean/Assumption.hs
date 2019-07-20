@@ -7,7 +7,7 @@ Parsing assumptions.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module CNLean.Axiom where
+module CNLean.Assumption where
 
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
@@ -22,6 +22,7 @@ import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
 import CNLean.Basic
 import CNLean.Token
+import CNLean.Annotation
 
 data Assumption = -- note: parsing a list of assumptions means using (many1 parseAssumption)
     AssumptionAssumptionPrefix AssumptionPrefix Statement -- parsed with period at end
@@ -40,11 +41,10 @@ parseAssumptionPrefix = (do tks <- parseLitLets
                             return $ LitLets tks tk o)
                       <||> (parseLit_aux LET >>= return . LitLet . Lit)
 
+newtype ThenPrefix = ThenPrefix (Maybe Token) --   then_prefix : option(lit_then) {}
+
+parseThenPrefix :: Parser ThenPrefix
+parseThenPrefix = option $ parseLit_aux THEN >>= return . Lit
 
 
--- newtype ThenPrefix = ThenPrefix (Maybe Token) --   then_prefix : option(lit_then) {}
-
--- data Statement =
---     StatementHeadStatement HeadStatement
---   | StatementChainStatement ChainStatement
 

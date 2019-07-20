@@ -22,8 +22,9 @@ import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
 import CNLean.Basic
 import CNLean.Token
+import CNLean.Assumption
 
--- data Axiom = Axiom { preamble :: AxiomPreamble, assumptions :: [Assumption], thenPrefix :: ThenPrefix, statement :: Statement }
+data Axiom = Axiom { preamble :: AxiomPreamble, assumptions :: [Assumption], thenPrefix :: ThenPrefix, statement :: Statement }
 
 data AxiomPreamble = AxiomPreamble Token (Maybe Label) -- parse (Lit AXIOM), maybe a label, optional period.
   deriving (Show, Eq)
