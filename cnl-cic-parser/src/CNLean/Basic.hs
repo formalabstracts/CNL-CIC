@@ -14,6 +14,7 @@ import Text.Megaparsec
 import Text.Megaparsec.Char
 import Data.Text (Text, pack, unpack, toLower)
 import Data.Void
+import Control.Monad (guard)
 import qualified Data.Char as C
 import qualified Text.Megaparsec.Char.Lexer as L
 
@@ -127,10 +128,16 @@ sepby_aux p sep =
 sepby :: Parser a -> Parser b -> Parser [a]
 sepby p sep = (sepby_aux p sep) <||> return []
 
-fail_if_empty :: (Eq a) => Parser [a] -> Parser [a]
-fail_if_empty p = do
+guard_result :: Parser a -> (a -> Bool) -> Parser a
+guard_result p pred = do
   x <- p
-  if x == [] then fail "is empty list" else return x
+  (guard (pred x)) <||> fail "guard failed" -- TODO(jesse) write a better error message
+  return x
+
+fail_if_empty :: (Eq a) => Parser [a] -> Parser [a]
+fail_if_empty p = guard_result p (/= [])
+  
+  -- if x == [] then fail "is empty list" else return x
 
 sepby1 :: (Eq a) => Parser a -> Parser b -> Parser [a]
 sepby1 p sep = fail_if_empty $ sepby p sep
