@@ -1,0 +1,148 @@
+\documentclass[12pt]{amsart}
+
+
+% PACKAGES
+\usepackage{url}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{fancyvrb}
+\usepackage{color}
+
+% for underscores https://texfaq.org/FAQ-underscore
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+
+
+% GLOBAL FORMATTING
+\parindent=0pt
+\parskip=0.5\baselineskip
+\raggedbottom
+
+% TITLE AUTHOR DATE
+\title{Control sequences for CNL package}
+
+\date{July 22, 2019}
+\author{}
+
+
+% DOCUMENT
+
+\begin{document}
+\maketitle
+
+\section{fancy verbatim}
+
+Here are definitions to make fancy verbatim work with
+identifiers in both text and math modes.
+
+
+
+\DefineShortVerb[formatcom=\color{red},fontfamily=mathtt]{\!}
+
+\DefineShortVerb[formatcom=\color{blue},fontfamily=mathtt]{\|}
+
+Tests:
+
+
+!abc'55_de_ff!
+
+|x_1|
+
+$|x_1|^2 |x_2|^2$
+
+
+\[
+3 + !\cos!\ x y + !ab_d!_5/66
+\]
+
+
+$|x_1|^2 |x_2|^2 * 3 + !\cos!\ x y + !ab_d!_5/66$
+
+\section{Main CNL macros}
+
+When \TeX'ed these control sequences 
+do nothing except gobble their arguments.
+
+!\CNLexpand[k]\cs!
+
+!\CNLnoexpand[k]\cs!
+
+!\CNLdelete[k]\cs!
+
+!\CNLcustom[k]\cs{expansion text}!
+
+\def\ignoreOptionAndCS[#1]#2{}
+
+\def\onearg#1{(onearg:#1)} % for debugging.
+
+
+\def\ignoreOne#1{}
+
+
+
+\def\ignoreOptionOrCS{%
+\futurelet\nextToken\chooseBranch}
+
+
+\def\chooseBranch{%
+\let\next=\relax
+\ifx\nextToken [%
+ \let\next=\ignoreOptionAndCS%
+\else%
+ \let\next=\ignoreOne%
+\fi%
+\next%
+}
+
+\def\ignoreOptionAndCSS[#1]#2#3{}
+\def\ignoreTwo#1#2{}
+\def\ignoreOptionOrCSS{%
+\futurelet\nextToken\chooseBranchTwo%
+}
+\def\chooseBranchTwo{%
+\let\next=\relax
+\ifx\nextToken [%
+ \let\next=\ignoreOptionAndCSS%
+\else%
+ \let\next=\ignoreTwo%
+\fi%
+\next%
+}
+
+\let\CNLexpand=\ignoreOptionOrCS
+\let\CNLnoexpand=\ignoreOptionOrCS
+\let\CNLdelete=\ignoreOptionOrCS
+\let\CNLcustom=\ignoreOptionOrCSS
+
+Test code:
+
+\ignoreOptionAndCS[3]\onearg
+B
+
+\ignoreOne\onearg C
+
+
+1. \ignoreOptionOrCS\onearg postOrCS
+
+
+2.  \ignoreOptionOrCS[4]\onearg postOrCS 
+
+3. \ignoreOptionOrCSS[3]\onearg{missing} more
+
+4. \ignoreOptionOrCSS\onearg{missing} more
+
+5.
+
+\CNLdelete\alpha
+\CNLexpand\beta
+\CNLnoexpand\gamma
+\CNLcustom\delta{DELTA}
+
+\CNLdelete[1]\alpha
+\CNLexpand[2]\beta
+\CNLnoexpand[3]\gamma
+\CNLcustom[4]\delta{DELTA}
+
+\end{document}
+

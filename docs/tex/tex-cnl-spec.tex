@@ -6,6 +6,7 @@
 \usepackage{amsmath}
 \usepackage{amsthm}
 \usepackage{amssymb}
+\usepackage{fancyvrb}
 
 % for underscores https://texfaq.org/FAQ-underscore
 \usepackage{lmodern}
@@ -74,19 +75,16 @@ The notes here add detail to the
  \href{https://github.com/formalabstracts/CNL-CIC/wiki/Conversion-from-LaTeX}{CNL-CIC Wiki}.
 
 A \TeX\ file written in CNL-enabled \TeX\ can be processed 
-by the \TeX\ engine in
-two different modes: presentation mode and CNL mode.
+by the \TeX\ engine or by the CNL engine.
 
-A boolean flag {\tt isPresentation} in the \TeX\ source determines
-which mode is used for processing.
+%A boolean flag {\tt isPresentation} in the \TeX\ source determines
+%which mode is used for processing.
 
-The presentation mode is used to process the file as an ordinary
-\TeX\ source, typeset in the usual way to a .dvi or .pdf file.  When
-we talk about the pdf display, we mean the output with the
-presentation mode.
+When
+we talk about the pdf display, we mean the pdf output 
+from \TeX.
 
-The CNL mode is used to generate tables and indexes needed to
-translate the \TeX\ source file into the CNL grammar.  The CNL image
+The CNL image
 means the output of the \TeX\ to CNL translation.  The CNL image is a
 text file written in the CNL grammar.
 
@@ -96,63 +94,29 @@ text file written in the CNL grammar.
 There are some visible differences between a typical \TeX\ source
 and a CNL-enabled one.
 
-The vertical bar | is redefined have an escape catcode (and \verb!\!
-also remains an escape character).  The two escape characters are used
-in different ways.  
-
-Roughly, the vertical bar is used with macros that
-have special translation rules to CNL.  In CNL mode, various control
-sequences are redefined to include write commands to an external
-file.  Macros are expanded by the \TeX\ engine and their expansions
-are printed to the external file.  The \TeX\ to CNL translation software
-uses this external file to perform the translation.  The two escape characters
-are used to control where the write commands are inserted and whether
-a given macro is expanded or left unexpanded in the dump to the external
-file.  
-
-
-In presentation mode, the vertical bar is the only symbol given a new
-catcode.  Likewise CNL mode, the vertical bar is given a new catcode.
-Moreover, the subscript and superscript symbols are given the other catcode.
-
 \subsection{Variables and Identifiers}
 
 Identifiers can appear with the underscore character.  They must be
-processed specially.
+processed specially.   We use the fancy verbatim mode and surround
+identifiers with ! as in \verb'!identifier_with_underscore!' .
 
-\subsubsection{identifiers}
-In the \TeX\ source, 
-\begin{itemize}
-\item write \verb!|var|x|! or (\verb!$x$!) 
-to produce a variable $x$.
-\item Write \verb!|id|my_identifier|! to
-produce the identifier \verb!my_identifier!.
-\item Write \verb!|id|mynamespace.my_namespace|! for
-a hierarchical identifier.
-\item Write \verb!|hier|mynamespace|my_namespace|! for
-a hierarchical identifier in which \verb!mynamespace! is
-not displayed in the pdf, but appears in the CNL.
-\item Insert curly braces after an underscore to make parts
-of the identifier display in the pdf as an underscore.
-In the CNL image, the braces are stripped, and the content
-between the braces becomes part of the identifier.
-\item To make the subscript a function call, place it outside
-the vertical bars: \verb!|id|A|_{ij}! for $\hbox{|id|A|}_{ij}$.
-\item In CNL-mode, the parentheses are around the function
-and the subscript, not around terms within the subscript.
-\verb!f_{i j}! is translated to $(f~i~j)$ rather than $f (i j)$
-\item In CNL-mode, the underscore is given the catcode other.
-\end{itemize}
+Subscripts written without braces are interpreted as part of the variable
+or identifier name.
+
+Subscripts written with braces are interpreted in CNL as function applications.
+
+Thus, \verb!x_1! is a variable and  \verb!x_{1}!  is the function $x$ applied to $1$.
+This works with multiple indices $a_{i j}$ (with a space between the $i$ and the $j$,
+is translated to CNL \verb!a \sb (i j)!  The function application gets suppressed between
+the $i$ and the $j$, so that this is equivalent to \verb!a i j!.   To activate function application
+in the subscript, wrap the subscripts in an extra layer of parentheses \verb!a_{(f x)}! or
+\verb!a_{\parenI{f x}}!.  The \verb!\parenI! control sequence is invisible in the pdf display,
+but expands to parentheses in the CNL.
 
 \subsubsection{labels}
 
-Labels must be valid CNL identifiers.
-
-
-References \verb!\ref{xyz}! or \verb!\eqref{xyz}!  in the
-\TeX\ translate to the corresponding labels statements {\it by label}
-in CNL.
-
+Labels are converted to valid CNL identifiers by replacing
+whitespace and non-alphanumeric characters to underscores.
 
 \subsection{Special characters}
 
@@ -168,7 +132,7 @@ the $n$th power of $f_i$, that is, $(f_i)^n$.
 Thus, this should be written in this
 order rather than \verb!f^n_i! (which, would suggest the $n$th iterate
 of $f$ applied to $i$).
-\item the superscript mark is given the other catcode in CNL-mode.
+\item the superscript character is treated like every other math symbol.
 \item macros should be used when the meaning of a superscript is
 not a power.
 \end{itemize}
@@ -181,7 +145,38 @@ Invisible characters are generally given by macros
 \verb!x\mulI y! has pdf display $x y$, but the CNL image
 preserves the binary operation \verb!x\mulI y!.
 
+\subsection{control sequences}
 
+\verb!\CNLcustom[k]\controlseq{pattern text}!   When translating \TeX\ to CNL use the pattern text to translate the control sequence \verb!\controlseq!
+The integer $k$, which is optional, gives the number of braced arguments to read for expansion in the pattern text, after \verb!\controlseq!
+
+For example, 
+\verb!\CNLcustom[1]\parenI{ (#1) }! states that \verb!\parenI{X}! in the \TeX\ should translated to $(X)$ in the CNL.
+
+For example,
+\verb!\CNLcustom\oplus{ \vplus }!
+
+A \verb!\noexpand! in the pattern text prevents the macro from being expanded, but the \verb!\noexpand! is not transcribed into the CNL image.
+
+\verb!\CNLcustom\X{\noexpand\X}!.  Here \verb!\X! in the source becomes \verb!\X! in the image.
+
+\verb!\CNLnoexpand[k]\controlseq! is equivalent to \verb!\CNLcustom[k]\controlseq{\noexpand\controlseq}!
+
+\verb!\CNLdelete[k]\controlseq!  When translating to CNL, delete the control sequence \verb!\controlseq! together with $k$ curly braced arguments.
+This is equivalent to giving empty expansion text \verb!\CNLcustom[k]\controlseq{}! 
+
+\verb!\CNLexpand[k]\controlseq! expands the macro with $k$ arguments, but using the macro definition rather than \verb!\CNLcustom! pattern text.
+
+
+\subsubsection{lists and curried functions}
+
+Unlike in the source, in the CNL functions are generally curried.
+In the CNL, lists are generally demarcated with square brackets and semicolons.
+
+\verb!\list{(x1,...,xN)}! (which displays as $(x1,\ldots,xN)$)
+becomes a list in the CNL image \verb![x1;...;xN]!  (Here the $x_i$s must have the same type.
+
+\verb!\app{f}{(x1,....,xN)}! (which displays as $f(x1,...,xN)$) becomes curried in CNL \verb!((f) (x1) (x2) ... (xN))!
 
 \subsubsection{stripped characters}
 
@@ -197,28 +192,14 @@ This include instructions to change among different
 
 Rules, glues, and space \verb!\  \, \medskip, \quad!, etc.
 
-Most curly braces are stripped.  Some are converted to
-parentheses.
+\subsubsection{curly braces}
+
+Some curly braces are stripped.  Some are converted to
+parentheses.  Here is the rule.  Curly braces marking a
+subscript are replaced by parentheses.  Curly braces used
+to demarcate control sequence arguments are stripped.
 
 
-In material originating in \TeX horizontal mode, 
-the CNL image is
-stripped of many of the foreign accents.
-
-\begin{itemize}
-\item G\"odel - Godel
-\item \'etale - etale
-\end{itemize}
-
-
-
-
-\subsubsection{special characters}
-
-It is better to use the letter version of control
-sequences rather than the escaped forms:
-use \verb!\percent! not \verb!\%!, \verb!\dollar! not
-\verb!\$! etc.
 
 \subsubsection{ambiguous notations}
 
@@ -303,7 +284,8 @@ Translation to CNL-Equation.  Any label is translated.
 \subsubsection{matrix environments}
 
 \begin{description}
-\item [matrix, pmatrix, bmatrix, Bmatrix, vmatrix, Vmatrix, smallmatrix]   begin/end is stripped. The data is converted to a list of lists.
+\item [matrix, pmatrix, bmatrix, Bmatrix, vmatrix, Vmatrix, smallmatrix]   begin/end is stripped. The data is converted to a list of lists.  The list of lists is
+given as an argument to a control sequence with the same name as the environment \verb!\pmatrix{[[0;1];[2;3]]}!
 \item [cases] Not supported.
 \end{description}
 
@@ -320,6 +302,49 @@ cases, inductive
 and mutual inductive type declarations, structures, etc.
 These custom itemize environments are translated to the
 appropriate language constructs in the CNL image.
+
+
+\section{outstanding issues}
+
+
+\subsubsection{foreign accents}
+
+In material originating in \TeX horizontal mode, 
+the CNL image is
+stripped of many of the foreign accents.
+
+\begin{itemize}
+\item G\"odel - Godel
+\item \'etale - etale
+\end{itemize}
+
+\subsubsection{curly braces and font selection}
+
+
+
+We generally wish to strip font variations \verb!{\it such as italics}! in
+text mode.  Note that this doesn't fit the usual pattern of control sequence applied
+to arguments.
+
+\subsubsection{font selection in math}
+
+Generally, we want to view two variables in different math fonts as
+different variables.  We should generalize the definition of a variable in the CNL
+to include constructs such as \verb!\mathcal{C}!  or $\mathcal{C}$, which would be
+a separate variable from $C$.
+
+
+
+%https://tex.stackexchange.com/questions/58098/what-are-all-the-font-styles-i-can-use-in-math-mode
+
+\subsubsection{control sequences as variables}
+
+We wish for it to be possible to use some control sequences
+as variables: \verb!\alpha!, etc.
+
+
+
+\subsubsection{ellipsis}
 
 
 \end{document}

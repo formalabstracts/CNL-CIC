@@ -28,41 +28,29 @@ open BatList
 
 let numeral10 =
   [%sedlex.regexp? Plus('0'..'9')]
-let number =
+let natural_number =
   [%sedlex.regexp? numeral10]
 let decimal =
   [%sedlex.regexp? Plus('0'..'9') , '.', Plus('0'..'9')]
 let numeric =
-  [%sedlex.regexp? Opt('+' | '-'), (number | decimal)]
+  [%sedlex.regexp? Opt('+' | '-'), (natural_number | decimal)]
+ 
+let eol =   [%sedlex.regexp?  '\n']
 
-  
 let white =
-  [%sedlex.regexp? ' ' | '\r' | '\n' | '\t' | '\012' ] 
-
-let string_escape = [%sedlex.regexp?
-'\\' , ('\\' | '"' | "'" | "n" | "t" )]
-
-let string_char = [%sedlex.regexp? Compl('\\' | '\"')]
-
-let string_item = [%sedlex.regexp? string_char | string_escape  ]
-
-let string = [%sedlex.regexp? '"', Star(string_item), '"']
+  [%sedlex.regexp? ' ' | '\t' | '\012' | '~' | '@' | '\r' ] 
 
 let alphabet = [%sedlex.regexp? 'a'..'z' | 'A'..'Z']
+
 let alphanum = [%sedlex.regexp? alphabet | numeral10 | '_' | "'"]
              
 let controlseq = [%sedlex.regexp? '\\', Plus(alphabet)]
-let var = [%sedlex.regexp? alphabet, Star(numeral10 | "'" | "_")]
-let token = [%sedlex.regexp? Plus(alphabet) ]
 
+let controlchar = [%sedlex.regexp? '\\', Compl(alphabet)]
 
-(* identifier should be generalized to include PERIOD for namespaces and
-   field accessors *)
-let identifier = [%sedlex.regexp? alphabet, Star(alphanum) ]          
+let comment = [%sedlex.regexp? '%', Compl(eol)]
 
-(* numerical literals *)
-
-  
+let arg = [%sedlex.regexp? '#', numeral10 ]
 
 let lparen = [%sedlex.regexp? '(' ]  
 let rparen = [%sedlex.regexp? ')' ]
@@ -70,30 +58,28 @@ let lbrack = [%sedlex.regexp? '[' ]
 let rbrack = [%sedlex.regexp? ']' ]
 let lbrace = [%sedlex.regexp? '{' ]
 let rbrace = [%sedlex.regexp? '}' ]
+let ldisplay = [%sedlex.regexp? '\\', '['  ]
+let rdisplay = [%sedlex.regexp? '\\', ']'  ]
+let format_eol = [%sedlex.regexp? '\\']
+let format_col = [%sedlex.regexp? '&']
+
 
 let period = [%sedlex.regexp? '.']           
 let comma = [%sedlex.regexp? ',']
 let colon = [%sedlex.regexp? ':']
 let semi = [%sedlex.regexp? ';']           
-let assign = [%sedlex.regexp? ":="]
-let arrow = [%sedlex.regexp? "->"]
-let alt = [%sedlex.regexp? "|"]
-let slash = [%sedlex.regexp? "/"]
-let slashdash = [%sedlex.regexp? "/-"]
-        
-let blank = [%sedlex.regexp? '_']
+let punct = [%sedlex.regexp? period | comma | semi | colon ]
 
-let symbol = [%sedlex.regexp? '*' | '+' | '^' | '=' | '<' | '>' | '/']
-                    
-let op_char_no_dot =   [%sedlex.regexp?
-                  '+'
-                | '&'
-                       ]
+let dollar = [%sedlex.regexp? '$']
+let sub = [%sedlex.regexp? '_']
 
-let unicode = [%sedlex.regexp?
-                  Compl(' ')]
+let symbol = [%sedlex.regexp? punct | '|' | '<' | '>' | '^' | '+' | '-' | '=' | '/' | '*']
 
-(* tilde starts the suffix, in which more general character sequences are allowed: *)
+
+let unmarked_id_more = [%sedlex.regexp? alphanum | '.' ]
+let unmarked_id = [%sedlex.regexp? alphabet, Star(unmarked_id_more), Plus(alphanum) ]
+let id = [%sedlex.regexp? '!', unmarked_id, '!' ]
+let tok = [%sedlex.regexp?  alphabet | unmarked_id | id ]
 
            
 open Parser_tex
@@ -103,41 +89,35 @@ let lexeme = Sedlexing.lexeme
 let rec lex_token buf =
   match%sedlex buf with
   | Plus(white) -> (lex_token buf)
-    | string -> STRING (lexeme buf)
-    | controlseq -> CONTROLSEQ(lexeme buf)
-    | number -> NUMBER(lexeme buf)
-    | decimal -> DECIMAL(lexeme buf)
+    | natural_number -> NATURAL(int_of_string(lexeme buf))
     | numeric -> NUMERIC(lexeme buf)
-    | symbol -> SYMBOL(lexeme buf)
-    | rparen -> R_PAREN (lexeme buf)
-    | lparen -> L_PAREN (lexeme buf)
-    | lbrack -> L_BRACK (lexeme buf)
-    | rbrack -> R_BRACK (lexeme buf)
-    | lbrace -> L_BRACE (lexeme buf)
-    | rbrace -> R_BRACE (lexeme buf)
-    | period -> PERIOD (lexeme buf)
-    | comma -> COMMA (lexeme buf)
-      | colon -> COLON (lexeme buf)
-    | semi -> SEMI (lexeme buf)
-    | assign -> ASSIGN (lexeme buf)
-    | arrow -> ARROW (lexeme buf)
-    | alt -> ALT (lexeme buf)
-    | slash -> SLASH (lexeme buf)
-    | slashdash -> SLASHDASH (lexeme buf)
-    | blank -> BLANK (lexeme buf)
-    | var -> VAR (lexeme buf)
-    | token -> TOKEN (lexeme buf)
-    | identifier -> IDENTIFIER (lexeme buf)
+    | eol -> EOL
+    | controlseq -> CONTROLSEQ(lexeme buf)
+    | controlchar -> CONTROLCHAR(lexeme buf)
+    | arg -> ARG(int_of_string(lexeme buf))
+
+
+    | rparen -> R_PAREN
+    | lparen -> L_PAREN
+    | lbrack -> L_BRACK
+    | rbrack -> R_BRACK
+    | lbrace -> L_BRACE
+    | rbrace -> R_BRACE
+    | ldisplay -> L_DISPLAY
+    | rdisplay -> R_DISPLAY
+    | dollar -> DOLLAR
+    | format_eol -> FORMAT_EOL
+    | format_col -> FORMAT_COL
+    | tok -> TOK(lexeme buf) 
+    | symbol -> TOK(lexeme buf)
     | eof -> EOF
     | any -> failwith (lexeme buf)
-    | _  -> failwith (lexeme buf)
-
-
+    | _ -> failwith (lexeme buf)
 
               
 (* testing stuff *)
 
-(*
+
 let lexing_positions _ =
   (Lexing.dummy_pos,Lexing.dummy_pos)
 
@@ -151,7 +131,7 @@ let with_tokenizer (lexer' : Sedlexing.lexbuf -> token)  (buf : Sedlexing.lexbuf
 
 (* test *)
 let buf_example1 = Sedlexing.Utf8.from_string
-               "'' ``~ ' ` ~ 'a '+ (**) X (* hi *) Y (***) X  (* U )) *) V with | thm theorem then structure α \"string\x65\x65\" Sort Type , ; ) ] } post postulate . package := == # #. #.# *. 123 notation match ( [ { let inductive in import if hi.hi ~mod hi~# #print #eval # end else def 33.33 , : _ _33 _# _*_ := hello #reduce ##hi := structure let in with match :: // #print this.that by universe/-  -/ :+: :: (:= == :) {|} *a *.*_ ... ++ +- +0 +012 my oh.( + ) ohm.≪ - ≫ hello /--//- -//- hi --/'a'\"hello\"1234 0x33AF 0b0101 0o44 /-- abc -/ /-! bye -/'z'/--/ abc print a.b.c a.( + ) a.0.44"
+               "hello there xx $ yy $"
 
 (* both work on the same mutable buffer, *)
 let ff = fun () -> lex_token buf_example1
