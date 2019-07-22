@@ -1,26 +1,3 @@
-type token = 
-   | Natural of int
-   | Numeric of string
-   | Eol
-   | ControlSeq of string
-   | ControlChar of string
-   | Arg of int
-   | LParen
-   | RParen
-   | LBrack
-   | RBrack
-   | LBrace
-   | RBrace
-   | LDisplay
-   | RDisplay
-   | Dollar
-   | Sub
-   | FormatEol 
-   | FormatCol 
-   | Tok of string
-   | Symbol of string
-   | Eof
-   | NotImplemented;;
 
 let stream = ref [];;
 let popstream() =

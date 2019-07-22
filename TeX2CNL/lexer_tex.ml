@@ -1,16 +1,5 @@
 (* reference, unicode math version 3.1 16-Nov-16 *)
 
-(* #include "parser_cab.ml" [@@deriving show] *)
-
-module Sedlexing = Lexbuffer
-
-exception LexError of (string * int * int * string * string)
-
-let raise_lex (p: Lexing.position) tok msg =                
-  let open Lexing in
-  let line = p.pos_lnum in
-  let col = p.pos_cnum - p.pos_bol in
-  raise @@ LexError (p.pos_fname, line, col, tok, msg)
 
 
              (* sedlex format *)
@@ -23,6 +12,53 @@ let raise_lex (p: Lexing.position) tok msg =
 open BatSet.String
 open BatList 
  *)
+
+type token = 
+   | Natural of int
+   | Numeric of string
+   | Eol
+   | ControlSeq of string
+   | ControlChar of string
+   | Arg of int
+   | LParen
+   | RParen
+   | LBrack
+   | RBrack
+   | LBrace
+   | RBrace
+   | LDisplay
+   | RDisplay
+   | Dollar
+   | Sub
+   | FormatEol 
+   | FormatCol 
+   | Tok of string
+   | Symbol of string
+   | Eof
+   | NotImplemented;;
+
+let to_string = function
+  | Natural i -> (string_of_int i)
+  | Numeric s -> s
+  | ControlSeq s -> s
+  | ControlChar s -> s
+  | Arg i -> "#"^(string_of_int i)
+  | LParen -> "("
+  | RParen -> ")"
+  | LBrack -> "["
+  | RBrack -> "]"
+  | LBrace -> "{"
+  | RBrace -> "}"
+  | Dollar -> "$"
+  | Sub -> "\\sb"
+  | FormatEol -> "&"
+  | FormatCol -> "\\"
+  | Tok s -> s
+  | Symbol s -> s
+  | Eof -> "EOF"
+  | NotImplemented -> "NotImplemented"
+  | _ -> "";;
+
 
 (* -- Lexical structure -- *)
 
@@ -82,37 +118,44 @@ let id = [%sedlex.regexp? '!', unmarked_id, '!' ]
 let tok = [%sedlex.regexp?  alphabet | unmarked_id | id ]
 
            
-open Parser_tex
+(* open Parser_tex *)
 
-let lexeme = Sedlexing.lexeme
+let lexeme = Sedlexing.lexeme;;
 
-let rec lex_token buf =
-  match%sedlex buf with
-  | Plus(white) -> (lex_token buf)
-    | natural_number -> NATURAL(int_of_string(lexeme buf))
-    | numeric -> NUMERIC(lexeme buf)
-    | eol -> EOL
-    | controlseq -> CONTROLSEQ(lexeme buf)
-    | controlchar -> CONTROLCHAR(lexeme buf)
-    | arg -> ARG(int_of_string(lexeme buf))
+let implode l = List.fold_right (^) l "";;
 
+let string_of_ints js =
+ let cs =  List.map (fun j -> Char.escaped (Char.chr j)) (Array.to_list js) in
+  implode cs;;
 
-    | rparen -> R_PAREN
-    | lparen -> L_PAREN
-    | lbrack -> L_BRACK
-    | rbrack -> R_BRACK
-    | lbrace -> L_BRACE
-    | rbrace -> R_BRACE
-    | ldisplay -> L_DISPLAY
-    | rdisplay -> R_DISPLAY
-    | dollar -> DOLLAR
-    | format_eol -> FORMAT_EOL
-    | format_col -> FORMAT_COL
-    | tok -> TOK(lexeme buf) 
-    | symbol -> TOK(lexeme buf)
-    | eof -> EOF
-    | any -> failwith (lexeme buf)
-    | _ -> failwith (lexeme buf)
+let string_lexeme buf = string_of_ints(lexeme buf);;
+
+let rec lex_token buf = 
+ match%sedlex buf with 
+ | Plus(white) -> (lex_token buf)
+  | natural_number -> Natural(int_of_string(string_lexeme buf)) 
+    | numeric -> Numeric(string_lexeme buf)
+    | eol -> Eol
+    | controlseq -> ControlSeq(string_lexeme buf)
+    | controlchar -> ControlChar(string_lexeme buf)
+    | arg -> Arg(int_of_string(string_lexeme buf))
+    | rparen -> RParen
+    | lparen -> LParen
+    | lbrack -> LBrack
+    | rbrack -> RBrack
+    | lbrace -> LBrace
+    | rbrace -> RBrace
+    | ldisplay -> LDisplay
+    | rdisplay -> RDisplay
+    | dollar -> Dollar
+    | format_eol -> FormatEol
+    | format_col -> FormatCol
+    | tok -> Tok(string_lexeme buf) 
+    | symbol -> Tok(string_lexeme buf)
+    | eof -> Eof
+    | any -> failwith (string_lexeme buf)
+    | _ -> failwith (string_lexeme buf)
+
 
               
 (* testing stuff *)
@@ -130,18 +173,15 @@ let with_tokenizer (lexer' : Sedlexing.lexbuf -> token)  (buf : Sedlexing.lexbuf
     (token, start_p, curr_p)
 
 (* test *)
-let buf_example1 = Sedlexing.Utf8.from_string
-               "hello there xx $ yy $"
+let buf_example1 = Sedlexing.Latin1.from_string
+               "hello\\alpha33[1]there !ready! (xx) [$] {yy} $"
+
+
 
 (* both work on the same mutable buffer, *)
-let ff = fun () -> lex_token buf_example1
-BatList.map ff (BatList.init 5 (fun _ -> ()))
+let ff = fun () -> print_endline(to_string(lex_token buf_example1));;
 
-let gg = with_tokenizer lex_token buf_example1
-gg()
- *)
 
-(*
-#require "MenhirLib"        
-MenhirLib.Convert.traditional2revised
- *)
+BatList.map ff (BatList.init 18 (fun _ -> ()));;
+
+
