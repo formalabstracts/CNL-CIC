@@ -19,7 +19,8 @@ import Control.Monad (guard)
 import qualified Data.Char as C
 import qualified Text.Megaparsec.Char.Lexer as L
 
-data Patt = Wd [Text] | Sm Text | Vr | Nm deriving (Eq, Show)
+data Patt = Wd [Text] | Sm Text | Vr | Nm
+            deriving (Eq, Show)
 
 data FState = FState {
   adjExpr, verExpr, ntnExpr, sntExpr :: [[Patt]],
@@ -29,6 +30,7 @@ data FState = FState {
   -- tvrExpr :: [TVar] -- TODO(jesse) integrate this later
   strSyms :: [[Text]], varDecl :: [Text],
   idCount :: Int, hiddenCount :: Int, serialCounter :: Int}
+  deriving (Show, Eq)
 
 updateSerialCounter fs x = fs {serialCounter = x}
 updateHiddenCount fs x = fs {hiddenCount = x}

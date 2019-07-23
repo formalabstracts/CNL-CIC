@@ -21,9 +21,22 @@ import qualified Text.Megaparsec.Char.Lexer as L
 
 import CNLean.Basic.State
 
-type ParserSt s = StateT s (Parsec Void Text)
+type Parser0 = Parsec Void Text
+
+type ParserSt s = StateT s (Parser0)
 
 type Parser = ParserSt FState
+
+runtest0 :: Parser a -> Parser0 (a, FState)
+runtest0 p = (runStateT p) initialFState
+
+test_all :: Show a => Parser a -> Text -> IO ()
+test_all p arg = parseTest (runtest0 p) arg
+
+---- `test p arg` runs `p` on `arg`, suppressing information about the FState
+test:: Show a => Parser a -> Text -> IO ()
+test p arg = parseTest (do (a,b) <- runtest0 p
+                           return a) arg
 
 repeatN :: Int -> Parser a -> Parser a
 repeatN n p = foldr (>>) p $ replicate (n-1) p
@@ -37,6 +50,9 @@ p <+> q = do
   a <- p
   b <- q
   return $ a <> b
+
+rp :: Parser a -> Parser [a]
+rp p = p >>= return . pure
 
 join :: [Text] -> Text
 join ts = foldl (<>) "" ts

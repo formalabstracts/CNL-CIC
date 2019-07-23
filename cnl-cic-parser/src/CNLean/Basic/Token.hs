@@ -23,6 +23,159 @@ import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 import CNLean.Basic.Basic
 
 -- literal tokens
+
+---- `parseLit arg` case-insensitively parses `arg`, and then consumes whitespace to the right.
+parseLit :: Text -> Parser Text
+parseLit arg = (str' arg) <* sc
+
+-- auxiliary lit parsers, of the form `lit_*` in the grammar specification
+
+parseLitLets :: Parser [Text]
+parseLitLets = (do a <- parseLit "let"
+                   x <- option (parseLit "us")
+                   return $ case x of
+                         (Just b) -> [a,b]
+                         Nothing -> [a])
+               <||>
+               (do a <- parseLit "we"
+                   x <- option (parseLit "can")
+                   return $ case x of
+                         (Just b) -> [a,b]
+                         Nothing -> [a])
+
+parseLitAssume :: Parser Text
+parseLitAssume = parseLit "assume" <||> parseLit "suppose"
+
+parseLitA = parseLit "an" <||> parseLit "a"
+
+parseArticle = parseLit "the" <||> parseLit "a"
+
+parseSepAndComma = parseLit "and" <||> parseLit ","
+
+parseLitBinderComma = parseLit ","
+
+parseLitDefinedAs :: Parser [Text]
+parseLitDefinedAs =
+       (rp $ parseLit "said") <+> (rp $ parseLit "to") <+> (rp $ parseLit "be")
+  <||> (rp $ parseLit "defined") <+> (rp $ parseLit "to") <+> (rp $ parseLit "be")
+  <||> (rp $ parseLit "defined") <+> (rp $ parseLit "as")
+  
+parseLitIff =
+      (rp $ parseLit "iff") <||> (rp $ parseLit "if")
+                             <+> (rp $ parseLit "and")
+                             <+> (rp $ parseLit "only")
+                             <+> (rp $ parseLit "if")
+
+parseLitDenote =
+  (rp $ parseLit "denote") <||> (rp $ parseLit "stand") <+> (rp $ parseLit "for")
+
+parseLitDo =
+  (rp $ parseLit "does") <||> (rp $ parseLit "does")
+
+parseLitIs =
+       (rp $ parseLit "is")
+  <||> (rp $ parseLit "are")
+  <||> (rp $ parseLit "to") <+> (rp $ parseLit "be")
+  <||> (rp $ parseLit "be")
+
+parseLitEqual = (rp $ parseLit "equal") <+> (rp $ parseLit "to")
+
+parseLitHas = (rp $ parseLit "has") <||> (rp $ parseLit "have")
+
+parseLitWith =
+       (rp $ parseLit "")
+  <||> (rp $ parseLit "of")
+  <||> (rp $ parseLit "having")
+
+parseLitTrue =
+       (rp $ parseLit "with")
+  <||> (rp $ parseLit "true")
+  <||> (rp $ parseLit "yes")
+
+parseLitFalse =
+       (rp $ parseLit "off")
+  <||> (rp $ parseLit "false")
+  <||> (rp $ parseLit "no")
+
+parseLitItsWrong = (rp $ parseLit "it") <+> (rp $ parseLit "is") <+> (rp $ parseLit "wrong") <+> (rp $ parseLit "that")
+
+parseLitWeRecord =
+       (rp $ parseLit "we") <+> (rp $ parseLit "record") <+> (rp $ parseLit "that")
+  <||> (rp $ parseLit "we") <+> (rp $ parseLit "record")
+  <||> (rp $ parseLit "we") <+> (rp $ parseLit "register") <+> (rp $ parseLit "that")
+  <||> (rp $ parseLit "we") <+> (rp $ parseLit "register")
+  
+parseLitAny =
+       (rp $ parseLit "every")
+  <||> (rp $ parseLit "each")
+  <||> (rp $ parseLit "each") <+> (rp $ parseLit "and") <+> (rp $ parseLit "every")
+  <||> (rp $ parseLit "all")
+  <||> (rp $ parseLit "any")
+  <||> (rp $ parseLit "some")
+  <||> (rp $ parseLit "no")
+
+parseLitExist = (rp $ parseLit "exists") <||> (rp $ parseLit "exists")
+
+parseLitThen =
+       (rp $ parseLit "then")
+  <||> (rp $ parseLit "therefore")
+  <||> (rp $ parseLit "hence")
+
+parseLitChoose = (rp $ parseLit "take") <||> (rp $ parseLit "choose")
+
+parseLitProve = (rp $ parseLit "prove") <||> (rp $ parseLit "show")
+
+parseLitWeSay = (rp $ parseLit "we") <+> (rp $ parseLit "say") <+> (rp $ parseLit "that")
+           <||> (rp $ parseLit "we") <+> (rp $ parseLit "say")
+
+parseLitLeft =
+       (rp $ parseLit "left")
+  <||> (rp $ parseLit "right")
+  <||> (rp $ parseLit "no")
+
+parseLitFieldKey =
+  (rp $ parseLit "embedded")   <||>
+  (rp $ parseLit "parametric") <||>
+  (rp $ parseLit "typeable")   <||>
+  (rp $ parseLit "applicable")
+
+parseLitQED = (rp $ parseLit "end") <||> (rp $ parseLit "QED") <||> (rp $ parseLit "obvious") <||> (rp $ parseLit "trivial")
+
+parseLitDocument = (rp $ parseLit "document")
+              <||> (rp $ parseLit "article")
+              <||> (rp $ parseLit "section")
+              <||> (rp $ parseLit "subsection")
+              <||> (rp $ parseLit "subsubsection")
+
+parseLitDef = (rp $ parseLit "definition") <||> (rp $ parseLit "def")
+
+parseLitAxiom =
+  (rp $ parseLit "axiom")      <||>
+  (rp $ parseLit "conjecture") <||>
+  (rp $ parseLit "hypothesis")
+
+parseLitTheorem =
+  (rp $ parseLit "proposition")  <||>
+  (rp $ parseLit "theorem")      <||>
+  (rp $ parseLit "lemma")        <||>
+  (rp $ parseLit "corollary")
+
+parseLitLocation =
+       parseLitDocument
+  <||> parseLitTheorem
+  <||> parseLitAxiom
+  <||> parseLitDef
+
+parseLitSort = (rp $ parseLit "type") <||> (rp $ parseLit "prop")
+
+parseLitClassifier = (rp $ parseLit "classifiers") <||> (rp $ parseLit "classifier")
+
+parseLitVarmod =
+  (rp $ parseLit "fixed")    <||>
+  (rp $ parseLit "implicit") <||>
+  (rp $ parseLit "resolved") <||>
+  (rp $ parseLit "remove")
+      
 data Lit =
     A
   | ALL
@@ -474,8 +627,8 @@ memsOfLit = [A
   , WRONG
   , YES]
 
-parseLit :: Parser Lit
-parseLit = fold (map parseLit_aux memsOfLit)
+-- parseLit :: Parser Lit
+-- parseLit = fold (map parseLit_aux memsOfLit)
   
 data Token =
     EOF
@@ -563,8 +716,8 @@ parseLBrace = (ch '{' >> return LBrace) <* sc
 parseRBrace :: Parser Token
 parseRBrace = (ch '}' >> return RBrace) <* sc
 
-parseLitToken :: Parser Token
-parseLitToken = parseLit >>= return . Lit
+-- parseLitToken :: Parser Token
+-- parseLitToken = parseLit >>= return . Lit
 
 parseAt :: Parser Token
 parseAt = parseDataHelper0 At "@"
@@ -698,75 +851,59 @@ parseControlSequence = (controlsequence >>= return . ControlSequence) <* sc
 -- TODO(jesse) define token parser
 
 -- parseToken parses any token but EOF
-parseToken :: Parser Token
-parseToken =
-       parseDecimal -- attempt to parse decimals first to disambiguate
-  <||> parseNumber
-  <||> parseNumeric
-  <||> parseLitToken
-  <||> parseVar
-  <||> parseTk
-  <||> parseString
-  <||> parseControlSequence
-  <||> parseFieldAcc
-  <||> parseHierId 
-  -- <||> parseAtomicId -- AtomicIds will never be parsed, but
-                        -- it is OK to extract them from singleton HierIds later
-  <||> parsePeriod -- parsePeriod succeeds iff the next two characters are a period and whitespace.
-  <||> parseSymbol -- if parsePeriod fails but the next character is a period,
-                   -- then the current state is .* where * is not a whitespace.
-                   -- if parseSymbol fails, then the current state is .* where * is not a symbol character.
+-- parseToken :: Parser Token
+-- parseToken =
+--        parseDecimal -- attempt to parse decimals first to disambiguate
+--   <||> parseNumber
+--   <||> parseNumeric
+--   -- <||> parseLitToken
+--   <||> parseVar
+--   <||> parseTk
+--   <||> parseString
+--   <||> parseControlSequence
+--   <||> parseFieldAcc
+--   <||> parseHierId 
+--   -- <||> parseAtomicId -- AtomicIds will never be parsed, but
+--                         -- it is OK to extract them from singleton HierIds later
+--   <||> parsePeriod -- parsePeriod succeeds iff the next two characters are a period and whitespace.
+--   <||> parseSymbol -- if parsePeriod fails but the next character is a period,
+--                    -- then the current state is .* where * is not a whitespace.
+--                    -- if parseSymbol fails, then the current state is .* where * is not a symbol character.
 
-  <||> parseSymbol_QED
-  <||> parseLParen
-  <||> parseRParen
-  <||> parseLBrack
-  <||> parseRBrack
-  <||> parseLBrace
-  <||> parseRBrace
-  <||> parseAt
-  <||> parseMapsTo
-  <||> parseComma
-  <||> parseSemicolon
-  <||> parseAssign
-  <||> parseRArrow
-  <||> parseLArrow
-  <||> parseBlank
-  <||> parseAlt
-  <||> parseSlash
-  <||> parseSlashDash
-  <||> parseCoercion
-  <||> parseNotImplemented
-  <||> parseNotDebugged
+--   <||> parseSymbol_QED
+--   <||> parseLParen
+--   <||> parseRParen
+--   <||> parseLBrack
+--   <||> parseRBrack
+--   <||> parseLBrace
+--   <||> parseRBrace
+--   <||> parseAt
+--   <||> parseMapsTo
+--   <||> parseComma
+--   <||> parseSemicolon
+--   <||> parseAssign
+--   <||> parseRArrow
+--   <||> parseLArrow
+--   <||> parseBlank
+--   <||> parseAlt
+--   <||> parseSlash
+--   <||> parseSlashDash
+--   <||> parseCoercion
+--   <||> parseNotImplemented
+--   <||> parseNotDebugged
 
-parseTokens :: Parser [Token]
-parseTokens =
-  sc *> ((parseEOF >>= return . pure) -- don't fail on empty input
-  <|> do tks <- many1 parseToken
-         eof <- parseEOF
-         return $ tks ++ [eof])
+-- parseTokens :: Parser [Token]
+-- parseTokens =
+--   sc *> ((parseEOF >>= return . pure) -- don't fail on empty input
+--   <|> do tks <- many1 parseToken
+--          eof <- parseEOF
+--          return $ tks ++ [eof])
+-- -
+-- newtype Label = Label Token
+--   deriving (Show, Eq)
 
-newtype Label = Label Token
-  deriving (Show, Eq)
-
-parseLabel :: Parser Label
-parseLabel = parseAtomicId >>= return . Label
-
-parseLitLets :: Parser [Token]
-parseLitLets = (do a <- parseLit_aux LET
-                   x <- option (parseLit_aux US)
-                   return $ case x of
-                         (Just b) -> [Lit a, Lit b]
-                         Nothing -> [Lit a])
-               <||>
-               (do a <- parseLit_aux WE
-                   x <- option (parseLit_aux CAN)
-                   return $ case x of
-                         (Just b) -> [Lit a, Lit b]
-                         Nothing -> [Lit a])
-
-parseLitAssume :: Parser Token
-parseLitAssume = parseLit_aux ASSUME <||> parseLit_aux SUPPOSE >>= return . Lit
+-- parseLabel :: Parser Label
+-- parseLabel = parseAtomicId >>= return . Label
 
 litTestString :: Text
 litTestString = "a any APPLICABLE induction"
@@ -776,7 +913,7 @@ tkTestString = "Let C := the category of semi-symplectic topological quantum par
 
 -- testLit :: IO ()
 -- testLit = do
---   parseTest (many1 parseLit) litTestString
+--   test (many1 parseLit) litTestString
 
 -- testTk :: IO ()
 -- testTk = do
