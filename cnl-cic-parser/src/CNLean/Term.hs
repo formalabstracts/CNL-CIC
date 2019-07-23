@@ -7,7 +7,7 @@ Parsing types and type ascriptions.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module CNLean.Axiom where
+module CNLean.Term where
 
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
@@ -20,8 +20,8 @@ import Data.Text (Text, pack, unpack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
-import CNLean.Basic
-import CNLean.Token
+import CNLean.Basic.Basic
+import CNLean.Basic.Token
 
 data Term =
     TermDefiniteTerm DefiniteTerm

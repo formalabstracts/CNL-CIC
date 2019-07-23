@@ -1216,7 +1216,6 @@ predicate_token_pattern :
   | tvar COMMA tvar
   | paren(VAR COMMA VAR colon_type {}) {}
 
-
 identifier_pattern :
 | identifier args opt_colon_type {}
 | BLANK args opt_colon_type {} (* instance can be anonymous *)

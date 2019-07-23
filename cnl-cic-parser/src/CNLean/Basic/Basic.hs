@@ -6,9 +6,10 @@ Basic parser combinators.
 
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverloadedStrings #-}
-module CNLean.Basic where
+module CNLean.Basic.Basic where
 
 import Prelude
+import Control.Monad.Trans.State
 import qualified Prelude
 import Text.Megaparsec
 import Text.Megaparsec.Char
@@ -18,7 +19,11 @@ import Control.Monad (guard)
 import qualified Data.Char as C
 import qualified Text.Megaparsec.Char.Lexer as L
 
-type Parser = Parsec Void Text
+import CNLean.Basic.State
+
+type ParserSt s = StateT s (Parsec Void Text)
+
+type Parser = ParserSt FState
 
 repeatN :: Int -> Parser a -> Parser a
 repeatN n p = foldr (>>) p $ replicate (n-1) p

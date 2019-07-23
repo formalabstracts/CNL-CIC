@@ -7,7 +7,7 @@ Tokenization of input.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module CNLean.Token where
+module CNLean.Basic.Token where
 
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
@@ -20,7 +20,7 @@ import Data.Text (Text, pack, unpack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
-import CNLean.Basic
+import CNLean.Basic.Basic
 
 -- literal tokens
 data Lit =
@@ -774,18 +774,18 @@ litTestString = "a any APPLICABLE induction"
 tkTestString :: Text
 tkTestString = "Let C := the category of semi-symplectic topological quantum paramonoids \\mathcal{P} of Rice-Paddy type satisfying the Mussolini-Rostropovich equations at infinity. Then C.objects and C.morphisms are both trivial. QED."
 
-testLit :: IO ()
-testLit = do
-  parseTest (many1 parseLit) litTestString
+-- testLit :: IO ()
+-- testLit = do
+--   parseTest (many1 parseLit) litTestString
 
-testTk :: IO ()
-testTk = do
-  parseTest (parseTokens) tkTestString
+-- testTk :: IO ()
+-- testTk = do
+--   parseTest (parseTokens) tkTestString
 
--- for interactive debugging. make sure that in ghci, you have entered
--- :set -XOverloadedStrings
+-- -- for interactive debugging. make sure that in ghci, you have entered
+-- -- :set -XOverloadedStrings
 
--- example usage:
--- test_lexer "HEWWO.HEWWO"
-test_lexer :: Text -> IO ()
-test_lexer = parseTest parseTokens
+-- -- example usage:
+-- -- test_lexer "HEWWO.HEWWO"
+-- test_lexer :: Text -> IO ()
+-- test_lexer = parseTest parseTokens
