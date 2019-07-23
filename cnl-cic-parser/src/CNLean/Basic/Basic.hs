@@ -171,6 +171,7 @@ option :: Parser a -> Parser (Maybe a)
 option p =
   (p >>= return . Just) <||> return Nothing
   
+-- TODO(jesse) define csbrace parser
 
 -- sepBy' :: Parser a -> Parser b -> Parser [a]
 -- sepBy' p sep = do
