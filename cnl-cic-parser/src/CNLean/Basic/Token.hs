@@ -170,7 +170,7 @@ parseLitSort = (rp $ parseLit "type") <||> (rp $ parseLit "prop")
 
 parseLitClassifier = (rp $ parseLit "classifiers") <||> (rp $ parseLit "classifier")
 
-parseLitVarmod =
+parseLitVarMod =
   (rp $ parseLit "fixed")    <||>
   (rp $ parseLit "implicit") <||>
   (rp $ parseLit "resolved") <||>
@@ -185,54 +185,90 @@ parseDataHelper0 :: a -> Text -> (Parser a)
 parseDataHelper0 l arg = (str' arg >> return l) <* sc
 
 newtype Token = Token Text
+  deriving (Show, Eq)
 
 data EOF = EOF
+  deriving (Show, Eq)
 
 newtype Number = Number Text
+  deriving (Show, Eq)
 
 data Decimal = Decimal {dec_left :: Text, dec_right :: Text}
+  deriving (Show, Eq)
 
 data Numeric = Numeric {num_left :: Text, num_right :: Text}
+  deriving (Show, Eq)
 
 newtype Symbol = Symbol Text
+  deriving (Show, Eq)
 
 newtype Symbol_QED = Symbol_QED Text
+  deriving (Show, Eq)
 
 data LParen = LParen
+  deriving (Show, Eq)
 data RParen = RParen
+  deriving (Show, Eq)
 data LBrack = LBrack
+  deriving (Show, Eq)
 data RBrack = RBrack
+  deriving (Show, Eq)
 data LBrace = LBrace
+  deriving (Show, Eq)
 data RBrace = RBrace
+  deriving (Show, Eq)
 
 data At = At
+  deriving (Show, Eq)
 data MapsTo = MapsTo
+  deriving (Show, Eq)
 data Period = Period
+  deriving (Show, Eq)
 data Comma = Comma
+  deriving (Show, Eq)
 data Semicolon = Semicolon
+  deriving (Show, Eq)
 data Colon = Colon
+  deriving (Show, Eq)
 data Assign = Assign
+  deriving (Show, Eq)
 data RArrow = RArrow
+  deriving (Show, Eq)
 data LArrow = LArrow
+  deriving (Show, Eq)
 data Blank = Blank
+  deriving (Show, Eq)
 data Alt = Alt
+  deriving (Show, Eq)
 data Slash = Slash
+  deriving (Show, Eq)
 data SlashDash = SlashDash
+  deriving (Show, Eq)
 newtype Var = Var Text
+  deriving (Show, Eq)
 newtype TkString = TkString Text
+  deriving (Show, Eq)
 newtype AtomicId = AtomicId Text
+  deriving (Show, Eq)
 newtype HierId = HierId [AtomicId]
+  deriving (Show, Eq)
 
 data AtomicId_or_Number_or_Var =
     OfAtomicId AtomicId
   | OfNumber Number
   | OfVar Var
+  deriving (Show, Eq)
 
 newtype FieldAcc = FieldAcc AtomicId_or_Number_or_Var
+  deriving (Show, Eq)
 data Coercion = Coercion
+  deriving (Show, Eq)
 data NotImplemented = NotImplemented
+  deriving (Show, Eq)
 data NotDebugged = NotDebugged
+  deriving (Show, Eq)
 newtype ControlSequence = ControlSequence Text
+  deriving (Show, Eq)
 
 parseEOF :: Parser EOF
 parseEOF = eof *> return EOF
