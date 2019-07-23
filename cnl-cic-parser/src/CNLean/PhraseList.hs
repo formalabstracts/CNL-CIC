@@ -2,7 +2,7 @@
 {-
 Author(s): Jesse Michael Han (2019)
 
-Parsing statements
+Parsing phrase lists
 -}
 
 {-# LANGUAGE OverloadedStrings #-}
