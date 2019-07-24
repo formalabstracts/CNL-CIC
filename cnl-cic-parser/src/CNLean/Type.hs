@@ -46,13 +46,54 @@ data AndOrChain =
 data HeadPrimary =
     HeadPrimaryHead HeadStatement
   | HeadPrimaryPrimary PrimaryStatement
-  
+
+-- TODO(jesse) 2019-07-24T14:52:05: just take care of these and we can move on to primitives
 data PrimaryStatement =
     PrimaryStatementSimple SimpleStatement
   | PrimaryStatementThereIs ThereIsStatement
   | PrimarStatementSymbol Filler SymbolStatement
   | PrimaryStatementConst Filler ConstStatement
 
+data SimpleStatement = SimpleStatement [Term] [DoesPred]
+-- parse [Term] using parseTerms and parse [DoesPred] using sepby1 parseDoesPred (parseLit "and")
+
+data ThereIsStatement =
+    ThereIs [NamedTerm] -- parsed with sep_list (option(lit_a) named_term)
+  | ThereIsNo NamedTerm
+
+parseThereIsStatement = do
+  ((parseLit "there") *> (parseLitExist) *> parseLit "no" *> parseNamedTerm) >>= return . ThereIsNo <||>
+   ((parseLit "there") *> (parseLitExist) *> (sepby1 parseNamedTerm (option parseLitA))) >>= return . ThereIs
+
+newtype ConstStatement = ConstStatement [Text]
+
+parseConstStatement = option(parseLit "the") *> option(parseLit "thesis") *>
+  ( option(parseLit "the") *> (rp $ parseLit "contrary" ) <||>
+    parseLitA *> (rp $ parseLit "contradiction"))
+
+data SymbolStatement =
+    SymbolStatementForall FreePredicate SymbolStatement
+  | SymbolStatementExists FreePredicate SymbolStatement
+  | SymbolStatementPrimRelation PrimRelation
+  | SymbolStatementNot SymbolStatement
+  | SymbolStatementParen SymbolStatement
+  | SymbolStatementProp Prop
+
+data NamedTerm =
+    NamedTermTypedName TypedName
+  | NamedTermPredicate FreePredicate
+
+parseSimpleStatement :: Parser SimpleStatement
+parseSimpleStatement = do
+  ts <- parseTerms
+  dps <- sepby1 parseDoesPred (parseLit "and")
+  return $ SimpleStatement ts dps
+
+newtype Filler = Filler (Maybe PhraseListFiller)
+
+parseFiller = parsePhraseListFiller >>= return . Filler . Just -- TODO(jesse): remove the extra Maybe from parsePhraseListFiller
+
+newtype PhraseListFiller = PhraseListFiller (Maybe [Text])
 
 data TVar =
     TVarVar Var
@@ -105,7 +146,11 @@ data PrimStructure = PrimStructure  -- this is a stub for Cabarete-style structu
 data Term =
     TermDefiniteTerm DefiniteTerm
   | TermAnyName AnyName
-  
+
+parseTerm = TermDefiniteTerm <$> parseDefiniteTerm <||> TermAnyName <$> parseAnyName
+
+parseTerms :: Parser [Term]
+parseTerms = sepby1 parseTerm (parseLit "and" <||> parseLit ",")
 
 data QuotientType = QuotientType {domain :: GeneralType, eqv :: Term}
 
@@ -118,7 +163,6 @@ data DefiniteTerm =
   | DefiniteTermNoun PrimDefiniteNoun
   | DefiniteTermParenNoun PrimDefiniteNoun
 
-
 data SymbolicTerm = SymbolicTerm OpenTailTerm (Maybe WhereSuffix)
 
 data OpenTailTerm =
@@ -127,6 +171,27 @@ data OpenTailTerm =
   | OpenTaiLTermLetTerm LetTerm
   | OpenTaiLTermIfThenElseTerm IfThenElseTerm
   | OpenTailTermTdopTerm TdopTerm
+
+data IfThenElseTerm = IfThenElseTerm Prop Term OpenTailTerm
+parseIfThenElseTerm = do --TODO(jesse): make sure this actually works
+  (IfThenElseTerm)
+    <$> (parseLit "if" *> parseProp) <*>
+        (parseLit "then" *> parseTerm) <*>
+        (parseLit "else" *> parseOpenTailTerm)
+
+data LambdaFun = LambdaFun Identifier GeneralizedArgs (Maybe ColonType) OpenTailTerm
+parseLambdaFun =
+  (LambdaFun) <$>
+    ((parseLit "fun") *> parseIdentifier) <*>
+    (parseGeneralizedArgs) <*>
+    (option parseColonType) <*>
+    (parseAssign *> parseOpenTailTerm)
+
+data LetTerm = LitTerm Term Term OpenTailTerm
+parseLetTerm = (LitTerm) <$>
+  (parseLit "let" *> parseTerm) <*>
+  (parseAssign *> parseTerm) <*>
+  (parseLit "in" *> parseOpenTailTerm)
 
 data TdopTerm = DummyConstructor2 -- TODO(jesse): fix me
 
@@ -276,7 +341,7 @@ data Subtype = Subtype Term HoldingVar Statement
 parseSubtype = between parseLBrace parseRBrace $ do
   t <- parseTerm
   hvar <- parseHoldingVar
-  parseLit "//" -- TODO(jesse): confirm this interpretation of LIT_
+  parseLit "//" -- TODO(jesse): confirm this interpretation of LIT_SUBTYPEMID
   s <- parseStatement
   return $ Subtype t hvar s
 
@@ -441,6 +506,11 @@ data LeftAttribute =
     LeftAttributeSingleSubject PrimSimpleAdjective
   | LeftAttributeMultiSubject PrimSimpleAdjectiveMultiSubject
 
+data RightAttribute =
+    RightAttributeIsPred IsPred -- TODO(jesse) implement this inside of Primitive.hs
+  | RightAttributeDoesPred DoesPred -- TODO(jesse) implement this inside of Primitive.hs
+  | RightAttributeStatement Statement
+
 data AnyArg =
     AnyArgVar Var
   | AnyArgAnnotatedVars AnnotatedVars
@@ -467,4 +537,3 @@ parseAnnotatedVars = between parseLParen parseRParen $
 parseLetAnnotation :: Parser [AnnotatedVars]
 parseLetAnnotation = parseLit "let" *> (sepby1 parseAnnotatedVars parseComma)
 
--- note, we still haven't defined colontypes yet.
