@@ -26,6 +26,34 @@ import CNLean.Basic.Basic
 import CNLean.Basic.Token
 import CNLean.Primitive
 
+data Statement =
+    HeadStatement HeadStatement
+  | ChainStatement ChainStatement
+
+data HeadStatement =
+    HeadStatementForAny [AnyName] Statement -- list of anyname parsed by a comma-or-LIT_AND separated list
+  | HeadStatementIfThen Statement Statement
+  | HeadStatementItsWrong Statement
+
+data ChainStatement =
+    AndOrChain AndOrChain
+  | AndOrChainIff AndOrChain Statement
+
+data AndOrChain =
+    AndChain [PrimaryStatement] HeadPrimary
+  | OrChain  [PrimaryStatement] HeadPrimary
+
+data HeadPrimary =
+    HeadPrimaryHead HeadStatement
+  | HeadPrimaryPrimary PrimaryStatement
+  
+data PrimaryStatement =
+    PrimaryStatementSimple SimpleStatement
+  | PrimaryStatementThereIs ThereIsStatement
+  | PrimarStatementSymbol Filler SymbolStatement
+  | PrimaryStatementConst Filler ConstStatement
+
+
 data TVar =
     TVarVar Var
   | TVarAnnotatedVars AnnotatedVars
@@ -180,6 +208,28 @@ data BinderProp =
 
 data TdopRelProp = TdopRelProp [TdopTerm] [(BinaryRelationOp, TdopTerm)] -- last list must be empty, tdop_terms is nonempty comma-separated
 
+data TightestProp =
+    ParenStatement Statement -- parsed with mandatory parentheses
+  | TightestPropIdentifierProp IdentifierProp
+  | TightestPropVar Var
+  | TightestPropAnnotatedProp AnnotatedProp
+
+newtype Identifier =
+    IdentifierAtomicId AtomicId
+  | IdentifierHierId HierId
+
+parseIdentifier :: Parser Identifier
+parseIdentifier = parseHierId >>= return . IdentifierHierId <||> parseAtomicId >>= return . IdentifierAtomicId
+
+newtype IdentifierProp = IdentifierProp Identifier
+
+parseIdentifierProp = parseIdentifier >>= return . IdentifierProp
+
+newtype AnnotatedProp = AnnotatedProp Prop
+
+parseAnnotatedProp :: Parser AnnotatedProp
+parseAnnotatedProp = between parseLParen parseRParen parseProp
+
 data AppProp = AppProp TightestProp AppArgs
 
 data AppArgs = AppArgs (Maybe RecordAssignTerm) [TightestExpr]
@@ -190,12 +240,161 @@ data TightestExpr =
   | TightestExprType TightestType
   | TightestExprProof ProofExpr
 
+data TightestType =
+    TightestTypeParen ParenType
+  | TightestTypeAnnotated AnnotatedType
+  | TightestTypeControlSeq ControlSeqType
+  | TightestTypeConst ConstType
+  | TightestTypeVar VarType
+  | TightestTypeSubtype Subtype
+  | TightestTypeInductive InductiveType
+  | TightestTypeMutualInductive MutualInductiveType
+  | TightestTypeStructure Structure
+
+newtype ParenType = ParenType GeneralType
+parseParenType = between parseLParen parseRParen parseGeneralType >>= return . ParenType
+
+newtype AnnotatedType = AnnotatedType GeneralType
+parseAnnotatedType = between parseLParen parseRParen $ parseGeneralType <* parseColon <* parseLit "type"
+
+newtype ControlSeqType = ControlSeqType (CSBrace PrimTypeControlSeq)
+
+newtype ConstType = ConstType TypeIdentifier
+newtype TypeIdentifier = TypeIdentifier Identifier
+parseTypeIdentifier = parseIdentifier >>= return . TypeIdentifier
+parseConstType = parseTypeIdentifier >>= return . ConstType
+
+data VarType =
+    VarTypeVar Var
+  | VarTypeAnnotated Var
+  
+-- note: possibly need an extra sc in the first branch
+parseVarType = (between parseLParen parseRParen $ parseVar <* parseLit "Type") >>= return . VarTypeAnnotated <||>  parseVar >>= return . VarTypeVar
+
+data Subtype = Subtype Term HoldingVar Statement
+
+parseSubtype = between parseLBrace parseRBrace $ do
+  t <- parseTerm
+  hvar <- parseHoldingVar
+  parseLit "//" -- TODO(jesse): confirm this interpretation of LIT_
+  s <- parseStatement
+  return $ Subtype t hvar s
+
+data InductiveType = InductiveType Identifier Args (Maybe ColonSort) [Maybe AltConstructor]
+
+newtype ColonSort = ColonSort SortExpr
+parseColonSort = parseColon *> parseSortExpr >>= return . ColonSort
+
+data AltConstructor = AltConstructor Identifier Args ColonType
+
+parseAltConstructor = parseAlt *> do
+  id <- parseIdentifier
+  args <- parseArgs
+  ct <- parseColonType
+  return $ AltConstructor id args ct
+
+data MutualInductiveType = MutualInductiveType [Identifier] Args [(AtomicId, Args, ColonType, [AltConstructor])]   -- comma-separated nonempty list of identifiers, second list parsed with mandatory prefix LIT_WITH
+-- MutualInductiveType must be parsed with a LIT_END at the end.
+
+
+{-
+structure : option(LIT_NOTATIONAL) LIT_STRUCTURE 
+     option(lit_param) args
+     option(LIT_WITH) option(brace_semi(field))
+     option(LIT_SATISFYING satisfying_preds {}) {}
+-}
+data Structure = Structure Args (Maybe [Field]) (Maybe SatisfyingPreds) -- [Field] is parsed by brace_semi
+
+parseStructure = do
+  args <- option(parseLit "notational") *> parseLit "structure" *> option (parseLitParam) parseArgs
+  mfs <- option(parseLit "with") *> option(brace_semi parseField)
+  msps <- option (option (parseLit "satisfying") *> parseSatisfyingPreds)
+  return $ Structure args mfs msps
+
+data Field = Field FieldPrefix FieldIdentifier (Maybe FieldSuffix)
+newtype SatisfyingPreds =SatisfyingPreds [SatisfyingPred]
+
+newtype FieldPrefix = FieldPrefix [[Text]]
+parseFieldPrefix = parseAlt *> (many1' parseLitFieldKey) >>= return . FieldPrefix
+
+data FieldIdentifier = FieldIdentifier VarOrAtomic (Maybe ColonType)
+
+parseFieldIndentifier = do
+  va <- parseVarOrAtomic
+  mct <- option parseColonType
+  return $ FieldIdentifier va mct
+
+data FieldSuffix =
+    WithoutNotation
+  | FieldSuffixFieldAssign FieldAssign
+
+parseFieldSuffix =
+  (do parseLit "without"
+      parseLit "notation"
+      return WithoutNotation) <||>
+  parseFieldAssign >>= return . FieldSuffixFieldAssign
+
+newtype FieldAssign = FieldAssign Expr
+parseFieldAssign = parseAssign *> parseExpr >>= return . FieldAssign
+
+parseSatisfyingPreds = brace_semi (parseSatisfyingPred) >>= return . SatisfyingPreds
+
+data SatisfyingPred = SatisfyingPred (Maybe AtomicId) Prop
+
+parseSatisfyingPred = do
+  mid <- parseAlt *> option(parseAtomicId <* parseColon)
+  p <- parseProp
+  return $ SatisfyingPred mid p
+
 data TightestTerm =
     TightestTerm TightestPrefix
   | TightestTermFieldAcc TightestTerm FieldAcc
   | TightestTermApplySub [TightestTerm] -- should be parsed by a paren-enclosed nonempty list of tightest terms, preceded by an ApplySub literal
 
---TODO TightestPrefix  
+data TightestPrefix =
+    TightestPrefixNumeric Numeric
+  | TightestPrefixString String
+  | TightestPrefixDecimal Decimal
+  | TightestPrefixBlank Blank
+  | TightestPrefixVar Var
+  | TightestPrefixPrimIdentifierTerm PrimIdentifierTerm
+  | TightestPrefixPrimPrefixFunction PrimPrefixFunction
+  | TightestPrefixControlSeqTerm ControlSeqTerm
+  | TightestPrefixDelimitedTerm DelimitedTerm
+  | TightestPrefixAltTerm AltTerm
+
+data AltTerm =
+    AltTermCaseTerm Term -- parsed as CASE term OF
+  | AltTermMatchTerm MatchSeq -- parsed as MATCH match_seq WITH
+  | AltTermLambdaFunction LambdaFunction
+
+parseAltTerm :: Parser AltTerm
+parseAltTerm =
+  parseLit "case" *> parseTerm <* parseLit "of" >>= return . AltTermCaseTerm <||>
+  parseMatchSeq >>= return . AltTermMatchTerm <||>
+  parseLambdaFunction >>= return . AltTermLambdaFunction
+
+newtype MatchSeq = MatchSeq [Term]  -- parsed as a comma-separated nonempty list
+
+parseMatchSeq = sepby1 parseTerm parseComma >>= return . MatchSeq
+
+data LambdaFunction = LambdaFunction Identifier Args
+
+parseLambdaFunction = parseLit "function" *> do
+  id <- parseIdentifier
+  args <- parseArgs
+  return $ LambdaFunction id args
+
+data ControlSeqTerm = ControlSeqTerm (CSBrace PrimTermControlSeq)
+
+data DelimitedTerm =
+    DelimitedTermParen
+  | DelimitedTermAnnotated
+  | DelimitedTermMake
+  | DelimitedTermList
+  | DelimitedTermTuple
+  | DelimitedTermSetEnum
+  | DelimitedTermSetComprehension
 
 newtype RecordAssignTerm = RecordAssignTerm [(VarOrAtomic, Maybe ColonType, Expr)] -- parsed as brace-enclosed semicolon-separated list of items, with LIT_ASSIGN between ColonType and Expr
 
@@ -267,6 +466,5 @@ parseAnnotatedVars = between parseLParen parseRParen $
 
 parseLetAnnotation :: Parser [AnnotatedVars]
 parseLetAnnotation = parseLit "let" *> (sepby1 parseAnnotatedVars parseComma)
-
 
 -- note, we still haven't defined colontypes yet.

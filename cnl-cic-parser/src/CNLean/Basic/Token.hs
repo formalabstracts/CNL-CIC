@@ -180,6 +180,8 @@ parseLitVarMod =
   (rp $ parseLit "implicit") <||>
   (rp $ parseLit "resolved") <||>
   (rp $ parseLit "remove")
+
+parseLitParam = (rp $ parseLit "with") <+> (rp $ parseLit "parameters")
       
 parseDataHelper :: a -> Text -> (Parser a)
 parseDataHelper l arg = ((do
@@ -453,6 +455,9 @@ parseControlSequence = (controlsequence >>= return . ControlSequence) <* sc
 
 parseOptParen :: Parser a -> Parser a
 parseOptParen p = (between parseLParen parseRParen p) <||> p
+
+brace_semi :: Eq a => Parser a -> Parser [a]
+brace_semi p = between parseLBrace parseRBrace (sepby1 p parseSemicolon)
 
 -- litTestString :: Text
 -- litTestString = "a any APPLICABLE induction"
