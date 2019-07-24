@@ -44,6 +44,8 @@ phraseListFiller = [
 -- note: if (aux x) fails, its place in the list is filled by `Nothing`.
 -- The output of a phrase list parser generated in this way will have to be sanitized
 -- but doing that should be easy.
+
+-- TODO(jesse) refactor using `parse_any` now defined in Basic.
 maybe'ToParser :: (a -> Parser b) -> Maybe' a -> Parser (Maybe b)
 maybe'ToParser aux m = case m of
   J x -> aux x >>= return . Just
@@ -59,11 +61,32 @@ parsePhraseList_aux0 ph = case ph of
 
 parsePhraseList_aux :: [[Maybe' Text]] -> Parser (Maybe [Text])
 parsePhraseList_aux phs = case phs of
-  [] -> return Nothing
+  [] -> empty
   x:xs -> (parsePhraseList_aux0 x) <||> (parsePhraseList_aux xs)
   
 parsePhraseListFiller = parsePhraseList_aux phraseListFiller
 
 -- test parsePhraseListFiller "we have" -> Just ["we", "have"]
 -- test parsePhraseListFiller "put" -> Just ["put"]
--- test parsePhraseListFiller "ramalamadingdong" -> Nothing... :^)
+-- test parsePhraseListFiller "ramalamadingdong" -> fails
+
+ocamlsc :: Parser ()
+ocamlsc = L.space space1 empty (L.skipBlockComment "(*" "*)")
+
+preprocessPhraseList :: Text -> Parser [[Maybe' Text]]
+preprocessPhraseList txt =
+  case (runParser (toParsec parsePhraseListFile) "" txt) of
+           Left _ -> fail "adios"
+           Right s -> return s
+  where
+  parsePhraseListFile :: Parser [[Maybe' Text]]
+  parsePhraseListFile = many1' $ many1' foo
+    where
+      foo :: Parser (Maybe' Text)
+      foo = do chnk <- (many1 not_whitespace_aux)
+               let b = (last chnk)
+               if (b == "?") then return (Q . join . init $ chnk)
+                             else return (J . join $ chnk)
+                        
+processPhraseList :: Text -> Parser (Maybe [Text])
+processPhraseList txt = preprocessPhraseList txt >>= parsePhraseList_aux
