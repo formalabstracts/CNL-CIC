@@ -28,6 +28,11 @@ import CNLean.Basic.Basic
 parseLit :: Text -> Parser Text
 parseLit arg = (str' arg) <* sc
 
+
+-- test (parse_any_Lits [["foo", "bar"]]) "foo      bar"
+parse_any_Lit :: [[Text]] -> Parser [Text]
+parse_any_Lit phs = parse_any (rp . parseLit) phs
+
 -- auxiliary lit parsers, of the form `lit_*` in the grammar specification
 
 parseLitLets :: Parser [Text]

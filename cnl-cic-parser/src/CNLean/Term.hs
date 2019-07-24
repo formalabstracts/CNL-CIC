@@ -1,7 +1,7 @@
 {-
 Author(s): Jesse Michael Han (2019)
 
-Parsing types and type ascriptions.
+Parsing terms
 -}
 
 {-# LANGUAGE OverloadedStrings #-}
@@ -22,7 +22,3 @@ import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
 import CNLean.Basic.Basic
 import CNLean.Basic.Token
-
-data Term =
-    TermDefiniteTerm DefiniteTerm
-  | TermAnyName AnyName

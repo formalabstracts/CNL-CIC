@@ -22,13 +22,15 @@ import qualified Text.Megaparsec.Char.Lexer as L
 data Patt = Wd [Text] | Sm Text | Vr | Nm
             deriving (Eq, Show)
 
-data FState = FState {
+-- adjExpr ~ prim_adjective
+
+data FState = FState { 
   adjExpr, verExpr, ntnExpr, sntExpr :: [[Patt]],
   cfnExpr, rfnExpr, lfnExpr, ifnExpr :: [[Patt]],
   cprExpr, rprExpr, lprExpr, iprExpr :: [[Patt]],
 
   -- tvrExpr :: [TVar] -- TODO(jesse) integrate this later
-  strSyms :: [[Text]], varDecl :: [Text],
+  strSyms :: [[Text]], varDecl :: [Text], clsList :: [[Text]],
   idCount :: Int, hiddenCount :: Int, serialCounter :: Int}
   deriving (Show, Eq)
 
@@ -62,6 +64,9 @@ updateConsRfnExpr fs z = fs {rfnExpr = (z:(rfnExpr fs))}
 updateCfnExpr fs x = fs {cfnExpr = x}
 updateConsCfnExpr fs z = fs {cfnExpr = (z:(cfnExpr fs))}
 
+updateClsList fs x = fs {clsList = x}
+updateConsClsList fs z = fs {clsList = (z:(clsList fs))}
+
 updateSntExpr fs x = fs {sntExpr = x}
 updateConsSntExpr fs z = fs {sntExpr = (z:(sntExpr fs))}
 
@@ -80,7 +85,7 @@ initialFState = FState
   adjE0 []    ntnE0 sntE0
   cfnE0 rfnE0 []    []
   []    []    []    iprE0
-  []    []
+  []    []    clsL0
   0 0 0
   where
   adjE0 = [[Wd ["equal"], Wd ["to"], Vr],
@@ -102,3 +107,22 @@ initialFState = FState
            ([Sm "!", Sm "="]),
            ([Sm "-", Sm "<", Sm "-"]),
            ([Sm "-~-"]) ]
+  clsL0 = [["function"],
+           ["element"],
+           ["object"],
+           ["number"],
+           ["quotient"],
+           ["dependent", "function"],
+           ["thing"],
+           ["class"],
+           ["map"],
+           ["structure"],
+           ["term"],
+           ["binary", "relation"],
+           ["relation"],
+           ["operator"],
+           ["binary", "operator"],
+           ["pairs"],
+           ["pair"],
+           ["result"]
+          ] 

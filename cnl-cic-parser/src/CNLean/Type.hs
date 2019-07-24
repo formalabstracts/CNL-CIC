@@ -1,3 +1,5 @@
+{-# LANGUAGE DataKinds #-} -- might need to remove this later, i'm not really sure what this does yet
+{-# LANGUAGE PolyKinds #-} -- might need to remove this later, i'm not really sure what this does yet
 {-
 Author(s): Jesse Michael Han (2019)
 
@@ -20,8 +22,8 @@ import Data.Text (Text, pack, unpack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
-import CNLean.Basic
-import CNLean.Token
+import CNLean.Basic.Basic
+import CNLean.Basic.Token
 
 data ColonType = ColonType {generalType :: GeneralType} -- COLON general_type
 
@@ -38,9 +40,9 @@ data OpenTailType =
 
 data QuotientType = QuotientType {domain :: GeneralType, eqv :: Term}
 
-data Term =
-    TermDefiniteTerm DefiniteTerm
-  | TermAnyName AnyName
+-- data Term =
+--     TermDefiniteTerm DefiniteTerm
+--   | TermAnyName AnyName
 
 data DefiniteTerm =
     DefiniteTermSymbolicTerm SymbolicTerm
@@ -90,3 +92,22 @@ data DependentVars = DependentVars {maybeOptArgs :: (Maybe OptArgs), annotatedVa
 
 -- lexically, OptArgs is a brace-enclosed, semicolon separated lists of variables or atomics, optionally annotated with types
 newtype OptArgs = OptArgs [(Token, Maybe ColonType)]
+
+
+data Term =
+    TermDefiniteTerm DefiniteTerm
+  | TermAnyName AnyName
+
+data AnyName =
+    AnyNameAnyArgs [AnyArg]
+  | AnyNameTypedName TypedName
+  | AnyNameFreePredicate FreePredicate
+  | AnyNameGeneralType GeneralType
+
+data TypedName
+
+data Attribute a :: Attribute [LeftAttribute] a [RightAttribute]
+
+data LeftAttribute =
+    LeftAttributeSingleSubject PrimSimpleAdjective
+  | LeftAttributeMultiSubject PrimSimpleAdjectiveMultiSubject

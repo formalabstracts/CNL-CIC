@@ -9,7 +9,7 @@ Basic parser combinators.
 module CNLean.Basic.Basic where
 
 import Prelude
-import Control.Monad.Trans.State
+import Control.Monad.Trans.State.Lazy
 import qualified Prelude
 import Text.Megaparsec
 import Text.Megaparsec.Char
@@ -33,10 +33,13 @@ runtest0 p = (runStateT p) initialFState
 test_all :: Show a => Parser a -> Text -> IO ()
 test_all p arg = parseTest (runtest0 p) arg
 
+toParsec :: Parser a -> Parsec Void Text a
+toParsec p = do (a,b) <- runtest0 p
+                return a
+
 ---- `test p arg` runs `p` on `arg`, suppressing information about the FState
 test:: Show a => Parser a -> Text -> IO ()
-test p arg = parseTest (do (a,b) <- runtest0 p
-                           return a) arg
+test p arg = parseTest (toParsec p) arg
 
 repeatN :: Int -> Parser a -> Parser a
 repeatN n p = foldr (>>) p $ replicate (n-1) p
@@ -170,6 +173,26 @@ lookAhead' p = (lookAhead p >> return ()) <||> fail "lookahead failed"
 option :: Parser a -> Parser (Maybe a)
 option p =
   (p >>= return . Just) <||> return Nothing
+
+unoption :: Parser (Maybe a) -> Parser a
+unoption p = do
+  result <- p
+  case result of
+    Just x -> return x
+    Nothing -> fail "failing on Nothing"
+
+parse_any_aux :: (Text -> Parser (Maybe [Text])) -> [Text] -> Parser (Maybe [Text])
+parse_any_aux m ph = case ph of
+  [] -> return Nothing
+  x:xs -> (m x) <+> (parse_any_aux m xs)
+
+parse_any_maybe :: (Text -> Parser (Maybe [Text])) -> [[Text]] -> Parser [Text]
+parse_any_maybe m phs = case phs of
+  [] -> empty
+  x:xs -> (unoption $ parse_any_aux m x) <||> (parse_any_maybe m xs)
+
+parse_any :: (Text -> Parser [Text]) -> [[Text]] -> Parser [Text]
+parse_any m = parse_any_maybe (\x -> m x >>= return . Just)
   
 -- TODO(jesse) define csbrace parser
 
