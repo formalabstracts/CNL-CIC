@@ -451,6 +451,9 @@ controlsequence = do
 parseControlSequence :: Parser ControlSequence
 parseControlSequence = (controlsequence >>= return . ControlSequence) <* sc
 
+parseOptParen :: Parser a -> Parser a
+parseOptParen p = (between parseLParen parseRParen p) <||> p
+
 -- litTestString :: Text
 -- litTestString = "a any APPLICABLE induction"
 

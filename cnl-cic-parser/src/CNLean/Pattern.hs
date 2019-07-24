@@ -1,13 +1,13 @@
 {-
 Author(s): Jesse Michael Han (2019)
 
-Parsing annotations.
+Parsing patterns.
 -}
 
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module CNLean.Annotation where
+module CNLean.Axiom where
 
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
@@ -22,6 +22,5 @@ import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
 import CNLean.Basic.Basic
 import CNLean.Basic.Token
-import CNLean.Type
 
-  -- TODO(jesse): delete this file.
+  
