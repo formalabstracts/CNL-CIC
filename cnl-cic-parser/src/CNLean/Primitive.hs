@@ -1,7 +1,7 @@
 {-
 Author(s): Jesse Michael Han (2019)
 
-Parsing types and type ascriptions.
+Parsing syntactic primitives.
 -}
 
 {-# LANGUAGE OverloadedStrings #-}
