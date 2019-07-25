@@ -48,8 +48,8 @@ parseLitLets = (do a <- parseLit "let"
                          (Just b) -> [a,b]
                          Nothing -> [a])
 
-parseLitAssume :: Parser Text
-parseLitAssume = parseLit "assume" <||> parseLit "suppose"
+parseLitAssume :: Parser [Text]
+parseLitAssume = (rp $ parseLit "assume") <||> (rp $ parseLit "suppose")
 
 parseLitA = parseLit "an" <||> parseLit "a"
 
@@ -464,7 +464,16 @@ parseOptParen :: Parser a -> Parser a
 parseOptParen p = (between parseLParen parseRParen p) <||> p
 
 brace_semi :: Eq a => Parser a -> Parser [a]
-brace_semi p = between parseLBrace parseRBrace (sepby1 p parseSemicolon)  
+brace_semi p = between parseLBrace parseRBrace (sepby1 p parseSemicolon)
+
+sep_list :: Parser a -> Parser [a]
+sep_list p = sepby p ((parseLit "," *> parseLit "and") <||> parseLit "and" <||> parseLit ",")
+
+newtype Label = Label AtomicId
+  deriving (Show, Eq)
+
+parseLabel :: Parser Label
+parseLabel = Label <$> parseAtomicId
 
 -- litTestString :: Text
 -- litTestString = "a any APPLICABLE induction"
