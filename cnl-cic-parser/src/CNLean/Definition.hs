@@ -20,15 +20,75 @@ import Data.Text (Text, pack, unpack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
-import CNLean.Basic
-import CNLean.Token
+import CNLean.Basic.Basic
+import CNLean.Type
+import CNLean.Assumption
 
-data DefinitionPreamble = DefinitionPreamble Token (Maybe Label) -- parse (Lit AXIOM), maybe a label, optional period.
+newtype DefinitionPreamble = DefinitionPreamble (Maybe Label) -- parse (Lit AXIOM), maybe a label, optional period.
   deriving (Show, Eq)
 
 parseDefinitionPreamble :: Parser DefinitionPreamble
-parseDefinitionPreamble = do
-  tk <- ((parseLit_aux DEFINITION) <||> (parseLit_aux DEF) <||> (parseLit_aux LEMMA) <||> (parseLit_aux COROLLARY) >>= return . Lit)
-  maybeLabel <- option (parseLabel)
-  try (parsePeriod)
-  return $ DefinitionPreamble tk maybeLabel
+parseDefinitionPreamble = DefinitionPreamble <$> do
+  parseLitDef
+  ml <- option parseLabel
+  parsePeriod
+  return ml
+
+-- test parseDefinitionPreamble "DEFINITION foo."
+
+-- test parseDefinitionPreamble "DEF."
+
+data Definition = Definition DefinitionPreamble [Assumption] DefinitionAffirm
+  deriving (Show, Eq)
+
+data DefinitionAffirm = DefinitionAffirm DefinitionStatement (Maybe ThisExists)
+  deriving (Show, Eq)
+
+newtype ThisExists = ThisExists [ThisDirectivePred]
+  deriving (Show, Eq)
+
+parseThisExists :: Parser ThisExists
+parseThisExists = parseLit "this" *> (ThisExists <$> sep_list(parseThisDirectivePred))
+
+-- test parseThisExists "this exists and is well defined and is canonical"
+
+data ThisDirectivePred =
+    ThisDirectivePredAdjective [[Text]]
+  | ThisDirectivePredVerb ThisDirectiveVerb
+  deriving (Show, Eq)
+
+parseThisDirectivePred :: Parser ThisDirectivePred
+parseThisDirectivePred =
+  ThisDirectivePredAdjective <$> (parseLit "is" *> (sep_list1 parseThisDirectiveAdjective)) <||>
+  ThisDirectivePredVerb <$> parseThisDirectiveVerb
+
+parseThisDirectiveAdjective :: Parser [Text]
+parseThisDirectiveAdjective =
+  parse_any_of $ map (\x -> parse_list x parseLit) thisDirAdjList
+  where
+    thisDirAdjList :: [[Text]]
+    thisDirAdjList =
+      [
+        ["unique"],
+        ["canonical"],
+        ["welldefined"],
+        ["well-defined"],
+        ["well", "defined"],
+        ["total"],
+        ["well", "propped"],
+        ["exhaustive"]
+      ]
+
+newtype ThisDirectiveVerb = ThisDirectiveVerbExists (Maybe ThisDirectiveRightAttr)
+  deriving (Show, Eq)
+
+parseThisDirectiveVerb = parseLit "exists" *> (ThisDirectiveVerbExists <$> option parseThisDirectiveRightAttr)
+
+newtype ThisDirectiveRightAttr = ThisDirectiveRightAttr [Text]
+  deriving (Show, Eq)
+
+parseThisDirectiveRightAttr :: Parser ThisDirectiveRightAttr
+parseThisDirectiveRightAttr = ThisDirectiveRightAttr <$> (parse_list ["by", "recursion"] parseLit)
+
+data DefinitionStatement = DefinitionStatementDummy -- TODO(jesse): fix me
+  deriving (Show, Eq)
