@@ -193,6 +193,11 @@ parse_any_maybe m phs = case phs of
 
 parse_any :: (Text -> Parser [Text]) -> [[Text]] -> Parser [Text]
 parse_any m = parse_any_maybe (\x -> m x >>= return . Just)
+
+parse_list :: [a] -> (a -> Parser b) -> Parser [b]
+parse_list as m = case as of
+  [] -> return []
+  x:xs -> (rp $ m x) <+> parse_list xs m
   
 -- TODO(jesse) define csbrace parser
 

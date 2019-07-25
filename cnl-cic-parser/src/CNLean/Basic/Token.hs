@@ -389,6 +389,13 @@ parseToken = do
   notFollowedBy (char '.' >> (alpha <||> digit))
   return $ Token . join $ as
 
+parseTokenOfLit :: Text -> Parser Token -- TODO(jesse): insert guard to ensure that `arg` is Token-compliant
+parseTokenOfLit arg = parseLit arg >>= return . Token
+
+parseTokenOfToken :: Token -> Parser Token
+parseTokenOfToken tk = case tk of
+  Token txt -> parseTokenOfLit txt
+
 parseTkString :: Parser TkString
 parseTkString = (between (ch '"') (ch '"') str >>= return . TkString) <* sc
   where str = (many $ (ch '\\' <+> item) <||> not_ch '"') >>= return . join
@@ -457,7 +464,7 @@ parseOptParen :: Parser a -> Parser a
 parseOptParen p = (between parseLParen parseRParen p) <||> p
 
 brace_semi :: Eq a => Parser a -> Parser [a]
-brace_semi p = between parseLBrace parseRBrace (sepby1 p parseSemicolon)
+brace_semi p = between parseLBrace parseRBrace (sepby1 p parseSemicolon)  
 
 -- litTestString :: Text
 -- litTestString = "a any APPLICABLE induction"
