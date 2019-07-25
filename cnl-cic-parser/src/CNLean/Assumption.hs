@@ -20,31 +20,27 @@ import Data.Text (Text, pack, unpack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
-import CNLean.Basic
-import CNLean.Token
-import CNLean.Annotation
+import CNLean.Basic.Basic
+import CNLean.Type
 
 data Assumption = -- note: parsing a list of assumptions means using (many1 parseAssumption)
-    AssumptionAssumptionPrefix AssumptionPrefix Statement -- parsed with period at end
+    Assumption AssumptionPrefix Statement -- parsed with period at end
   | AssumptionLetAnnotation LetAnnotation -- parsed with period at end
   deriving (Show, Eq)
   
-data AssumptionPrefix =
-    LitLet Token -- LIT_LET
-  | LitLets [Token] Token (Maybe Token) -- lit_lets lit_assume option(LIT_THAT) {}
+data AssumptionPrefix = AssumptionPrefix (Maybe [Text]) -- make consumption inspectable for debugging
   deriving (Show, Eq)
 
-parseAssumptionPrefix :: Parser AssumptionPrefix
-parseAssumptionPrefix = (do tks <- parseLitLets
-                            tk  <- parseLitAssume
-                            o   <- option $ parseLit_aux THAT >>= return . Lit
-                            return $ LitLets tks tk o)
-                      <||> (parseLit_aux LET >>= return . LitLet . Lit)
+parseAssumptionPrefix = AssumptionPrefix <$> (do
+  lt1 <- parseLitLets
+  lt2 <- parseLitAssume
+  mlt3 <- option (rp $ parseLit "that")
+  case mlt3 of
+    Nothing -> return $ Just $ lt1 <> lt2
+    Just lt3 -> return $ Just $ lt1 <> lt2 <> lt3) <||>
+  (AssumptionPrefix . Just) <$> (rp $ parseLit "let")
 
-newtype ThenPrefix = ThenPrefix (Maybe Token) --   then_prefix : option(lit_then) {}
+data ThenPrefix = ThenPrefix (Maybe Text)
+  deriving (Show, Eq)
 
-parseThenPrefix :: Parser ThenPrefix
-parseThenPrefix = option $ parseLit_aux THEN >>= return . Lit
-
-
-
+parseThenPrefix = ThenPrefix <$> (option $ parseLit "then")
