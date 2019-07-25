@@ -32,7 +32,7 @@ newtype PrimClassifier = PrimClassifier [Text] deriving (Show, Eq)
 
 ---- parsePrimClassifier attempts to parse any of the classifier phrases currently in the FState.
 parsePrimClassifier :: Parser PrimClassifier
-parsePrimClassifier = get >>= parse_any_Lit . clsList >>= return . PrimClassifier
+parsePrimClassifier = PrimClassifier <$> (get >>= parse_any_Lit . clsList)
 
 --  (* from function_def.binary_controlseq_pattern, prec > 0 *)
 -- prim_term_op_controlseq : PA1 {}
