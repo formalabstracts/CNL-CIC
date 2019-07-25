@@ -20,7 +20,7 @@ import Data.Text (Text, pack, unpack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
-import CNLean.Basic.Basic
+import CNLean.Basic.Core
 
 -- literal tokens
 
