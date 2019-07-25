@@ -9,34 +9,119 @@
 % The character set used in this file is rather small
 % cat test_packing.tex | tr -d '[a-zA-Z0-9%$<>^{}()_+-&@,.:;=~/!]' | tr -d '\r\n\\ `\*|#'
 
-% Issues function calls f(a,b) vs curry f a b 
+% Issues function calls f(a,b) vs curry f a b \app{f}{(a,b)}
+% \vspace*{250px} how to get at it? - For now, documents should use alternatives, such as \null ..\vspace{...}.
+% \hspace*{}
+% \left. (with period, makes an invisible delimiter)
+% \linebreak[number]
+% \predisplaypenalty=0 and assignments.
+
+% What about \hbox{}? We might want two variants,
+
+%% Style guidelines
+% Each lemma starts with optional name [], then \label, then optional
+% \preamble{}, then statement.
+
+% two blank lines before a \begin starting a new paragraph.  Otherwise one.
+% two blank lines before new (sub)section
 
 \begin{cnl}
 
+%% We start with some that will eventually be moved to a standard library.
 \CnlCustom[1]\parenI{ (#1) }
+
+% prohibited control sequences. They should be used outside the cnl environment.
+% We should include most TeX primitive control sequences here.
+\CnlError\if
+\CnlError\else
+\CnlError\fi
+\CnlError\let
+\CnlError\futurelet
+\CnlError\expandafter
+\CnlError\afterassignment
+\CnlError\usepackage
+% etc. 
+
+%
+\CnlDelete[1]\phantom
+\CnlNoExpand[1]\section
+
+% math modes and space
+\CnlDelete\ensuremath
+\CnlDelete\text
+\CnlDelete\thinmuskip
+\CnlDelete\medmuskip
+\CnlDelete\thickmuskip
+\CnlDelete\quad
+\CnlDelete\qquad
+\CnlDelete\,
+\CnlDelete\:
+\CnlDelete\;
+\CnlDelete\!
+\CnlDelete\ %space
+\CnlDelete\enspace
+\CnlDelete[1]\hspace
+\CnlDelete\hfil
+\CnlDelete\hfill
+\CnlDelete\thinspace
+\CnlDelete\left
+\CnlDelete\right
+\CnlDelete\big
+\CnlDelete\Big
+\CnlDelete\bigg
+\CnlDelete\Bigg
+\CnlDelete\allowdisplaybreaks
+
+
+%other  spacing
+\CnlDelete\noindent
+\CnlDelete\indent
+\CnlDelete[1]\vspace
+\CnlDelete\null
+\CnlDelete\break
+\CnlDelete\newline
+\CnlDelete\newpage
+\CnlDelete\vfil
+\CnlDelete\vfill
+\CnlDelete\smallskip
+\CnlDelete\medskip
+\CnlDelete\bigskip
+\CnlDelete[2]\rule
+
+% Environments
+\CnlEnvirDelete{remark}
+\CnlEnvirDelete{tikzpicture}
+
+
+
+
+
+
+%% Customize for this file.
 
 \CnlCustom[1]\newterm{ #1 }
 \CnlDelete[2]\indy
 \CnlDelete[2]\formaldef
+\CnlDelete[1]\formalauthor
 \CnlDelete[1]\guid
 \CnlDelete[1]\chapter
-\CnlDelete\figDEQCVQL % fig:saturated
-\CnlDelete\figXOHAZWO % fig:voronoi
-\CnlDelete\figKFETCJS % fig:vset
-\CnlDelete\figHFFTUNW % fig:rogers-omega
-\CnlDelete\figBUGZBTW % fig:rogers-random 
-\CnlDelete\figELMXAFH % fig:rogers-ill-defined
-\CnlDelete\figNOCHOTB % fig:rogers-sqrt2
-\CnlDelete\figYAJOTSL % fig:rogers-fact
-\CnlDelete\figKVIVUOT % fig:marchal-variety
-\CnlDelete\figBWEYURN % fig:marchal-2d
-\CnlDelete\figFIFJALK % fig:ferguson-hales
-\CnlDelete\figTULIGLY % fig:M
-\CnlDelete\figBJLIEKB % fig:L
-\CnlDelete\figPQFEXQN % fig:fg1
-\CnlDelete\figJXEHXQY % fig:fg
-\CnlDelete\figYAHDBVO % fig:reference-w
-\CnlDelete\figZXEVDCA % fig:marchal-polyhedron
+\CnlDelete\figDEQCVQL 
+\CnlDelete\figXOHAZWO 
+\CnlDelete\figKFETCJS 
+\CnlDelete\figHFFTUNW 
+\CnlDelete\figBUGZBTW 
+\CnlDelete\figELMXAFH 
+\CnlDelete\figNOCHOTB 
+\CnlDelete\figYAJOTSL 
+\CnlDelete\figKVIVUOT 
+\CnlDelete\figBWEYURN 
+\CnlDelete\figFIFJALK 
+\CnlDelete\figTULIGLY 
+\CnlDelete\figBJLIEKB 
+\CnlDelete\figPQFEXQN 
+\CnlDelete\figJXEHXQY 
+\CnlDelete\figYAHDBVO 
+\CnlDelete\figZXEVDCA 
 \CnlCustom[1]\nsqrt{ \sqrt{#1} }
 \CnlNoExpand\vecR
 \def\vecR#1{\ring{R}^{#1}}
@@ -54,9 +139,48 @@
 \def\AA#1#2{A(#1,#2)}
 \def\Aplus{A_+}
 \def\Aminus{A_-}
+\def\Vee#1{#1}
+\def\CapV#1{#1}
+\def\bVo{\bV(#1)}
+\def\braced#1{\{#1\}}
+\CnlCustom[1]\braced{\setenum{\list{#1}}}
+\def\setcomp#1#2{\{#1\mid #2\}}
+\CnlNoExpand\setcomp
+\CnlNoExpand\mid
+\def\gammaX{\gamma}
+\def\preamble#1{#1}
+\CnlDelete\preamble
 
+
+%SUM
+\def\sumfinitepred#1#2#3{{\sum_{#2} {#3}}} %#1 free
+\CnlCustom[3]\sumfinitepred{\sumfinite{\setcomp{#1}{#2}}{\LAMBDA #1, #3}}
+\def\sumupto#1#2#3#4{{\sum_{#1 = #2}^{#3} {#4}}}
+\CnlCustom[4]\sumupto{\sumfinite{((#2) .. (#3))}{\LAMBDA #1, #4}}
+\def\sumvar#1{#1\mid}
+\CnlDelete[1]\sumvar
+\def\andcomma{,}
+\CnlCustom\andcomma{and}
+
+%ELLIPSIS
+\def\setenumdots#1#2#3{\{{#1}_{#2},\ldots,{#1}_{#3}\}}
+\CnlCustom[3]\setenumdots{\image{#1}{((#2) .. (#3))}}
+\CnlNoExpand\image
+\def\setenumrange#1#2{\{#1,\ldots,#2\}}
+\CnlCustom[2]\setenumrange{((#1) .. (#2))}
+\def\listdots#1#2#3{[{#1}_{#2};\ldots;{#1}_{#3}]}
+\CnlCustom[2]\listdots{\listmap{#1}{\listrange{#2}{#3}}}
+%for $i=1,...,j$
+\def\fordots#1#2#3{#1=#2,\ldots,#3}
+\CnlCustom[3]\fordots{#1\in ((#2) .. (#3))}
+
+
+%% ENVIRONMENTS
 \CnlEnvirDelete{remark}
 \CnlEnvirDelete{summary}
+
+%% BEGIN TEXT
+
 
 \begin{summary}
   This chapter comprises much of the core material of the book.  At
@@ -73,40 +197,40 @@
   study of the properties of the Marchal cell decomposition.
 \end{summary}
 
-\section{The Primitive State of Our Subject Revealed}
+
+\section{The Primitive State of Our Subject Revealed}\label{primitive state}
 
 
-\subsection{definition}
+\subsection{definition}\label{definition}
 
-
-
-Informally, a \newterm{packing} is an arrangement of congruent
-balls in Euclidean three space that are nonoverlapping in the sense
-that the interiors of the balls are pairwise disjoint.  By convention,
-we take the radius of the congruent balls to be $1$.
+Informally, a \newterm{packing} is an arrangement of congruent balls
+in Euclidean three space that are nonoverlapping in the sense that the
+interiors of the balls are pairwise disjoint.  By convention, we take
+the radius of the congruent balls to be $1$.
 %the scale
 %invariance of density, without loss of generality, units can be chosen
 %so that each ball has radius $1$. 
-Let $ V$ be the set of centers of the balls in a
-packing. The choice of unit radius for the
-balls implies that any two points in $ V$ have distance  at
-least $2$ from each other. 
- Formally, the packing is identified
-with the set of centers $V$.
-\indy{Notation}{V@$V$ (packing)}%
+Let $ V$ be the set of centers of the balls in a packing. The choice
+of unit radius for the balls implies that any two points in $ V$ have
+distance at least $2$ from each other.  Formally, the packing is
+identified with the set of centers $V$.  
+\indy{Notation}{V@$V$  (packing)}%
 
-%
-%The density of a packing does not decrease when balls are added to the
-%packing. Thus, to construct packings of maximal density, one may add
-%nonoverlapping balls until there is no room to add further balls.  A
 A packing in which no further balls can be added is said to be {\it
 saturated} (Figure~\ref{fig:saturated}).
 
 \figDEQCVQL % fig:saturated
 
-\begin{definition}[saturated,~packing]\guid{XASMJUK} 
-\formaldef{packing}{packing}
-\formaldef{saturated}{saturated}
+
+\begin{definition}[saturated,~packing]
+\label{def:packing,saturated}
+\preamble{
+ \guid{XASMJUK}
+ \formaldef{packing}{packing}
+ \formaldef{saturated}{saturated}
+ \indy{Index}{saturated}%
+ \indy{Index}{packing}%
+}
 A \newterm{packing} $ V\subset \vecR{3}$ is a set such that
 \[ 
 \forall  \u,~\v\in  V.~  \norm{ \u}{\v} < 2 \Rightarrow ( \u=\v).
@@ -114,79 +238,85 @@ A \newterm{packing} $ V\subset \vecR{3}$ is a set such that
 A set $V$ is \newterm{saturated} if for every $\p\in\vecR{3}$ there
 exists some $ \u\in V$ such that $\norm{ \u}{\p}< 2$.
 \end{definition}
-\indy{Index}{saturated}%
-\indy{Index}{packing}%
 
 
 
 Let $\openBall{\p}{r}$ denote the open ball in
 Euclidean three-space at center $\p$ and radius $r$.  The open ball
 is measurable with measure $4\pi r^3/3$.
- Set $ V(\p,r) = V \cap
-\openBall{\p}{r}$. %and $ V^*(\p,r) = V(\p,r)\setminus \{\p\}$.
+ Set $ \Vee{V}(\p,r) = V \cap
+\openBall{\p}{r}$. 
 \formaldef{ball}{ball}
-\formaldef{$V(\p,r)$}{V INTER ball(p,r)}
+\formaldef{$\Vee{V}(\p,r)$}{V INTER ball(p,r)}
 \indy{Index}{measure}%
 \indy{Notation}{B@$\openBall{\v}{r}$ (open ball)}%
-\indy{Notation}{V1@$V(\p,r)=V\cap \openBall{\p}{r}$}%
+\indy{Notation}{V1@$\Vee{V}(\p,r)=V\cap \openBall{\p}{r}$}%
 
-\begin{lemma}[]\guid{KIUMVTC}
-\formalauthor{Nguyen Tat Thang}
+\begin{lemma}
 \label{lemma:V-finite}
+\preamble{
+ \guid{KIUMVTC}
+ \formalauthor{Nguyen Tat Thang}
+}
 Let $ V$ be a packing and let $\p\in\vecR{3}$.
-Then the set $ V(\p,r)$ is finite.
+Then the set $ \Vee{V}(\p,r)$ is finite.
 \end{lemma}
 
 \begin{proof}  Let $\p = (p_1,p_2,p_3)$. The floor function gives the map
 \[ (v_1,v_2,v_3)\mapsto (\floor{2(v_1-p_1)}
 , \floor{2(v_2-p_2)}, \floor{2(v_3-p_3)}).
 \] 
-It is a one-to-one map from $ V(\p,r)$ into the set $\vecZ{3}\cap
+It is a one-to-one map from $ \Vee{V}(\p,r)$ into the set $\vecZ{3}\cap
 \openBall{\orz}{2r + 1}$.  By Lemma~\ref{lemma:Zcount} the range of this
-one-to-one map is finite.  Hence, the domain $ V(\p,r)$ of the map is
+one-to-one map is finite.  Hence, the domain $ \Vee{V}(\p,r)$ of the map is
 also finite.%
 \footnote{An alternative proof uses the open cover of the compact ball
   $\bar \openBall{\p}{r}$ by the sets $\bar \openBall{\p}{r}\setminus V$ and $\openBall{\v}{1}$
   for $\v\in V$. By compactness, the cover is necessarily finite.}
 \end{proof}
-%\indy{Notation}{2@$\lfloor\wild\rfloor$ (floor)}% % doesn't parse
 
 
 
 
 
 
-\subsection{Voronoi cell}
+
+\subsection{Voronoi cell}\label{Voronoi cells}
 
 Geometric decompositions of space give a way to estimate the density
 of sphere packings.  A popular decomposition of space
 is the Voronoi cell decomposition (Figure~\ref{fig:voronoi}).
 
-\begin{definition}[Voronoi~cell,~$\Omega$]\guid{YGFWXEH}\label{def:voronoi} 
-\formaldef{$\Omega$}{voronoi\_closed}
-%\indy{Index}{Voronoi cell}%
+\begin{definition}[Voronoi~cell,~$\Omega$]
+\label{def:voronoi-cell-omega}
+\preamble{
+ \guid{YGFWXEH}
+ \formaldef{$\Omega$}{voronoi\_closed}
+ %\indy{Index}{Voronoi cell}%
+}
 Let $V\subset\vecR{3}$ and $\v\in V$.
 The \fullterm{Voronoi cell}{decomposition!Voronoi}
 $\Omega(V,\v)$
 is the set of points at least as close to $\v$ as to
 any other point in $V$. 
-% Let $\Omega_t( V,\v) = \Omega( V,\v)
-%\cap \openBall{\v}{t}$ be the truncated Voronoi cell at radius $t$.
 \end{definition}
 \indy{Notation}{zzZ@$\Omega$ (Voronoi cell)} %
 
 \figXOHAZWO % fig:voronoi
 
-\begin{lemma}[Voronoi partition]\guid{TIWWFYQ}
+\begin{lemma}[Voronoi partition]\label{lemma:Voronoi-partition}
+\preamble{
+ \guid{TIWWFYQ}
+}
 If $V$ is a saturated packing, then 
 \begin{equation}\label{eqn:vor-rn} 
-\vecR{3} = \bigcup \{\Omega(V,\v)\mid \v \in V\}.
+\vecR{3} = \bigcup \setcomp{\Omega(V,\v)}{ \v \in V}.
 \end{equation}
 \end{lemma}
 
 \begin{proof}
   If $V$ is a saturated packing, then every point $\p$ has distance 
-  less than $2$ from some point of $V$.  The set $V(\p,2)$ is finite
+  less than $2$ from some point of $V$.  The set $\Vee{V}(\p,2)$ is finite
   by Lemma~\ref{lemma:V-finite}.  Hence, $\p$ is at least as close to
   some $\v\in V$ as it is to any other $\w\in V$.  This means that
   $\p\in\Omega(V,\v)$.  
@@ -194,17 +324,18 @@ If $V$ is a saturated packing, then
 
 We use half-spaces to separate one Voronoi cell from another.
 
-\begin{definition}[half-space]\guid{BGXHPKY}
-\formaldef{$A$}{bis}
-\formaldef{$\Aplus$}{bis\_le}
+\begin{definition}[half-space]\label{def:half-space}
+\preamble{
+ \guid{BGXHPKY}
+ \formaldef{$A$}{bis}
+ \formaldef{$\Aplus$}{bis\_le}
+}
 \begin{align*} 
-\AA{\u}{\v} &= \{\p\in\vecR{3}
-\mid 2(\v-\u)\cdot \p = \normo{\v}^2 - \normo{\u}^2 \},\\
-\Aplus(\u,\v) &= \{\p\in\vecR{3}
-\mid 2(\v-\u)\cdot \p \le \normo{\v}^2 - \normo{\u}^2 \},
+\AA{\u}{\v} &= \setcomp{\p\in\vecR{3} }{ 2(\v-\u)\cdot \p = \normo{\v}^2 - \normo{\u}^2 },\\
+\Aplus(\u,\v) &= \setcomp{\p\in\vecR{3} }{ 2(\v-\u)\cdot \p \le \normo{\v}^2 - \normo{\u}^2 },
 \end{align*}
 when $\u,\v\in\vecR{3}$.  The plane $\AA{\u}{\v}$ is the \newterm{bisector} of
-$\{\u,\v\}$ and $\Aplus(\u,\v)$ is the \newterm{half-space} of points at least as
+$\braced{\u,\v}$ and $\Aplus(\u,\v)$ is the \newterm{half-space} of points at least as
 close to $\u$ as to $\v$.  
 \end{definition}
 \indy{Notation}{A1@$\AA{\u}{\v}$ (bisector)}%
@@ -212,17 +343,21 @@ close to $\u$ as to $\v$.
 
 Each Voronoi cell is a bounded polyhedron.
 
-\begin{lemma}[Voronoi polyhedron]\guid{RHWVGNP}\label{lemma:V4} 
+\begin{lemma}[Voronoi polyhedron]
+\label{lemma:Voronoi-polyhedron} 
+\preamble{
+ \guid{RHWVGNP}
+}
   Let $V\subset\vecR{3}$ be a saturated packing.  Then
   $\Omega(V,\v)\subset \openBall{\v}{2}$.  Also, $\Omega(V,\v)$ is a polyhedron
   defined by the intersection of the finitely many half-spaces
-  $\Aplus(\v,\u)$ for $\u\in V(\v,4)\setminus\{\v\}$.
+  $\Aplus(\v,\u)$ for $\u\in \Vee{V}(\v,4)\setminus\braced{\v}$.
 \end{lemma}
 
 \begin{proof} 
 The Voronoi cell $\Omega(V,\v)$ is the
 intersection of the half-spaces $\Aplus(\v,\u)$ as $\u$ runs over
-$V\setminus \{\v\}$.
+$V\setminus \braced{\v}$.
 
 Let $\p\not\in \openBall{\v}{2}$.  
 By saturation, there exists $\u\in V$ such that $\norm{\p}{\u}<2$.
@@ -234,31 +369,35 @@ Hence, $\p\not\in\Omega(V,\v)$.  This proves the first conclusion.
 
 
 Let $\Omega'$ be the intersection of the half-spaces $\Aplus(\v,\u)$ as
-$\u$ runs over $V(\v,4)$.  Clearly, $\Omega(V,\v)\subset \Omega'$.
+$\u$ runs over $\Vee{V}(\v,4)$.  Clearly, $\Omega(V,\v)\subset \Omega'$.
 Assume for a contradiction that $\p\in \Omega'\setminus\Omega(V,\v)$.
-The intersection of the ray $\op{aff}_+\{\v,\{\p\}\}$ with
+The intersection of the ray $\op{aff}_+\braced{\v,\{\p\}}$ with
 $\Omega(V,\v)$ is a closed and bounded convex subset of the line.  By
 general principles of convex sets, this intersection is an interval
-$\op{conv}\{\v,\p'\}$ for some $\p'\in\Omega(V,\v)\subset \openBall{\v}{2}$.
+$\op{conv}\braced{\v,\p'}$ for some $\p'\in\Omega(V,\v)\subset \openBall{\v}{2}$.
 For some small $t>0$, the point lies beyond the interval but remains
 within the ball:
 \[  
 \q = (1+t)\p' -t \v\in (\openBall{\v}{2}\cap \Omega')\setminus \Omega(V,\v).
 \] 
-Choose $\u\in V\setminus V(\v,4)$ such that $\q\in \Aplus(\u,\v)$.  By the
+Choose $\u\in V\setminus \Vee{V}(\v,4)$ such that $\q\in \Aplus(\u,\v)$.  By the
 triangle inequality,
 \[  
 \norm{\u}{\v} \le \norm{\u}{\q} + \norm{\v}{\q} \le 2\norm{\v}{\q} < 4.
 \] 
-This contradicts the assumption $\u\not\in V(\v,4)$.
+This contradicts the assumption $\u\not\in \Vee{V}(\v,4)$.
 
-The number of half-spaces $\Aplus(\v,\u)$ for $\u\in V(\v,4)$ is finite by
+The number of half-spaces $\Aplus(\v,\u)$ for $\u\in \Vee{V}(\v,4)$ is finite by
 Lemma~\ref{lemma:V-finite}.  A set defined by the intersection of a finite number
 of closed half-spaces is a polyhedron.
 \end{proof}
 
-\begin{lemma}[Voronoi compact]\guid{DRUQUFE}
-\formalauthor{Nguyen Tat Thang}
+\begin{lemma}[Voronoi compact]
+\label{lemma:Voronoi-compact}
+\preamble{
+ \guid{DRUQUFE}
+ \formalauthor{Nguyen Tat Thang}
+}
 Let $ V$ be a saturated packing.  For every $\v\in  V$, 
 the Voronoi cell $\Omega( V,\v)$  is
 compact, convex, and measurable.
@@ -271,7 +410,7 @@ compact, convex, and measurable.
 
 
 
-\subsection{reduction to a finite packing}
+\subsection{reduction to a finite packing}\label{reduction to finite}
 
 We finally state the main result of this book, the Kepler conjecture.
 The proof fills most of this book. This section describes the
@@ -279,9 +418,12 @@ outline of the proof and gives references to the sources of the
 details of the proof.
 
 
-\begin{theorem*}[Kepler's conjecture on dense packings]\guid{IJEKNGA} 
-\label{theorem:kepler}   
-\formaldef{Kepler conjecture}{kepler\_conjecture}%
+\begin{theorem*}[Kepler's conjecture on dense packings]
+\label{theorem:kepler}
+\preamble{
+ \guid{IJEKNGA} 
+ \formaldef{Kepler conjecture}{kepler\_conjecture}%
+}
 No packing of congruent balls in Euclidean three space has density
 greater than that of the face-centered cubic (FCC) packing.
 \end{theorem*}
@@ -311,14 +453,17 @@ the Voronoi cells on average have volume at least that of those in the
 FCC-packing.  Negligibility means that the error term is insignificant.
 
 
-\begin{definition}[negligible,~FCC-compatible]\guid{ZREKEVW}\label{def:negligible}
-\formaldef{FCC compatible}{fcc\_compatible}
-\formaldef{negligible}{negligible\_fun\_0}
+\begin{definition}[negligible,~FCC-compatible]
+\label{def:negligible}
+\preamble{
+ \guid{ZREKEVW}
+ \formaldef{FCC compatible}{fcc\_compatible}
+ \formaldef{negligible}{negligible\_fun\_0}
+}
 A function $G:V\to \Real$ on a set $V\subset\vecR{3}$
 is \fullterm{negligible\/}{negligible}
 if there is a constant $c_1$ such that for all $r\ge1$,
-% and all $\p\in\vecR{3}$,
-\[ \sum_{\v\in V(\orz,r)} G(\v) \le c_1
+\[ \sumfinitepred{\v}{\v\in \Vee{V}(\orz,r)}{G(\v)} \le c_1
 r^2.\] 
 A function $G: V\to\Real$ is
 \fullterm{FCC-compatible\/}{FCC!compatible}
@@ -341,62 +486,43 @@ G(\v).\]
 \indy{Index}{corrected    volume}%
 \end{remark}
 
-% \begin{remark}\guid{GRKKKGN} In \cite{Hales:2006:DCG}, the full Voronoi cell
-%   $\Omega(V,\v)$ is used, rather than $\Omega(V,\v)$.  The truncation at
-%   radius $2$ is just a matter of convenience to guarantee the
-%   boundedness and hence the finite volume of the (truncated) Voronoi
-%   cell.  In \cite{Hales:2006:DCG}, the same effect was achieved by
-%   requiring all packing%s
-%   to be saturated.  Drop the assumption of saturation on $ V$.
-%\end{remark}
-
-
-
 The density $\delta( V,\p,r)$ of a packing $ V$ within a bounded
 region of space is defined as a ratio. The numerator is volume of
 $\openBall{V}{\p,r}$, defined as the intersection with $\openBall{\p}{r}$ of the union
 of all balls $\openBall{\v}{1}$ in the packing $V$.  The denominator is the volume of
 $\openBall{\p}{r}$. 
-%An ordered pair $( V,\v)$ with $\v\in V$ is called a \newterm{centered
-%packing}.  \indy{Index}{packing!centered}%
 \indy{Notation}{zzd@$\delta( V,\p,r)$}%
 \indy{Notation}{V@$V$ (packing)}%
 
 
 
-\begin{lemma}[reduction to finite dimensions]\guid{JGXZYGW} 
-\formalauthor{Nguyen Tat Thang}
-\label{lemma:deltabound} % 
-If there exists a \newterm{negligible} \fullterm{FCC-compatible}{FCC!compatible}
-function $G: V\to\Real$ for a saturated packing $ V$, then there
-exists a constant $c=c(V)$ such that for all $r\ge1$,
-% and all $\p\in\vecR{3}$, 
-%%  removed on  Jan 16, 2009 after formalization.
+\begin{lemma}[reduction to finite dimensions]
+\label{lemma:reduction-finite-dimensions} % 
+\preamble{ 
+ \guid{JGXZYGW} 
+ \formalauthor{Nguyen Tat Thang} 
+}
+% 
+If there exists a \newterm{negligible}
+\fullterm{FCC-compatible}{FCC!compatible} function $G: V\to\Real$ for
+a saturated packing $ V$, then there exists a constant $c=c(V)$ such
+that for all $r\ge1$,
 \[  
 \delta( V,\orz,r)
 \le {\pi}\Big/{\nsqrt{18}} + c/r.
 \] 
-%The constant $c$ depends on $ V$ only through the constant
-%$c_1$ of Definition~\ref{def:negligible}.
 \end{lemma}
-
-%\begin{remark}\label{conj:fcc-neg} 
-%For every saturated packing $ V$, there exists a negligible
-%FCC-compatible function $G: V\to R$.
-%\end{remark}
-
 
 
 \begin{proof} 
 The volume of $\openBall{ V}{\orz,r}$ is at most the product of the volume
 $4\pi/3$ of each ball with the number of centers in
 $\openBall{\orz}{r+1}$.  Hence,
-\begin{equation} 
-\op{vol}\, \openBall{ V}{\orz,r} \le \card( V(\orz,r+1))\, 4\pi/3.
-\label{eqn:Abound}
+\begin{equation} \label{eqn:Abound}
+\op{vol}\, \openBall{ V}{\orz,r} \le \card( \Vee{V}(\orz,r+1))\, 4\pi/3.
 \end{equation}
 
-%In a %saturated packing 
+
 Each truncated Voronoi cell is contained in a ball of radius $2$ that
 is concentric with the unit ball in that cell.  The volume of the
 large ball $\openBall{\orz}{r+3}$ is at least the combined volume of all
@@ -404,9 +530,9 @@ truncated Voronoi cells centered in $\openBall{\orz}{r+1}$. This observation,
 combined with FCC-compatibility and negligibility, gives
 \begin{equation} 
 \begin{split} 
-4\nsqrt{2}\,\,\card( V(\orz,r+1))
-&\le \sum_{\v\in V(\orz,r+1)} (G(\v) +
-\op{vol}(\Omega(V,\v))) \\
+4\nsqrt{2}\,\,\card( \Vee{V}(\orz,r+1))
+&\le \sumfinitepred{\v}{\v\in \Vee{V}(\orz,r+1)}{\left(G(\v) +
+\op{vol}(\Omega(V,\v))\right)} \\
 &\le c_1 (r+1)^2 + \op{vol}\,\openBall{\orz}{r+3} \\
 &\le c_1 (r+1)^2 + (1+3/r)^3 \op{vol}\,\openBall{\orz}{r}.
 \label{eqn:Bbound}
@@ -416,7 +542,7 @@ combined with FCC-compatibility and negligibility, gives
 Recall that $\delta( V,\orz,r)=
 \op{vol}\,\openBall{ V}{\orz,r}/\op{vol}\,\openBall{\orz}{r}$. Divide Inequality
 \ref{eqn:Abound} through by $\op{vol}\,\openBall{\orz}{r}$.  Use
-Inequality~\ref{eqn:Bbound} to eliminate $\card( V(\orz,r+1))$ from the
+Inequality~\ref{eqn:Bbound} to eliminate $\card( \Vee{V}(\orz,r+1))$ from the
 resulting inequality.  This gives
 \[ \delta( V,\orz,r)
 \le \frac{\pi}{\sqrt{18}} (1+3/r)^3 + c_1 \frac{(r+1)^2}{r^34\sqrt{2}}.
@@ -424,6 +550,7 @@ resulting inequality.  This gives
 The result follows for an appropriately chosen constant $c$
 (depending on $c_1$).
 \end{proof}
+
 
 \begin{remark}[Kepler conjecture in precise terms]\guid{ZHIQGGN}
 \label{remark:precise} 
@@ -441,19 +568,10 @@ FCC-compatible.
 \end{remark}
 
 
-
-
-
 \section{Rogers Simplex}\label{sec:rogers}
 
 \indy{Index}{Rogers|see{decomposition}}%
 \indy{Index}{decomposition!Rogers}%
-
-% Think of $ V$ as the set of centers of a packing of congruent balls
-% of unit radius. To be saturated means that there is no room for
-% further balls to be added to the packing. There is no loss in
-% generality in assuming that the packing is saturated, when searching
-% for the greatest possible density of a packing.
 
 Rogers gave a bound on the density of sphere packings in Euclidean
 space of arbitrary dimension~\cite{Rogers:1958:Packing}.  His bound
@@ -482,7 +600,7 @@ the simplices to obtain a sharp bound on the density of packings.
 
 
 
-\subsection{faces}
+\subsection{faces}\label{faces}
 
 The Rogers partition is a refinement of the Voronoi cell decomposition.
 In preparation for this decomposition, this subsection goes into
@@ -492,98 +610,102 @@ saturated packing $V$ (Figure~\ref{fig:vset}).
 
 \figKFETCJS % fig:vset
 
-\begin{definition}[$\Omega$ reprise]\guid{BBDTRGC} 
-  \formaldef{$\Omega(V,W)$}{voronoi\_set}
-  \formaldef{$\Omega(V,\bu)$}{voronoi\_list} Let $V$ be a saturated
-  packing.  The notation $\Omega(V,\wild )$ can be
-  \newterm{overloaded} to denote intersections of Voronoi cells, when
-  the second argument is a set or list of points.  If $W\subset
-  V$, 
-  then the intersection of the family of Voronoi cells is
-  $\Omega(V,W)$:
-\[ \Omega(V,W) = \bigcap \{\Omega(V, \u)\mid \u\in W
-\}.\] 
+\begin{definition}[$\Omega$ reprise]
+\label{def:Omega}
+\preamble{
+ \guid{BBDTRGC}
+ \formaldef{$\Omega(V,W)$}{voronoi\_set}
+ \formaldef{$\Omega(V,\bu)$}{voronoi\_list}
+}
+% 
+Let $V$ be a saturated packing.  The notation $\Omega(V,\wild )$ can
+be \newterm{overloaded} to denote intersections of Voronoi cells, when
+the second argument is a set or list of points.  If $W\subset V$, then
+the intersection of the family of Voronoi cells is $\Omega(V,W)$:
+\[ 
+\Omega(V,W) = \bigcap \setcomp{\Omega(V, \u)}{ \u\in W }.
+\] 
 Define $\Omega$ on lists 
 to be the same as its value on point sets: 
 \begin{align*} 
-\Omega(V,[\u_0;\ldots;\u_k]) = \Omega(V,\{\u_0;\ldots;\u_k\}).
+\Omega(V,\listdots{\u}{0}{k}) = \Omega(V,\setenumdots{\u}{0}{k}).
 \end{align*}
 \end{definition}
 \indy{Notation}{zzZ@$\Omega(V,W)$ (intersection of Voronoi cells)}%
 
 An intersection of Voronoi cells can be written in many equivalent forms:
 \[  
-  \Omega(V,\v)\cap \Omega(V,\u) =\Omega(V,\{\u,\v\})
+  \Omega(V,\v)\cap \Omega(V,\u) =\Omega(V,\braced{\u,\v})
  = \Omega(V,\v)\cap \Aplus(\u,\v) 
   = \Omega(V,\v)\cap \AA{\u}{\v} =  \cdots.
 \] 
 
-
-
-
-
-\begin{definition}[$\bV$]\guid{NOPZSEH} 
-  \formaldef{$\bV(k)$}{barV} Let $V$ be a saturated packing.
-  When $k=0,1,2,3$, let $ \bV(k)$ be the set of lists
-  $\bu=[\u_0;\ldots;\u_k]$ of length $k+1$ with $ \u_i\in V$ such
-  that
+\begin{definition}[$\bV$]
+\label{def:bV}
+\preamble{
+ \guid{NOPZSEH}
+ \formaldef{$\bVo{k}$}{barV} 
+}
+%
+Let $V$ be a saturated packing.  When $k=0,1,2,3$, let $ \bVo{k}$ be
+the set of lists $\bu=\listdots{\u}{0}{k}$ of length $k+1$ with $
+\u_i\in V$ such that
 \begin{equation}\label{eqn:omega-dim} 
-\dimaff(\Omega(V,[\u_0;\ldots;\u_j])) = 3-j
+\dimaff(\Omega(V,\listdots{\u}{0}{k})) = 3-j
 \end{equation}
 for all $0<j\le k$.  (Recall that $\dimaff(X)$ is the affine dimension
-of $X$ from Definition~\ref{def:affine}.)  Set $\bV(k)=\emptyset$ for
+of $X$ from Definition~\ref{def:affine}.)  Set $\bVo{k}=\emptyset$ for
 $k>3$.  
 \end{definition}
-%\indy{Notation}{V2@$\bV(k)$ (set of suitable lists of length $k+1$ in $V$)}% % doesn't parse
-%\indy{Notation}{vz@$\bu$ (list of members of a packing)}% % doesn't parse.
 \indy{Notation}{dimaff@$\dimaff$ (affine dimension)}%
 
-In particular, $V$ can be identified with $\bV(0)$ under the natural
-bijection $\v\mapsto[\v]$, and $\bV(1)$ is the set of lists $[\u;\v]$
+In particular, $V$ can be identified with $\bVo{0}$ under the natural
+bijection $\v\mapsto[\v]$, and $\bVo{1}$ is the set of lists $[\u;\v]$
 of distinct elements such that the Voronoi cells at $ \u$ and $\v$
 have a common facet (Lemma~\ref{lemma:omega-facet}).  
 
 \begin{notation}[underscore]
-  % Given a saturated packing $V$, and natural number $k$, the
-  % definition gives $\bV(k)$ as a certain set of lists of points in
-  % $V$.
-  The underscores follow a special syntax.  In $\bV(k)$, the
+  The underscores follow a special syntax.  In $\bVo{k}$, the
   underscore is a function
 \[  
-\underline{\phantom V}:\{V \mid \text{$V$ saturated packing} \}
+\underline{\phantom V}:\setcomp{V }{ \text{$V$ saturated packing} }
 \times \Nat \to \wild.
 \] 
  The syntax is somewhat different in $\bu$.  Here the
 underscore is not a function, but part of its name, following a
 general typographic convention to mark lists of points. The notations
-are coherent because $\bu\in\bV(k)$.
+are coherent because $\bu\in\bVo{k}$.
 \end{notation}
 
-\begin{notation}[$\trunc{\bu}{j}$]\guid{JNRJQSM}
-%\indy{Notation}{u@$\bu$ (list of points)}% index misformats
-\indy{Notation}{d@$d_j$ (truncation of lists)}%
-\formaldef{$\trunc{\bu}{j}$} {truncate\_simplex}
-\hspace{-3pt}
-When $\bu=[\u_0;\ldots;\u_k]$ and $j\le k$, write
-%\footnote{The  notation follows the syntax of Python slices.} 
-$\trunc{\bu}{j} = 
-[\u_0;\ldots;\u_j]$ for the truncation of the list.  
-%\indy{Notation}{1@$\trunc{\wild }{:\wild }$}%
+\begin{notation}[$\trunc{\bu}{j}$]
+\preamble{
+ \guid{JNRJQSM}
+ \indy{Notation}{d@$d_j$ (truncation of lists)}%
+ \formaldef{$\trunc{\bu}{j}$} {truncate\_simplex}\hspace{-3pt}
+}
+%
+When $\bu=\listdots{\u}{0}{k}$ and $j\le k$, write $\trunc{\bu}{j} =
+\listdots{\u}{0}{j}$ for the truncation of the list.
 \end{notation}
 
-Truncation $\bu\mapsto\trunc{\bu}{j}$ maps $\bV(k)$ to $\bV(j)$ when
+Truncation $\bu\mapsto\trunc{\bu}{j}$ maps $\bVo{k}$ to $\bVo{j}$ when
 $j\le k$.  Beware of the index: $k$ is the \newterm{codimension} of
-$\Omega(V,\bu)$ in $\vecR{3}$, when $\bu\in \bV(k)$; it is not the
+$\Omega(V,\bu)$ in $\vecR{3}$, when $\bu\in \bVo{k}$; it is not the
 \newterm{length} of the list $\bu$ (which is $k+1$).\footnote{By
   convention a $k$-simplex is presented as a $k+1$-tuple.  Because of
   this shift by one, the notation $\trunc{\bu}{j}$ also differs by the
   same shift.}
 
 
-\begin{lemma}[Voronoi face]\guid{KHEJKCI}\label{lemma:omega-face}  
-Let $V\subset\vecR{3}$ be a saturated packing.
-Let $\bu=[\u_0;\ldots;\u_{k}]\in \bV(k)$.  
-Then $\Omega(V,\bu)$ is a face of $\Omega(V,\u_0)$.
+\begin{lemma}[Voronoi face]
+\label{lemma:omega-face}  
+\preamble{
+ \guid{KHEJKCI}
+}
+%
+Let $V\subset\vecR{3}$ be a saturated packing.  Let
+$\bu=\listdots{\u}{0}{k}\in \bVo{k}$.  Then $\Omega(V,\bu)$ is a face
+of $\Omega(V,\u_0)$.
 \end{lemma}
 
 \begin{proof} This follows directly from the definition of face on
@@ -605,15 +727,21 @@ By the definition of face, $\Omega(V,\bu)$ is a face of
 $\Omega(V,\u_0)$.
 \end{proof}
 
-\begin{lemma}[facets]\guid{IDBEZAL}\label{lemma:omega-facet} 
-  Let $V\subset\vecR{3}$ be a saturated packing.  Let $\bu\in
-  \bV(k)$ for some $k<3$.  Then $F$ is a facet of $\Omega(V,\bu)$ if
-  and only if there exists $\bv\in \bV(k+1)$ such that $F =
-  \Omega(V,\bv)$ and $\trunc{\bv}{k} = \bu$.
+
+\begin{lemma}[facets]
+\label{lemma:omega-facet} 
+\preamble{
+ \guid{IDBEZAL}
+}
+%
+Let $V\subset\vecR{3}$ be a saturated packing.  Let $\bu\in \bVo{k}$
+for some $k<3$.  Then $F$ is a facet of $\Omega(V,\bu)$ if and only if
+there exists $\bv\in \bVo{k+1}$ such that $F = \Omega(V,\bv)$ and
+$\trunc{\bv}{k} = \bu$.
 \end{lemma}
 
 \begin{proof} 
-  Use Lemma~\ref{lemma:V4} to write the polyhedron $\Omega(V,\bu)$ in
+  Use Lemma~\ref{lemma:Voronoi-polyhedron} to write the polyhedron $\Omega(V,\bu)$ in
   the form of Equation~\ref{eqn:polyrep}:
 \[  
 \Omega(V,\bu) = A \cap A_\pm(\v_1,\u_0) \cap \cdots\cap A_\pm(\v_r,\u_0),
@@ -625,20 +753,20 @@ any facet of $\Omega(V,\bu)$, then there exists an $i\le r$ such that
 \[  
 F = \Omega(V,\bu) \cap \AA{\v_i}{\u_0} = \Omega(V,\bv),
 \] 
-where $\bv = [\u_0;\cdots;\u_k;\v_i]$ is the list that appends $\v_i$
+where $\bv = [\u_0;\ldots;\u_k;\v_i]$ is the list that appends $\v_i$
 to $\bu$.  Also,
 \[  
 \dimaff(\Omega(V,\bv)) = \dimaff(F) = \dimaff(\Omega(V,\bu)) - 1 = 3 - k - 1,
 \] 
-because $F$ is a facet.  It follows that $\bv \in \bV(k+1)$.  This
+because $F$ is a facet.  It follows that $\bv \in \bVo{k+1}$.  This
 proves the implication in the forward direction.
 
-To prove the converse, let $\bv\in \bV(k+1)$, where $\trunc{\bv}{k} =
+To prove the converse, let $\bv\in \bVo{k+1}$, where $\trunc{\bv}{k} =
 \bu$.  Elementary verifications show that $\Omega(V,\bv)\subset
 \Omega(V,\bu)$ and that this set is nonempty if $k<3$.  By
 Lemma~\ref{lemma:omega-face} and Lemma~\ref{lemma:webster},
 $\Omega(V,\bv)$ is a face of $\Omega(V,\bu)$.  By the definition of
-$\bV(\wild )$,
+$\bVo{\wild }$,
 \[  
 \dimaff(\Omega(V,\bv)) = 3 - (k+1) = \dimaff(\Omega(V,\bu)) -1.
 \] 
@@ -646,37 +774,35 @@ It follows that $\Omega(V,\bv)$ is a facet of $\Omega(V,\bu)$.
 \end{proof}
 
 
-\subsection{partitioning space}
+\subsection{partitioning space}\label{partitioning space}
 
 Each Rogers simplex is given as the convex hull of  its set of extreme points.  
 The extreme points $\omega(d_i\bu)$
 are defined by recursion.
 
-\begin{definition}[$\omega$]\guid{JJGTQMN}\label{def:omega}
-  \formaldef{$\omega_k$} {omega\_list\_n} \formaldef{$\omega$}
-  {omega\_list} Let $V$ be a saturated packing and let
-  $\bu=[\u_0;\ldots]\in \bV(k)$ for some $k$.  Define points
-  $\omega_j=\omega_j(V,\bu)\in\vecR{3}$ by recursion over $j\le k$
-  (Figure~\ref{fig:rogers-omega}).
+\begin{definition}[$\omega$]
+\label{def:omega}
+\preamble{
+ \guid{JJGTQMN}
+ \formaldef{$\omega_k$} {omega\_list\_n} 
+ \formaldef{$\omega$}{omega\_list} 
+}
+%
+Let $V$ be a saturated packing and let $\bu=[\u_0;\ldots]\in \bVo{k}$
+for some $k$.  Define points $\omega_j=\omega_j(V,\bu)\in\vecR{3}$ by
+recursion over $j\le k$ (Figure~\ref{fig:rogers-omega}).
 \begin{align*}
 \omega_{0\phantom{+1}} &= \u_0,\\
 \omega_{j+1} &=\text{the closest point to } \omega_j 
 \text{ on }\Omega(V,\trunc{\bu}{j+1}).
 \end{align*}
-Set $\omega(V,\bu) = \omega_{k}(V,\bu)$, when $\bu\in \bV(k)$.  The
+Set $\omega(V,\bu) = \omega_{k}(V,\bu)$, when $\bu\in \bVo{k}$.  The
 set $V$ is generally fixed and is dropped from the notation.
-%By induction $\omega_j(\bu) = \
-%Define $\omega$ \mid \coprod_{j=0}^3 \bV(j)\to \vecR{3}$ by recursion over $j$ as follows.
-%Let \[  
-%\omega([\u]) = \u,
-%\]  and
-%let $\omega( \bu)$ be the closest point on $\Omega(V, \bu)$ to
-%$\omega( \trunc{\bu}{j})$, when $\bu\in \bV(j+1)$.
 \end{definition}
 
 \figHFFTUNW % fig:rogers-omega
 
-\claim{The point $\omega(\bu)$ exists when $\bu\in V(k)$.}  Indeed,
+\claim{The point $\omega(\bu)$ exists when $\bu\in \Vee{V}(k)$.}  Indeed,
 the set $\Omega(V, \bu)$ is nonempty, convex, and compact.  Thus, by
 convex analysis, the closest point $\omega( \bu)$ exists uniquely.
 
@@ -687,62 +813,63 @@ $\trunc{\bu}{k}$ so that
 \]
 \indy{Notation}{zzz@$\omega$ (extreme points of Rogers simplex)}%
 
-\begin{definition}[R,~Rogers simplex]\guid{PHZVPFY} 
-\formaldef{$R$}{rogers}
-Let $V\subset\vecR{3}$ be a saturated packing. For $\bu\in \bV(k)$, let 
+
+\begin{definition}[R,~Rogers simplex]
+\label{def:Rogers-simplex}
+\preamble{
+ \guid{PHZVPFY}
+ \formaldef{$R$}{rogers}
+ \indy{Notation}{R@$R$ (Rogers simplex)}%
+}
+%
+Let $V\subset\vecR{3}$ be a saturated packing. For $\bu\in \bVo{k}$, let 
 \[
  R(\bu) = \op{conv}\{\omega( \trunc{\bu}{0}), \omega(
  \trunc{\bu}{1}),\ldots,\omega( \trunc{\bu}{k})\}.
-% R^0(\bu) &= \op{aff}^0_+(\emptyset,\{\omega( \trunc{\bu}{0}), \omega(
-% \trunc{\bu}{1}),\ldots,\omega( \trunc{\bu}{k})\}).
 \]
-%Set $R(\bu)=R(0,\bu)$.  
 The set $R(\bu)$ is called the Rogers simplex of $\bu$.
-\indy{Notation}{R@$R$ (Rogers simplex)}%
 \end{definition}
 
 Each Voronoi cell can be partitioned into Rogers simplices (Figure~\ref{fig:rogers-random}).
 
 \figBUGZBTW % fig:rogers-random 
 
-\begin{lemma}[Rogers decomposition]\guid{GLTVHUM} 
+
+\begin{lemma}[Rogers decomposition]
 \label{lemma:Rogers-d}
+\preamble{
+ \guid{GLTVHUM} 
+}
 For any saturated packing $V\subset\vecR{3}$, and any $\u_0\in V$,
 \begin{equation} 
-\Omega(V,\u_0) = \bigcup \{ R(\bv) \mid \bv\in \bV(3),~\trunc{\bv}{0} =[\u_0]\}.
+\Omega(V,\u_0) = \bigcup \setcomp{ R(\bv) }{ \bv\in \bVo{3},~\trunc{\bv}{0} =[\u_0]}.
 \end{equation}
 Consequently,
 \[ 
-\vecR{3} = \bigcup\, \{ R(\bv) \mid \bv\in\bV(3)\}.
+\vecR{3} = \bigcup\, \setcomp{ R(\bv) }{ \bv\in\bVo{3}}.
 \] 
 \end{lemma}
+
 
 \begin{proof} 
 The proof uses standard facts about convex sets and polyhedra from
 Section~\ref{sec:poly}.
 
-
-%
-%Now we turn to the proof.  
 By the covering of $\vecR{3}$  by Voronoi cells by \eqref{eqn:vor-rn},
-%\[ \vecR{3} = \bigcup\, \{\Omega(V, \bu)\mid \bu\in
-%\bV(0)\}.\] 
 it is enough to show that each Voronoi cell is covered by Rogers
 simplices.
 
-Let $\bu\in \bV(j)$ for $j<3$.
+Let $\bu\in \bVo{j}$ for $j<3$.
 Consider the following set:
 \[  
 N = \left\{k\in\Nat\mid j\le k\le 3, ~~\Omega(V,\bu) 
-= \bigcup_{\bv \in \bV(k),~\trunc{\bv}{j}=\bu}
-\op{conv}(O_k \cup\Omega(V,\bv)) %\\&\qquad\qquad
-%\mid
-%\right\}
+= \bigcup_{\bv \in \bVo{k},~\trunc{\bv}{j}=\bu}
+\op{conv}(O_k \cup\Omega(V,\bv)) 
 \right\},
 \] 
 where $O_k = \{\omega(\trunc{\bv}{j}),\ldots,\omega(\trunc{\bv}{k-1})\}$.
 
-\claim{We claim $N = \{j,\ldots,3\}$.}  Indeed, to see that $j\in N$, we note that
+\claim{We claim $N = \setenumrange{j}{3}$.}  Indeed, to see that $j\in N$, we note that
 \[  
 \Omega(V,\bu) = \op{conv}(\Omega(V,\bu)),
 \] 
@@ -750,68 +877,39 @@ which holds by the convexity of the polyhedron $\Omega(V,\bu)$.  We
 assume that $k\in N$ and consider the membership condition of $N$ for
 $k+1$.  We may assume that $k+1\le 3$.  Then
 \begin{alignat*}{4}
-&\phantom{=}&&\bigcup _{\bv \in \bV(k+1),~\trunc{\bv}{j}=\bu}
+&\phantom{=}&&\bigcup _{\bv \in \bVo{k+1},~\trunc{\bv}{j}=\bu}
 \op{conv}(O_{k+1} \cup\Omega(V,\bv))
 \vspace{6pt}\\
-&=&&\bigcup _{\bv \in \bV(k+1),~\trunc{\bv}{j}=\bu}
-\op{conv}(O_{k} \cup\op{conv}(\{\omega(\trunc{\bv}{k})\}
+&=&&\bigcup _{\bv \in \bVo{k+1},~\trunc{\bv}{j}=\bu}
+\op{conv}(O_{k} \cup\op{conv}(\braced{\omega(\trunc{\bv}{k})}
 \cup\Omega(V,\bv)))
 \vspace{6pt}\\
-&=&&\bigcup _{\bw\in \bV(k),~\trunc{\bw}{j}=\bu,~~}
-\bigcup_{\bv \in \bV(k+1),~\trunc{\bv}{k}=\bw}
-\op{conv}(O_{k} \cup\op{conv}(\{\omega(\trunc{\bv}{k})\}
+&=&&\bigcup _{\bw\in \bVo{k},~\trunc{\bw}{j}=\bu,~~}
+\bigcup_{\bv \in \bVo{k+1},~\trunc{\bv}{k}=\bw}
+\op{conv}(O_{k} \cup\op{conv}(\braced{\omega(\trunc{\bv}{k})}
 \cup\Omega(V,\bv)))
 \vspace{6pt}\\
-&=&&\bigcup _{\bw\in \bV(k),~\trunc{\bw}{j}=\bu\phantom{+1}}
+&=&&\bigcup _{\bw\in \bVo{k},~\trunc{\bw}{j}=\bu\phantom{+1}}
 \op{conv}(O_{k} \cup \Omega(V,\bw)    )
 \vspace{6pt}\\
 &=&&\quad\Omega(V,\bu).
 \end{alignat*}
 The induction hypothesis is used in the last step.  
-This proves $k+1\in N$, and induction gives $N=\{j,\ldots,3\}$.
+This proves $k+1\in N$, and induction gives $N=\setenumrange{j}{3}$.
 
 Consider the extreme case $j=0$ and $k=3$.  The set $\Omega(V,\bv)$
-reduces to $\{\omega(\bv)\}$ and the convex hull becomes
+reduces to $\braced{\omega(\bv)}$ and the convex hull becomes
 \[  
 \op{conv}(O_{k}\cup \Omega(V,\bv)) = R(\bv)
 \] 
-when $\bv\in \bV(3)$.
+when $\bv\in \bVo{3}$.
 This gives
 \begin{equation} 
 \Omega(V,\u_0) = 
-\bigcup \{ R(\bv) \mid \bv\in \bV(3),~\trunc{\bv}{0} =[\u_0]\}.
+\bigcup \setcomp{ R(\bv) }{ \bv\in \bVo{3},~\trunc{\bv}{0} =[\u_0]}.
 \end{equation}
 This proves the lemma.
 \end{proof}
-
-
-%%%
-%\[ \Omega(V,\trunc{\bu}{0}) = 
-%\bigcup\, \{ R(\bv) \mid \trunc{\bu}{0}=\trunc{\bv}{0},~\bv\in  \bV(3)\}.
-%\] 
-%By Lemma~\ref{lemma:webster}, the relative boundary of the bounded
-%polyhedron $\Omega(V,\trunc{\bu}{0})$ is the union of its facets.  The
-%polyhedron can be partition into the cones over these facets.
-%\[ \Omega(V,\trunc{\bu}{0}) = \bigcup\, \left\{
-%  ~\op{conv}(\{\omega(\trunc{\bu}{0})\}\cup \Omega(V,\trunc{\bu}{1}))   
-%   \mid \trunc{\bu}{1}\in  \bV(1)
-%   \right\}.
-%\] 
-%It is enough to show that
-%\[  
-%\Omega(V,\trunc{\bu}{1}) = \bigcup\, 
-%\{ R(1,\bv) \mid \trunc{\bv}{1}=\trunc{\bu}{1},~\bv\in  \bV(3)\}.
-%\] 
-%After successively partitioning each facet into cones over facets of
-%facets, it is enough to show that
-%\[ \Omega(V,\trunc{\bu}{3}) 
-%= \bigcup\,\{R(3,\bv)\mid\trunc{\bv}{3}=\trunc{\bu}{3},~\bv\in \bV(3)\}.\] 
-%The right-hand side is the singleton $\{\omega(\trunc{\bu}{3})\}$.
-% The left-hand side contains this point and is contained in a
-% properly decreasing chain of affine sets: $\vecR{3}$, the bisector
-% of $ \u_0$ and $ \u_1$, and so forth.  This determines a unique
-% point, so the two sides are equal.
-%\end{proof}
 
 \figELMXAFH % fig:rogers-ill-defined
 
@@ -819,10 +917,14 @@ Although the Rogers simplex $R(\bu)$ need not determine the parameter
 $\bu$ (Figure~\ref{fig:rogers-ill-defined}), the intersection of two
 different Rogers simplices is a null set.
 
-\begin{lemma}[Rogers disjoint]\guid{DUUNHOR}  \label{lemma:R-inter} 
-% Revised October 20, 2010.
-  Let $V$ be a saturated packing and let $\bu,\bv\in \bV(3)$ be lists
-  such that $R(\bu)\ne R(\bv)$.  Then the intersection
+\begin{lemma}[Rogers disjoint]
+\label{lemma:R-inter} 
+\preamble{
+ \guid{DUUNHOR}
+}
+%
+Let $V$ be a saturated packing and let $\bu,\bv\in \bVo{3}$ be lists
+such that $R(\bu)\ne R(\bv)$.  Then the intersection
 \[  
 R(\bu)\cap R(\bv)
 \] 
@@ -842,9 +944,7 @@ Let $\bu = [\u_0;\ldots]$ and $\bv = [\v_0;\ldots]$.
 Let $k$ be the
 first index such that
 \[  
-\Omega(V,[\u_0;\ldots;\u_{k}]) \ne \Omega(V,[\v_0;\ldots;\v_{k}]).
-%\op{conv}\{\omega( [\u_0]),\ldots,\omega( [\u_0;\ldots; \u_{k}])\}\ne
-%\op{conv}\{\omega([\v_0]),\ldots,\omega([\v_0;\ldots;\v_{k}])\}.
+\Omega(V,\listdots{\u}{0}{k}) \ne \Omega(V,\listdots{\v}{0}{k}).
 \] 
 
 \claim{Such an index $k$ exists.}  Indeed, the definition of points
@@ -855,39 +955,37 @@ We have $\omega_i(\bu) = \omega_i(\bv)$, for $i<k$.
 
 Select $\w\in R(\bu)\cap R(\bv)$.  Write
 \[
-\w = \sum_{j=0}^3 s_j \omega_j(\bu)  = \sum_{j=0}^3 t_j \omega_j(\bv),
-%\]
-\text{ where } \sum_{j=0}^3 s_j = \sum_{j=0}^3 t_j = 1.
+\w = \sumupto{j}{0}{3}{s_j \omega_j(\bu)}  = \sumupto{j}{0}{3}{t_j \omega_j(\bv)},
+\text{ where } \sumupto{j}{0}{3}{s_j} = \sumupto{j}{0}{3}{t_j} = 1.
 \]
-Set $\sigma_i = \sum_{j=i}^3 s_j$.
+Set $\sigma_i = \sumupto{j}{1}{3}{s_j}$.
 
-\claim{We claim that $s_i = t_i$, and $\sigma_{i+1} = \sum_{j={i+1}}^3 t_j$, 
-for $i=0,\ldots,k-1$.}  Indeed, the
+\claim{We claim that $s_i = t_i$, and $\sigma_{i+1} = \sumupto{j}{i+1}{3}{t_j}$, 
+for $\fordots{i}{0}{k-1}$.}  Indeed, the
 proof is an induction on $i$.  Assume that the claim holds for all
 indices less than $i$ so that
 \[
-\sum_{j=i}^3 s_j \omega_j(\bu)  = \sum_{j=i}^3 t_j \omega_j(\bv).
+\sumupto{j}{i}{3}{s_j \omega_j(\bu)}  = \sumupto{j}{i}{3}{t_j \omega_j(\bv)}.
 \]
-%Set $\sigma_i = s_1+s_2+\cdots+s_i$.
 We apply Lemma~\ref{lemma:scale2} to the points
 \[
 \p_0=\omega_i(\bu)=\omega_i(\bv),\quad
-\p = \sum^3_{j={i+1}} \frac{s_j}{\sigma_i} \omega_j(\bu),\quad
-\p' = \sum^3_{j={i+1}} \frac{t_j}{\sigma_i} \omega_j(\bv)
+\p = \sumupto{j}{i+1}{3}{\frac{s_j}{\sigma_i} \omega_j(\bu)},\quad
+\p' = \sumupto{j}{i+1}{3}{\frac{t_j}{\sigma_i} \omega_j(\bv)}
 \]
-in the polyhedron $\Omega(V,[\u_0;\ldots;\u_i])$
+in the polyhedron $\Omega(V,\listdots{\u}{0}{i})$
 to obtain the induction step $s_i=t_i$.
 
 Let
 \[
-\Omega'=\Omega(V,[\u_0;\ldots;\u_{k}]) 
-\cap \Omega(V,[\v_0;\ldots;\v_{k}])=
+\Omega'=\Omega(V,\listdots{\u}{0}{k}]) 
+\cap \Omega(V,\listdots{\v}{0}{k})=
 \Omega(V,[\u_0;\ldots;\u_{k};\v_{k}]).
 \]
 The claim implies that 
 \[
-\frac{1}{\sigma_k}\sum_{j=k}^3 s_j \omega_j(\bu) = 
-\frac{1}{\sigma_k}\sum_{j=k}^3 t_j \omega_j(\bv) \in\Omega'.
+\frac{1}{\sigma_k}\sumupto{j}{k}{3}{s_j \omega_j(\bu)} = 
+\frac{1}{\sigma_k}\sumupto{j}{k}{3}{t_j \omega_j(\bv) \in\Omega'}.
 \]
 It follows that the intersection $R(\u)\cap R(\v)$ lies in the convex
 hull $C$ of
@@ -897,28 +995,35 @@ hull $C$ of
 and $\Omega'$.  The set $\Omega'$ lies in a facet of
 $\Omega(V,\trunc{\bu}{k})$.  Hence, the affine dimension of $\Omega'$
 is at most $3-k-1=2-k$.  In general, if a set $A$ has affine dimension
-$r$, then the affine dimension of $\op{conv}(\{\p\}\cup A)$ is at most
+$r$, then the affine dimension of $\op{conv}(\braced{\p}\cup A)$ is at most
 $r+1$.  It follows that the affine dimension of $C$ is at most 
 $k + (2-k) = 2$.  The intersection is thus contained in a plane.
 \end{proof}
 
 
-\subsection{circumcenter}
+\subsection{circumcenter}\label{circumcenter}
 
 The extreme points of a Rogers simplex are closely related to the
 circumcenter of various subsets of $V$.  This subsection develops the
 connection between Rogers simplices and circumcenters.
 
-\begin{definition}[circumcenter,~circumradius]\guid{IFLFHKT} 
-  \formaldef{circumcenter}{circumcenter}%
-  \formaldef{circumradius}{radV}%
-  Let $S\subset\vecR{n}$.  A point $\p$ is a \newterm{circumcenter}
-  of $S$ if it is an element in the affine hull of $S$ that is
-  equidistant from every $\v\in S$.  If $S$ has circumcenter $\p$,
-  then the common distance $\norm{\p}{\v}$ for all $\v\in S$ is the
-  \newterm{circumradius} of $S$.
+
+\begin{definition}[circumcenter,~circumradius]
+\label{def:circumcenter}
+\preamble{
+ \guid{IFLFHKT}
+ \formaldef{circumcenter}{circumcenter}%
+ \formaldef{circumradius}{radV}%
+ \indy{Notation}{S@$S$ (finite subset of $\vecR{3}$)}%
+}
+%
+Let $S\subset\vecR{n}$.  A point $\p$ is a \newterm{circumcenter} of
+$S$ if it is an element in the affine hull of $S$ that is equidistant
+from every $\v\in S$.  If $S$ has circumcenter $\p$, then the common
+distance $\norm{\p}{\v}$ for all $\v\in S$ is the
+\newterm{circumradius} of $S$.
 \end{definition}
-\indy{Notation}{S@$S$ (finite subset of $\vecR{3}$)}%
+
 
 The circumcenter comes as a solution to a system of linear equations.
 We pause to review a standard result from the theory of linear
@@ -929,38 +1034,44 @@ if $\dimaff(S) = \card(S) -1$.
 %
 \formaldef{affinely  independent}{\textasciitilde affine\_dependent s}%
 
-\begin{lemma}[linear systems]\guid{QXSKIIT}\label{lemma:affine-system} 
-  Let $S=\{\v_0,\ldots,\v_m\}\subset \vecR{n}$ be an affinely
-  independent set of cardinality $m+1$.  Then every system of
-  equations
+
+\begin{lemma}[linear systems]
+\label{lemma:affine-system} 
+\preamble{
+ \guid{QXSKIIT}
+}
+%
+Let $S=\setenumdots{\v}{0}{m}\subset \vecR{n}$ be an affinely
+independent set of cardinality $m+1$.  Then every system of equations
 \[  
-\p \cdot (\v_i - \v_0) = b_i-b_0,\quad \text{for } i=1,\ldots,m
+\p \cdot (\v_i - \v_0) = b_i-b_0,\quad \text{for } \fordots{i}{1}{m}
 \] 
 has a unique solution  $\p$ that lies in the affine hull of $S$.
 \end{lemma}
+
 
 \begin{proof} This is a standard result from linear algebra.
 We sketch a proof for the sake of completeness.  
 
 Let $\w_i = \v_i-\v_0$ and replace $b_i-b_0$ with $b_i$.  
 The lemma reduces to the following claim.
-Let $S' = \{\w_1,\ldots,\w_m\}$ be a \newterm{linearly independent} set
+Let $S' = \setenumdots{w}{1}{m}$ be a \newterm{linearly independent} set
 of cardinality $m$.  Then every system of equations
 \[  
-\p \cdot \w_i = b_i,\quad \text{for }i=1,\ldots,m
+\p \cdot \w_i = b_i,\quad \text{for } \fordots{i}{1}{m}
 \] 
 has a unique solution in $\p$ that lies in the linear span of $S'$.
 
 \claim{A solution is unique}. Indeed, the difference 
-$\p = \p'-\p'' = \sum s_i \w_i$ of two solutions
+$\p = \p'-\p'' = \sumupto{i}{1}{m}{ s_i \w_i}$ of two solutions
 $\p',\p''$ satisfies
 \[  
-\normo{\p}^2=\p\cdot\p = \sum s_i \w_i \cdot (\p' - \p'') =
-\sum s_i (b_i-b_i)= 0.
+\normo{\p}^2=\p\cdot\p = \sumupto{i}{1}{m}{ s_i \w_i} \cdot (\p' - \p'') =
+\sumupto{i}{1}{m}{ s_i (b_i-b_i)}= 0.
 \] 
 It follows that $\p=\orz$ and $\p'=\p''$.  This proves uniqueness.
 
-Let $W$ be the linear span of $\w_1,\ldots,\w_m$.  The image of the
+Let $W$ be the linear span of $\setenumdots{\w}{1}{m}$.  The image of the
 map $W\to\vecR{m}$, $\p\mapsto (\p\cdot\w_1,\ldots,\p\cdot\w_m)$ is
 a linear space and is therefore an affine set.
 
@@ -968,28 +1079,33 @@ a linear space and is therefore an affine set.
 Otherwise, by Lemma~\ref{lemma:aff-u} some equation must hold; that
 is, there exists $\u\ne \orz$ such that $\u\cdot \q =b$ for every
 point $\q$ in the image.  As $\orz$ lies in the image, $b=0$.  Write
-$\p = \sum u_i \w_i\in W$ and let $\q\in\vecR{m}$ be the image of
+$\p = \sum\upto{i}{1}{m}{ u_i \w_i}\in W$ and let $\q\in\vecR{m}$ be the image of
 $\p\in W$.  Then
 \[  
-\normo{\p}^2 = \p\cdot\p = \sum u_i (\p \cdot \w_i) = \u\cdot \q = 0.
+\normo{\p}^2 = \p\cdot\p = \sumupto{i}{1}{m}{ u_i (\p \cdot \w_i)} = \u\cdot \q = 0.
 \]  
 Thus $\p=\orz$ so that $\u=\orz$.  We have reached a contradiction.
 \end{proof}
 
-\begin{lemma}[circumcenter exists]\guid{OAPVION} 
-  Let $S\subset \vecR{n}$ be a nonempty affinely independent set.
-  Then there exists a unique circumcenter of $S$.
+\begin{lemma}[circumcenter exists]
+\label{lemma:circumcenter exists}
+\preamble{
+ \guid{OAPVION} 
+}
+%
+Let $S\subset \vecR{n}$ be a nonempty affinely independent set.  Then
+there exists a unique circumcenter of $S$.
 \end{lemma}
 
 \begin{proof} 
   A point $\p$ is a circumcenter if and only if it is a point in the
   affine hull of $S$ that satisfies the system of equations:
 \[  
-\norm{\p}{\v_i}^2 = \norm{\p}{\v_0}^2,\qquad i = i,\ldots,m.
+\norm{\p}{\v_i}^2 = \norm{\p}{\v_0}^2,\qquad \fordots{i}{1}{m}.
 \] 
 Equivalently,
 \[  
-\p\cdot (\v_i-\v_0) = b_i-b_0,\qquad i=1,\ldots,m,
+\p\cdot (\v_i-\v_0) = b_i-b_0,\qquad \fordots{i}{1}{m},
 \] 
 where $b_i = \normo{\v_i}^2/2$.  By
 Lemma~\ref{lemma:affine-system}, this system of equations has a unique
@@ -1001,16 +1117,21 @@ face of a Voronoi cell.  It describes the affine hull as an
 intersection of half-spaces and shows that it meets $\op{aff}(S)$
 orthogonally at the circumcenter of $S$.
 
-\begin{lemma}[]\guid{MHFTTZN}\label{lemma:aff-center} 
+\begin{lemma}[]
+\label{lemma:aff-center} 
+\preamble{
+ \guid{MHFTTZN}
+}
+%
 Let $V$ be a saturated packing and let $k\le 3$.
-Let $S = \{\u_0,\ldots,\u_k\}$, where $\bu=[\u_0,\ldots,\u_k]\in \bV(k)$.
+Let $S = \setenumdots{\u}{0}{k}$, where $\bu=\listdots{\u}{0}{k}\in \bVo{k}$.
 Then
 \begin{enumerate} 
 \item $\dimaff (S)= k$.  
-(In particular, $\card\{\u_0,\ldots,\u_k\}=k+1$, and
+(In particular, $\card\setenumdots{\u}{0}{k}=k+1$, and
 $S$ is affinely independent.)
 \item $\aff{\Omega(V,\bu)}= \cap_{i=1}^k \AA{\u_0}{\u_i}.$
-\item $\aff{\Omega(V,\bu)} \cap \aff(S) = \{\q\}$, 
+\item $\aff{\Omega(V,\bu)} \cap \aff(S) = \braced{\q}$, 
 where $\q$ is the circumcenter of $S$.
 \item $(\aff{\Omega(V,\bu)}-\q) \perp (\aff(S)-\q)$, where
   $X-\q$ denotes the translate of a set $X$ by $-\q$, and $(\perp)$ is
@@ -1025,31 +1146,31 @@ where $\q$ is the circumcenter of $S$.
   \claim{The lemma holds when $k=0$.}  Indeed, $\Omega(V,\u_0)$ contains an open
  ball centered at $\u_0$, so its affine hull is $\vecR{3}$.  This is the
   first conclusion.  The other conclusions reduce to trivial facts:
-  $\dimaff\vecR{3} = 3$, $\dimaff\{\u_0\}=0$, $\vecR{3}\cap
-  \{\u_0\} = \{\u_0\}$, and $\vecR{3}\perp \{\orz\}$.
+  $\dimaff\vecR{3} = 3$, $\dimaff\braced{\u_0}=0$, $\vecR{3}\cap
+  \brace{\u_0} = \braced{\u_0}$, and $\vecR{3}\perp \braced{\orz}$.
 
   Assume the induction hypothesis for $k$.  We may assume that $k<3$
   because otherwise there is nothing further to prove.  Let $\bu\in
-  \bV(k+1)$.  Let $\bv = \trunc{\bu}{k}\in \bV(k)$.  Let $\q_k$ be the
+  \bVo{k+1}$.  Let $\bv = \trunc{\bu}{k}\in \bVo{k}$.  Let $\q_k$ be the
   circumcenter of (the point set of) $\bv$.  Write 
   $A_j = \cap_{i=1}^j \AA{\u_0}{\u_i}$; $B_j = \aff(\Omega(V,\trunc{\bu}{j}))$; $C_j =
-  \aff\{\u_0,\ldots,\u_j\}$; $S_j = \{\u_0,\ldots,\u_j\}$.
+  \aff\setenumdots{\u}{0}{j}$; $S_j = \setenumdots{\u}{0}{j}$.
 By the induction hypothesis $A_k = B_k$.
 
 \claim{We claim $\dimaff S_{k+1} =k+1$.}
 Otherwise, by general background facts about affine sets, $\u_{k+1}\in C_k$.
-Write $\u_{k+1}-\q_k=\sum_{i\le k} t_i (\u_i-\q_k)$.  If $\p\in A_k$, then
+Write $\u_{k+1}-\q_k=\sumupto{i}{0}{k}{ t_i (\u_i-\q_k)}$.  If $\p\in A_k$, then
 by the orthogonality induction hypothesis:
 \begin{align*} 
 (\u_{k+1}-\q_k)\cdot (\p-\q_k) &= 
-\sum t_i (\u_i-\q_k)\cdot (\p-\q_k) = 0, \intertext{ and consequently }
+\sumupto{i}{0}{k}{ t_i (\u_i-\q_k)\cdot (\p-\q_k)} = 0, \intertext{ and consequently }
 \norm{\u_{k+1}}{\p}^2 - \norm{\u_0}{\p}^2 &=
 \norm{\u_{k+1}}{\q_k}^2 - \norm{\u_0}{\q_k}^2.
 \end{align*}
 Thus, if $A_k$ meets $\AA{\u_0}{\u_{k+1}}$ at some point $\p$, then 
 both sides of this equation vanish and $A_k\subset
 \AA{\u_0}{\u_{k+1}}$.  This is contrary to $0\le \dimaff(A_{k+1}) =
-\dimaff(A_k) - 1$, which holds because $\bu\in \bV(k+1)$ with $k<3$.
+\dimaff(A_k) - 1$, which holds because $\bu\in \bVo{k+1}$ with $k<3$.
 
 \claim{We claim that $B_{k+1} = A_{k+1}$.}  Indeed, by definition,
 $B_{k+1}\subset A_{k+1}\subset A_k$.  Also,
@@ -1061,9 +1182,9 @@ $B_{k+1}=A_{k+1}$.  Suppose for a contradiction that $A_k =
 A_{k+1}$.  Then $\Omega(V,\bv) \subset \Omega(V,\bu) =
 \Omega(V,\bv)\cap \AA{\u_0}{\u_{k+1}} \subset \Omega(V,\bv)$, so that
 $B_k = B_{k+1}$.  This contradicts the defining conditions of
-$\bV(k+1)$.
+$\bVo{k+1}$.
 
-\claim{We claim that $A_{k+1}\cap C_{k+1} = \{\q_{k+1}\}$.}  Indeed, by the
+\claim{We claim that $A_{k+1}\cap C_{k+1} = \braced{\q_{k+1}}$.}  Indeed, by the
 definition of $A_{k+1}$, any point in this affine set is equidistant
 from every point of $S_{k+1}$.  By the definition of $C_{k+1}$, the
 intersection lies in the affine hull of $S_{k+1}$.  This uniquely
@@ -1080,37 +1201,50 @@ Since the linear span of the points $\u_i-\u_0$ is all of
 $C_{k+1}-\q_{k+1}$, the final claim and the  proof by induction ensue.
 \end{proof}
 
-\begin{definition}[h]\guid{CHNGQBD}
-\formaldef{h}{hl}% 
-%Let $h(\trunc{\bu}{i}) = \norm{\omega(\trunc{\bu}{i})}{ \u_0}$.  
+
+\begin{definition}[h]
+\label{def:h,hl}
+\preamble{
+ \guid{CHNGQBD}
+ \formaldef{h}{hl}% 
+ \indy{Notation}{h@$h$ (circumradius)}%
+}
+%
 If $\bu=[\u_0;\u_0;\ldots;\u_k]$ is a list of points in $\vecR{n}$, then
 let $h(\bu)$ be the
-circumradius of its point set $\{ \u_0,\ldots, \u_k\}$.
+circumradius of its point set $\setenumdots{\u}{0}{k}$.
 \end{definition}
-\indy{Notation}{h@$h$ (circumradius)}%
+
 
 \begin{remark}
 The constant $r=\sqrt2$ is the smallest real number $r$ such that
 there exist four cocircular points in the plane with pairwise
-distances at least $2$ and with circumradius $r$ (Figure~\ref{fig:rogers-sqrt2}).  
-The four points are
-the vertices of a square of side length $2$.  Eight two-dimensional Rogers simplices
+distances at least $2$ and with circumradius $r$
+(Figure~\ref{fig:rogers-sqrt2}).  The four points are the vertices of
+a square of side length $2$.  Eight two-dimensional Rogers simplices
 meet at the circumcenter of the square, but when $r<\sqrt2$, only six
 Rogers simplices meet at the circumcenter.  In general, at $r=\sqrt2$,
-certain degeneracies start to appear in $n$-dimensions that cannot occur for a smaller
-radius.  To avoid degeneracies, many lemmas in this section
-assume that the circumradius is less than $\sqrt2$.
+certain degeneracies start to appear in $n$-dimensions that cannot
+occur for a smaller radius.  To avoid degeneracies, many lemmas in
+this section assume that the circumradius is less than $\sqrt2$.
 \end{remark}
 
 \figNOCHOTB % fig:rogers-sqrt2
 
-\begin{lemma}[nondegeneracy]\guid{XYOFCGX}\label{lemma:sqrt2-close} 
-  Let $V\subset\vecR{3}$ be a saturated packing.  Let $S\subset V$
-  be an affinely independent set with circumcenter $\p$.  Assume that
-  the circumradius of $S$ is less than $\sqrt2$.  Then
-  $\norm{\v}{\p}>\norm{\u}{\p}$ for all $\u\in S$ and all $\v\in
-  V\setminus S$.
+
+\begin{lemma}[nondegeneracy]
+\label{lemma:sqrt2-close} 
+\preamble{
+ \guid{XYOFCGX}
+}
+%
+Let $V\subset\vecR{3}$ be a saturated packing.  Let $S\subset V$ be an
+affinely independent set with circumcenter $\p$.  Assume that the
+circumradius of $S$ is less than $\sqrt2$.  Then
+$\norm{\v}{\p}>\norm{\u}{\p}$ for all $\u\in S$ and all $\v\in
+V\setminus S$.
 \end{lemma}
+
 
 \begin{proof} 
 Assume for a contradiction that 
@@ -1118,45 +1252,40 @@ there is a point $\w\in V\setminus S$ satisfying
 \begin{equation}\label{eqn:closest} 
 \norm{\w}{\p}\le \norm{ \u}{\p}, \quad\text{for all }  \u\in S.
 \end{equation}
-The angles $\arc_V(\p,\{\v, \u\})$ are obtuse for distinct elements
-$\v,\u$ of $ S\cup\{\w\}$ because of the law of cosines and
+The angles $\arc_V(\p,\braced{\v, \u})$ are obtuse for distinct elements
+$\v,\u$ of $ S\cup\braced{\w}$ because of the law of cosines and
 \[  
 \norm{\p}{\u} < \sqrt2,\quad \norm{\p}{ \v} <\sqrt2,\quad \norm{\u}{ \v} \ge 2.
 \]  
-Let $S=\{\u_0,\ldots,\u_k\}$.
-A case-by-case argument follows for each $k\in\{0,1,2,3\}$.
+Let $S=\setenumdots{\u}{0}{k}$.
+A case-by-case argument follows for each $k\in\braced{0,1,2,3}$.
 
 \begin{enumerate}
 \setcounter{enumi}{-1}
 \item 
-%\claim{[Case $k=0$].}  
 The case $k=0$ is trivial.
 \item
-%\claim{[Case $k=1$].}  
   In the case $k=1$, the points $\p, \u_0, \u_1$ are collinear and
   cannot give two obtuse angles.
 \item
-%\claim{[$k=2$].} 
 In this case, let $\w'$ be the projection of $\w$ to
 the plane containing $\p, \u_0, \u_1, \u_2$.  Under orthogonal
 projection, the angles remain obtuse:
 \[
 (\u_i-\p)\cdot (\w-\p) = (\u_i-\p)\cdot (\w'-\p) <0.
-%\arc_V(\p,\{\w,\u_i\}) = \arc_V(\p,\{\w',\u_i\}).
 \] 
 The four points $\w', \u_0, \u_1$, and $\u_2$ can be arranged
 cyclically around $\p$, according to the polar cycle, each forming an
 obtuse angle with the next.  A circle around $\p$ cannot give four
 obtuse angles because the sum is $2\pi$.
 \item
-%\claim{[$k=3$].}
 In this case, assume that $ \u_0,\ldots, \u_3$ are labeled according to the azimuth
 cycle
-around the line $\op{aff}\{\p,\w\}$.  Consider the dihedral angle
+around the line $\op{aff}\braced{\p,\w}$.  Consider the dihedral angle
 \[  
-\gamma=\gamma_i=\dih(\{\p,\w\},\{ \u_i, \u_{i+1}\})
+\gamma=\gamma_i=\dih(\braced{\p,\w},\braced{ \u_i, \u_{i+1}})
 \] 
-of the simplex $\{\p,\w,\u_i,\u_{i+1}\}$ along the edge $\{\p,\w\}$.
+of the simplex $\braced{\p,\w,\u_i,\u_{i+1}}$ along the edge $\braced{\p,\w}$.
 By the spherical law of cosines, the angle $\gamma$ of the
 spherical triangle with sphere center $\p$ is given in terms of the edges as
 \[  
@@ -1168,31 +1297,30 @@ $\op{azim}(\p,\w,\u_i,\u_{i+1})$ is then also greater than $\pi/2$ by
 Lemma~\ref{lemma:dih-azim}.  This is impossible, as the sum of the
 four azimuth angles $\gamma$ is $2\pi$ by Lemma~\ref{lemma:2pi-sum}.
 \end{enumerate}
-%This completes the proof that $\omega(\trunc{\bu}{j})$
-%is the circumcenter.
 \end{proof}
 
 With nondegeneracy established, we can now give further details about
 the extreme points of a Rogers simplex and their relationship to the
 circumcenter of a subset $S$ of the packing $V$.
 
-\begin{lemma}[Rogers simplex and circumcenter]\guid{XNHPWAB}\label{lemma:v2} 
+\begin{lemma}[Rogers simplex and circumcenter]
+\label{lemma:v2} 
+\preamble{
+ \guid{XNHPWAB}
+}
 Let $V$ be a saturated packing.
-Let $\bu=[\u_0;\ldots;\u_k]\in \bV(k)$ for some $k\le 3$,
-and let $S=\{\u_0,\ldots,\u_k\}$ be the
+Let $\bu=\listdots{\u}{0}{k}\in \bVo{k}$ for some $k\le 3$,
+and let $S=\setenumdots{\u}{0}{k}$ be the
 point set of $\bu$.
 Assume that $h(\bu)<\sqrt2$.
-%\[  
-%\norm{\omega(\trunc{\bu}{j}) }{  \u_0} < \sqrt2.
-%\] 
 Then 
 \begin{enumerate} 
-\item%[(circumcenter)]  
+\item%
 $\omega(\bu)$ is the circumcenter of $S$.
-\item%[(convex hull)]  
+\item%
 $\omega(\bu)\in\op{conv}(S)$.
-\item%[(distinctness)]  
-The set $\{\omega(\trunc{\bu}{j})\mid j\le k\}$ has affine dimension $k$.
+\item%
+The set $\setcomp{\omega(\trunc{\bu}{j})}{ j\le k}$ has affine dimension $k$.
 \item
 The sequence $h(\trunc{\bu}{j})$ is
 strictly increasing in $j$.
@@ -1205,14 +1333,14 @@ separately.
 
 \begin{enumerate}
 \item \claim{We claim that $\omega(\bu)$ is the circumcenter of $S$.}
-  Indeed, by definition, if $\bu\in \bV(k)$, then
+  Indeed, by definition, if $\bu\in \bVo{k}$, then
 \[  
-\dimaff\Omega(V,[\u_0;\ldots;\u_k]) = 3-k.
+\dimaff\Omega(V,\listdots{\u}{0}{k}) = 3-k.
 \]   
 The case $k=0$ of the claim is trivially satisfied.  Assume by
 induction the result holds for natural numbers up to $k$.
 
-Now consider the case $k+1$.  Let $\bu\in \bV(k+1)$ and let $S_{k+1}$ be the
+Now consider the case $k+1$.  Let $\bu\in \bVo{k+1}$ and let $S_{k+1}$ be the
 point set of $\bu$.  By the induction hypothesis,
 $\omega(\trunc{\bu}{k})$ is the circumcenter of the point set of
 $\trunc{\bu}{k}$.  Let $\p$ be the point in $A=\aff(\Omega(V,\bu))$
@@ -1225,7 +1353,7 @@ Thus, $\p=\omega(\bu)$.  The claim ensues.
 
 \item\claim{We claim $\omega(\bu)\in\op{conv}(S)$.}  Otherwise, select
   $\v\in S$ such that $\aff(S')$ separates $\omega(\bu)$ from $ \v$,
-  where $S'=S\setminus\{\v\}$.  Let $\p'$ (resp. $\p=\omega(\bu)$) be
+  where $S'=S\setminus\braced{\v}$.  Let $\p'$ (resp. $\p=\omega(\bu)$) be
   the circumcenter of $S'$ (resp. $S$).  When $\u\in S'$, the law of
   cosines gives
 \begin{align*} 
@@ -1235,15 +1363,15 @@ Thus, $\p=\omega(\bu)$.  The claim ensues.
 This gives $\norm{\v}{\p'}\le \norm{\u}{\p'}$, which is contrary to
 Lemma~\ref{lemma:sqrt2-close}.
 
-\item\claim{The set $\{\omega(\trunc{\bu}{j})\mid j\le k\}$ has affine dimension $k$.}
-%\claim{The points $\omega(\trunc{\bu}{j})$ for
-%$j\le k$, are all distinct.}
+\item\claim{The set $\setcomp{\omega(\trunc{\bu}{j})}{ j\le k}$ has affine dimension $k$.}
+%
+%
   Lemma~\ref{lemma:aff-center} implies that the vectors
   ${\omega(\trunc{\bu}{i+1})}-{\omega(\trunc{\bu}{i})}$ are mutually
   orthogonal.  Thus, the claim about affine dimension easily follows
   if we show that these vectors are nonzero.
 Otherwise, the
-circumcenter $\omega(\trunc{\bu}{i})$ of $S_i=\{\u_0,\ldots,\u_i\}$
+circumcenter $\omega(\trunc{\bu}{i})$ of $S_i=\setenumdots{\u}{0}{i}$
 has an equally close point $ \u_{i+1}\in V\setminus S_i$, which is
 impossible by Lemma~\ref{lemma:sqrt2-close}.
 
@@ -1252,7 +1380,7 @@ impossible by Lemma~\ref{lemma:sqrt2-close}.
 Indeed, by the Pythagorean theorem,
 \begin{equation} 
 \norm{\omega(\trunc{\bu}{j})}{\omega(\trunc{\bu}{0})}^2 =
-\sum_{i=1}^{j} \norm{\omega(\trunc{\bu}{i})}{\omega(\trunc{\bu}{i-1})}^2.
+\sumupto{i}{1}{j}{\norm{\omega(\trunc{\bu}{i})}{\omega(\trunc{\bu}{i-1})}^2}.
 \end{equation}
 So the result follows from the
 previous claim.
@@ -1260,32 +1388,44 @@ previous claim.
 \end{proof}
 
 
-\begin{lemma}\guid{WAUFCHE}\label{lemma:h-omega}
-  Let $V$ be a saturated packing.  Let $\bu =[\u_0;\ldots]\in
-  \bV(k)$ for some $k$.  Then $h(\bu)\le
-  \norm{\omega(\bu)}{\u_0}$.  Moreover, if $h(\bu)<\sqrt2$, then
-  $h(\bu)=\norm{\omega(\bu)}{\u_0}$.
+\begin{lemma}
+\label{lemma:h-omega}
+\preamble{
+ \guid{WAUFCHE}
+}
+%
+Let $V$ be a saturated packing.  Let $\bu =[\u_0;\ldots]\in \bVo{k}$
+for some $k$.  Then $h(\bu)\le \norm{\omega(\bu)}{\u_0}$.  Moreover,
+if $h(\bu)<\sqrt2$, then $h(\bu)=\norm{\omega(\bu)}{\u_0}$.
 \end{lemma}
+
 
 \begin{proof} By construction, the point $\omega(\bu)$ belongs to
   $\Omega(V,\bu)$ and is therefore equidistant to the points in
-  $S=\{\u_0,\ldots,\u_k\}$.  The orthogonal projection of
+  $S=\setenumdots{\u}{0}{k}$.  The orthogonal projection of
   $\omega(\bu)$ to $\op{aff}(S)$ is the circumcenter of $S$.  The
   orthogonal projection cannot increase distances, and the inequality
   ensues.  If $h(\bu)<\sqrt2$, then $\omega(\bu)$ is already the
   circumcenter by Lemma~\ref{lemma:v2}, so that equality holds.
 \end{proof}
 
-\begin{lemma}\guid{NJIUTIU}\label{lemma:omega-uv}  %% NEW
-Let $V$ be a saturated packing.  Let $\bu,\bv\in \bV(3)$.
-Suppose that $R(\bu)=R(\bv)$ and that $\dimaff R(\bu)=3$.
-Then $\omega_i(\bu)=\omega_i(\bv)$, for $i=0,1,2,3$.
+
+\begin{lemma}
+\label{lemma:omega-uv}  %
+\preamble{
+ \guid{NJIUTIU}
+}
+%
+Let $V$ be a saturated packing.  Let $\bu,\bv\in \bVo{3}$.  Suppose
+that $R(\bu)=R(\bv)$ and that $\dimaff R(\bu)=3$.  Then
+$\omega_i(\bu)=\omega_i(\bv)$, for $i=0,1,2,3$.
 \end{lemma}
+
 
 \begin{proof} Let $R=R(\bu)=R(\bv)$.
 The set
 \[
-W =\{\omega_0(\bu),\cdots,\omega_3(\bu)\}
+W =\{\omega_0(\bu),\ldots,\omega_3(\bu)\}
 \]
 is characterized as the set of extreme points of the simplex $R$.  It
 is the same for both $\bu$ and $\bv$.  Since $R\subset
@@ -1293,53 +1433,60 @@ is the same for both $\bu$ and $\bv$.  Since $R\subset
 full dimension, we must have $\u_0=\v_0$.  Inductively, we may
 determine $\omega_i = \omega_i(\bu)=\omega_i(\bv)$ as follows.  The
 point $\omega_0$ is $\u_0=\v_0$.  The point $\omega_{i+1}$ is the
-closest point of $\op{conv}(W\setminus\{\omega_0,\ldots,\omega_{i}\})$
+closest point of $\op{conv}(W\setminus\setenumdots{\omega}{0}{i})$
 to $\omega_{i}$.  Note that
-$\op{conv}(W\setminus\{\omega_0,\ldots,\omega_{i}\})$ is a subset
+$\op{conv}(W\setminus\setenumdots{\omega}{0}{i})$ is a subset
 containing $\omega_{i+1}$ of the set $\Omega(V,d_{i+1}\bu)$ that is
 used to define $\omega_{i+1}(\bu)$
 (Definition~\ref{def:omega}).  This description of the points
-$\omega_i$ is independent of $\bu\in \bV(3)$ such that $R=R(\bu)$.
+$\omega_i$ is independent of $\bu\in \bVo{3}$ such that $R=R(\bu)$.
 \end{proof}
 
-\begin{lemma}\guid{TEZFFSK}\label{lemma:dk-uv}   %% NEW
+
+\begin{lemma}
+\label{lemma:dk-uv}   %
+\preamble{
+ \guid{TEZFFSK}
+}
+%
 Let $V$ be a saturated packing.
-Let $\bu=[\u_0;\ldots]\in \bV(3)$ be such that $\dimaff R(\bu)=3$.  Select
+Let $\bu=[\u_0;\ldots]\in \bVo{3}$ be such that $\dimaff R(\bu)=3$.  Select
 $k\le 3$  such that $h(d_k\bu)  < \sqrt2$.
-% for all $i\le k$.
-% \norm{\omega_i(\bu)}{\u_0}
-Suppose that $R(\bu)=R(\bv)$, for some $\bv\in \bV(3)$.  Then
+%
+%
+Suppose that $R(\bu)=R(\bv)$, for some $\bv\in \bVo{3}$.  Then
 \[
 d_k\bu = d_k\bv.
 \]
 \end{lemma}
 
+
 \begin{proof}
   Write $\omega_i$ for $\omega_i(\bu)$.  By
   Lemma~\ref{lemma:omega-uv}, these points are determined by $R(\bu)$.
-  %By Lemma~\ref{lemma:h-omega}, $h(d_k\bu) <\sqrt2$.  
+  %
   By
   Lemma~\ref{lemma:v2}, $h(d_i\bu)<\sqrt2$, and $\omega_i$ is the
-  circumcenter of $\{\u_0,\ldots,\u_i\}$, for all $i\le k$.
+  circumcenter of $\setenumdots{\u}{0}{i}$, for all $i\le k$.
 
-Since $R(\bu)=\op{conv}\{\omega_0,\ldots,\omega_3\}$ has affine
-dimension $3$, the points $\omega_0,\ldots,\omega_k$ are affinely
+Since $R(\bu)=\op{conv}\setenumdots{\omega}{0}{3}$ has affine
+dimension $3$, the points $\setenumdots{\omega}{0}{k}$ are affinely
 independent.  These circumcenters are constructed as points in the
-affine hull of $\{\u_0,\ldots,\u_k\}$.  Hence $\u_0,\ldots,\u_k$ are
+affine hull of $\setenumdots{\u}{0}{k}$.  Hence $\u_0,\ldots,\u_k$ are
 also affinely independent.
 
 By Lemma~\ref{lemma:sqrt2-close}, we have the following recursive
 description of the points $\u_i$ in terms of $\omega_i$, for $i\le k$.
 The point $\u_0$ is $\omega_0$.  The point $\u_{i+1}$ is the unique
-$\v\in V\setminus \{\u_0,\ldots,\u_{i}\}$ such that
+$\v\in V\setminus \setenumdots{\u}{0}{i}$ such that
 \[
 \norm{\v}{\omega_{i+1}} = \norm{\u_0}{\omega_{i+1}}.
 \]
-This description of $[\u_0;\ldots;\u_k]=d_k\bu$ depends on $\u$ only
+This description of $\listdots{\u}{0}{k}=d_k\bu$ depends on $\u$ only
 through $R(\bu)$.
 \end{proof}
 
-\subsection{Delaunay simplex}
+\subsection{Delaunay simplex}\label{Delaunay simplex}
 
 The Delaunay decomposition of space into simplices is dual to the
 Voronoi cell.  It is presented as a collection of $k$-simplices with
@@ -1363,15 +1510,15 @@ facet of the convex hull consists of $3!$ pieces,  and so
 forth  (Lemma~\ref{lemma:Rconv}).  
 In brief, the Rogers simplices give every nondegenerate
 Delaunay simplex an identical simplicial structure.
-%  
+%
 
 Recall that $\op{Sym}(k+1)$ is the \newterm{group} of all permutations
-on the set $\{0,\ldots,k\}$.  Let $\bu = [\u_0,\ldots, \u_k]$ be a
+on the set $\setenumrange{0}{k}$.  Let $\bu = \listdots{\u}{0}{k}$ be a
 list of length $k+1$.  For any \newterm{permutation}
 $\rho\in\op{Sym}(k+1)$, let $\rho_*(\bu)$ be the \newterm{rearrangement}
 given by
 \[  
-\rho_*(\bu)_i =  \u_{\rho^{-1} i}, % inverse added Feb 16, 2010. left regular action.
+\rho_*(\bu)_i =  \u_{\rho^{-1} i}, %
 \]    
 where $\u_i$ denotes the $i$th element of a list $\bu$.
 \formaldef{permutation}{permutes}%
@@ -1382,16 +1529,20 @@ where $\u_i$ denotes the $i$th element of a list $\bu$.
 The following lemma shows that rearrangements have the same extreme
 point of a Rogers simplex.
 
-\begin{lemma}[extreme point rearrangement]\guid{YIFVQDV}
+\begin{lemma}[extreme point rearrangement]
 \label{lemma:perm-Vk} 
-  Let $V$ be a saturated packing.  Let $\bu\in \bV(k)$.  Assume that
-  $h(\bu)<\sqrt2$. Let $\bv$ be any rearrangement of $\bu$ under a
-  permutation.  Then $\bv\in \bV(k)$ and $\omega(\bu) = \omega(\bv)$.
+\preamble{
+ \guid{YIFVQDV}
+}
+%
+Let $V$ be a saturated packing.  Let $\bu\in \bVo{k}$.  Assume that
+$h(\bu)<\sqrt2$. Let $\bv$ be any rearrangement of $\bu$ under a
+permutation.  Then $\bv\in \bVo{k}$ and $\omega(\bu) = \omega(\bv)$.
 \end{lemma}
 
 \begin{proof} 
-Let $\bv = [\v_0;\ldots;\v_k]$.  
-Let $S_j = \{\v_0,\ldots,\v_j\}$,  
+Let $\bv = \listdots{\v}{0}{k}$.  
+Let $S_j = \setenumdots{\v}{0}{j}$,  
 $\Omega_j = \Omega(V,\trunc{\bv}{j})$, 
 $A_j=\cap_{i=1}^j \AA{\v_0}{\v_i}$, and $a_j = \dimaff(A_j)$, for $0\le j\le k$.
 By convention, set $A_0 = \vecR{3}$, so that $a_0=\dimaff(A_0) = 3$.
@@ -1431,35 +1582,24 @@ $a_{i}=3-i$ for all $0\le i\le j$. This completes the proof of the
 claim by induction.
 
 We have $a_k = \dimaff A_k=\dimaff \Omega_k$.  However, $\Omega_k=
-\Omega(V,\bu)$, and since $\bu\in \bV(k)$, it follows that
+\Omega(V,\bu)$, and since $\bu\in \bVo{k}$, it follows that
 $3-k=\dimaff\Omega(V,\bu)=a_k$.  By the established claims, $a_i = 3-i$
-for all $0\le i\le k$.  This proves $\bv\in\bV(k)$.
+for all $0\le i\le k$.  This proves $\bv\in\bVo{k}$.
 
 Finally, $\omega(\bu) = \omega(\bv)$ because both equal the
 circumcenter of the point set $S_k$.
-%Since the sets $\Omega(V,\trunc{\bu}{j})$ satisfy \eqref{eqn:omega-dim}, it
-%follows that $\Omega(V,\bu)\cap \op{conv}\{ \u_0,\ldots, \u_k\}$ is
-%the singleton $\{\omega(\bu)\}$, which contains the circumcenter of
-%the simplex with extreme points $\{ \u_0,\ldots, \u_k\}$.  This describes
-%$\omega(\bu)$ in a way that does not depend on the ordering of $
-%\u_0,\ldots, \u_k$.
-%
-%The condition \eqref{eqn:omega-dim} can be shown to hold for $\bv$.
-%The proof of Lemma~\ref{lemma:v2} shows that the midpoint of $\v_0$
-%and $\v_1\}$ lies in $\Omega(V,\trunc{\bv}{1})$.  By the distinctness
-%conclusion of the same lemma, some neighborhood of this midpoint in
-%the bisecting plane of $\{\v_0,\v_1\}$ lies in $\Omega(V,\trunc{\bv}{1})$.
-%Thus, $\dimaff(\Omega(V,\trunc{\bv}{1}))=2$.  We continue in this fashion to show
-%that
-%\[  
-%\dimaff(\Omega(V,\trunc{\bv}{j}))=3-j.\] 
 \end{proof}
 
 The next lemma shows that the map from permutations to Rogers
 simplices is one-to-one.
 
-\begin{lemma}[permutations one-to-one]\guid{KSOQKWL} 
-  Let $V$ be a saturated packing and let $\bu\in \bV(k)$.  Assume that
+\begin{lemma}[permutations one-to-one]
+\label{lemma:permutations-one-to-one}
+\preamble{
+ \guid{KSOQKWL}
+}
+%
+  Let $V$ be a saturated packing and let $\bu\in \bVo{k}$.  Assume that
   $h(\bu)<\sqrt2$.  Let $\rho\in\op{Sym}(k+1)$ such that $R(\bu)=
   R(\rho_*\bu)$.  Then $\rho= I$.
 \end{lemma}
@@ -1468,8 +1608,8 @@ simplices is one-to-one.
   We assume that $\rho\ne I$, write $\bv = \rho_*\bu$,  and prove that
   $R(\bu)\ne R(\bv)$.
   By Lemma~\ref{lemma:v2}, the sets
-  $\{\omega(\trunc{\bu}{j})\mid j\le k\}$ and
-  $\{\omega(\trunc{\bv}{j})\mid j\le k\}$ are each affinely
+  $\setcomp{\omega(\trunc{\bu}{j})}{ j\le k}$ and
+  $\setcomp{\omega(\trunc{\bv}{j})}{ j\le k}$ are each affinely
   independent of cardinality $k+1$.  By
   Lemma~\ref{lemma:simplex-poly}, these are  sets of extreme
   points of $R(\bu)$ and $R(\bv)$, respectively.  Thus, it is enough
@@ -1478,7 +1618,7 @@ simplices is one-to-one.
   Let $j$ be the largest index such that
   $\trunc{\bu}{j}=\trunc{\bv}{j}$.  The assumption $\rho\ne I$ implies
   that $j<k$.  Let $\p$ be the circumcenter of
-  $\{\u_0,\ldots,\u_{j+1}\}$.  By Lemma~\ref{lemma:sqrt2-close},
+  $\setenumdots{\u}{0}{j+1}$.  By Lemma~\ref{lemma:sqrt2-close},
 \[  
 \norm{\u_0}{\p} = \norm{\u_{j+1}}{\p} < \norm{\v_{j+1}}{\p}.
 \] 
@@ -1490,18 +1630,26 @@ that does some index shuffling for us.  It gives an explicit
 representatives of the cosets of $\op{Sym}(k+1)$ in $\op{Sym}(k+2)$.
 
 
-\begin{definition}\guid{TSIVSKG}
-\formaldef{$\bu^i$}{DROP}
-Let $\bu$ be any list.
-For each $i$,  let
-$\bu^i = [\u_0;\ldots;\hat\u_i;\ldots]$ be the list that drops the $i$th entry.
+\begin{definition}
+\label{def:bui}
+\preamble{
+ \guid{TSIVSKG}
+ \formaldef{$\bu^i$}{DROP}
+}
+%
+Let $\bu$ be any list.  For each $i$, let $\bu^i =
+[\u_0;\ldots;\hat\u_i;\ldots]$ be the list that drops the $i$th entry.
 \end{definition}
 
-\begin{lemma}[coset representatives]\guid{IVFICRK}
+\begin{lemma}[coset representatives]
 \label{lemma:coset-bijection} 
+\preamble{
+ \guid{IVFICRK}
+}
+%
 There is a bijection between the set 
 \[  
-\{(i,\sigma)\mid 0\le i\le k+1,\quad \sigma\in \op{Sym}(k+1)\}
+\setcomp{(i,\sigma)}{ 0\le i\le k+1,\quad \sigma\in \op{Sym}(k+1)}
 \] 
 and $\op{Sym}(k+2)$ such that for any list $\bu$ of length $k+2$
 \[
@@ -1529,67 +1677,51 @@ group (Figure~\ref{fig:rogers-fact}).
 
 \figYAJOTSL % fig:rogers-fact
 
-\begin{lemma}[Delaunay simplex]\guid{WQPRRDY}\label{lemma:Rconv}  
-  Let $V$ be a saturated packing and let $\bu = [\u_0;\ldots;\u_k]\in
-  \bV(k)$.  Assume that $h(\bu)<\sqrt2$.  
+\begin{lemma}[Delaunay simplex]
+\label{lemma:Rconv}  
+\preamble{
+ \guid{WQPRRDY}
+}
+%
+  Let $V$ be a saturated packing and let $\bu = \listdots{\u}{0}{k}\in
+  \bVo{k}$.  Assume that $h(\bu)<\sqrt2$.  
   Then
 \[  
-\op{conv}\{ \u_0,\ldots, \u_k\} = \bigcup \,\{ R(\rho_*\bu) \mid \rho\in \op{Sym}(k+1)\}.
+\op{conv}\setenumdots{\u}{0}{k} = 
+\bigcup \,\setcomp{ R(\rho_*\bu) }{ \rho\in \op{Sym}(k+1)}.
 \] 
 \end{lemma}
 \indy{Notation}{Sym@$\op{Sym}$ (symmetric group)}%
 
 \begin{proof} The proof is by induction on $k$.  The base case of the
-  induction $k=0$ reduces to the trivial assertion: $\op{conv}\{\u_0\}
-  = \op{conv}\{\u_0\}$.
-%Assume
-%the result holds for $k$.
+  induction $k=0$ reduces to the trivial assertion: $\op{conv}\braced{\u_0}
+  = \op{conv}\braced{\u_0}$.
 
-
-%For each $i$,  let
-%$\bu^i = [\u_0;\ldots;\hat\u_i;\ldots;\u_{k+1}]$, which drops the $i$th entry.
-
-  \claim{We claim $\bu^i\in \bV(k)$, when
-    $\bu=[\u_0;\ldots;\u_{k+1}]\in \bV(k+1)$.}  Indeed, some
+  \claim{We claim $\bu^i\in \bVo{k}$, when
+    $\bu=\listdots{\u}{0}{k+1}]\in \bVo{k+1}$.}  Indeed, some
   permutation $\rho\in \op{Sym}(k+2)$ carries $\bu$ to
   $\bv=[\u_0;\ldots;\hat\u_i;\ldots;\u_{k+1};\u_i]$.  By
-  Lemma~\ref{lemma:perm-Vk}, $\bv\in \bV(k+1)$, so that $\bu^i =
-  \trunc{\bv}{k}\in \bV(k)$.
+  Lemma~\ref{lemma:perm-Vk}, $\bv\in \bVo{k+1}$, so that $\bu^i =
+  \trunc{\bv}{k}\in \bVo{k}$.
 
-  By the induction hypothesis
+By the induction hypothesis
 \begin{equation}\label{eqn:sigma} 
-\op{conv}(S\setminus\{\u_i\}) = \bigcup \,\{ R(\sigma_*\bu^i) \mid \sigma\in \op{Sym}(k+1)\},
+ \op{conv}(S\setminus\braced{\u_i}) = 
+ \bigcup \,\setcomp{ R(\sigma_*\bu^i) }{ \sigma\in \op{Sym}(k+1)},
 \end{equation}
-where $S = \{\u_0,\ldots,\u_{k+1}\}$.  By
+where $S = \setenumdots{\u}{0}{k+1}$.  By
 Lemma~\ref{lemma:simplex-poly}, the facets of the polyhedron
-$\op{conv}(S)$ are the sets $\op{conv}(S\setminus\{\u_i\})$.
+$\op{conv}(S)$ are the sets $\op{conv}(S\setminus\braced{\u_i})$.
 Lemma~\ref{lemma:facet-partition} gives the partition
 \begin{equation} \label{eqn:convS}
-\op{conv}(S) = \bigcup_{i=0}^{k+1} \op{conv}(\{\omega(\bu)\}
-\cup \op{conv}(S\setminus\{\u_i\})).
+\op{conv}(S) = \bigcup_{i=0}^{k+1} \op{conv}(\braced{\omega(\bu)}
+\cup \op{conv}(S\setminus\braced{\u_i})).
 \end{equation}
 Substitute the formula \eqref{eqn:sigma} into \eqref{eqn:convS} and
 use the bijection of Lemma~\ref{lemma:coset-bijection} to replace the
 double union by a single union over $\rho\in \op{Sym}(k+2)$.
 Background facts in affine geometry then simplify the expression to
 the desired formula.  The proof by induction ensues.
-%
-%
-%Let $L = \{ \u_0,\ldots, \u_k\}$.  The proof is by
-%induction on $k$.  When $k=0$, the result is trivial.  Now assume
-%$k>0$.
-%
-%The circumcenter $\omega(\bu)$ of $L$ lies in the convex hull of
-%these points.  (See the proof of Lemma~\ref{lemma:v2}.)  Thus, the
-%left-hand side is the union of cones:
-%\[  
-%\op{conv}(W) = \bigcup\,\{ \op{conv}(\omega(\bu),L\setminus \{ \u_i\}\mid i=0,\ldots,k) \}.
-%\] 
-%The sets $L\setminus \{ \u_i\}$ can be identified with cosets of
-%$\op{Sym}(k+1) /\op{Sym}(k)$.  By induction $L\setminus \{ \u_i\}$ is
-%the union of $R(\bv)$ as $\bv$ runs over all permutations
-%$\op{Sym}(k)$ of $L\setminus \{ \u_i\}$.  The result follows by
-%induction.
 \end{proof}
 
 
@@ -1599,20 +1731,16 @@ $R(\bu)$ are compatible with the Voronoi decomposition of space.
 Under mild restrictions on the circumradius, they can also by
 Lemma~\ref{lemma:Rconv} be reassembled into simplices (the Delaunay
 simplices) with extreme points at the centers of the packing.
+
 \indy{Index}{Delaunay|see{decomposition}}%
 \indy{Index}{decomposition!Delaunay}%
 \indy{Index}{decomposition!Voronoi} %
 
 
+\section{Cells}\label{cells}
 
 
-\section{Cells}
-
-\subsection{definition}
-
-%The definition of $k$-cells,
-%conjecture~\ref{conj:m1}, Theorem~\ref{theorem:mk1}, and the method of
-%Lemma~\ref{lemma:13-14} are all due to him.  
+\subsection{definition}\label{cell-definition}
 
 Marchal~\cite{marchal:2009} has proposed an approach to sphere
 packings that gives some improvements to the original proof
@@ -1628,44 +1756,38 @@ suggested by Lemma~\ref{lemma:Rconv}.
 \indy{Index}{decomposition!Marchal}%
 
 
-\begin{definition}[Marchal cells]\guid{QEEHXUB} 
-  \formaldef{$i$-cell}{mcell} \formaldef{$\xi$}{mxi}%
-  \indy{Index}{cell}%
-  \indy{Index}{Marchal cell}%
-% June 11, 2011. 
-% Changed sqrt < h to sqrt2 <= h in 0-,1-,2-cells.  (This makes it more memorable.)
-% It adds some null sets, but they don't matter anyway.
-  Let $V$ be a saturated packing.  Let 
+\begin{definition}[Marchal cells]
+\label{def:mcell}
+\preamble{
+ \guid{QEEHXUB}
+ \formaldef{$i$-cell}{mcell} \formaldef{$\xi$}{mxi}%
+ \indy{Index}{cell}%
+ \indy{Index}{Marchal cell}%
+}
+%
+Let $V$ be a saturated packing.  Let 
 \[
-\bu=[\u_0;\ldots;\u_3]\in
-  \bV(3).
+\bu=\listdots{\u}{0}{3}\in  \bVo{3}.
 \]
   Define $\xi(\bu)$ as follows.  If $\sqrt2\le
   h(\trunc{\bu}{2})$, then let $\xi(\bu)=\omega(d_2\bu)$.  If
   $h(\trunc{\bu}{2})<\sqrt2\le h(\bu)$, define $\xi(\bu)$
   to be the unique point in
 \[
-\op{conv}\{\omega(d_2\bu),\omega(\bu)\}
+\op{conv}\braced{\omega(d_2\bu),\omega(\bu)}
 \]
 at distance $\sqrt2$ from $\u_0$.  
 Set $a(\bu)={h(\trunc{\bu}{1})}/{\sqrt2}$.
-%\[  
-%h(\trunc{\bu}{2}) <\sqrt2 \le h(\bu).
-%\] 
-%When this inequality holds, there is a unique point $\xi(\bu)$ in
-%$\op{conv}\{\omega(\trunc{\bu}{2}),\omega(\bu)\}$ at distance exactly
-%$\sqrt2$ from $ \u_0$.  
-%\end{definition}
 A set $\cell(\bu,i)\subset\vecR{3}$ is associated with $\bu$ and
 $i=0,1,2,3,4$.  \hfill\break\smallskip
 \begin{enumerate}
 \setcounter{enumi}{-1}
-\item %[~0]
+\item %
 The $0$-cell of $\bu$ is defined to be empty unless $\sqrt2 \le h(\bu)$.
 If this inequality holds, then the $0$-cell is
 \[  
 \cell(\bu,0) = R(\bu)\setminus \openBall{\u_0}{\sqrt2}.%
-%\{\p\in R(\bu) \mid \norm{\p}{\u_0} \ge \sqrt2\}.
+%
 \] 
 \bigskip
 \item The $1$-cell of $\bu$ is defined to be empty unless $\sqrt2 \le
@@ -1675,10 +1797,6 @@ If this inequality holds, then the $0$-cell is
 \setminus \op{rcone}^0(\u_0,\u_1,a(\bu)),
 \] 
 (The set $\op{rcone}^0(\u_0,\u_1,a)$ is empty when $a>1$.)
-%\op{conv}(\{\omega([ \u_0])\}\cup R_1),\hbox{ where } 
-%R_1 = \{\p \in R(\bu) \mid \norm{\omega([ \u_0])}{\p}= \sqrt2\}.
-%\] 
-%\indy{Notation}{R@$R_1$ (Rogers simplex)}%
 \bigskip
 \item The $2$-cell of $\bu$ is defined to be empty unless
   $h(\trunc{\bu}{1})<\sqrt2\le h(\bu)$.  If this inequality holds,
@@ -1686,21 +1804,18 @@ If this inequality holds, then the $0$-cell is
 \begin{align*} 
 \cell(\bu,2) &= 
  \op{rcone}(\u_0,\u_1,a)\cap \op{rcone}(\u_1,\u_0,a)\cap 
-\op{aff}_+(\{\u_0,\u_1\},\{\xi(\bu),\omega(\bu)\}).
-%\op{conv}( \{\u_0, \u_1\}\cup R_2),\quad\text{where }  \vspace{6pt}\\
-%R_2 &= \{\p \in R(\bu)\cap \Omega(V,\trunc{\bu}{1}) \mid 
-%\norm{ \u_0}{\p}=\norm{ \u_1}{\p} =\sqrt2\}.
+\op{aff}_+(\braced{\u_0,\u_1},\braced{\xi(\bu),\omega(\bu)}).
 \end{align*}
 \bigskip
 \item
 The $3$-cell of $\bu$ is defined to be empty unless 
 $h(\trunc{\bu}{2}) <\sqrt2 \le h(\bu)$.
 If this inequality holds, then $\xi(\bu)\in \op{conv}
-\{\omega(\trunc{\bu}{2}),\omega(\bu)\}$
-%\formaldef{$\xi$}{mxi}%
+\braced{\omega(\trunc{\bu}{2}),\omega(\bu)}$
+%
 and  the $3$-cell is
 \[  
-\cell(\bu,3) = \op{conv}\{ \u_0, \u_1, \u_2,\xi(\bu)\}.
+\cell(\bu,3) = \op{conv}\braced{ \u_0, \u_1, \u_2,\xi(\bu)}.
 \] 
 \bigskip
 \item
@@ -1708,7 +1823,7 @@ The $4$-cell of $\bu$ is defined to be empty unless
 $h(\bu) <\sqrt2$.
 If this inequality holds, the $4$-cell is
 \[  
-\cell(\bu,4) = \op{conv}\{ \u_0, \u_1, \u_2, \u_3\}.
+\cell(\bu,4) = \op{conv}\braced{ \u_0, \u_1, \u_2, \u_3}.
 \] 
 \end{enumerate}
 \end{definition}
@@ -1725,13 +1840,13 @@ points of the cell (Figures~\ref{fig:marchal-variety} and
 
 \figBWEYURN % fig:marchal-2d
 
-\subsection{informal discussion}
+\subsection{informal discussion}\label{informal}
 
 A \newterm{cell}, short for Marchal cell,
 can be described in an alternative intuitive way.
 If $S\subset\vecR{3}$, let
 \[
-\op{equi}(S,r) = \{ \p \mid \norm{\p}{\v} = r \text{ for all } \v \in S \}.
+\op{equi}(S,r) = \setcomp{ \p }{ \norm{\p}{\v} = r \text{ for all } \v \in S }.
 \]
 If $S$ is a finite set of cardinality $k$, of affine dimension $k-1$, and
 with circumradius less than $r$, then
@@ -1747,20 +1862,29 @@ C(S) = \op{conv} (S\cup\op{equi}(S, \sqrt2) )
 for $S\subset V$.  The set $C(S)$ is empty if the circumradius of $S$
 is greater than $\sqrt2$.
 
-The set $C(\emptyset)$ is $\vecR{3}$.  The set $C(\{\w\})$ is a ball
-of radius $\sqrt2$ with center $\w$.  The set $C(\{\v,\w\})$ is a
-double cone, $C(\{\u,\v,\w\})$ a bipyramid, and $C(\{{\mathbf
+The set $C(\emptyset)$ is $\vecR{3}$.  The set $C(\braced{\w})$ is a ball
+of radius $\sqrt2$ with center $\w$.  The set $C(\braced{\v,\w})$ is a
+double cone, $C(\braced{\u,\v,\w})$ a bipyramid, and $C(\{{\mathbf
   t},\u,\v,\w\})$ is a simplex.
 
-\begin{lemma}\guid{VXIQEJC}
-Let $V$ be a saturated packing.
-If $S\subset V$ is not empty, then $C(S)$ is contained in the union of sets
+\begin{lemma}
+\label{lemma:CS-union}
+\preamble{
+ \guid{VXIQEJC}
+}
+%
+Let $V$ be a saturated packing.  If $S\subset V$ is not empty, then
+$C(S)$ is contained in the union of sets
 \[
-C(S\setminus \{\v\}),  \quad \v\in S.
+C(S\setminus \braced{\v}),  \quad \v\in S.
 \]
 \end{lemma}
 
-\begin{lemma}\guid{WHCFBMJ}
+\begin{lemma}
+\preamble{
+ \guid{WHCFBMJ}
+}
+%
 Let $V$ be a saturated packing and let $S\subset V$. 
 Set
 \[C'(S) = C(S) \setminus \bigcup_{S\subset S'\subset V} C(S'),\] where
@@ -1770,9 +1894,9 @@ up to a null set.
 \end{lemma}
 
 In other words, up to a null set, the union of $0$-cells is the set of points
-outside the balls $C(\{\v\})$, for $\v\in V$.  The union of the $1$-cells
-is the set of points inside the balls $C(\{\v\})$ but outside the double cones
-$C(\{\u,\w\})$, and so forth.
+outside the balls $C(\braced{\v})$, for $\v\in V$.  The union of the $1$-cells
+is the set of points inside the balls $C(\braced{\v})$ but outside the double cones
+$C(\braced{\u,\w})$, and so forth.
 
 It is possible to base a construction of cells on this lemma,
 dispensing entirely with Voronoi cells and Rogers simplices.  It is
@@ -1812,8 +1936,6 @@ gives the bound of about $0.755$ ~\cite{Hales:2010:Dodec}.  Thus, the
 pure Voronoi cell strategy fails as well.  The pure approaches can be
 modified in ways that are conjectured to produce sharp bounds. These
 modifications are complex and daunting.
-% constant 0.740873 checked 4/2010.
-% constant 0.755 cross-checked with dodec.
 
 A common practice that started with L. Fejes T\'oth is to truncate
  Voronoi cells by
@@ -1828,20 +1950,25 @@ truncation and are inconsequential to the proof.
 
 
 \bigskip
-\subsection{cell partition}
+\subsection{cell partition}\label{cell partition}
 
-\begin{lemma}[]\guid{EMNWUUS}\label{lemma:M-complement4} 
-\formalauthor{Vu Khac Ky}\oldrating{100}
-Let $V$ be a saturated packing.  Let $\bu\in \bV(3)$.
+
+\begin{lemma}[]
+\label{lemma:M-complement4} 
+\preamble{
+ \guid{EMNWUUS}
+ \formalauthor{Vu Khac Ky}\oldrating{100}
+}
+%
+Let $V$ be a saturated packing.  Let $\bu\in \bVo{3}$.
 The following  are equivalent.
 \begin{enumerate} 
 \item  $\cell(\bu,i)=\emptyset$ for $i=0,1,2,3$.
 \item  $\cell(\bu,4)\ne\emptyset$.
 \item  $h(\bu)<\sqrt2$.
 \end{enumerate}
-%Moreover, $h(\bu)<\sqrt2$ implies these conditions, and these conditions
-%imply $h(\bu)\le\sqrt2$.
 \end{lemma}
+
 
 \begin{proof} 
   The diameter of $R(\bu)$ is easily seen to be $h(\bu)$.  Hence, if
@@ -1849,30 +1976,36 @@ The following  are equivalent.
   $\cell(\bu,i)$ for $i<4$.  The result ensues.
 \end{proof}
 
-\begin{lemma}[]\guid{SLTSTLO}\label{lemma:M-exhaust} 
-  Let $V$ be a saturated packing and let $\bu\in \bV(3)$. Then
-%there exists a null set $Z$ such that 
-  every point in $R(\bu)$ belongs to $\cell(\bu,i)$ for some $0\le
-  i\le 4$.  Furthermore, there is a null set $Z$ such that each point
-  in $R(\bu)\setminus Z$ belongs to a unique $\cell(\bu,i)$.
+
+\begin{lemma}[]
+\label{lemma:M-exhaust} 
+\preamble{
+ \guid{SLTSTLO}
+}
+%
+Let $V$ be a saturated packing and let $\bu\in \bVo{3}$. Then every
+point in $R(\bu)$ belongs to $\cell(\bu,i)$ for some $0\le i\le 4$.
+Furthermore, there is a null set $Z$ such that each point in
+$R(\bu)\setminus Z$ belongs to a unique $\cell(\bu,i)$.
 \end{lemma}
+
 
 \begin{proof} 
   Explicitly, the null set is the union of $R(\bu)\setminus R^0(\bu)$
   (which lies in a finite union of planes), the sphere of radius
   $\sqrt2$ at $\u_0$, the difference $\op{rcone}(\u_0,\u_1,a)\setminus
   \op{rcone}^0(\u_0,\u_1,a)$, and the plane
-  $\op{aff}\{\u_0,\u_1,\xi(\bu)\}$.  Let $\p\in R(\bu)$.  To make the
+  $\op{aff}\braced{\u_0,\u_1,\xi(\bu)}$.  Let $\p\in R(\bu)$.  To make the
   cases disjoint, each of the following cases assumes that the
   conditions of preceding cases fail.  It is convenient to reorder the
   cases to make the $4$-cell appears first.
 \begin{enumerate}
 \setcounter{enumi}{3}
-\item %[~4]
+\item %
 If $h(\bu)<\sqrt2$,  then $\p\in\cell(\bu,4)$.
 
 \setcounter{enumi}{-1}
-\item %[~0]\setcounter{enumi}{0}
+\item %
 If $\norm{\p}{\u_0} \ge\sqrt2$,  then $\p\in\cell(\bu,0)$.
 
 \item
@@ -1880,10 +2013,10 @@ If $\p\not\in\op{rcone}^0(\u_0,\u_1,h(\trunc{\bu}{1})/\nsqrt2)$, then
  $\p\in \cell(\bu,1)$.
 
 \item
-If $\p\in \op{aff}_+(\{\u_0,\u_1\},\{\xi(\bu),\omega(\bu)\})$, then
+If $\p\in \op{aff}_+(\braced{\u_0,\u_1},\braced{\xi(\bu),\omega(\bu)})$, then
  $\p\in \cell(\bu,2)$.
 
-\item If $\p\in \op{aff}_+(\{\u_0,\u_1\},\{\u_2,\xi(\bu)\})$, then
+\item If $\p\in \op{aff}_+(\braced{\u_0,\u_1},\braced{\u_2,\xi(\bu)})$, then
   $\p\in \cell(\bu,3)$.
 \end{enumerate}
 When the corresponding strict inequalities are used, we obtain
@@ -1891,13 +2024,17 @@ uniqueness for $R(\bu)\setminus Z$.
 \end{proof}
 
 
-
-\begin{definition}[$i$-rearrangement]\guid{BGXEVQU} 
-  \formaldef{$i$-rearrangement}{\_} Let
-  $\bu=[\u_0;\ldots;\u_k],\bv=[\v_0;\ldots;\v_k]$ be two lists of the
-  same length.  One is an $i$-\newterm{rearrangement} of the other if
-  $\rho_*\bu = \bv$ for some $\rho\in\op{Sym}(k+1)$ such that $\rho(j) =
-  j$ when $j \ge i$.
+\begin{definition}[$i$-rearrangement]
+\label{def:i-rearrangement}
+\preamble{
+ \guid{BGXEVQU}
+ \formaldef{$i$-rearrangement}{\_} 
+}
+%
+Let $\bu=\listdots{\u}{0}{k},\bv=\listdots{\v}{0}{k}$ be two lists of
+the same length.  One is an $i$-\newterm{rearrangement} of the other
+if $\rho_*\bu = \bv$ for some $\rho\in\op{Sym}(k+1)$ such that
+$\rho(j) = j$ when $j \ge i$.
 \end{definition}
 
 In particular, if $\bu,\bv$ are $0$- or $1$-rearrangements of one
@@ -1905,91 +2042,80 @@ another, then $\bu = \bv$.  The constraint $\rho(j)=j$ is vacuous when
 $j>k$.
 
 
-% old version. Changed Oct 17, 2011.
-%\begin{lemma}[]\guid{RVFXZBU}\label{lemma:marchal-equal} 
-%Let $V$ be a saturated packing, 
-%let $\bu,\bv\in \bV(3)$, and let $i,j\in \{0,1,2,3,4\}$.
-%If the intersection of
-%$\cell(\bu,i)$ with $\cell(\bv,j)$ has positive measure,
-%then $i=j$ and $\bu$ is an $i$-rearrangement of $\bv$.
-%Conversely, if $i=j$ and $\bu$ is an $i$-rearrangement of $\bv$, 
-%then $\cell(\bu,i)=\cell(\bv,j)$.
-%\end{lemma}
-
-\begin{lemma}[]\guid{YNHYJIT}\label{lemma:i-omega} % NEW
-  Let $V$ be a saturated packing, let $\bu\in \bV(3)$, and let
-  $i\in\{2,3,4\}$.  Assume that $h(d_{i-1}\bu)<\sqrt2$.  Let $\bv$ be
-  an $i$-rearrangement of $\bu$.  Then $\bv\in \bV(3)$ and
-$\omega_j(\bu)=\omega_j(\bv)$,
-  for $j=i-1,\ldots,3$.
+\begin{lemma}[]
+\label{lemma:i-omega} %
+\preamble{
+ \guid{YNHYJIT}
+}
+%
+Let $V$ be a saturated packing, let $\bu\in \bVo{3}$, and let
+$i\in\braced{2,3,4}$.  Assume that $h(d_{i-1}\bu)<\sqrt2$.  Let $\bv$
+be an $i$-rearrangement of $\bu$.  Then $\bv\in \bVo{3}$ and
+$\omega_j(\bu)=\omega_j(\bv)$, for $\fordots{j}{i-1}{3}$.
 \end{lemma}
 
+
 \begin{proof}
-Let $S_j =\{\u_0,\ldots,\u_{j}\}$, for $j\ge i-1$, where
-  $\bu=[\u_0;\ldots]$.  Since $\bv=[\v_0;\ldots]$ is an
-  $i$-rearrangement of $\bu$, we have $S_j =\{\v_0,\ldots,\v_{j}\}$ and
-  $\Omega(V,d_j\bu) = \Omega(V,d_j\bv)$,
-  %, and $h(d_{j}\bu) = h(d_{j}\bv)$, 
+Let $S_j =\setenumdots{\u}{0}{j}$, for $j\ge i-1$, where
+$\bu=[\u_0;\ldots]$.  Since $\bv=[\v_0;\ldots]$ is an
+$i$-rearrangement of $\bu$, we have $S_j = \setenumdots{\v}{0}{j}$ and
+$\Omega(V,d_j\bu) = \Omega(V,d_j\bv)$,
+  %
 for all $j\ge i-1$. 
    By Lemma~\ref{lemma:perm-Vk},
   $\omega_{i-1}(\bu) = \omega_{i-1}(\bv)$.  By the recursive
   definition of the points $\omega_j$, we then have
-  $\omega_j(\bu)=\omega_j(\bv)$, for $j= i-1,\ldots,3$.
+  $\omega_j(\bu)=\omega_j(\bv)$, for $\fordots{j}{i-1}{3}$.
 
-  We show that $\bv\in \bV(3)$ by checking the defining condition
+  We show that $\bv\in \bVo{3}$ by checking the defining condition
 \[
 \dimaff \Omega(V,d_j\bv) = 3 - j, \text{ for } 0 < j \le 3.
 \]
-When $j\le i-1$, the conclusion $d_{i-1}\bv\in \bV(i-1)$ of
+When $j\le i-1$, the conclusion $d_{i-1}\bv\in \bVo{i-1}$ of
 Lemma~\ref{lemma:perm-Vk} implies the condition.  When $i-1<j$, the
-identity $\Omega(V,d_J\bv)=\Omega(V,d_j\bu)$ and $\bu\in \bV(3)$ imply
+identity $\Omega(V,d_J\bv)=\Omega(V,d_j\bu)$ and $\bu\in \bVo{3}$ imply
 the condition.  The result ensues.
 \end{proof}
 
-\begin{lemma}[]\guid{RVFXZBU}\label{lemma:marchal-equal} 
+
+\begin{lemma}[]
+\label{lemma:marchal-equal} 
+\preamble{
+ \guid{RVFXZBU}
+}
+%
 Let $V$ be a saturated packing, 
-let $\bu,\bv\in \bV(3)$, and let $i\in \{0,1,2,3,4\}$.
+let $\bu,\bv\in \bVo{3}$, and let $i\in \braced{0,1,2,3,4}$.
 If $\bu$ is an $i$-rearrangement of $\bv$, 
 then $\cell(\bu,i)=\cell(\bv,i)$.
 \end{lemma}
 
+
 \begin{proof} 
 The  statement follows from the definition of cells.
-%Let $\cell(\bu,i)$ and $\cell(\bv,j)$ be two cells that have an
-%intersection $C$ of positive measure.  There exists $\bw\in \bV(3)$
-%such that $R(\bw)\cap C$ has positive measure.  In particular,
-%$R(\bw)$ has affine dimension three.  There are finitely many
-%$R(\bw')$ for $\bw'\in \bV(3)$ that meet $R(\bw)$.  By
-%Lemma~\ref{lemma:R-inter}, by avoiding finitely many planes (null
-%sets), there exists a subset $C'$ of positive measure in $C\cap
-%R(\bw)$ such that $R(\bw)$ is the unique Rogers simplex that meets
-%$C'$.  Furthermore, by Lemma~\ref{lemma:M-exhaust}, there is a subset
-%$C''$ of positive measure in $C'$ and a natural number $k$ such that
-%$\cell(\bw,k)$ is the unique cell meeting $C''$.
-%
-%Now $\cell(\bu,i)$, which contains $C''$, is contained in the union of
-%the sets $R(\bu')$ as $\bu'$ runs over the $i$-rearrangements of
-%$\bu$.  Hence, $\bw$ is an $i$-rearrangement of $\bu$.  By the
-%converse statement, replacing $\bu$ with an $i$-rearrangement, we may
-%assume that $\bu=\bw$.  Similarly, we may assume that $\bv=\bw$.  By
-%the exclusion of null sets as above, $i=j=k$.
 \end{proof}
 
-\begin{lemma}[]\guid{QZKSYKG}\label{lemma:cell-in-rogers} %% NEW
-  Let $V$ be a saturated packing, let $\bu\in \bV(3)$, and $k\in
-  \{0,1,2,3,4\}$.  Assume that $\cell(\bu,k)$ is not empty.
-  Then  each $k$-rearrangement $\bv$ of $\bu$ lies in $\bV(3)$.
-  Moreover,
-  $\cell(\bu,k)$ is contained in the union of
-  $R(\bv)$, as $\bv$ runs over all $k$-rearrangements of $\bu$.
+
+\begin{lemma}[]
+\label{lemma:cell-in-rogers} %
+\preamble{
+ \guid{QZKSYKG}
+}
+%
+Let $V$ be a saturated packing, let $\bu\in \bVo{3}$, and $k\in
+\braced{0,1,2,3,4}$.  Assume that $\cell(\bu,k)$ is not empty.  Then
+each $k$-rearrangement $\bv$ of $\bu$ lies in $\bVo{3}$.  Moreover,
+$\cell(\bu,k)$ is contained in the union of $R(\bv)$, as $\bv$ runs
+over all $k$-rearrangements of $\bu$.
 \end{lemma}
+
 
 \begin{proof}  If $k=0$ or $k=1$, 
 then by definition, $\cell(\bu,k)\subset R(\bu)$.
 
 Assume that  $2\le k\le 4$.  The nonemptiness hypothesis
 implies $h(d_{k-1}\bu)<\sqrt2$.  Lemma~\ref{lemma:i-omega} implies
-that $\bv\in \bV(3)$.
+that $\bv\in \bVo{3}$.
 
 The definition of the cells can be used to show directly that
 \[
@@ -2002,18 +2128,23 @@ Lemma~\ref{lemma:i-omega} partition this convex hull according to
 $k$-rearrangements of $\bu$.  The result ensues.
 \end{proof}
 
-\begin{lemma}[]\guid{DDZUPHJ}\label{lemma:cell-disjoint} %% NEW
-Let $V$ be a saturated packing, let $\bu,\bv\in \bV(3)$, and let
-$k\in \{0,1,2,3,4\}$.  Suppose that $R(\bu)=R(\bv)$, that $R(\bu)$
-has affine dimension three,  and that
-$\cell(\bu,k)$ is not empty.   Then
-$\cell(\bu,k)=\cell(\bv,k)$.
+\begin{lemma}[]
+\label{lemma:cell-disjoint} %
+\preamble{
+ \guid{DDZUPHJ}
+}
+%
+Let $V$ be a saturated packing, let $\bu,\bv\in \bVo{3}$, and let
+$k\in \braced{0,1,2,3,4}$.  Suppose that $R(\bu)=R(\bv)$, that
+$R(\bu)$ has affine dimension three, and that $\cell(\bu,k)$ is not
+empty.  Then $\cell(\bu,k)=\cell(\bv,k)$.
 \end{lemma}
 
 \begin{proof} 
-We break the proof into cases, according to $k$.
-Assume $k=4$.  By the definition of the cell, the nonemptiness condition
-implies that $h(\bu)<\sqrt2$.  By Lemma~\ref{lemma:h-omega} and Lemma~\ref{lemma:dk-uv},  $\bu=\bv$.
+We break the proof into cases, according to $k$.  Assume $k=4$.  By
+the definition of the cell, the nonemptiness condition implies that
+$h(\bu)<\sqrt2$.  By Lemma~\ref{lemma:h-omega} and
+Lemma~\ref{lemma:dk-uv}, $\bu=\bv$.
 
 Assume that $k=3$.  The nonemptiness condition gives
 $h(d_2\bu)<\sqrt2\le h(\bu)$.  By Lemma~\ref{lemma:h-omega} and
@@ -2039,13 +2170,20 @@ The following lemma and Lemma~\ref{lemma:M-exhaust}
 show that the cells
 partition $\vecR{3}$.
 
-\begin{lemma}[]\guid{AJRIPQN}\label{lemma:marchal-partition} %% NEW
-Let $V$ be a saturated packing, let $\bu,\bv\in \bV(3)$, and let
-$k,k'\in \{0,1,2,3,4\}$.  Suppose that $\cell(\bu,k)\cap\cell(\bv,k')$
+
+\begin{lemma}[]
+\label{lemma:marchal-partition} %
+\preamble{
+ \guid{AJRIPQN}
+}
+%
+Let $V$ be a saturated packing, let $\bu,\bv\in \bVo{3}$, and let
+$k,k'\in \braced{0,1,2,3,4}$.  Suppose that $\cell(\bu,k)\cap\cell(\bv,k')$
 has positive measure.  Then $k=k'$ and $\cell(\bu,k)=\cell(\bv,k)$.
 \end{lemma}
 
-\begin{proof}  Select $\bw\in \bV(3)$ such that 
+
+\begin{proof}  Select $\bw\in \bVo{3}$ such that 
 \[
 R(\bw)\cap \cell(\bu,k)\cap\cell(\bv,k')
 \]
@@ -2061,29 +2199,42 @@ $R(\w)\cap\cell(\bw,k')\cap\cell(\bw,k)$ has positive measure,
 Lemma~\ref{lemma:M-exhaust} implies that $k=k'$.  The result ensues.
 \end{proof}
 
-\subsection{edges of cells}
 
-\begin{definition}\guid{LEPJBDJ}
-\formaldef{$V(X)$}{VX}
-  Let $V$ be a saturated packing and let $\bu=[\u_0;\ldots]\in
-  \bV(3)$.  Let $X=\cell(\bu,k)$.  When $X\ne\emptyset$, define $V(X) =
-  \{\u_0,\ldots,\u_{k-1}\}$.  In particular, if $X$ is a $0$-cell
-  $V(X)=\emptyset$.  
+\subsection{edges of cells}\label{edges-cells}
+
+\begin{definition}
+\label{def:CapV}
+\preamble{
+ \guid{LEPJBDJ}
+ \formaldef{$\CapV{V}(X)$}{VX}
+ \indy{Notation}{V@$\CapV{V}(X)=V\cap X$}%
+}
+%
+Let $V$ be a saturated packing and let $\bu=[\u_0;\ldots]\in \bVo{3}$.
+Let $X=\cell(\bu,k)$.  When $X\ne\emptyset$, define $\CapV{V}(X) =
+\setenumdots{\u}{0}{k-1}$.  In particular, if $X$ is a $0$-cell
+$\CapV{V}(X)=\emptyset$.
 \end{definition}
-\indy{Notation}{V@$V(X)=V\cap X$}%
 
-\begin{lemma}[]\guid{HDTFNFZ}\label{lemma:VX}
-Let $V$ be a saturated packing and let $\bu=[\u_0;\ldots]\in
-  \bV(3)$.  Let $X=\cell(\bu,k)$.   If $X\ne\emptyset$, 
-then $V(X) = V\cap X$.
-In particular, the set $V(X)$ is well-defined.
+
+
+\begin{lemma}[]
+\label{lemma:VX}
+\preamble{
+ \guid{HDTFNFZ}
+}
+%
+Let $V$ be a saturated packing and let $\bu=[\u_0;\ldots]\in \bVo{3}$.
+Let $X=\cell(\bu,k)$.  If $X\ne\emptyset$, then $\CapV{V}(X) = V\cap
+X$.  In particular, the set $\CapV{V}(X)$ is well-defined.
 \end{lemma}
+
 
 \begin{proof}  
   If $i\le k-1$, then $\u_i\in V$ and $X=\cell(\bv,k)$, for some
   $k$-rearrangement $\bv=[\u_i;\ldots]$ of $\bu$.  By the definition
   of $\cell(\bv,k)$, we find that $\v_0=\u_i$ belongs to
-  $\cell(\bv,k)$, when $k\ge 1$.  This implies that $V(X)\subset
+  $\cell(\bv,k)$, when $k\ge 1$.  This implies that $\CapV{V}(X)\subset
   V\cap X$.
 
 Conversely, let $\v\in V\cap \cell(\bu,k)$.  It can be checked from
@@ -2093,110 +2244,126 @@ definitions that $\cell(\bu,0)\subset \Omega(V,\u_0)$ and
 \text{when~} k\ge1.
 \]
 This implies $\v\in V\cap\Omega(V,\u_i)$ for some $i\le k$.  This
-forces $\v=\u_i$.  Hence $V(X) = V\cap X$.
+forces $\v=\u_i$.  Hence $\CapV{V}(X) = V\cap X$.
 \end{proof}
 
-\begin{lemma}\guid{URRPHBZ}\label{lemma:cell-radial}
-  Let $V$ be a saturated packing and let $\bu\in \bV(3)$.  Then
-  $X=\op{cell}(\bu,k)$ is measurable and eventually radial at each
-  $\v\in V$.  Furthermore, the cell $X$ is bounded away from every
-  $v\in V\setminus V(X)$, so that the solid angle of $X$ is zero, except
-  at $\v\in V(X)$.
+\begin{lemma}
+\label{lemma:cell-radial}
+\preamble{
+ \guid{URRPHBZ}
+}
+%
+Let $V$ be a saturated packing and let $\bu\in \bVo{3}$.  Then
+$X=\op{cell}(\bu,k)$ is measurable and eventually radial at each
+$\v\in V$.  Furthermore, the cell $X$ is bounded away from every $v\in
+V\setminus \CapV{V}(X)$, so that the solid angle of $X$ is zero,
+except at $\v\in \CapV{V}(X)$.
 \end{lemma}
 
 \begin{proof} The first claim of the
  lemma follows from the fact that $R(\bu)$ is a
-  simplex, and $R(\bu)\cap V = \{\u_0\}$.
+  simplex, and $R(\bu)\cap V = \braced{\u_0}$.
 Each cell is compact, and is bounded away from every point not in
 the cell. Lemma~\ref{lemma:VX} implies the second claim of the lemma.
 \end{proof}
 
-
-%\begin{definition}\guid{ENBYLCBxo}
-%Let $V$ be a saturated packing and let $X$ be a $k$-cell.
-%Write $\op{solc}(\bu,k)$ for $\sol(\op{cell}(\bu,k),\u_0)$, where
-%$\bu = [\u_0;\ldots]\in \bV(3)$.
-%\end{definition}
-
-\begin{lemma}\guid{QZYZMJC}
+\begin{lemma}
+\preamble{
+ \guid{QZYZMJC}
+}
+%
 Let $V$ be a saturated packing.  For every $\v\in V$, 
 \[
-\sum_{X\mid \v\in V(X)}  \op{sol}(X,\v) = 4\pi,
+\sumfinitepred{X}{\sumvar{X}\v\in \CapV{V}(X)}{\op{sol}(X,\v)} = 4\pi,
 \]
-where the sum runs over all cells $X$ such that $\v\in V(X)$.
+where the sum runs over all cells $X$ such that $\v\in \CapV{V}(X)$.
 \end{lemma}
 
 \begin{proof} Indeed, the cells partition $\vecR{3}$ and
   $\sol(\openBall{\v}{\epsilon}) = 4\pi$.
 \end{proof}
 
-\begin{definition}[$\op{tsol}$]\guid{LZYLTFY} 
-\formaldef{$\op{tsol}$}{total\_solid}
-  %Let $V\cap X$ be the intersection of $ V$ with the set of extreme
-  %points of the $k$-cell $X$.  Explicitly, $V\cap X=\emptyset$ if $k=0$;
-  %and $V\cap X = \{ \u_0,\ldots, \u_{k-1}\}$ in general.  Each $k$-cell
-  %is measurable and eventually radial at each $\u\in V\cap X$.  
-  Define
-  the \newterm{total solid angle} of a cell $X$ to be
+\begin{definition}[$\op{tsol}$]
+\label{def:total-solid}
+\preamble{
+ \guid{LZYLTFY}
+ \formaldef{$\op{tsol}$}{total\_solid}
+ \indy{Index}{angle!total solid}%
+ \indy{Index}{extreme point}%
+ \indy{Notation}{tsol@$\op{tsol}$}%
+}
+%
+Define the \newterm{total solid angle} of a cell $X$ to be
 \[  
-\op{tsol}(X) = \sum_{\v \in V(X) } \op{sol}(X,\v).
+\op{tsol}(X) = \sumfinitepred{\v}{\v \in \CapV{V}(X) }{\op{sol}(X,\v)}.
 \] 
 \end{definition}
-\indy{Index}{angle!total solid}%
-\indy{Index}{extreme point}%
-\indy{Notation}{tsol@$\op{tsol}$}%
 
-% By Lemma~\ref{lemma:cell-radial}, the only terms that contribute to
-% the sum are $\u\in V(X)$.
 
-\begin{definition}[edge]\guid{WYORUNK}
-  \formaldef{$E(X)$}{edgeX} 
-  Let $E(X)$ be the set of \newterm{extremal edges} of the $k$-cell
-  $X$ in a saturated packing $V$.  More precisely, let
-\[ E(X)=\{\{ \u_i, \u_j\}\mid \u_i\ne \u_j\in
-V( X)\}.\] 
+\begin{definition}[edge]
+\label{def:edgeX}
+\preamble{
+ \guid{WYORUNK}
+ \formaldef{$E(X)$}{edgeX} 
+ \indy{Notation}{E3a@$E(X)$}%
+ \indy{Notation}{0@$\tbinom{n}{k}$ (binomial coefficient)}%
+}
+%
+Let $E(X)$ be the set of \newterm{extremal edges} of the $k$-cell $X$
+in a saturated packing $V$.  More precisely, let
+\[ 
+ E(X)=\setcomp{\braced{ \u_i, \u_j}}{ \u_i\ne \u_j\in\CapV{V}( X)}.
+\] 
 \end{definition}
-\indy{Notation}{E3a@$E(X)$}%
-\indy{Notation}{0@$\tbinom{n}{k}$ (binomial coefficient)}%
 
 In particular, $E(X)$ is empty for $0$ and $1$-cells and contains
 $\tbinom{k}{2}$ pairs when $2\le k\le 4$.
 
-\begin{definition}[$\op{dih}$]\guid{RSDYMHV} \label{def:dihX}
-  \formaldef{$\dih$}{dihX} 
-Let $V$ be a saturated packing.  Let $X$ be
-  a $k$-cell, where $2\le k\le 4$.  Let $\ee\in E(X)$.  We define the
-  dihedral angle $\op{dih}(X,\ee)$ of $X$ along $\ee$ as follows.
-  Explicitly, if $X$ is a null set, then set
-  $\op{dih}(X,\ee)=0$. Otherwise, choose $\bu=[\u_0;\u_1;\u_2;\u_3]\in
-  \bV(3)$ such that $X=\cell(\bu,k)$ and $\ee=\{\u_0,\u_1\}$.  Set
-  $\op{dih}(X,\ee)=\dih_V(\{\u_0,\u_1\},\{\v,\w\})$, where
+
+\begin{definition}[$\op{dih}$]
+\label{def:dihX}
+\preamble{
+ \guid{RSDYMHV} 
+ \formaldef{$\dih$}{dihX} 
+ \indy{Notation}{dih}%
+ \indy{Index}{angle!dihedral}%
+ \indy{Notation}{h@$h$ (half-edge length)}%
+}
+%
+Let $V$ be a saturated packing.  Let $X$ be a $k$-cell, where $2\le
+k\le 4$.  Let $\ee\in E(X)$.  We define the dihedral angle
+$\op{dih}(X,\ee)$ of $X$ along $\ee$ as follows.  Explicitly, if $X$
+is a null set, then set $\op{dih}(X,\ee)=0$. Otherwise, choose
+$\bu=[\u_0;\u_1;\u_2;\u_3]\in \bVo{3}$ such that $X=\cell(\bu,k)$ and
+$\ee=\braced{\u_0,\u_1}$.  Set
+$\op{dih}(X,\ee)=\dih_V(\braced{\u_0,\u_1},\braced{\v,\w})$, where
 \[
-\{\v,\w\} = 
+\braced{\v,\w} = 
 \begin{cases}
-  \{\xi(\bu),\omega(\bu) \} &  k=2\\
-  \{\u_2,\xi(\bu)\} & k=3\\
-  \{\u_2,\u_3\} &k=4.
+  \braced{\xi(\bu),\omega(\bu) } &  k=2\\
+  \braced{\u_2,\xi(\bu)} & k=3\\
+  \braced{\u_2,\u_3} &k=4.
 \end{cases}
 \]
 This is independent of the choice $\bu$ defining $X$.
-\indy{Notation}{dih}%
-\indy{Index}{angle!dihedral}%
-\indy{Notation}{h@$h$ (half-edge length)}%
 \end{definition}
 
 Each
-edge $\ee=\{ \u, \v\}\in E(X)$ has a half-length
+edge $\ee=\braced{ \u, \v}\in E(X)$ has a half-length
 $h(\ee) = \norm{ \u}{ \v}/2$.
 This definition of $h$ is compatible with the previous definition of the circumradius
 of lists in the sense that
 $h([\u;\v]) = h(\ee)$.
 
-\begin{lemma}\guid{GRUTOTI}
-  Let $V$ be a saturated packing.  Assume that $\u_0,\u_1\in V$
-  satisfy $\norm{\u_0}{\u_1}<2\nsqrt2$.  Set $\ee=\{\u_0,\u_1\}$.  Then
+\begin{lemma}
+\preamble{
+ \guid{GRUTOTI}
+}
+%
+Let $V$ be a saturated packing.  Assume that $\u_0,\u_1\in V$ satisfy
+$\norm{\u_0}{\u_1}<2\nsqrt2$.  Set $\ee=\braced{\u_0,\u_1}$.  Then
 \[
-\sum_{X\mid \ee\in E(X) } \op{dih}(X,\ee) = 2\pi.
+\sumfinitepred{X}{X\mid \ee\in E(X) }{\op{dih}(X,\ee)} = 2\pi.
 \]
 The sum runs over cells $X$ such that $\ee\in E(X)$.
 \end{lemma}
@@ -2206,10 +2373,10 @@ The sum runs over cells $X$ such that $\ee\in E(X)$.
   $r$ and $a$ are small positive real numbers.  From the definition of
   $k$-cells, it follows that we can choose $r$ and $a$ sufficiently
   small so that if $X$ is a $k$-cell that meets $C$ in a set of
-  positive measure, then $k\ge 2$ and there exists $\bu\in \bV(3)$
+  positive measure, then $k\ge 2$ and there exists $\bu\in \bVo{3}$
   such that $X=\cell(\bu,k)$ and $d_1\bu=[\u_0;\u_1]$.  Moreover,
 \[
-C\cap X = C\cap A, \quad A=\op{aff}_+(\{\u_0,\u_1\},\{\v,\w\}),
+C\cap X = C\cap A, \quad A=\op{aff}_+(\braced{\u_0,\u_1},\braced{\v,\w}),
 \]
 where $A$ is the lune of Definition~\ref{def:lune} and $\v$, $\w$ are
 chosen as in Definition~\ref{def:dihX}.  By
@@ -2217,15 +2384,15 @@ Lemma~\ref{lemma:wedge-sol} and Definition~\ref{def:dihX}, the volume
 of this intersection is
 \[
 \op{vol}(C\cap A) = \op{vol}(C)\,
- {\op{dih}_V(\{\u_0,\u_1\},\{\v,\w\}) }/{(2\pi)} =
+ {\op{dih}_V(\braced{\u_0,\u_1},\braced{\v,\w}) }/{(2\pi)} =
   \op{vol}(C)\, {\dih(X,\ee)}/{(2\pi)}.
 \]
 The set of cells meeting $C$ in a set of positive measure gives a 
 partition of $C$ into finitely many measurable sets.
 This gives
 \[
-\op{vol}(C) = \sum_{X\mid \ee\in E(X)} \op{vol}(C\cap X)  = 
-\op{vol}(C)\sum_{X\mid \ee\in E(X)} \dih(X,\ee)/(2\pi).
+\op{vol}(C) = \sumfinitepred{X}{\sumvar{X}\ee\in E(X)}{\op{vol}(C\cap X)}  = 
+\op{vol}(C)\sumfinitepred{X}{\sumvar{X} \ee\in E(X)}{ \dih(X,\ee)/(2\pi)}.
 \]
 The calculation of volumes in Chapter~\ref{chapter:volume} gives
 $\op{vol}(C)>0$.  The conclusion follows by canceling $\op{vol}(C)$
@@ -2238,19 +2405,30 @@ from both sides of the equation.
 
 
 
-\subsection{A conjecture}
+\subsection{A conjecture}\label{A conjecture}
 
 This section shows how the existence of a FCC-compatible negligible
 function is a consequence of an explicit
-inequality related to the distances $h(\bu)$, where $\bu\in \bV(1)$.
+inequality related to the distances $h(\bu)$, where $\bu\in \bVo{1}$.
 
-\begin{definition}[$\sol_0$,~$\tau_0$,~$m_1$,~$m_2$,~$h_+$,~$M$]\guid{AOZUTMU} 
-\formaldef{$\sol_0$}{sol0}%
-\formaldef{$\tau_0$}{tau0}%
-\formaldef{$m_1$}{mm1}%
-\formaldef{$m_2$}{mm2}%
-\formaldef{$h_+$}{hplus}%
-\formaldef{$M$}{marchal}%
+\begin{definition}[$\sol_0$,~$\tau_0$,~$m_1$,~$m_2$,~$h_+$,~$M$]
+\label{def:sol0}
+\preamble{
+ \guid{AOZUTMU}
+ \formaldef{$\sol_0$}{sol0}%
+ \formaldef{$\tau_0$}{tau0}%
+ \formaldef{$m_1$}{mm1}%
+ \formaldef{$m_2$}{mm2}%
+ \formaldef{$h_+$}{hplus}%
+ \formaldef{$M$}{marchal}%
+ \indy{Notation}{h@$h_+=1.3254$}%
+ \indy{Notation}{sol0@$\sol_0 = 3\arccos(1/3)-\pi$}%
+ \indy{Notation}{m1@$m_1\approx 1.012$}%
+ \indy{Notation}{m2@$m_2\approx 0.0254$}%
+ \indy{Notation}{zzt1@$\tau_0\approx\op{tgt}$}%
+ \indy{Notation}{M@$M$ (Marchal's quartic)}%
+}
+%
 Define the following constants and functions: 
 \begin{align}\label{eqn:m-def} 
 \sol_0 &= 3\arccos(1/3)-\pi\\
@@ -2274,24 +2452,8 @@ M(h) =
 \\
 \end{equation}
 \end{definition}
-\indy{Notation}{h@$h_+=1.3254$}%
-\indy{Notation}{sol0@$\sol_0 = 3\arccos(1/3)-\pi$}%
-\indy{Notation}{m1@$m_1\approx 1.012$}%
-\indy{Notation}{m2@$m_2\approx 0.0254$}%
-\indy{Notation}{zzt1@$\tau_0\approx\op{tgt}$}%
-\indy{Notation}{M@$M$ (Marchal's quartic)}%
 
 \figTULIGLY % fig:M
-
-%\guid{TULIGLY}
-%\begin{figure}[htb]
-%\centering
-%\szincludegraphics[width=60mm]{\pdfp/Mfun.eps}
-%% Plot[Mfun[h], {h, 1, Sqrt[2]}]
-%% copied to Preview, then saved, then converted to eps via pdf2eps.
-%\caption{The quartic polynomial $M$}
-%\label{fig:M}
-%\end{figure}
 
 The constant $\sol_0$
 is the area of a spherical triangle with sides $\pi/3$.
@@ -2304,77 +2466,95 @@ and
 M(1) = 1,\quad M(h_+)=0,\quad M(\sqrt2) =0.
 \end{equation} 
 
-\begin{definition}[$\gamma$]\guid{KGFDCFM} 
-  \formaldef{$\gamma$}{gammaX} For any cell $X$ of a saturated
-  packing, define the functional $\gamma(X,\wild)$ on
-  $\{f:\Real\to\Real\}$ by
+
+\begin{definition}[$\gammaX$]
+\label{def:gammaX}
+\preamble{
+ \guid{KGFDCFM}
+ \formaldef{$\gammaX$}{gammaX} 
+ \indy{Notation}{zzc@$\gammaX$ (packing inequality)}%
+}
+%
+For any cell $X$ of a saturated packing, define the functional
+$\gammaX(X,\wild)$ on $\{f:\Real\to\Real\}$ by
 \begin{equation}\label{eqn:gamma-def} 
-\gamma(X,f) =  \op{vol}(X)
+\gammaX(X,f) =  \op{vol}(X)
 -\left(\frac{2m_1}{\pi}\right) \op{tsol}(X) + \left(\frac{8m_2}{\pi}\right)
-\sum_{\ee\in E(X)} \dih(X,\ee)  f(h(\ee)).
+\sumfinitepred{\ee}{\ee\in E(X)}{ \dih(X,\ee)  f(h(\ee))}.
 \end{equation}
-\indy{Notation}{zzc@$\gamma$ (packing inequality)}%
 \end{definition}
 
 
-\begin{theorem*}[]\guid{HJKDESR}\label{lemma:MI} 
-  Let $V$ be any saturated packing and let $X$ be any cell of
-  $V$.  Then
+\begin{theorem*}[]
+\label{lemma:MI} 
+\preamble{
+ \guid{HJKDESR}
+}
+%
+Let $V$ be any saturated packing and let $X$ be any cell of $V$.  Then
 \begin{equation}\label{eqn:mfe} 
-\gamma(X,M)\ge 0,
+\gammaX(X,M)\ge 0,
 \end{equation}
 where $M$ is the function defined in \eqref{eqn:M}.
 \end{theorem*}
 
-\begin{remark}  %This is a \cc{HJKDESR}{}. 
+\begin{remark}  %
   We do not use this inequality, and its proof is omitted.  
   The only published proof~\cite{marchal:2009} is not satisfactory because
   it plots sample level curves of the function and reaches conclusions
   based on the visual appearance of these level curves.
 \end{remark}
-%% cc:mar are the k-cell estimates for noncell clusters.
-%By Calculation~\ref{calc:marchal}, the fundamental estimate
-%holds for any cell
 
-
-\begin{conjecture}[Marchal]\guid{PHNFUXP}\label{conj:m1} 
-For any packing $ V$ and
-any $ \u\in V$,
+\begin{conjecture}[Marchal]
+\label{conj:m1} 
+\preamble{
+ \guid{PHNFUXP}
+}
+%
+For any packing $ V$ and any $ \u\in V$,
 \[  
-\sum_{\v\in V\setminus\{\u\}} M(h([\u;\v])) \le 12.
+\sumfinitepred{\v}{\v\in V\setminus\braced{\u}} {M(h([\u;\v]))} \le 12.
 \] 
 \end{conjecture}
 
-This book proves a variant of the 
-conjecture.
+This book proves a variant of the conjecture.
 
-\begin{theorem}\guid{QFUXEXR}\label{theorem:mk1} 
+
+\begin{theorem}
+\label{theorem:mk1} 
+\preamble{
+ \guid{QFUXEXR}
+}
+%
   % formalization must follow the statements in pack_concl.hl, 250
-  % each estimate.
-  The conjecture~\eqref{conj:m1} and 
-  inequality~\eqref{eqn:mfe} imply that for every saturated packing
-  $V$, there exists a negligible FCC-compatible function $G:V\to
-  \Real$.
+  % each estimate.  
+The conjecture~\eqref{conj:m1} and inequality~\eqref{eqn:mfe} imply
+that for every saturated packing $V$, there exists a negligible
+FCC-compatible function $G:V\to \Real$.
 \end{theorem}
 
 The theorem follows from the following more general statement.
 
-\begin{lemma}\guid{KIZHLTL}\label{lemma:mk1}
-  Let $f$ be any bounded, compactly supported function.  Set
+\begin{lemma}
+\label{lemma:mk1}
+\preamble{
+ \guid{KIZHLTL}
+}
+%
+Let $f$ be any bounded, compactly supported function.  Set
 \[
 G( \u_0,f) = -\op{vol}(\Omega(V, \u_0)) + 8
-m_1 - \sum 8 m_2 f(h([\u_0;\u])),
+m_1 - \sumfinitepred{\u}{\u\in V\setminus\braced{\u_0}} {8 m_2 f(h([\u_0;\u]))}.
 \]
-with sum running over $\u\in V\setminus\{\u_0\}$.
 If
 \[  
-\sum_{\v\in V\setminus\{\u\}} f(h([\u;\v])) \le 12,
+\sumfinitepred{\v}{\v\in V\setminus\braced{\u}}{f(h([\u;\v]))} \le 12,
 \] 
 then $G(\wild,f)$ is FCC-compatible.
 Moreover, if there exists a constant $c_0$ such
 that for all  $r\ge1$
 \[
-\sum_{X\subset \openBall{\orz}{r}} \gamma(X,f) \ge c_0 r^2,
+\sumfinitepred{X}{X\subset \openBall{\orz}{r}}{ \gammaX(X,f) \ge c_0 r^2},
 \]
 then $G(\wild,f)$ is negligible.
 \end{lemma}
@@ -2384,10 +2564,6 @@ Inequality~\ref{eqn:mfe} implies that we can take $c_0=0$ in the
 lemma.
 
 \begin{proof} 
-%It is enough to show that $G( \u_0,f) = -\op{vol}(\Omega(V, \u_0)) + 8
-%m_1 - \sum 8 m_2 f(h([\u_0;\u]))$ is FCC-compatible and negligible, when $f=M$.
-%
-%The result then follows from Lemma~\ref{lemma:deltabound}.  
 The function $G(\wild,f)$ is FCC-compatible (page \pageref{def:negligible}) directly
 by equation~\eqref{eqn:km}
 and the assumption of the lemma:
@@ -2395,20 +2571,20 @@ and the assumption of the lemma:
 \indy{Index}{FCC!compatible}%
 \begin{align*} 
 4\nsqrt{2} &= 8 m_1 - 8 (12 m_2)\\
-&\le 8 m_1 - 8 m_2 \sum_{\u\in V\setminus \{\u_0\} } f(h([\u_0;\u]))\\
+&\le 8 m_1 - 8 m_2 \sumfinitepred{\u}{\u\in V\setminus \braced{\u_0} } {f(h([\u_0;\u]))}\\
 &= \op{vol}(\Omega(V, \u_0)) + G( \u_0,f).
 \end{align*}
 The issue is to prove that it is negligible. 
 More explicitly, we show that there is a
-constant $c$ such that for all $r\ge 1$:% and all $\p\in\vecR{3}$:
+constant $c$ such that for all $r\ge 1$:%
 \begin{align}\label{eqn:neg} 
--\sum G( \u,f) &= 
-\sum \op{vol}(\Omega(V, \u)) 
--\sum 8m_1 + 
-\sum \sum_{\v\in V\setminus\{\u\} } 8 m_2 f(h([\u;\v]))\notag \\
-&\ge \sum_{X\subset \openBall{\orz}{r}} \gamma(X,f)  + c r^2,
+-\sumfinitepred{\u}{\u\in  \Vee{V}(\orz,r)}{ G( \u,f)} &= 
+\sumfinitepred{\u}{\u\in  \Vee{V}(\orz,r)}{ \op{vol}(\Omega(V, \u)) }
+-\sumfinitepred{\u}{\u\in  \Vee{V}(\orz,r)}{8m_1} + 
+\sumfinitepred{\u}{\u\in  \Vee{V}(\orz,r)}{ \sumfinitepred{\v}{\v\in V\setminus\braced{\u} } {8 m_2 f(h([\u;\v]))}}\notag \\
+&\ge \sumfinitepred{X}{X\subset \openBall{\orz}{r}}{\gammaX(X,f)}  + c r^2,
 \end{align}
-where all unmarked sums run over $ \u\in  V(\orz,r)$.  
+where all unmarked sums run over $ \u\in  \Vee{V}(\orz,r)$.  
 The lemma follows from this inequality, the assumption of the lemma,
  and the definition of negligible (Definition~\ref{def:negligible}).
 
@@ -2417,11 +2593,11 @@ of points of $ V$ near the boundary of $\openBall{\orz}{r}$ is at most $c r^2$,
 for some $c$.
 
 
-The function $\gamma(X,f)$ is defined as a sum of three
-terms~\eqref{eqn:gamma-def}.  The sum of $\gamma(X,f)$
+The function $\gammaX(X,f)$ is defined as a sum of three
+terms~\eqref{eqn:gamma-def}.  The sum of $\gammaX(X,f)$
 over all cells in a large ball
 $\openBall{\orz}{r}$ is a sum of the contributions $T_1(r) + T_2(r) + T_3(r)$ from
-the three separate terms defining $\gamma$.  
+the three separate terms defining $\gammaX$.  
 The sum of $-G$ in  equation~\eqref{eqn:neg} is a sum of three
 corresponding terms $T'_i(r)$.  It is enough to work term by term, producing
 constants $c_i$ such that
@@ -2438,8 +2614,8 @@ contributions from the boundary. The boundary contributions have order
 $r^2$.  See Section~\ref{sec:finiteness} for order $r^2$ calculations. 
 Thus,
 \[  
-T_1'= \sum_{ \u\in  V(\orz,r)} \op{vol}(\Omega(V, \u)) 
-\ge \sum_{X\subset \openBall{\orz}{r}} \op{vol}(X) + c_1 r^2 = T_1 + c_1 r^2.
+T_1'= \sumfinitepred{\u}{ \u\in  \Vee{V}(\orz,r)}{ \op{vol}(\Omega(V, \u)) }
+\ge \sumfinitepred{X}{X\subset \openBall{\orz}{r}} {\op{vol}(X)} + c_1 r^2 = T_1 + c_1 r^2.
 \] 
 
 
@@ -2447,36 +2623,36 @@ The estimates on the other terms are similar.  The solid angles
 around each point sum to $4\pi$.
 In Landau big O notation, this gives
 \begin{align*} 
-\sum_{X\subset \openBall{\orz}{r}} \op{tsol}(X) &= 
-\sum_{X\subset \openBall{\orz}{r}~~} \sum_{ \u\in V( X)} \sol(X, \u)\\
-&=\sum_{ \u\in  V(\orz,r)~~} \sum_{X\mid  \u\in V( X)} \sol(X, \u) + O(r^2)\\
-&=\sum_{ \u\in  V(\orz,r)} 4\pi    + O(r^2).
+\sumfinitepred{X}{X\subset \openBall{\orz}{r}} {\op{tsol}(X)} &= 
+\sumfinitepred{X\subset \openBall{\orz}{r}~~}{ \sumfinitepred{\u}{ \u\in \CapV{V}( X)}{ \sol(X, \u)}}\\
+&=\sumfinitepred{\u}{\u\in  \Vee{V}(\orz,r)~~}{ \sumfinitepred{X}{\sumvar{X}  \u\in \CapV{V}( X)}{ \sol(X, \u)}} + O(r^2)\\
+&=\sumfinitepred{\u}{ \u\in  \Vee{V}(\orz,r)} {4\pi}    + O(r^2).
 \end{align*}
 \indy{Notation}{O@$O$ (Landau's big O)}%
 Hence
 \[  
-T_2' = -\sum_{ V(\orz,r)} 8 m_1 = 
--\sum_{X\subset \openBall{\orz}{r}}\left(\frac{2m_1}\pi\right) 
-\op{tsol(X)} + O(r^2) = T_2 + O(r^2).
+T_2' = -\sum_{ \Vee{V}(\orz,r)} 8 m_1 = 
+-\sumfinitepred{X}{X\subset \openBall{\orz}{r}}{\left(\frac{2m_1}\pi\right) 
+\op{tsol(X)}} + O(r^2) = T_2 + O(r^2).
 \] 
 Similarly, the dihedral angles around each edge sum to $2\pi$.  A
 factor of two enters the following calculation because there are two
-ordered pairs for each unordered pair $\ee=\{ \u_0, \u_1\}$:
+ordered pairs for each unordered pair $\ee=\braced{ \u_0, \u_1}$:
 \begin{alignat*}{6}
-&\phantom{=}&&\sum_{X\subset \openBall{\orz}{r}} 
-&&\sum_{~~\ee\in E(X)~~~~~} \dih(X,\ee)  f(h(\ee)) \vspace{3pt}\\
-&=&&\sum_{\ee\subset \openBall{\orz}{r}} 
-&&\sum_{~~X\mid \ee\in E(X)} \dih(X,\ee)  f(h(\ee)) +O(r^2)\vspace{3pt}\\
-&=&&\sum_{\ee\subset \openBall{\orz}{r}} &&2\pi f(h(\ee)) + O(r^2)\vspace{3pt} \\
-&=&&\sum_{ \u_0\in  V(\orz,r)} 
-&&\sum_{~~\u_1\in  V(\orz,r)~~~} \pi f(h( \u_0, \u_1)) + O(r^2).\\
+&\phantom{=}&&\sumfinitepred{X}{X\subset \openBall{\orz}{r}}
+&&{\sumfinitepred{\ee}{{~~\ee\in E(X)~~~~~} {\dih(X,\ee)  f(h(\ee))}} \vspace{3pt}\\
+&=&&\sumfinitepred{\ee}{\ee\subset \openBall{\orz}{r}}
+&&{\sumfinitepred{X}{~~\sumvar{X} \ee\in E(X)} {\dih(X,\ee)  f(h(\ee))}} +O(r^2)\vspace{3pt}\\
+&=&&\sumfinitepred{\ee}{\ee\subset \openBall{\orz}{r}} &&{2\pi f(h(\ee))} + O(r^2)\vspace{3pt} \\
+&=&&\sumfinitepred{\u}{ \u_0\in  \Vee{V}(\orz,r)} 
+&&{\sumfinitepred{\u_1}{~~\u_1\in  \Vee{V}(\orz,r)~~~} {\pi f(h( \u_0, \u_1))}} + O(r^2).\\
 \end{alignat*}
 Finally,
 \arrayqed
 \begin{align*} 
 T_3' &= \sum\sum 8 m_2 f(h(\bu)) \\
 &\ge \left(\frac{8m_2}\pi\right)
-\sum_{X\subset \openBall{\orz}{r}~~}\sum_{\ee\in E(X)}\dih(X,\ee) f(h(\ee)) + O(r^2) \\
+\sumfinitepred{X}{X\subset \openBall{\orz}{r}~~}{\sumfinitepred{\ee}{\ee\in E(X)}{\dih(X,\ee) f(h(\ee))}} + O(r^2) \\
 &= T_3 + O(r^2).\arrayqedhere
 \end{align*}
 \end{proof}
@@ -2484,7 +2660,7 @@ T_3' &= \sum\sum 8 m_2 f(h(\bu)) \\
 
 
 
-\section{Clusters}
+\section{Clusters}\label{clusters}
 
 This section introduces a variant of 
 Conjecture~\ref{conj:m1}.  In this variant, a piecewise linear
@@ -2504,16 +2680,22 @@ The aim of this section is to prove a variant
 (Theorem~\ref{theorem:mk2}) of Theorem~\ref{theorem:mk1} that uses the
 function $L$ rather than $M$.
 
-
-% This section shows how to improve on the estimates of the previous
-% section by combining various cells into \newterm{cell clusters}.
 Recall that $M(h_+) = 0$, where   $h_+ = 1.3254$.
 \indy{Index}{cell cluster}%
 
-\begin{definition}[$L$,~$h_0$,~$h_-$]\guid{ULZRABY}\label{def:L} 
-\formaldef{$h_0$}{h0}
-\formaldef{$h_-$}{hminus}
-\formaldef{$L$}{lmfun}
+
+\begin{definition}[$L$,~$h_0$,~$h_-$]
+\label{def:L}
+\preamble{
+ \guid{ULZRABY}
+ \formaldef{$h_0$}{h0}
+ \formaldef{$h_-$}{hminus}
+ \formaldef{$L$}{lmfun}
+ \indy{Notation}{L@$L$ (linear function)}%
+ \indy{Notation}{h@$h_- \approx 1.23175$}%
+ \indy{Notation}{h@$h_0 = 1.26$}%
+}
+%
 Set
 \[  
 h_0 = 1.26.%\\  %%\hm
@@ -2531,41 +2713,39 @@ L(1) = 1\textand  L(\hm) = 0.
 \] 
 Let $h_- \approx 1.23175$ be the unique root of the quartic polynomial
 $M(h)-L(h)$ that lies in the interval $[1.231,1.232]$.
-\indy{Notation}{L@$L$ (linear function)}%
-\indy{Notation}{h@$h_- \approx 1.23175$}%
-\indy{Notation}{h@$h_0 = 1.26$}%
 \end{definition}
 
 The inequality $L(h)\ge M(h)$ holds except when $h\in [h_-,h_+]$.
 
 \figBJLIEKB % fig:L
 
-%%
-%\begin{figure}[htb]
-%\centering
-%\szincludegraphics[width=60mm]{\pdfp/Lfun.eps}
-% Plot[{Mfun[h],Lfun[h]}, {h, 1.2, 1.35}]
-% copied to Preview, then saved, then converted to eps via pdf2eps.
-%% WW very big .eps file!
-%\caption{Detail of the quartic $M$ and linear function $L$}
-%\label{fig:L}
-%\end{figure}
 
-
-\begin{definition}[critical~edge,~$\op{EC}$,~$\op{wt}$]\guid{MZSRVBC}\label{def:wt} 
-  A \newterm{critical edge} $\ee$ of a saturated packing $V$ is an
-  unordered pair that appears as an element of $E(X)$ for some
-  $k$-cell $X$ of the packing $V$ such that $h(\ee)\in[h_-,h_+]$.  Let
-  $\op{EC}(X)$ be the set of critical edges that belong to $E(X)$.  If
-  $X$ is any cell such that $\op{EC}(X)$ is nonempty, let the
-  \newterm{weight} $\op{wt}(X)$ of $X$ be $1/\card(\op{EC}(X))$.
+\begin{definition}[critical~edge,~$\op{EC}$,~$\op{wt}$]
+\label{def:wt} 
+\preamble{
+ \guid{MZSRVBC}
+ \indy{Notation}{E3b@$\op{EC}$ (critical edges)}%
+ \indy{Notation}{wt@$\op{wt}$ (weight)}%
+}
+%
+A \newterm{critical edge} $\ee$ of a saturated packing $V$ is an
+unordered pair that appears as an element of $E(X)$ for some $k$-cell
+$X$ of the packing $V$ such that $h(\ee)\in[h_-,h_+]$.  Let
+$\op{EC}(X)$ be the set of critical edges that belong to $E(X)$.  If
+$X$ is any cell such that $\op{EC}(X)$ is nonempty, let the
+\newterm{weight} $\op{wt}(X)$ of $X$ be $1/\card(\op{EC}(X))$.
 \end{definition}
-\indy{Notation}{E3b@$\op{EC}$ (critical edges)}%
-\indy{Notation}{wt@$\op{wt}$ (weight)}%
 
-\begin{definition}[$\beta_0$,~$\beta$]\guid{PQFEXQN}\label{def:beta} 
-\formaldef{$\beta_0$}{bump}
-\formaldef{$\beta$}{beta\_bump}
+
+\begin{definition}[$\beta_0$,~$\beta$]
+\label{def:beta} 
+\preamble{
+ \guid{PQFEXQN}
+ \formaldef{$\beta_0$}{bump}
+ \formaldef{$\beta$}{beta\_bump}
+ \indy{Notation}{zzb@$\beta,~\beta_0$ (bump)}%
+}
+%
 Set 
 \[  
 \beta_0(h) = 0.005 (1 - (h-h_0)^2/(h_+-h_0)^2).
@@ -2575,45 +2755,54 @@ If $X$ is a $4$-cell with exactly two critical edges and if those
 edges are opposite, then set
 \[  
 \beta(\ee,X) = \beta_0(h(\ee)) - \beta_0(h(\ee')), 
-\text{ where }\op{EC}(X) = \{\ee,\ee'\} .  
+\text{ where }\op{EC}(X) = \braced{\ee,\ee'} .  
 \] 
 Otherwise, for all other edges in all other cells, set $\beta(\ee,X) = 0$.
 \end{definition}
-\indy{Notation}{zzb@$\beta,~\beta_0$ (bump)}%
+
 
 \figPQFEXQN % fig:fg1
 
-\begin{definition}[cell cluster,~$\Gamma$]\guid{YSULGYR}
+
+\begin{definition}[cell cluster,~$\Gamma$]
 \label{def:gammaL} 
-\formaldef{cell cluster}{cell\_cluster}
-\formaldef{$\Gamma$}{cluster\_gammaX}
-  Let $V$ be a saturated packing.  Let $\ee\in \op{EC}(X)$ be a
-  critical edge of a $k$-cell $X$ of $V$ for some $2\le k\le 4$.  A
-  \newterm{cell cluster} is the set
+\preamble{
+ \guid{YSULGYR}
+ \formaldef{cell cluster}{cell\_cluster}
+ \formaldef{$\Gamma$}{cluster\_gammaX}
+ \indy{Index}{cell cluster}%
+ \indy{Notation}{CL@$\op{CL}$ (cell cluster)}%
+ \indy{Notation}{zzC@$\Gamma$}%
+}
+%
+Let $V$ be a saturated packing.  Let $\ee\in \op{EC}(X)$ be a critical
+edge of a $k$-cell $X$ of $V$ for some $2\le k\le 4$.  A \newterm{cell
+  cluster} is the set
 \[  
-\op{CL}(\ee) = \{X\mid \ee\in \op{EC}(X)\} 
+\op{CL}(\ee) = \setcomp{X}{ \ee\in \op{EC}(X)} 
 \] 
 \indy{Notation}{cluster}%
 of all cells around $\ee$. 
-%If $Z$ is a subset of a cell cluster $\op{CL}(\ee)$, 
 Define
 \[  
-\Gamma(\ee) = \sum_{X\in \op{CL}(\ee)} \gamma(X,L) \op{wt}(X) +\beta(\ee,X).
+\Gamma(\ee) = \sumfinitepred{X}{X\in \op{CL}(\ee)} {\gammaX(X,L) \op{wt}(X) +\beta(\ee,X)}.
 \] 
-%and where $\op{wt}(X)$ is the weight of $X$.
 \end{definition}
-\indy{Index}{cell cluster}%
-\indy{Notation}{CL@$\op{CL}$ (cell cluster)}%
-\indy{Notation}{zzC@$\Gamma$}%
 
 
 The following weak form of Theorem~\ref{lemma:MI} is sufficient
 for our needs.
 
-\begin{lemma}\guid{TSKAJXY}\label{lemma:LI} 
-Let $V$ be any saturated packing and let $X$ be any cell of $V$ such that $\op{EC}(X)$ is empty.   Then
+\begin{lemma}
+\label{lemma:LI} 
+\preamble{
+ \guid{TSKAJXY}
+}
+%
+Let $V$ be any saturated packing and let $X$ be any cell of $V$ such
+that $\op{EC}(X)$ is empty.  Then
 \[
-\gamma(X,L)\ge 0.
+\gammaX(X,L)\ge 0.
 \]
 \end{lemma}
 
@@ -2621,8 +2810,12 @@ Let $V$ be any saturated packing and let $X$ be any cell of $V$ such that $\op{E
 \end{proof}
 
 
-\begin{theorem}[cell cluster inequality]\guid{OXLZLEZ} 
+\begin{theorem}[cell cluster inequality]
 \label{lemma:cluster}
+\preamble{
+ \guid{OXLZLEZ} 
+}
+%
 Let $\op{CL}(\ee)$ be any cell cluster of a critical edge $\ee$ in a
 saturated packing $V$.  Then $\Gamma(\ee)\ge 0$.
 \end{theorem}
@@ -2630,8 +2823,6 @@ saturated packing $V$.  Then $\Gamma(\ee)\ge 0$.
 \begin{proof}[Proof sketch]
   The proof of this cell cluster inequality is a \cc{OXLZLEZ}{}, which
   is the most delicate computer estimate in the book.  It 
-  %The
-  %method of linear assembly (described in Section~\ref{sec:assembly})
   reduces the cell cluster inequality to hundreds of nonlinear
   inequalities in at most six variables.  In degenerate cells with a
   face of area zero, Euler's formula (Lemma~\ref{lemma:euler}) should
@@ -2652,7 +2843,7 @@ saturated packing $V$.  Then $\Gamma(\ee)\ge 0$.
   to isometry.  We plot the function $f(y)=\Gamma(\ee)$
   as a function of $y$.    We also plot the function
 \[
-g(y) = \sum_{X\in \op{CL}(\ee)} \gamma(X,L) \op{wt}(X).
+g(y) = \sumfinitepred{X}{X\in \op{CL}(\ee)} {\gammaX(X,L) \op{wt}(X)}.
 \]
 As the plot shows, the function $g$ is not positive.  This shows
 that without the small correction term $\beta$, the cell cluster
@@ -2671,21 +2862,31 @@ non-computer parts of the proof take up most of the remainder of the
 book.  In this chapter the lemma is treated as an unproved assertion.
 
 
-\begin{lemma*}\guid{BJERBNU}\label{conj:L12} 
+\begin{lemma*}
+\label{conj:L12} 
+\preamble{
+ \guid{BJERBNU}
+}
+%
   For any  saturated packing $ V$ and any $ \u_0\in V$,
 \begin{equation}\label{eqn:L12} 
-\sum_{ \u_1\in V\mid h( \u_0, \u_1)\le \hm} L(h\{\u_0, \u_1\}) \le 12.
+\sumfinitepred{\u_1}{\u_1\in V\mid h( \u_0, \u_1)\le \hm}{L(h\braced{\u_0, \u_1})} \le 12.
 \end{equation}
 \end{lemma*}
 
-\begin{lemma}[]\guid{UPFZBZM}\label{theorem:mk2} 
-Inequality~\eqref{eqn:L12} implies
-that for every saturated packing $V$, there exists a negligible FCC-compatible function
-$G:V\to \Real$.
+
+\begin{lemma}[]
+\label{theorem:mk2} 
+\preamble{
+ \guid{UPFZBZM}
+}
+%
+Inequality~\eqref{eqn:L12} implies that for every saturated packing
+$V$, there exists a negligible FCC-compatible function $G:V\to \Real$.
 \end{lemma}
 
 \begin{remark}\label{rem:L12KC}
-In light of Lemma~\ref{lemma:deltabound}, inequality~\ref{eqn:L12}
+In light of Lemma~\ref{lemma:reduction-finite-dimensions}, inequality~\ref{eqn:L12}
 implies the Kepler conjecture. 
 \end{remark}
 
@@ -2693,17 +2894,17 @@ implies the Kepler conjecture.
   By Lemma~\ref{lemma:mk1}, the proof reduces to showing that there
   exists a constant $c_0$ such that for all $r\ge1$
 \[
-\sum_{X\subset \openBall{\orz}{r}} \gamma(X,L) \ge c_0 r^2.
+\sumfinitepred{X}{X\subset \openBall{\orz}{r}} {\gammaX(X,L)} \ge c_0 r^2.
 \]
 
 If a cell $X$ does not belong to any cell cluster, then
 \[ 
-\gamma(X,L)\ge 0
+\gammaX(X,L)\ge 0
 \] 
 by Lemma~\ref{lemma:LI}.  Note that the function
 $\beta(\ee,X)$ averages to zero for any $4$-cell $X$:
 \[  
-\sum_{\ee\in \op{EC}(X)} \beta(\ee,X) = 0.
+\sumfinitepred{\ee}{\ee\in \op{EC}(X)}{ \beta(\ee,X)} = 0.
 \] 
 Hence, the terms involving $\beta$ in sums may be disregarded in this
 proof.  (These terms may be disregarded here, but they are needed in
@@ -2712,30 +2913,42 @@ proof.  (These terms may be disregarded here, but they are needed in
 Theorem~\ref{lemma:cluster} gives the required inequality for cell
 clusters.  Again, using big O notation,
 \begin{alignat*}{8}
-\sum_{X\subset \openBall{\orz}{r}} \gamma(X,L) 
-&=&&\sum_{X\subset \openBall{\orz}{r}\mid \op{EC}(X)\ne\emptyset} \hspace{-2em}\gamma(X,L) \quad +
-\sum_{X\subset \openBall{\orz}{r}\mid \op{EC}(X)=\emptyset} \hspace{-2em}\gamma(X,L) \vspace{6pt}\\
-&\ge &&\sum_{X\subset \openBall{\orz}{r}\mid \op{EC}(X)\ne\emptyset} \hspace{-2em}\gamma(X,L)\vspace{6pt} \\
-&= &&\sum_{\hspace{1.8em}X\subset \openBall{\orz}{r}\hspace{1.8em}}\hspace{-2em}\gamma(X,L)\sum_{\ee \in \op{EC}(X)}\op{wt}(X) \vspace{6pt}\\
-&= &&\sum_{\hspace{1.85em}\ee\subset \openBall{\orz}{r}\hspace{1.85em}}\hspace{-2.5em}\sum_{~~~~X\!\mid\! \ee \in \op{EC}(X)}\hspace{-1.1em}\gamma(X,L)\op{wt}(X) &+ O(r^2)\vspace{6pt}\\
-&= &&\sum_{\hspace{1.85em}\ee\subset \openBall{\orz}{r}\hspace{1.85em}}\hspace{-1em}\Gamma(\ee) &+ O(r^2)\vspace{6pt}\\
+\sumfinitepred{X}{X\subset \openBall{\orz}{r}} {\gammaX(X,L)}
+&=&&\sumfinitepred{X}{X\subset \openBall{\orz}{r}\mid \op{EC}(X)\ne\emptyset} \hspace{-2em}{\gammaX(X,L)} \quad +
+\sumfinitepred{X}{X\subset \openBall{\orz}{r}\andcomma \op{EC}(X)=\emptyset} \hspace{-2em}{\gammaX(X,L)} \vspace{6pt}\\
+&\ge &&\sumfinitepred{X}{X\subset \openBall{\orz}{r}\andcomma \op{EC}(X)\ne\emptyset} \hspace{-2em}{\gammaX(X,L)}\vspace{6pt} \\
+&= &&\sumfinitepred{X}{\hspace{1.8em}X\subset \openBall{\orz}{r}\hspace{1.8em}}\hspace{-2em}{\gammaX(X,L)\sumfinitepred{\ee}{\ee \in \op{EC}(X)}{\op{wt}(X)}} \vspace{6pt}\\
+&= &&\sumfinitepred{\ee}{\hspace{1.85em}\ee\subset \openBall{\orz}{r}\hspace{1.85em}}\hspace{-2.5em}{\sumfinitepred{X}{~~~~\sumvar{X} \ee \in \op{EC}(X)}\hspace{-1.1em}{\gammaX(X,L)\op{wt}(X)}} &+ O(r^2)\vspace{6pt}\\
+&= &&\sumfinitepred{\ee}{\hspace{1.85em}\ee\subset \openBall{\orz}{r}\hspace{1.85em}}\hspace{-1em}{\Gamma(\ee)} &+ O(r^2)\vspace{6pt}\\
 &\ge&& ~~O(r^2).
 \end{alignat*}
 \end{proof}
 
-\begin{definition}[$\BB$]\guid{WTKURHK} 
-  \formaldef{$\BB$}{ball\_annulus} Let $\BB$ be the \newterm{annulus}
-  $\bar \openBall{\orz}{2h_0}\setminus \openBall{\orz}{2}$, where $\bar \openBall{\orz}{r}$ is
-  the closed ball of radius $r$.  
+
+\begin{definition}[$\BB$]
+\label{def:BB}
+\preamble{
+ \guid{WTKURHK}
+ \formaldef{$\BB$}{ball\_annulus} 
+ \indy{Notation}{BB@$\BB$}%
+}
+%
+Let $\BB$ be the \newterm{annulus} $\bar
+\openBall{\orz}{2h_0}\setminus \openBall{\orz}{2}$, where $\bar
+\openBall{\orz}{r}$ is the closed ball of radius $r$.
 \end{definition}
-\indy{Notation}{BB@$\BB$}%
 
 
-\begin{corollary}\guid{RDWKARC}\label{cor:CE} 
+\begin{corollary}
+\label{cor:CE} 
+\preamble{
+ \guid{RDWKARC}
+}
+%
   If the Kepler conjecture is false, there exists a finite packing
   $V\subset\BB$ with the following properties.
 \begin{equation}\label{eqn:CE} 
-\sum_{ \u\in V} L(h\{\orz, \u\}) > 12.
+\sumfinitepred{\u}{ \u\in V} {L(h\braced{\orz, \u})} > 12.
 \end{equation}
 \end{corollary}
 
@@ -2755,7 +2968,7 @@ in slightly simpler terms.
 
 
 
-\section{Counting Spheres}
+\section{Counting Spheres}\label{counting spheres}
 
 This section proves two estimates about a packing $V\subset \BB$ that
 satisfies Inequality~\ref{eqn:CE}.  The first estimate
@@ -2767,7 +2980,7 @@ we need a formula for the smallest possible area of a spherical
 polygon that contains a disk.  This formula is developed in the first
 subsection.
 
-\subsection{solid angle}
+\subsection{solid angle}\label{solid angle}
 \indy{Index}{polygon}%
 
 
@@ -2776,23 +2989,29 @@ polyhedron into simplices.  The lemma constructs $2k$ points to be
 used to triangulate (a subset of) a polygon (Figure~\ref{fig:reference-w}).
 
 
-\begin{lemma}[]\guid{EUSOTYP}\label{lemma:2D-poly}
+\begin{lemma}[]
+
+\label{lemma:2D-poly}
+\preamble{
+ \guid{EUSOTYP}
+}
+%
 Let $P$ be a two-dimensional bounded polyhedron in $\vecR{2}$.
 Let $k$ be the number of facets of $P$.  Let $r>0$.  Suppose that
 \[
-\{\v\in \vecR{2}\mid  \normo{v}< r\} \subset P.
+\setcomp{\v\in \vecR{2}}{  \normo{v}< r} \subset P.
 \]
 Then there exist nonzero points $\w_j\in P$
-for $j=0,\ldots,2 k-1$ such that
+for $\fordots{j}{0}{2k-1}$ such that
 \begin{enumerate}
-\item The polar cycle on  $\{\w_j\mid j\}$ is given by
+\item The polar cycle on  $\setcomp{\w_j}{ j}$ is given by
 $\sigma(\w_j) = \w_{j+1}$, with indexing mod $2k$.
 \item $\theta(\w_{2i},\w_{2i+1}) = \theta(\w_{2i+1},\w_{2i+2}) < \pi/2$,  
 where $\theta$ denotes the
 relative polar coordinate of Lemma~\ref{lemma:polar-sum}.
 \item $\normo{\w_{2i}}=r$ and 
 $\normo{\w_{2i+1}} = r\sec \theta(\w_{2i},\w_{2i+1})$, 
-for $i=0,\ldots,k-1$.
+for $\fordots{i}{0}{k-1}$.
 \item $\w_{2i}\cdot (\w_{2i\pm1}-\w_{2i}) = 0$.
 \end{enumerate}
 \end{lemma}
@@ -2803,7 +3022,7 @@ for $i=0,\ldots,k-1$.
   Enumerate  the distinct facets $F_1,\ldots,F_k$ of $P$, and for each
   one select a defining equation
 \[
-F_i = P\cap \{\p \mid \u_i \cdot \p = b_i\},
+F_i = P\cap \setcomp{\p }{ \u_i \cdot \p = b_i},
 \quad\text{where } \normo{\u_i}=1\text{ and } b_i\ge0.
 \]
 We may assume that ordering of facets by increasing subscripts is
@@ -2855,18 +3074,22 @@ Hence, $\cos\varphi \le \cos\psi$.  This gives
 This shows that $\u'_i$ satisfies all the defining conditions of $P$.
 
 Set $\w_{2i}=\u_i$ and $\w_{2i+1}=\u'_i$.  It is clear from
-construction that the polar cycle on  $\{\w_j\mid j\}$ is
+construction that the polar cycle on  $\setcomp{\w_j}{ j}$ is
 compatible with the indexing.  The enumerated properties of the lemma
 now follow from Lemma~\ref{lemma:polar-sum}.
 The lemma ensues.
 \end{proof}
 
-\begin{lemma}[]\guid{GOTCJAH}\label{lemma:ngon} 
-  Let $P$ be a bounded polyhedron in $\vecR{3}$ that contains $\orz$
-  as an interior point.  Let $F$ be a facet of $P$, given by an
-  equation
+\begin{lemma}[]
+\label{lemma:ngon} 
+\preamble{
+ \guid{GOTCJAH}
+}
+%
+Let $P$ be a bounded polyhedron in $\vecR{3}$ that contains $\orz$ as
+an interior point.  Let $F$ be a facet of $P$, given by an equation
 \[  
-F = \{\p \mid \p \cdot \v = b_0\} \cap P.
+F = \setcomp{\p }{ \p \cdot \v = b_0} \cap P.
 \]  
 Let $W_F$ be the corresponding topological component of $Y(V_P,E_P)$.
 Assume that $W_F$ contains the right-circular cone
@@ -2899,20 +3122,20 @@ By the additivity of measure over measurable sets that are disjoint up
 to a null set, we may partition into wedges:
 \begin{align*}
 \sol(W_F) &= \sum_j \sol(W_F \cap W(\orz,\v,\w_j,\w_{j+1}))\\
-  &\ge \sum_j \sol(\op{aff}_+^0(\orz,\{\v,\w_j,\w_{j+1}\})).
+  &\ge \sum_j \sol(\op{aff}_+^0(\orz,\braced{\v,\w_j,\w_{j+1}})).
 \end{align*}
 The solid triangles that appear in the last sum are primitive volumes,
 which are computed in terms of
 dihedral angles  in Chapter~\ref{chapter:volume}.  Set
 \[
-\beta_{2j}=\beta_{2j+1}=\dih_V(\{\orz,\v\},\{\w_{2j},\w_{2j\pm1}\}) \text{ and }
-a = \arc_V(\orz,\{\v,\w_{2j}\}) = \arccos t.
+\beta_{2j}=\beta_{2j+1}=\dih_V(\braced{\orz,\v},\braced{\w_{2j},\w_{2j\pm1}}) \text{ and }
+a = \arc_V(\orz,\braced{\v,\w_{2j}}) = \arccos t.
 \]
 The three vectors $\v$, $\w_{2j}-\v$, and $\w_{2j+1}-\w_{2j}$ are
 mutually orthogonal by the final claim of Lemma~\ref{lemma:2D-poly}.
 Lemma~\ref{lemma:dih-cross} gives
 \[
-\dih_V(\{\orz,\w_{2j}\},\{\v,\w_{2j+1}\}) =\pi/2,
+\dih_V(\braced{\orz,\w_{2j}},\braced{\v,\w_{2j+1}}) =\pi/2,
 \]
 because
 \begin{align*}
@@ -2948,11 +3171,11 @@ g(a,\beta) = \beta - \arcsin(\cos a \sin \beta).
 
 The solid angle of $W_F$ is at least sum of the areas of the triangles:
 \[  
-\sum_{j=0}^{2k-1} g(a,\beta_j),
+\sumupto{j}{0}{2k-1}{g(a,\beta_j)},
 \] 
 with angle sum
 \[  
-\sum_{j=0}^{2k-1} \beta_j = 2\pi.
+\sumupto{j}{0}{2k-1}{ \beta_j} = 2\pi.
 \] 
 The second partial of $g$ with respect to $\beta$ is
 \[  
@@ -2967,29 +3190,17 @@ The solid angle bound of the lemma is equal to
 2 k g(a,\pi/k)
 \] 
 where $\cos a=t$.  
-%Alternatively, the polygon breaks into $2k$
-%triangles, each computed by Girard's formula to have area
-%\[  
-%\beta - (\pi/2 - \alpha)  = \pi/k - \arcsin(\cos(\alpha)) = 
-%\pi/k - \arcsin(\cos(a)\sin(\beta)).
-%\] 
 \end{proof}
 
-%\begin{lemma}[]\guid{BBEVFIC}\label{lemma:ngon-area} 
-%  The minimum area of an intersection of $k$-hemispheres containing a
-%  circle $C$ of arcradius $a<\pi/2$ is
-%\[  
-%2\pi - 2 k \,\arcsin\left(\,\cos(a)\sin(\beta)\,\right),
-%\] 
-%when $\beta = \pi/k$.
-%\end{lemma}
 
+\subsection{a polyhedral bound}\label{a polyhedral bound}
 
-
-\subsection{a polyhedral bound}
-
-\begin{definition}[weakly saturated]\guid{HUCFLEB} 
+\begin{definition}[weakly saturated]
 \label{def:weakly-saturated}
+\preamble{
+ \guid{HUCFLEB}
+}
+%
 Let $r$ and $r'$ be real numbers such that $2\le r\le r'$.  Define a
 set $ V\subset\vecR{3}\setminus \openBall{\orz}{2}$ to be \newterm{weakly
   saturated} with parameters $(r,r')$ if for every $\p\in\vecR{3}$
@@ -2998,23 +3209,25 @@ set $ V\subset\vecR{3}\setminus \openBall{\orz}{2}$ to be \newterm{weakly
 \] 
 \end{definition}
 
-\begin{lemma}[]\guid{TARJJUW}\label{lemma:poly-bounded} 
-\formalauthor{Dang Tat Dat}
+
+\begin{lemma}[]
+\label{lemma:poly-bounded} 
+\preamble{
+ \guid{TARJJUW}
+ \formalauthor{Dang Tat Dat}
+ \indy{Index}{polyhedron}%
+}
+%
 Fix $r$ and $r'$ such that $2\le r\le r'$.
 Let $ V$ be a weakly saturated finite packing with parameters $(r,r')$.
-%such that $\orz\in  V$.
-%where 
-%   $\orz\in V$, and
-%   $\normo{ \u}\le r'$ for all $ \u\in V$,
-%Set $ V^*= V\setminus\{\orz\}$.
 For any $g: V\to\Real$, let $P( V,g)$ be the
 polyhedron given by the intersection of half-spaces
 \[  
-\{\p \mid  \u\cdot \p \le g( \u)\},\quad \u\in V.
+\setcomp{\p }{  \u\cdot \p \le g( \u)},\quad \u\in V.
 \] 
 Then $P( V,g)$ is bounded.
 \end{lemma}
-\indy{Index}{polyhedron}%
+
 
 \begin{proof} Assume for a contradiction that $P=P( V,g)$ is unbounded
   and there exists $\p\in P$ such that $\normo{\p} > g( \u) r'/2$ for
@@ -3031,9 +3244,12 @@ Then $P( V,g)$ is bounded.
 This contradiction shows that $P$ is bounded.
 \end{proof}
 
-\begin{lemma}\guid{YSSKQOY}\label{lemma:g-ineq}
-  % \cc{4198769118}{This inequality gives the nonoverlap of
-  %   disks. Deprecated.}
+\begin{lemma}
+\label{lemma:g-ineq}
+\preamble{
+ \guid{YSSKQOY}
+}
+%
 Let 
 \[ 
 g(h) = \arccos(h/2) - \pi/6.
@@ -3060,13 +3276,6 @@ when
 2\le a_1 \le a_2 \le 2h_0,\text{ and } 2\le b_1\le b_2 \le 2h_0,
 \]
 where $f(a,b) = \op{arc}(a,b,2)$.  
-%The left-hand side of
-%\eqref{eqn:disks-symmetrical} is additive on rectangular meshes of
-%$\leftclosed a_1,a_2\rightclosed \times \leftclosed
-%b_1,b_2\rightclosed$.  Thus, it is enough to prove the inequality in
-%the limit as $a_2\mapsto a_1$ and $b_2\mapsto b_1$.  In the limit, the
-%general inequality follows from the leading term of the Taylor
-%approximation
 A calculation gives
 \[
  \frac {\partial^2 f(a,b)}{\partial a\,\partial b} = \frac{32 a b}{\ups{a^2}{b^2}{4}^{3/2}} > 0.
@@ -3080,20 +3289,24 @@ $f(a,b_2)-f(a,b_1)$ is increasing in $a$.
 Equation~\ref{eqn:disks-symmetrical} ensues.
 \end{proof}
 
-
 Since $L(h)\le 1$ when $h\ge1$, it is clear that a finite packing $V$
 that satisfies Inequality~\ref{eqn:CE} has cardinality greater than twelve.
 The following lemma also gives an upper bound on the cardinality of $V$.
 
-\begin{lemma}[]\guid{DLWCHEM}\label{lemma:13-14}  %%
-  If $V\subset \BB$ is a packing that satisfies
-  Inequality~\ref{eqn:CE}, then the cardinality of $V$ is thirteen,
-  fourteen, or fifteen.
+
+\begin{lemma}[]
+\label{lemma:13-14}  %%
+\preamble{
+ \guid{DLWCHEM}
+}
+%
+If $V\subset \BB$ is a packing that satisfies Inequality~\ref{eqn:CE},
+then the cardinality of $V$ is thirteen, fourteen, or fifteen.
 \end{lemma}
 
 
 \begin{proof} (Following Marchal.) Consider a finite packing $
-  V=\{\u_1,\ldots, \u_N\}\subset \BB$ satisfying
+  V=\setenumdots{\u}{1}{N}\subset \BB$ satisfying
   Inequality~\ref{eqn:CE}.  The packing $V$ contains more than twelve
   points because otherwise Inequality~\ref{eqn:CE} cannot hold, as
   $L(h)\le 1$.
@@ -3123,7 +3336,7 @@ V$; the set $V_P$ is in bijection with extreme points of $P$, whereas
 $ V$ is in bijection with the facets of $P$.)  There are natural
 bijections between the following sets.
 \begin{enumerate}\wasitemize  
-\item $ V = \{ \u_1,\ldots, \u_N\}$.
+\item $ V = \setenumdots{\u}{1}{N}$.
 \item The  facets of $P$.
 \item The set of  topological components of $Y(V_P,E_P)$.
 \item The set of faces in the hypermap $\op{hyp}(V_P,E_P)$.
@@ -3135,8 +3348,6 @@ the bijection of the first two sets.  Lemmas~\ref{lemma:WF} and
 
 \figZXEVDCA % fig:marchal-polyhedron
 
-%Let $k_i$ be 
-%associated with the facet $i$.  
 By Lemma~\ref{lemma:edge-bi}, the number of edges of the facet $i$
 is $k_i$, the cardinality of the corresponding face in $\op{hyp}(V_P,E_P)$.   
 By Lemma~\ref{lemma:ngon}, the solid
@@ -3147,7 +3358,7 @@ $\op{reg}(g(h_i),k_i)$, where \indy{Index}{half-plane}%
 \[  
 \op{reg}(a,k) = 2\pi - 2 k (\arcsin(\cos(a)\sin(\pi/k))).
 \] 
-By a \cc{BIEFJHU}{%, cc:alin, old: 1965189142
+By a \cc{BIEFJHU}{%
 This is a linear lower bound on the area of a regular polygon.} 
 \begin{equation}\label{eqn:alin} 
 \op{reg}(g(h),k) \ge c_0 + c_1 k + c_2 L(h),\quad \text{ for all }
@@ -3173,13 +3384,17 @@ $16 > N$.
 \end{proof} 
 
 
-\begin{lemma}[]\guid{XULJEPR}\label{lemma:D'}  
-  Assume that $V\subset \BB$ is a packing that satisfies
-  Inequality~\ref{eqn:CE}.  Then
- for every $ \v\in V$ such that $\normo{ \v}=2$, there exists
-  $\u\in V$ such that 
-$0<\norm{ \v}{ \u}< 2\hm$. 
+\begin{lemma}[]
+\label{lemma:D'}  
+\preamble{
+ \guid{XULJEPR}
+}
+%
+Assume that $V\subset \BB$ is a packing that satisfies
+Inequality~\ref{eqn:CE}.  Then for every $ \v\in V$ such that $\normo{
+  \v}=2$, there exists $\u\in V$ such that $0<\norm{ \v}{ \u}< 2\hm$.
 \end{lemma}
+
 
 \begin{proof} Assume for a contradiction that a packing $V$ exists that
   satisfies the inequality for which there exists $\v\in V$ for which 
@@ -3191,23 +3406,21 @@ Create one large disk $D_1'$ centered at $\v/2$ and repeat the proof
 of the previous lemma.  Extend the packing to a  weak saturation
 with parameters $r=r'=2\hm$.  This can be done in a way that maintains
 the assumptions on $\v$.  By Lemma~\ref{lemma:poly-bounded}, the
-polyhedron is bounded.  By a \cc{WAZLDCD}{} % old: 8055810915
-% The nonoverlap of disks
+polyhedron is bounded.  By a \cc{WAZLDCD}{} %
 \[ a'=0.797 < \arc(2,2h,2\hm)-g(h)\text{\ \ for } 1\le h \le \hm.\]  
 By \eqref{eqn:norm-hm}, we may take $a'$
 for the arcradius of the large disk $D_1'$.  
-By a \cc{UKBRPFE}{}   %old:6096597438,  cc:alin2, 
-%Linear lower bound on regular polygon (large disk)
+By a \cc{UKBRPFE}{}   %
 \begin{equation}\label{eqn:alin2} 
 \op{reg}(a',k) \ge c_0 + c_1 k + c_2 L(1) +
 c_3,\quad k=3,4,\ldots\end{equation}
 where
-$c_3 =  1$.  % was %0.85$.
+$c_3 =  1$.  %
 Then 
 \begin{align*} \label{eqn:D'}
-4\pi &= \sum_{i=1}^{N}\op{sol}(W_i)\\
-&\ge \op{reg}(a',k_1)+\sum_{i=2}^{N} \op{reg}(g(h_i),k_i) \\
-&\ge  c_0 N +c_1\sum_{i=1}^{N} k + c_2 \sum_{i=1}^{N} L(h_i) + c_3\\
+4\pi &= \sumupto{i}{1}{N}{\op{sol}(W_i)}\\
+&\ge \op{reg}(a',k_1)+\sumupto{i}{2}{N}{ \op{reg}(g(h_i),k_i)} \\
+&\ge  c_0 N +c_1\sumupto{i}{1}{N}{k} + c_2 \sumupto{i}{1}{N}{L(h_i)} + c_3\\
 &\ge c_0 N +c_1 (6N-12) + c_2 12 + c_3.
 \end{align*}
 This gives a contradiction
@@ -3215,3 +3428,4 @@ $13 > N \ge 13.$
 \end{proof}
 
 \end{cnl}
+

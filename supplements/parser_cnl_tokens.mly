@@ -25,7 +25,7 @@
 %token <string> APPLYSUB (* subscript token to mark function applications to subscripts, distinct from BLANK *)
 %token <string> SLASH
 %token <string> SLASHDASH
-%token <string> VAR (* alpha (digit | ')* *)
+%token <string> VAR (* alpha (digit | _ | ')* *)
 %token <string> TOKEN
 %token <string> ATOMIC_IDENTIFIER (*alpha (alphanum)**)
 %token <string> HIERARCHICAL_IDENTIFIER (* period separated atomics *)

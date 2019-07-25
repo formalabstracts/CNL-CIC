@@ -106,7 +106,7 @@ or identifier name.
 Subscripts written with braces are interpreted in CNL as function applications.
 
 Thus, \verb!x_1! is a variable and  \verb!x_{1}!  is the function $x$ applied to $1$.
-This works with multiple indices $a_{i j}$ (with a space between the $i$ and the $j$,
+This works with multiple indices $a_{i j}$ (with a space between the $i$ and the $j$),
 is translated to CNL \verb!a \sb (i j)!  The function application gets suppressed between
 the $i$ and the $j$, so that this is equivalent to \verb!a i j!.   To activate function application
 in the subscript, wrap the subscripts in an extra layer of parentheses \verb!a_{(f x)}! or
@@ -145,6 +145,39 @@ Invisible characters are generally given by macros
 \verb!x\mulI y! has pdf display $x y$, but the CNL image
 preserves the binary operation \verb!x\mulI y!.
 
+\subsubsection{math fonts} 
+
+We treat variables in different fonts as different variables.  We achieve this by fusing the font into the variable name.
+That is, when processing a source file containing \verb!\mathcal{C}!, it is not tokenized as a control sequence \verb!\mathcal! followed by
+a begin group \verb!{!, etc.  Rather, it is tokenized as a single fused variable/identifier token \verb!\mathcal{C}!.
+
+This is done at the lexical stage as follows.
+
+Anything in the source file fitting the regular expression pattern
+\begin{Verbatim}
+%sedlex.regexp? "\\math", Star(alphabet), 
+  lbrace, alphabet, Star(alphanum), rbrace, Star(alphanum) 
+\end{Verbatim}
+is treated as a single token.  This means the literal characters \verb!\math! followed by 0 or more alphabetic characters \verb!a-zA-Z!,
+followed by a \verb!{!, another letter of the alphabet, 0 or more alphanumerics (the alphabet including \verb!_'0123456789!), \verb!}!, and then
+terminated by 0 or more alphanumerics.   Thus, \verb!\mathcal{C}_1! and \verb!\mathfrak{g}'! match this regular expression.
+No expansion is made of the control sequence starting with \verb!\math...!.  No white space is allowed.  
+
+It will not generally work to use
+a macro that expands to something
+matching this regular expression.  Macro expansion takes place after the lexical stage is complete.
+
+In particular, this pattern allows variable disambiguation based on the following math fonts (starting with \verb!\math...!):
+\verb!\mathrm!, \verb!\mathit!, \verb!\mathnormal!, 
+\verb!\mathcal!, \verb!\mathscr!, \verb!\mathpzc!, 
+\verb!\mathbb!, \verb!\mathbbm!, \verb!\mathbbmss!, 
+\verb!\mathbbmtt!, \verb!\mathds!, \verb!\mathfrak!.
+
+
+
+%https://tex.stackexchange.com/questions/58098/what-are-all-the-font-styles-i-can-use-in-math-mode
+
+
 \subsection{control sequences}
 
 \verb!\CNLcustom[k]\controlseq{pattern text}!   When translating \TeX\ to CNL use the pattern text to translate the control sequence \verb!\controlseq!
@@ -160,7 +193,10 @@ A \verb!\noexpand! in the pattern text prevents the macro from being expanded, b
 
 \verb!\CNLcustom\X{\noexpand\X}!.  Here \verb!\X! in the source becomes \verb!\X! in the image.
 
-\verb!\CNLnoexpand[k]\controlseq! is equivalent to \verb!\CNLcustom[k]\controlseq{\noexpand\controlseq}!
+\verb!\CNLnoexpand[k]\controlseq! is equivalent to 
+\begin{Verbatim}
+     \CNLcustom[k]\controlseq{\noexpand\controlseq}
+\end{Verbatim}
 
 \verb!\CNLdelete[k]\controlseq!  When translating to CNL, delete the control sequence \verb!\controlseq! together with $k$ curly braced arguments.
 This is equivalent to giving empty expansion text \verb!\CNLcustom[k]\controlseq{}! 
@@ -173,10 +209,30 @@ This is equivalent to giving empty expansion text \verb!\CNLcustom[k]\controlseq
 Unlike in the source, in the CNL functions are generally curried.
 In the CNL, lists are generally demarcated with square brackets and semicolons.
 
-\verb!\list{(x1,...,xN)}! (which displays as $(x1,\ldots,xN)$)
-becomes a list in the CNL image \verb![x1;...;xN]!  (Here the $x_i$s must have the same type.
 
-\verb!\app{f}{(x1,....,xN)}! (which displays as $f(x1,...,xN)$) becomes curried in CNL \verb!((f) (x1) (x2) ... (xN))!
+\verb!\app{f}{x1,....,xN}! (which displays as $f(x1,...,xN)$) becomes curried in CNL \verb!((f) (x1) (x2) ... (xN))!
+
+\verb!\list{x1,...,xN}! (which displays as $x1,\ldots,xN$)
+becomes a list in the CNL image \verb![x1;...;xN]!  (Here the $x_i$s must have the same type.)
+
+For \TeX\ display, the list can be wrapped in delimiters to form tuples, set enumerations, etc.
+For example, 
+\begin{Verbatim}
+\def\tuple#1{(#1)}
+\def\braced#1{\{#1\}}
+\end{Verbatim}
+
+For the CNL image, we may generate lists, set enumerations, etc. 
+\begin{Verbatim}[fontfamily=tt,showspaces=false]
+\CNLcustom[1]\tuple{\list{#1}}
+\tuple{1,2,3} % CNLimage: [1;2;3]
+              % source expansion {1,2,3}
+
+\CNLcustom[1]\braced{\setenum{\list{#1}}} 
+\braced{1,2,3} % CNLimage: \setenum{[1;2;3]}
+               % source expansion: \{1,2,3\}
+\end{Verbatim}
+
 
 \subsubsection{stripped characters}
 
@@ -281,6 +337,8 @@ Translation to CNL-Equation.  Any label is translated.
 \item [flalign, flalign*]  Not supported.
 \end{description}
 
+See also gathered, split, aligned alignedat, alignat* 
+
 \subsubsection{matrix environments}
 
 \begin{description}
@@ -326,16 +384,7 @@ We generally wish to strip font variations \verb!{\it such as italics}! in
 text mode.  Note that this doesn't fit the usual pattern of control sequence applied
 to arguments.
 
-\subsubsection{font selection in math}
 
-Generally, we want to view two variables in different math fonts as
-different variables.  We should generalize the definition of a variable in the CNL
-to include constructs such as \verb!\mathcal{C}!  or $\mathcal{C}$, which would be
-a separate variable from $C$.
-
-
-
-%https://tex.stackexchange.com/questions/58098/what-are-all-the-font-styles-i-can-use-in-math-mode
 
 \subsubsection{control sequences as variables}
 
@@ -345,6 +394,53 @@ as variables: \verb!\alpha!, etc.
 
 
 \subsubsection{ellipsis}
+
+There should be a general construction 
+
+\begin{equation}\label{ellipsis}
+\verb!I \op \dots \op J!   
+\end{equation}
+
+that strips $I$ and $J$ to the distinct core (taking the two token sequences and successively removing identical tokens from
+both ends), which should be two integer expressions $i$ and $j$.
+So that $I$ is the $\beta$-reduction of $K\ i$ and $J$ is the $\beta$-reduction of $K\ j$, for some
+term $K$.  $K$ is the token sequence  \verb!(\LAM v, sI)! where $v$ is a fresh variable and $sI$ is the token sequence
+obtained by replacing the distinct core of $I$ with $\verb!v!$.
+Then \eqref{ellipsis} represents (for associative operation \verb!\op!).
+
+\[
+\verb! (H\ i) \op (H\ {i+1}) \op (H\ {i+2}) ... \op (H\ j)!
+\] 
+
+For example, in
+\begin{equation}\label{W}
+\verb!W =\{\omega_{0}(\bu),\ldots,\omega_{3}(\bu)\}!
+\end{equation}
+we have \verb!I=\omega_{0}(\bu)!, \verb!J=\omega_{3}(\bu)!, $i=0$, $j=3$, 
+
+We can probably manufacture a \TeX\ macro \verb!\ellipsis#1#2#3#4!
+Where the arguments are $H$ (as a term without the binder), $i$, $j$, \verb!\op!, respectively
+that constructs the correct \TeX'ed pdf.  Roughly, $H$ should contain say a \verb!\DUMMY! where
+the insertion is to take place.  The insertions are handled, say with something of the form \verb!\futurelet\DUMMY\CH i!,
+where \verb!\CH! expands to $H$.
+
+Once a macro \verb!\ellipsis! is constructed as above, we can add custom rendering to the CNL image
+by binding the term $H$ as \verb!(\LAM \DUMMY, H)! and applying it to $i$ and $j$.  
+
+This would not be hygienic; we would not be able to nest ellipses.
+
+For example, in \eqref{W}, we would write
+\[
+\verb!W = \{ \ellipsis{\omega_{\DUMMY}(\bu)}{0}{3}{,} \}!.
+\]
+
+
+
+\section{Referenes}
+
+\href{https://en.wikibooks.org/wiki/LaTeX/Mathematics}{Wikibook LaTeX Mathematics}
+
+
 
 
 \end{document}

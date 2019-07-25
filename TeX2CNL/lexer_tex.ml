@@ -18,7 +18,6 @@ type token =
    | Numeric of string
    | Eol
    | ControlSeq of string
-   | ControlChar of string
    | Arg of int
    | LParen
    | RParen
@@ -30,6 +29,8 @@ type token =
    | RDisplay
    | Dollar
    | Sub
+   | Comma
+   | Semi
    | FormatEol 
    | FormatCol 
    | Tok of string
@@ -37,11 +38,11 @@ type token =
    | Eof
    | NotImplemented;;
 
-let to_string = function
+
+let token_to_string = function
   | Natural i -> (string_of_int i)
   | Numeric s -> s
   | ControlSeq s -> s
-  | ControlChar s -> s
   | Arg i -> "#"^(string_of_int i)
   | LParen -> "("
   | RParen -> ")"
@@ -51,8 +52,10 @@ let to_string = function
   | RBrace -> "}"
   | Dollar -> "$"
   | Sub -> "\\sb"
-  | FormatEol -> "&"
-  | FormatCol -> "\\"
+  | Comma -> ","
+  | Semi -> ";"
+  | FormatEol -> "\\"
+  | FormatCol -> "&"
   | Tok s -> s
   | Symbol s -> s
   | Eof -> "EOF"
@@ -84,7 +87,7 @@ let controlseq = [%sedlex.regexp? '\\', Plus(alphabet)]
 
 let controlchar = [%sedlex.regexp? '\\', Compl(alphabet)]
 
-let comment = [%sedlex.regexp? '%', Compl(eol)]
+let comment = [%sedlex.regexp? '%', Star(Compl(eol))]
 
 let arg = [%sedlex.regexp? '#', numeral10 ]
 
@@ -96,7 +99,7 @@ let lbrace = [%sedlex.regexp? '{' ]
 let rbrace = [%sedlex.regexp? '}' ]
 let ldisplay = [%sedlex.regexp? '\\', '['  ]
 let rdisplay = [%sedlex.regexp? '\\', ']'  ]
-let format_eol = [%sedlex.regexp? '\\']
+let format_eol = [%sedlex.regexp? "\\\\", Opt('*') ]
 let format_col = [%sedlex.regexp? '&']
 
 
@@ -104,18 +107,22 @@ let period = [%sedlex.regexp? '.']
 let comma = [%sedlex.regexp? ',']
 let colon = [%sedlex.regexp? ':']
 let semi = [%sedlex.regexp? ';']           
-let punct = [%sedlex.regexp? period | comma | semi | colon ]
+let punct = [%sedlex.regexp? period | colon ]
 
 let dollar = [%sedlex.regexp? '$']
 let sub = [%sedlex.regexp? '_']
 
 let symbol = [%sedlex.regexp? punct | '|' | '<' | '>' | '^' | '+' | '-' | '=' | '/' | '*']
 
+(* this is to allow mathfonts to create new variables \mathcal{C}, etc. *)
+let mathfont_id = [%sedlex.regexp? "\\math", Star(alphabet), 
+                   lbrace, alphabet, Star(alphanum), rbrace, Star(alphanum) ]
 
 let unmarked_id_more = [%sedlex.regexp? alphanum | '.' ]
 let unmarked_id = [%sedlex.regexp? alphabet, Star(unmarked_id_more), Plus(alphanum) ]
 let id = [%sedlex.regexp? '!', unmarked_id, '!' ]
-let tok = [%sedlex.regexp?  alphabet | unmarked_id | id ]
+let tok = [%sedlex.regexp?  alphabet | unmarked_id | mathfont_id ]
+
 
            
 (* open Parser_tex *)
@@ -130,15 +137,18 @@ let string_of_ints js =
 
 let string_lexeme buf = string_of_ints(lexeme buf);;
 
+let trim_bang s = String.sub s 1 (String.length s - 2);;
+
 let rec lex_token buf = 
  match%sedlex buf with 
  | Plus(white) -> (lex_token buf)
+ | comment -> (lex_token buf)
   | natural_number -> Natural(int_of_string(string_lexeme buf)) 
     | numeric -> Numeric(string_lexeme buf)
     | eol -> Eol
     | controlseq -> ControlSeq(string_lexeme buf)
-    | controlchar -> ControlChar(string_lexeme buf)
-    | arg -> Arg(int_of_string(string_lexeme buf))
+    | controlchar -> ControlSeq(string_lexeme buf)
+    | arg -> Arg(int_of_string(String.sub(string_lexeme buf) 1 1))
     | rparen -> RParen
     | lparen -> LParen
     | lbrack -> LBrack
@@ -150,38 +160,24 @@ let rec lex_token buf =
     | dollar -> Dollar
     | format_eol -> FormatEol
     | format_col -> FormatCol
+    | id -> Tok(trim_bang(string_lexeme buf))
     | tok -> Tok(string_lexeme buf) 
     | symbol -> Tok(string_lexeme buf)
+    | comma -> Comma 
+    | semi -> Semi
     | eof -> Eof
-    | any -> failwith (string_lexeme buf)
+    | any -> NotImplemented
     | _ -> failwith (string_lexeme buf)
 
 
               
 (* testing stuff *)
 
-
-let lexing_positions _ =
-  (Lexing.dummy_pos,Lexing.dummy_pos)
-
-(* git version efcc changed name of this *)
-let with_tokenizer (lexer' : Sedlexing.lexbuf -> token)  (buf : Sedlexing.lexbuf) :
-      (unit -> token * Lexing.position * Lexing.position) =
-  fun () ->
-        let token = lexer' buf in
-        let (start_p, curr_p) = lexing_positions buf in
-    (token, start_p, curr_p)
-
-(* test *)
 let buf_example1 = Sedlexing.Latin1.from_string
-               "hello\\alpha33[1]there !ready! (xx) [$] {yy} $"
+               "hello\\alpha33[1]there !ready!  (xx) \\mathfrak{C}33 [$] {yy} %comment \n more #4 # 5  $ ))))))))"
 
+let ff = fun () -> print_endline(token_to_string(lex_token buf_example1));;
 
-
-(* both work on the same mutable buffer, *)
-let ff = fun () -> print_endline(to_string(lex_token buf_example1));;
-
-
-BatList.map ff (BatList.init 18 (fun _ -> ()));;
+BatList.map ff (BatList.init 30 (fun _ -> ()));;
 
 
