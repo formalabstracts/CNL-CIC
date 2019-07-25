@@ -1,5 +1,5 @@
-{-# LANGUAGE DataKinds #-} -- might need to remove this later, i'm not really sure what this does yet
-{-# LANGUAGE PolyKinds #-} -- might need to remove this later, i'm not really sure what this does yet
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE PolyKinds #-}
 {-
 Author(s): Jesse Michael Han (2019)
 
@@ -199,8 +199,6 @@ data LambdaTerm =
     PrimLambdaBinder PrimLambdaBinder GeneralizedArgs OpenTailTerm -- parse binder comma to separate args from tail
   | LambdaTermGeneralizedArg GeneralizedArg OpenTailTerm -- parse mapsto to separate args from tail
 
-data PrimLambdaBinder = DummyConstructor -- TODO(jesse): fix me
-
 data BinOpType = BinOpType { head :: TypeOperand, tail :: [(TypeOp,TypeOperand)]}
 
 data TypeOp =
@@ -231,7 +229,13 @@ data GeneralizedArg =
 data DependentVars = DependentVars {maybeOptArgs :: (Maybe OptArgs), annotatedVars :: [AnnotatedVars]}
 
 -- lexically, OptArgs is a brace-enclosed, semicolon separated lists of variables or atomics, optionally annotated with types
-newtype OptArgs = OptArgs [(Token, Maybe ColonType)]
+newtype OptArgs = OptArgs [(VarOrAtomic, Maybe ColonType)]
+
+parseOptArgs :: Parser OptArgs
+parseOptArgs = (brace_semi $ do
+  va <- parseVarOrAtomic
+  mct <- option parseColonType
+  return (va, mct)) >>= return . OptArgs
 
 data AnyName =
     AnyNameAnyArgs [AnyArg]
@@ -244,7 +248,7 @@ newtype TypedName = TypedName Attribute TypedNameWithoutAttribute
 data TypedNameWithoutAttribute = -- note: I removed the extra constructor paren(typed_name_without_attribute) and am instead encoding that into the parser (it will attempt to parse a pair of enclosing parentheses first).
     TypedNamePrimTypedName PrimTypedName
   | TypedNameTVar TVar
-  | TypedNamePrimClassifier PrimClassifierTVar
+  | TypedNamePrimClassifier PrimClassifier TVar
   | TypedNameVar Var GeneralType -- parsed as var "with type" general_type
 
 newtype FreePredicate = FreePredicate Attribute FreePredicateWithoutAttribute
