@@ -174,8 +174,8 @@ data Term =
 
 -- parseTerm = TermDefiniteTerm <$> parseDefiniteTerm <||> TermAnyName <$> parseAnyName
 
-parseTerms :: Parser [Term]
-parseTerms = sepby1 parseTerm (parseLit "and" <||> parseLit ",")
+-- parseTerms :: Parser [Term]
+-- parseTerms = sep_list parseTerm
 
 data QuotientType = QuotientType {domain :: GeneralType, eqv :: Term}
   deriving (Show, Eq)

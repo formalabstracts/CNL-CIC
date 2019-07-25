@@ -26,6 +26,7 @@ import CNLean.Basic.Token
 import CNLean.Basic.State
 import CNLean.Basic.Pattern
 
+----A primitive classifier phrase is a list [Text], where each item must be parsed verbatim, but during parsing the items may be separated by arbitrary whitespace
 newtype PrimClassifier = PrimClassifier [Text] deriving (Show, Eq)
 
 -- note: as opposed to the Naproche-SAD implementation, we do not parse derived primitives by defining a modified parser, but rather produce the derived patterns by modifying the primitive patterns and storing them whenever they are registered (and therefore only use a single pattern parser)
@@ -142,3 +143,6 @@ newtype PrimRelation = PrimRelation ([Patt], [ParsedPatt]) deriving (Show, Eq)
 
 
 data DoesPred = DoesPredDummyConstructor -- TODO(jesse): fix me
+  deriving (Show, Eq)
+data IsPred = IsPredDummyConstructor --TODO(jesse): fix me
+  deriving (Show, Eq)
