@@ -33,11 +33,11 @@ data ParsedPatt =
 
 parsePatt :: Patt -> Parser ParsedPatt
 parsePatt ptt = case ptt of
-  Wd ts -> parse_list ts parseTokenOfLit >>= return . ParsedWd
+  Wd ts -> ParsedWd <$> parse_list ts parseTokenOfLit
   Sm t -> do s <- parseSymbol
              guard (s == Symbol t)
              return $ ParsedSymbol s             
-  Vr   -> parseVar >>= return . ParsedVar
+  Vr   -> ParsedVar <$> parseVar
 
 parsePatts :: [Patt] -> Parser [ParsedPatt]
 parsePatts ptts = parse_list ptts parsePatt
