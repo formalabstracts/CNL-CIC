@@ -24,8 +24,6 @@ import qualified Text.Megaparsec.Char.Lexer as L
 data Patt = Wd [Text] | Sm Text | Vr | Nm
             deriving (Eq, Show)
 
--- adjExpr ~ prim_adjective
-
 data FState = FState { 
   primAdjective,        primAdjectiveMS,       primSimpleAdjective, primSimpleAdjectiveMultiSubject :: [[Patt]],
   primDefiniteNoun,     primPosessedNoun :: [[Patt]],
@@ -44,15 +42,6 @@ data FState = FState {
   strSyms :: [[Text]], varDecl :: [Text], clsList :: [[Text]],
   idCount :: Int, hiddenCount :: Int, serialCounter :: Int}
   deriving (Show, Eq)
-
-updateSerialCounter fs x = fs {serialCounter = x}
-updateHiddenCount fs x = fs {hiddenCount = x}
-updateIdCount fs x = fs {idCount = x}
-updateVarDecl fs x = fs {varDecl = x}
-updateStrSyms fs x = fs {strSyms = x}
-
-updateClsList fs x = fs {clsList = x}
-updateConsClsList fs z = fs {clsList = (z:(clsList fs))}
 
 initialFState :: FState --TODO(jesse): fix this
 initialFState = FState

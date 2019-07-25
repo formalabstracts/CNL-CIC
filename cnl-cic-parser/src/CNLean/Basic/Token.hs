@@ -194,6 +194,10 @@ parseDataHelper0 l arg = (str' arg >> return l) <* sc
 newtype Token = Token Text
   deriving (Show, Eq)
 
+tokenToText :: Token -> Text
+tokenToText tk = case tk of
+  Token txt -> txt
+
 data EOF = EOF
   deriving (Show, Eq)
 

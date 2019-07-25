@@ -13,12 +13,13 @@ import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
 import qualified Control.Applicative.Combinators as PC
 import Text.Megaparsec hiding (Token, option, Label)
-import Control.Monad (guard)
+import Control.Monad (guard, liftM)
 import Text.Megaparsec.Char
 import qualified Data.Char as C
 import Data.Text (Text, pack, unpack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
+import Control.Monad.Trans.State.Lazy (modify, gets)
 
 import CNLean.Basic.Basic
 import CNLean.Type
@@ -103,12 +104,17 @@ data DefinitionStatement =
 newtype ClassifierDef = ClassifierDef ClassTokens
   deriving (Show, Eq)
 
-newtype ClassTokens = ClassTokens [Token]
+newtype ClassTokens = ClassTokens [[Token]]
   deriving (Show, Eq)
 
-parseClassTokens = ClassTokens <$> sepby1 parseToken parseComma
+parseClassTokens = ClassTokens <$> sepby1 (many1' ((notFollowedBy (parseLitIs <* option parseLitA <* parseLitClassifier)) *> parseToken)) parseComma
 
-parseClassifierDef = ClassifierDef <$> (parseLit "let" *>  parseClassTokens <* parseLitIs <* option parseLitA <* parseLitClassifier)
+parseClassifierDef =
+  ClassifierDef <$>
+  (do ctkss@(ClassTokens tkss) <- (parseLit "let" *>  parseClassTokens <* parseLitIs <* option parseLitA <* parseLitClassifier)
+      updateClsList2 (map (liftM tokenToText) tkss)
+      return $ ctkss)
 
 -- test parseClassifierDef "let scheme, schemes, stacks be classifiers"
+-- test (parseClassifierDef *> gets clsList) "let scheme, schemes, stacks, derived stacks be classifiers"
 -- test parseClassifierDef "let lattice be a classifier"
