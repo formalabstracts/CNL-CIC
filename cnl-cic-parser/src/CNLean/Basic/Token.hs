@@ -469,6 +469,9 @@ brace_semi p = between parseLBrace parseRBrace (sepby1 p parseSemicolon)
 sep_list :: Parser a -> Parser [a]
 sep_list p = sepby p ((parseLit "," *> parseLit "and") <||> parseLit "and" <||> parseLit ",")
 
+sep_list1 :: Eq a => Parser a -> Parser [a]
+sep_list1 p = sepby1 p ((parseLit "," *> parseLit "and") <||> parseLit "and" <||> parseLit ",")
+
 newtype Label = Label AtomicId
   deriving (Show, Eq)
 

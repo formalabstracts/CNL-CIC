@@ -152,16 +152,15 @@ sepby_aux p sep =
 sepby :: Parser a -> Parser b -> Parser [a]
 sepby p sep = (sepby_aux p sep) <||> return []
 
-guard_result :: Parser a -> (a -> Bool) -> Parser a
-guard_result p pred = do
+guard_result :: String -> Parser a -> (a -> Bool) -> Parser a
+guard_result err p pred = do
   x <- p
-  (guard (pred x)) <||> fail "guard failed" -- TODO(jesse) write a better error message
+  (guard (pred x)) <||> fail err
   return x
 
 fail_if_empty :: (Eq a) => Parser [a] -> Parser [a]
-fail_if_empty p = guard_result p (/= [])
-  
-  -- if x == [] then fail "is empty list" else return x
+fail_if_empty p = guard_result "parsed empty list, failing" p (/= [])
+--TODO(jesse) debug error message not displaying in favor of 'guard failed'
 
 sepby1 :: (Eq a) => Parser a -> Parser b -> Parser [a]
 sepby1 p sep = fail_if_empty $ sepby p sep
@@ -194,11 +193,16 @@ parse_any_maybe m phs = case phs of
 parse_any :: (Text -> Parser [Text]) -> [[Text]] -> Parser [Text]
 parse_any m = parse_any_maybe (\x -> m x >>= return . Just)
 
+parse_any_of :: [Parser a] -> Parser a
+parse_any_of ps = case ps of
+  [] -> empty
+  x:xs -> x <||> parse_any_of xs
+
 parse_list :: [a] -> (a -> Parser b) -> Parser [b]
 parse_list as m = case as of
   [] -> return []
   x:xs -> (rp $ m x) <+> parse_list xs m
-  
+
 -- TODO(jesse) define csbrace parser
 
 -- sepBy' :: Parser a -> Parser b -> Parser [a]
