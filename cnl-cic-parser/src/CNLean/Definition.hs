@@ -90,5 +90,25 @@ newtype ThisDirectiveRightAttr = ThisDirectiveRightAttr [Text]
 parseThisDirectiveRightAttr :: Parser ThisDirectiveRightAttr
 parseThisDirectiveRightAttr = ThisDirectiveRightAttr <$> (parse_list ["by", "recursion"] parseLit)
 
-data DefinitionStatement = DefinitionStatementDummy -- TODO(jesse): fix me
+data DefinitionStatement =
+    DefinitionStatementClassifier ClassifierDef
+  -- | TypeDef  -- TODO(jesse): implement the rest of these
+  -- | FunctionDef
+  -- | PredicateDef
+  -- | StructureDef 
+  -- | InductiveDef
+  -- | MutualInductiveDef
   deriving (Show, Eq)
+
+newtype ClassifierDef = ClassifierDef ClassTokens
+  deriving (Show, Eq)
+
+newtype ClassTokens = ClassTokens [Token]
+  deriving (Show, Eq)
+
+parseClassTokens = ClassTokens <$> sepby1 parseToken parseComma
+
+parseClassifierDef = ClassifierDef <$> (parseLit "let" *>  parseClassTokens <* parseLitIs <* option parseLitA <* parseLitClassifier)
+
+-- test parseClassifierDef "let scheme, schemes, stacks be classifiers"
+-- test parseClassifierDef "let lattice be a classifier"
