@@ -26,14 +26,9 @@ import CNLean.Type
 
 data Axiom = Axiom { preamble :: AxiomPreamble, assumptions :: [Assumption], thenPrefix :: ThenPrefix, statement :: Statement }
 
-data AxiomPreamble = AxiomPreamble Token (Maybe Label) -- parse (Lit AXIOM), maybe a label, optional period.
+data AxiomPreamble = AxiomPreamble (Maybe Label)
   deriving (Show, Eq)
 
--- parseAxiomPreamble :: Parser AxiomPreamble
--- parseAxiomPreamble = do
---   tk <- ((parseLit_aux AXIOM) <||> (parseLit_aux CONJECTURE) <||> (parseLit_aux HYPOTHESIS) >>= return . Lit)
---   maybeLabel <- option (parseLabel)
---   try (parsePeriod)
---   return $ AxiomPreamble tk maybeLabel
+parseAxiomPreamble :: Parser AxiomPreamble
+parseAxiomPreamble = AxiomPreamble <$> (parseLitAxiom *> (option parseLabel) <* parsePeriod)
 
-  
