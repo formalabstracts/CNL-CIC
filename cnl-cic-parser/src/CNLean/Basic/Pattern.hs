@@ -33,6 +33,7 @@ data ParsedPatt =
 
 parsePatt :: Patt -> Parser ParsedPatt
 parsePatt ptt = case ptt of
+  Nm -> ParsedName <$> (sepby1 parseVar parseComma)
   Wd ts -> ParsedWd <$> parse_list ts parseTokenOfLit
   Sm t -> do s <- parseSymbol
              guard (s == Symbol t)
