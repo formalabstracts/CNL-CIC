@@ -27,8 +27,8 @@ import CNLean.Type
 data Axiom = Axiom { preamble :: AxiomPreamble, assumptions :: [Assumption], thenPrefix :: ThenPrefix, statement :: Statement }
   deriving (Show, Eq)
 
--- parseAxiom :: Parser Axiom
--- parseAxiom = Axiom <$> parseAxiomPreamble <*> (many' parseAssumption) <*> parseThenPrefix <*> parseStatement
+parseAxiom :: Parser Axiom
+parseAxiom = Axiom <$> parseAxiomPreamble <*> (many' parseAssumption) <*> parseThenPrefix <*> parseStatement
 
 data FooData = FooData Text Text Text
   deriving (Show, Eq)

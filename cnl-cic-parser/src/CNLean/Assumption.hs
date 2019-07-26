@@ -28,10 +28,10 @@ data Assumption = -- note: parsing a list of assumptions means using (many1 pars
   | AssumptionLetAnnotation LetAnnotation -- parsed with period at end
   deriving (Show, Eq)
 
--- parseAssumption :: Parser Assumption
--- parseAssumption =
---   (AssumptionLetAnnotation <$> (parseLetAnnotation <* parsePeriod)) <||>
---   (Assumption <$> parseAssumptionPrefix <*> parseStatement <* parsePeriod)
+parseAssumption :: Parser Assumption
+parseAssumption =
+  (AssumptionLetAnnotation <$> (parseLetAnnotation <* parsePeriod)) <||>
+  (Assumption <$> parseAssumptionPrefix <*> parseStatement <* parsePeriod)
   
 data AssumptionPrefix = AssumptionPrefix (Maybe [Text]) -- make consumption inspectable for debugging
   deriving (Show, Eq)

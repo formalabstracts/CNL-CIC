@@ -24,6 +24,11 @@ import qualified Text.Megaparsec.Char.Lexer as L
 data Patt = Wd [Text] | Sm Text | Vr | Nm
             deriving (Eq, Show)
 
+data Maybe' a =
+    J a
+  | Q a
+  deriving (Show, Eq)
+
 data FState = FState { 
   primAdjective,        primAdjectiveMS,       primSimpleAdjective, primSimpleAdjectiveMultiSubject :: [[Patt]],
   primDefiniteNoun,     primPosessedNoun :: [[Patt]],
@@ -38,6 +43,7 @@ data FState = FState {
   primIdentifierTerm :: [[Patt]],
   primTypedName :: [[Patt]],
   primFreePredicate :: [[Patt]],
+  primPhraseListFiller :: [[Maybe' Text]],
   -- tvrExpr :: [TVar] -- TODO(jesse) integrate this later
   strSyms :: [[Text]], varDecl :: [Text], clsList :: [[Text]],
   idCount :: Int, hiddenCount :: Int, serialCounter :: Int}
@@ -58,6 +64,7 @@ initialFState = FState
   []
   []
   []
+  phraseListFiller
   [] [] clsL0
   0 0 0
   where
@@ -104,4 +111,13 @@ initialFState = FState
            ["pairs"],
            ["pair"],
            ["result"]
-          ] 
+          ]
+  phraseListFiller :: [[Maybe' Text]]
+  phraseListFiller = [
+                     [J "we", J "have", Q "that"],
+                     [J "we", J "know", Q "that"],
+                     [Q "we", J "put"],
+                     [J "we", J "write"],
+                     [Q "we", J "write"]
+                   ]
+
