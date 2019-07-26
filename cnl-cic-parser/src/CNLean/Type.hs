@@ -24,13 +24,16 @@ import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 import Control.Applicative (liftA2)
 
 import CNLean.Basic.Basic
-import CNLean.Basic.Token
 import CNLean.Primitive
+import CNLean.PhraseList
 
 data Statement =
     HeadStatement HeadStatement
   | ChainStatement ChainStatement
   deriving (Show, Eq)
+
+parseStatement :: Parser Statement
+parseStatement = (HeadStatement <$> parseHeadStatement) <||> (ChainStatement <$> parseChainStatement)
 
 data HeadStatement =
     HeadStatementForAny [AnyName] Statement -- list of anyname parsed by a comma-or-LIT_AND separated list
@@ -38,43 +41,73 @@ data HeadStatement =
   | HeadStatementItsWrong Statement
   deriving (Show, Eq)
 
+parseHeadStatement :: Parser HeadStatement
+parseHeadStatement =
+  (HeadStatementForAny <$> sep_list (parseAnyName) <*> parseStatement) <||>
+  (HeadStatementIfThen <$> (parseLit "if" *> parseStatement) <*> (parseLit "then" *> parseStatement)) <||>
+  (HeadStatementItsWrong <$> (parseLitItsWrong *> parseStatement))
+
+
 data ChainStatement =
     AndOrChain AndOrChain
   | AndOrChainIff AndOrChain Statement
   deriving (Show, Eq)
+
+parseChainStatement :: Parser ChainStatement
+parseChainStatement =
+  AndOrChain <$> parseAndOrChain <||>
+  AndOrChainIff <$> (parseAndOrChain <* parseLit "iff") <*> parseStatement
 
 data AndOrChain =
     AndChain [PrimaryStatement] HeadPrimary
   | OrChain  [PrimaryStatement] HeadPrimary
   deriving (Show, Eq)
 
+parseAndOrChain :: Parser AndOrChain
+parseAndOrChain =
+  AndChain <$> (sepby1 parsePrimaryStatement $ parseLit "and") <*> (parseLit "and" *> parseHeadPrimary) <||>
+  OrChain <$> (sepby1 parsePrimaryStatement $ parseLit "or") <*> (parseLit "or" *> parseHeadPrimary)
+
+  
 data HeadPrimary =
     HeadPrimaryHead HeadStatement
   | HeadPrimaryPrimary PrimaryStatement
   deriving (Show, Eq)
 
+parseHeadPrimary :: Parser HeadPrimary
+parseHeadPrimary =
+  HeadPrimaryHead <$> parseHeadStatement <||>
+  HeadPrimaryPrimary <$> parsePrimaryStatement
+  
 data PrimaryStatement =
     PrimaryStatementSimple SimpleStatement
   | PrimaryStatementThereIs ThereIsStatement
-  | PrimarStatementSymbol Filler SymbolStatement
+  | PrimaryStatementSymbol Filler SymbolStatement
   | PrimaryStatementConst Filler ConstStatement
   deriving (Show, Eq)
 
+parsePrimaryStatement :: Parser PrimaryStatement
+parsePrimaryStatement =
+  PrimaryStatementSimple <$> parseSimpleStatement <||>
+  PrimaryStatementThereIs <$> parseThereIsStatement <||>
+  PrimaryStatementSymbol <$> parseFiller <*> parseSymbolStatement <||>
+  PrimaryStatementConst <$> parseFiller <*> parseConstStatement
+  
 data SimpleStatement = SimpleStatement [Term] [DoesPred]
   deriving (Show, Eq)
 -- parse [Term] using parseTerms and parse [DoesPred] using sepby1 parseDoesPred (parseLit "and")
 
--- parseSimpleStatement :: Parser SimpleStatement -- TODO(jesse): fix me
--- parseSimpleStatement = liftA2 SimpleStatement parseTerms (sepby1 parseDoesPred $ parseLit "and")
+parseSimpleStatement :: Parser SimpleStatement -- TODO(jesse): fix me
+parseSimpleStatement = liftA2 SimpleStatement parseTerms (sepby1 parseDoesPred $ parseLit "and")
   
 data ThereIsStatement =
     ThereIs [NamedTerm] -- parsed with sep_list (option(lit_a) named_term)
   | ThereIsNo NamedTerm
   deriving (Show, Eq)
 
--- parseThereIsStatement = do -- TODO(jesse): fix me
---   ((parseLit "there") *> (parseLitExist) *> parseLit "no" *> parseNamedTerm) >>= return . ThereIsNo <||>
---    ((parseLit "there") *> (parseLitExist) *> (sepby1 parseNamedTerm (option parseLitA))) >>= return . ThereIs
+parseThereIsStatement =
+  ThereIsNo <$> (parseLit "there" *> parseLitExist *> parseLit "no" *> parseNamedTerm) <||>
+  ThereIs <$>  ((parseLit "there") *> (parseLitExist) *> (sepby1 parseNamedTerm (option parseLitA)))
 
 newtype ConstStatement = ConstStatement [Text]
   deriving (Show, Eq)
@@ -88,28 +121,40 @@ data SymbolStatement =
   | SymbolStatementExists FreePredicate SymbolStatement
   | SymbolStatementPrimRelation PrimRelation
   | SymbolStatementNot SymbolStatement
-  | SymbolStatementParen SymbolStatement
+  | SymbolStatementParen Statement
   | SymbolStatementProp Prop
   deriving (Show, Eq)
 
+parseSymbolStatement :: Parser SymbolStatement
+parseSymbolStatement =
+  SymbolStatementForall <$> (parseLit "forall" *> parseFreePredicate <* parseLitBinderComma) <*> parseSymbolStatement <||>
+  SymbolStatementExists <$> (parseLit "exists" *> parseFreePredicate <* parseLitBinderComma) <*> parseSymbolStatement <||>
+  SymbolStatementPrimRelation <$> parsePrimRelation <||>
+  SymbolStatementNot <$> (parseLit "not" *> parseSymbolStatement) <||>
+  SymbolStatementParen <$> (between parseLParen parseRParen parseStatement) <||>
+  SymbolStatementProp <$> parseProp
+  
 data NamedTerm =
     NamedTermTypedName TypedName
   | NamedTermPredicate FreePredicate
   deriving (Show, Eq)
 
--- parseSimpleStatement :: Parser SimpleStatement
--- parseSimpleStatement = do
---   ts <- parseTerms
---   dps <- sepby1 parseDoesPred (parseLit "and")
---   return $ SimpleStatement ts dps
+parseNamedTerm :: Parser NamedTerm
+parseNamedTerm =
+  NamedTermTypedName <$> parseTypedName <||>
+  NamedTermPredicate <$> parseFreePredicate
+
+newtype PhraseListFiller = PhraseListFiller (Maybe [Text])
+  deriving (Show, Eq)
+
+parsePhraseListFiller' :: Parser PhraseListFiller
+parsePhraseListFiller' = PhraseListFiller <$> parsePhraseListFiller
 
 newtype Filler = Filler (Maybe PhraseListFiller)
   deriving (Show, Eq)
 
--- parseFiller = parsePhraseListFiller >>= return . Filler . Just -- TODO(jesse): remove the extra Maybe from parsePhraseListFiller
-
-newtype PhraseListFiller = PhraseListFiller (Maybe [Text])
-  deriving (Show, Eq)
+parseFiller :: Parser Filler
+parseFiller = Filler <$> option parsePhraseListFiller'
 
 data TVar =
     TVarVar Var
@@ -292,9 +337,19 @@ data AnyName =
   | AnyNameGeneralType GeneralType
   deriving (Show, Eq)
 
+parseAnyName :: Parser AnyName
+parseAnyName =
+  AnyNameAnyArgs <$> (parseLitAny *> sepby1 parseAnyArg parseComma) <||>
+  AnyNameTypedName <$> (parseLitAny *> parseTypedName) <||>
+  AnyNameFreePredicate <$> (parseLitAny *> parseFreePredicate) <||>
+  AnyNameGeneralType <$> (parseLitAny *> parseGeneralType)
+  
 newtype TypedName = TypedName (Attribute TypedNameWithoutAttribute)
   deriving (Show, Eq)
 
+parseTypedName :: Parser TypedName
+parseTypedName = TypedName <$> parseAttribute parseTypedNameWithoutAttribute
+  
 data TypedNameWithoutAttribute = -- note: I removed the extra constructor paren(typed_name_without_attribute) and am instead encoding that into the parser (it will attempt to parse a pair of enclosing parentheses first).
     TypedNamePrimTypedName PrimTypedName
   | TypedNameTVar TVar
