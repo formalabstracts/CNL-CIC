@@ -213,7 +213,7 @@ data Numeric = Numeric {num_left :: Text, num_right :: Text}
 newtype Symbol = Symbol Text
   deriving (Show, Eq)
 
-newtype Symbol_QED = Symbol_QED Text
+newtype SymbolQED = SymbolQED Text
   deriving (Show, Eq)
 
 data LParen = LParen
@@ -248,6 +248,8 @@ data RArrow = RArrow
 data LArrow = LArrow
   deriving (Show, Eq)
 data Blank = Blank
+  deriving (Show, Eq)
+data ApplySub = ApplySub
   deriving (Show, Eq)
 data Alt = Alt
   deriving (Show, Eq)
@@ -302,13 +304,13 @@ parseNumeric = do
 parseSymbol :: Parser Symbol
 parseSymbol = ((foldr (<||>) empty (map ch ['!', '@', '#', '$', '^', '&', '*', '-', '+', '=', '<', '>', '/', '.'])) >>= return . Symbol) <* sc
 
-parseSymbol_QED :: Parser Symbol_QED
-parseSymbol_QED = ((symbol' "qed" )
+parseSymbolQED :: Parser SymbolQED
+parseSymbolQED = ((symbol' "qed" )
                <||> (symbol  "◽"   )
                <||> (symbol  "◻"   )
                <||> (symbol  "◾"   )
                <||> (symbol  "◼"   )
-                  ) >>= return . Symbol_QED
+                  ) >>= return . SymbolQED
                   
 parseLParen :: Parser LParen
 parseLParen = (ch '(' >> return LParen) <* sc
@@ -364,6 +366,9 @@ parseLArrow = parseDataHelper0 LArrow "<-"
           
 parseBlank :: Parser Blank
 parseBlank = parseDataHelper0 Blank "_"
+
+parseApplySub :: Parser ApplySub
+parseApplySub = parseDataHelper0 ApplySub "_"
 
 parseAlt :: Parser Alt
 parseAlt = parseDataHelper0 Alt "|"
@@ -464,8 +469,17 @@ controlsequence = do
 parseControlSequence :: Parser ControlSequence
 parseControlSequence = (controlsequence >>= return . ControlSequence) <* sc
 
-parseOptParen :: Parser a -> Parser a
-parseOptParen p = (between parseLParen parseRParen p) <||> p
+paren :: Parser a -> Parser a
+paren = between parseLParen parseRParen
+
+bracket :: Parser a -> Parser a
+bracket = between parseLBrack parseRBrack
+
+brace :: Parser a -> Parser a
+brace = between parseLBrace parseRBrace
+
+opt_paren :: Parser a -> Parser a
+opt_paren p = (paren p) <||> p
 
 brace_semi :: Eq a => Parser a -> Parser [a]
 brace_semi p = between parseLBrace parseRBrace (sepby1 p parseSemicolon)
@@ -475,6 +489,9 @@ sep_list p = sepby p ((parseLit "," *> parseLit "and") <||> parseLit "and" <||> 
 
 sep_list1 :: Eq a => Parser a -> Parser [a]
 sep_list1 p = sepby1 p ((parseLit "," *> parseLit "and") <||> parseLit "and" <||> parseLit ",")
+
+comma_nonempty_list :: Eq a => Parser a -> Parser [a]
+comma_nonempty_list p = sepby1 p (parseComma)
 
 newtype Label = Label AtomicId
   deriving (Show, Eq)

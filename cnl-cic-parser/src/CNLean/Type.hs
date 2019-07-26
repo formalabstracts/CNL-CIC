@@ -158,28 +158,28 @@ parseFiller = Filler <$> option parsePhraseListFiller'
 
 data TVar =
     TVarVar Var
-  | TVarAnnotatedVars AnnotatedVars
+  | TVarAnnotatedVar AnnotatedVar
   deriving (Show, Eq)
 
+parseTVar :: Parser TVar
+parseTVar =
+  TVarVar <$> parseVar <||>
+  TVarAnnotatedVar <$> parseAnnotatedVar
+  
 data TVarAssignment = TVarAssignment {tvar :: TVar, mct :: Maybe ColonType, term :: Term}
 -- to be parsed with an ASSIGN literal between maybeColonType and term
   deriving (Show, Eq)
 
--- parseTVarAssignment :: Parser TVarAssignment
--- parseTVarAssignment = do
---   tv <- parseTVar
---   mct <- option (parseColonType)
---   (parseLit ":=")
---   t <- parseTerm
---   return $ TVarAssignment tv mct t
+parseTVarAssignment :: Parser TVarAssignment
+parseTVarAssignment =
+  TVarAssignment <$> parseTVar <*> (option parseColonType) <* parseAssign <*> parseTerm
 
 newtype WhereSuffix  = WhereSuffix [TVarAssignment] -- to be parsed using a brace-enclosed, semicolon-separated list
   deriving (Show, Eq)
 
--- parseWhereSuffix :: Parser WhereSuffix
--- parseWhereSuffix = between parseLBrace parseRBracec $ do
---   tvas <- (sepby1 parseTVarAssignment (parseLit ";"))
---   return $ WhereSuffix tvas
+parseWhereSuffix :: Parser WhereSuffix
+parseWhereSuffix =
+  WhereSuffix <$> brace_semi parseTVarAssignment
 
 data ColonType = ColonType GeneralType
   deriving (Show, Eq)
@@ -191,33 +191,52 @@ data GeneralType = GeneralType OpenTailType
   deriving (Show, Eq)
 
 parseGeneralType :: Parser GeneralType
-parseGeneralType = empty
+parseGeneralType = GeneralType <$> parseOpenTailType
 
 data OpenTailType =
-  OpenTailTypeBinOpType BinOpType | OpenTailTypeQuotientType QuotientType | OpenTailTypeCoercionType CoercionType | OpenTailTypePrimStructure PrimStructure
+    OpenTailTypeBinOpType BinOpType
+  | OpenTailTypeQuotientType QuotientType
+  | OpenTailTypeCoercionType CoercionType
+  | OpenTailTypePrimStructure PrimStructure
   deriving (Show, Eq)
 
--- parseOpenTailType :: Parser OpenTailType
--- parseOpenTailType =
---   (parseBinOpType >>= return . OpenTailTypeBinOpType) <||>
---   (parseQuotientType >>= return . OpenTailTypeQuotientType) <||>
---   (parseCoercionType >>= return . OpenTailTypeCoercionType) <||>
---   (parsePrimStructure >>= return . OpenTailTypePrimStructure)
-
+parseOpenTailType :: Parser OpenTailType
+parseOpenTailType =
+  OpenTailTypeBinOpType <$> parseBinOpType <||>
+  OpenTailTypeQuotientType <$> parseQuotientType <||>
+  OpenTailTypeCoercionType <$> parseCoercionType <||>
+  OpenTailTypePrimStructure <$> parsePrimStructure
+  
 data CoercionType =
     CoercionTypeTerm Term 
   | ImplicitCoercion Term -- note, this is not implemented yet but will be supported in the future.
   deriving (Show, Eq)
 
+parseCoercionType :: Parser CoercionType
+parseCoercionType =
+  CoercionTypeTerm <$> parseTerm <||> -- TODO(jesse): check that this implicit coercion is implemented correctly
+  ImplicitCoercion <$> (parseCoercion *> parseTerm)
+  
 data PrimStructure = PrimStructure  -- this is a stub for Cabarete-style structure, and is not supported yet
   deriving (Show, Eq)
+
+parsePrimStructure :: Parser PrimStructure
+parsePrimStructure = empty -- not implemented yet, so for now parsing a prim_structure always fails
+
+newtype Terms = Terms [Term]
+  deriving (Show, Eq)
+
+parseTerms :: Parser Terms
+parseTerms = Terms <$> sep_list (parseTerm)
 
 data Term =
     TermDefiniteTerm DefiniteTerm
   | TermAnyName AnyName
   deriving (Show, Eq)
 
--- parseTerm = TermDefiniteTerm <$> parseDefiniteTerm <||> TermAnyName <$> parseAnyName
+parseTerm =
+  TermDefiniteTerm <$> parseDefiniteTerm <||>
+  TermAnyName <$> parseAnyName
 
 -- parseTerms :: Parser [Term]
 -- parseTerms = sep_list parseTerm
@@ -225,15 +244,29 @@ data Term =
 data QuotientType = QuotientType {domain :: GeneralType, eqv :: Term}
   deriving (Show, Eq)
 
+parseQuotientType :: Parser QuotientType
+parseQuotientType =
+  QuotientType <$> (parseLit "quotient" *> (option $ parseLit "of") *> parseGeneralType <* parseLit "by") <*> parseTerm
+  
 data DefiniteTerm =
     DefiniteTermSymbolicTerm SymbolicTerm
   | DefiniteTermNoun PrimDefiniteNoun
   | DefiniteTermParenNoun PrimDefiniteNoun
   deriving (Show, Eq)
 
+parseDefiniteTerm :: Parser DefiniteTerm
+parseDefiniteTerm =
+  DefiniteTermSymbolicTerm <$> parseSymbolicTerm <||>
+  DefiniteTermNoun <$> ((option $ parseLit "the") *> parsePrimDefiniteNoun) <||>
+  DefiniteTermParenNoun <$> between parseLParen parseRParen ((option $ parseLit "the") *> parsePrimDefiniteNoun)
+  
 data SymbolicTerm = SymbolicTerm OpenTailTerm (Maybe WhereSuffix)
   deriving (Show, Eq)
 
+parseSymbolicTerm :: Parser SymbolicTerm
+parseSymbolicTerm =
+  SymbolicTerm <$> parseOpenTailTerm <*> (option parseWhereSuffix)
+  
 data OpenTailTerm =
     OpenTailTermLambdaTerm LambdaTerm
   | OpenTailTermLambdaFun  LambdaFun
@@ -242,68 +275,128 @@ data OpenTailTerm =
   | OpenTailTermTdopTerm TdopTerm
   deriving (Show, Eq)
 
+parseOpenTailTerm :: Parser OpenTailTerm
+parseOpenTailTerm =
+  OpenTailTermLambdaTerm <$> parseLambdaTerm <||>
+  OpenTailTermLambdaFun <$> parseLambdaFun <||>
+  OpenTaiLTermLetTerm <$> parseLetTerm <||>
+  OpenTaiLTermIfThenElseTerm <$> parseIfThenElseTerm <||>
+  OpenTailTermTdopTerm <$> parseTdopTerm
+
+data TdopTerm =
+    TdopTermOps (Maybe AppTerm) TermOps [(AppTerm, TermOps)] (Maybe AppTerm)
+  | TdopTermApp AppTerm
+  deriving (Show, Eq)
+
+data AppTerm = AppTerm TightestTerm AppArgs
+  deriving (Show, Eq)
+
+parseAppTerm :: Parser AppTerm
+parseAppTerm = AppTerm <$> parseTightestTerm <*> parseAppArgs
+
+newtype TermOps = TermOps [TermOp]
+  deriving (Show, Eq)
+
+parseTermOps :: Parser TermOps
+parseTermOps = TermOps <$> (many1' parseTermOp)
+
+data TermOp =
+    TermOpPrimTermOp PrimTermOp
+  | TermOpCS (CSBrace PrimTermOpControlSeq)
+  deriving (Show, Eq)
+
+parseTermOp :: Parser TermOp
+parseTermOp =
+  TermOpPrimTermOp <$> parsePrimTermOp <||>
+  TermOpCS <$> parseCSBrace parsePrimTermOpControlSeq
+  
 data IfThenElseTerm = IfThenElseTerm Prop Term OpenTailTerm
   deriving (Show, Eq)
 
--- parseIfThenElseTerm = do --TODO(jesse): make sure this actually works
---   (IfThenElseTerm)
---     <$> (parseLit "if" *> parseProp) <*>
---         (parseLit "then" *> parseTerm) <*>
---         (parseLit "else" *> parseOpenTailTerm)
-
+parseIfThenElseTerm =
+  (IfThenElseTerm)
+    <$> (parseLit "if" *> parseProp) <*>
+        (parseLit "then" *> parseTerm) <*>
+        (parseLit "else" *> parseOpenTailTerm)
 
 data LambdaFun = LambdaFun Identifier GeneralizedArgs (Maybe ColonType) OpenTailTerm
   deriving (Show, Eq)
 
--- parseLambdaFun =
---   (LambdaFun) <$>
---     ((parseLit "fun") *> parseIdentifier) <*>
---     (parseGeneralizedArgs) <*>
---     (option parseColonType) <*>
---     (parseAssign *> parseOpenTailTerm)
+parseLambdaFun =
+  (LambdaFun) <$>
+    ((parseLit "fun") *> parseIdentifier) <*>
+    (parseGeneralizedArgs) <*>
+    (option parseColonType) <*>
+    (parseAssign *> parseOpenTailTerm)
 
 
 data LetTerm = LitTerm Term Term OpenTailTerm
   deriving (Show, Eq)
 
--- parseLetTerm = (LitTerm) <$>
---   (parseLit "let" *> parseTerm) <*>
---   (parseAssign *> parseTerm) <*>
---   (parseLit "in" *> parseOpenTailTerm)
-
-
-data TdopTerm = DummyConstructor2 -- TODO(jesse): fix me
-  deriving (Show, Eq)
+parseLetTerm = (LitTerm) <$>
+  (parseLit "let" *> parseTerm) <*>
+  (parseAssign *> parseTerm) <*>
+  (parseLit "in" *> parseOpenTailTerm)
 
 data LambdaTerm =
-    PrimLambdaBinder PrimLambdaBinder GeneralizedArgs OpenTailTerm -- parse binder comma to separate args from tail
+    LambdaTermPrimLambdaBinder PrimLambdaBinder GeneralizedArgs OpenTailTerm -- parse binder comma to separate args from tail
   | LambdaTermGeneralizedArg GeneralizedArg OpenTailTerm -- parse mapsto to separate args from tail
   deriving (Show, Eq)
 
+parseLambdaTerm :: Parser LambdaTerm
+parseLambdaTerm =
+  LambdaTermPrimLambdaBinder <$> parsePrimLambdaBinder <*> parseGeneralizedArgs <*> parseOpenTailTerm <||>
+  LambdaTermGeneralizedArg <$> parseGeneralizedArg <* parseMapsTo <*> parseOpenTailTerm
+  
 data BinOpType = BinOpType { head :: TypeOperand, tail :: [(TypeOp,TypeOperand)]}
   deriving (Show, Eq)
 
+parseBinOpType :: Parser BinOpType
+parseBinOpType = BinOpType <$> parseTypeOperand <*> (many' $ (,) <$> parseTypeOp <*> parseTypeOperand)
+  
 data TypeOp =
-    TypeOpPrimTypeOp Token -- TODO(jesse) fix me
-  | TypeOpDummyConstructor -- TODO(jesse) fix me
+    TypeOpPrimTypeOp PrimTypeOp -- TODO(jesse) fix me
+  | TypeOpCSBrace (CSBrace PrimTypeOpControlSeq) -- TODO(jesse) fix me
   deriving (Show, Eq)
 
 parseTypeOp :: Parser TypeOp
-parseTypeOp = empty
+parseTypeOp =
+  TypeOpPrimTypeOp <$> parsePrimTypeOp <||>
+  TypeOpCSBrace <$> parseCSBrace parsePrimTypeOpControlSeq
 
 data TypeOperand =
     TypeOperandBinderType BinderType
   | TypeOperandDependentVars DependentVars
   deriving (Show, Eq)
 
+parseTypeOperand :: Parser TypeOperand
+parseTypeOperand =
+  TypeOperandBinderType <$> parseBinderType <||>
+  TypeOperandDependentVars <$> parseDependentVars
+  
 data BinderType =
-    BinderTypeAppType
+    BinderTypeAppType AppType
   | BinderTypePrimPiBinder PrimPiBinder GeneralizedArgs BinderType -- parsed with a binder_comma between generalizedargs and bindertype
   deriving (Show, Eq)
 
+parseBinderType :: Parser BinderType
+parseBinderType =
+  BinderTypeAppType <$> parseBinderType <||>
+  BinderTypePrimPiBinder <$> parsePrimPiBinder <*> (parseGeneralizedArgs <* parseLitBinderComma) <*> parseBinderType
+
+data AppType = AppType TightestType AppArgs
+  deriving (Show, Eq)
+
+parseAppType :: Parser AppType
+parseAppType =
+  AppType <$> parseTightestType <*> parseAppArgs
+  
 data GeneralizedArgs = GeneralizedArgs {optArgs :: OptArgs, generalizedArg :: [GeneralizedArg] }
   deriving (Show, Eq)
 
+parseGeneralizedArgs :: Parser GeneralizedArgs
+parseGeneralizedArgs = GeneralizedArgs <$> parseOptArgs <*> many' parseGeneralizedArg
+  
 data VarOrAtomic =
     VarOrAtomicVar Var
   | VarOrAtomicAtomic AtomicId
@@ -314,12 +407,21 @@ parseVarOrAtomic = (VarOrAtomicVar <$> parseVar) <||> (VarOrAtomicAtomic <$> par
   
 data GeneralizedArg =
     GeneralizedArg TightestTerm
-  | GeneralizedArgVarOrAtomic {varOrAtomic1 :: VarOrAtomic, varOrAtomic2 :: VarOrAtomic, optColonType :: (Maybe ColonType)}
+  | GeneralizedArgVarOrAtomic {varOrAtomic :: VarOrAtomic, varOrAtomics :: [VarOrAtomic], optColonType :: (Maybe ColonType)}
   deriving (Show, Eq)
 
+parseGeneralizedArg :: Parser GeneralizedArg
+parseGeneralizedArg =
+  GeneralizedArg <$> parseTightestTerm <||>
+  (paren $ GeneralizedArgVarOrAtomic <$> parseVarOrAtomic <*> (many1' parseVarOrAtomic) <*> option parseColonType)
+  
 data DependentVars = DependentVars {maybeOptArgs :: (Maybe OptArgs), annotatedVars :: [AnnotatedVars]}
   deriving (Show, Eq)
 
+parseDependentVars :: Parser DependentVars
+parseDependentVars =
+  DependentVars <$> option (parseLit "at" *> parseOptArgs) <*> many1' parseAnnotatedVars
+  
 -- lexically, OptArgs is a brace-enclosed, semicolon separated lists of variables or atomics, optionally annotated with types
 newtype OptArgs = OptArgs [(VarOrAtomic, Maybe ColonType)]
   deriving (Show, Eq)
@@ -350,46 +452,87 @@ newtype TypedName = TypedName (Attribute TypedNameWithoutAttribute)
 parseTypedName :: Parser TypedName
 parseTypedName = TypedName <$> parseAttribute parseTypedNameWithoutAttribute
   
-data TypedNameWithoutAttribute = -- note: I removed the extra constructor paren(typed_name_without_attribute) and am instead encoding that into the parser (it will attempt to parse a pair of enclosing parentheses first).
+data TypedNameWithoutAttribute = 
     TypedNamePrimTypedName PrimTypedName
   | TypedNameTVar TVar
   | TypedNamePrimClassifier PrimClassifier TVar
   | TypedNameVar Var GeneralType -- parsed as var "with type" general_type
+  | TypedNameParen TypedNameWithoutAttribute
   deriving (Show, Eq)
 
+parseTypedNameWithoutAttribute :: Parser TypedNameWithoutAttribute
+parseTypedNameWithoutAttribute =
+  TypedNamePrimTypedName <$> parsePrimTypedName <||>
+  TypedNameTVar <$> parseTVar <||>
+  TypedNamePrimClassifier <$> parsePrimClassifier <*> parseTVar <||>
+  TypedNameVar <$> (parseVar <* parseLitWith <* parseLit "type") <*> parseGeneralType <||>
+  TypedNameParen <$> paren parseTypedNameWithoutAttribute
+  
 newtype FreePredicate = FreePredicate (Attribute FreePredicateWithoutAttribute)
   deriving (Show, Eq)
 
+parseFreePredicate :: Parser FreePredicate
+parseFreePredicate = FreePredicate <$> parseAttribute parseFreePredicateWithoutAttribute
+  
 data FreePredicateWithoutAttribute =
     FreePredicateProp Prop HoldingVar -- note, this 
   | FreePredicateVars2 Vars2 BinaryRelationOp TdopTerm
   deriving (Show, Eq)
 
+parseFreePredicateWithoutAttribute :: Parser FreePredicateWithoutAttribute
+parseFreePredicateWithoutAttribute =
+  opt_paren (FreePredicateProp <$> parseProp <*> parseHoldingVar) <||>
+  FreePredicateVars2 <$> parseVars2 <*> parseBinaryRelationOp <*> parseTdopTerm
+  
 -- TODO(jesse): see if this can be factored out of this mutually recursive mess into a separate file
 data Prop =
     PropBinderProp BinderProp
   | PropTdopProp TdopProp
   deriving (Show, Eq)
 
+parseProp :: Parser Prop
+parseProp =
+  PropBinderProp <$> parseBinderProp <||>
+  PropTdopProp <$> parseTdopProp
+  
 data TdopProp =
     TdopPropHead (Maybe BinderProp) [PropOp]
   | TdopPropTail [(BinderProp,[PropOp])] (Maybe BinderProp)
   deriving (Show, Eq)
 
+parseTdopProp :: Parser TdopProp
+parseTdopProp =
+  TdopPropHead <$> (option parseBinderProp) <*> parsePropOps <||>
+  TdopPropTail <$> (many' $ (,) <$> parseBinderProp <*> parsePropOps) <*> option parseBinderProp
+  
 data PropOp =
     PropOpPrim PrimPropositionalOp
   | PropOpCS (CSBrace PrimPropositionalOpControlSeq)
   deriving (Show, Eq)
 
+parsePropOp :: Parser PropOp
+parsePropOp =
+  PropOpPrim <$> parsePrimPropositionalOp <||>
+  PropOpCS <$> parseCSBrace parsePrimPropositionalOpControlSeq
+  
 data BinderProp =
     BinderPropAppProp AppProp
   | BinderPropTdopRelProp TdopRelProp
   | BinderPropPrimBinderProp PrimBinderProp Args BinderProp -- parsed with binder comma between Args and BinderProp
   deriving (Show, Eq)
 
+parseBinderProp :: Parser BinderProp
+parseBinderProp =
+  BinderPropAppProp <$> parseAppProp <||>
+  BinderPropTdopRelProp <$> parseTdopRelProp <||>
+  BinderPropPrimBinderProp <$> parsePrimBinderPropArgs <*> parseArgs <* parseLitBinderComma <*> parseBinderProp
+  
 data TdopRelProp = TdopRelProp [TdopTerm] [(BinaryRelationOp, TdopTerm)] -- last list must be empty, tdop_terms is nonempty comma-separated
   deriving (Show, Eq)
 
+parseTdopRelProp :: Parser TdopRelProp
+parseTdopRelProp = TdopRelProp <$> comma_nonempty_list parseTdopTerm <*> (many1' $ (,) <$> parseBinaryRelationOp <*> parseTdopTerm)
+  
 data TightestProp =
     ParenStatement Statement -- parsed with mandatory parentheses
   | TightestPropIdentifierProp IdentifierProp
@@ -397,13 +540,22 @@ data TightestProp =
   | TightestPropAnnotatedProp AnnotatedProp
   deriving (Show, Eq)
 
+parseTightestProp :: Parser TightestProp
+parseTightestProp =
+  paren (ParenStatement <$> parseStatement) <||>
+  TightestPropIdentifierProp <$> parseIdentifierProp <||>
+  TightestPropVar <$> parseVar <||>
+  TightestPropAnnotatedProp <$> parseAnnotatedProp
+  
 data Identifier =
     IdentifierAtomicId AtomicId
   | IdentifierHierId HierId
   deriving (Show, Eq)
 
 parseIdentifier :: Parser Identifier
-parseIdentifier = (IdentifierHierId <$> parseHierId) <||> (IdentifierAtomicId <$> parseAtomicId)
+parseIdentifier =
+  (IdentifierHierId <$> parseHierId) <||>
+  (IdentifierAtomicId <$> parseAtomicId)
 
 newtype IdentifierProp = IdentifierProp Identifier
   deriving (Show, Eq)
@@ -413,15 +565,26 @@ parseIdentifierProp = parseIdentifier >>= return . IdentifierProp
 newtype AnnotatedProp = AnnotatedProp Prop
   deriving (Show, Eq)
 
+parseAnnotatedProp :: Parser AnnotatedProp
+parseAnnotatedProp =
+  paren $ AnnotatedProp <$> parseProp <* parseColon <* parseLit "prop"
 -- parseAnnotatedProp :: Parser AnnotatedProp
 -- parseAnnotatedProp = between parseLParen parseRParen parseProp
 
 data AppProp = AppProp TightestProp AppArgs
   deriving (Show, Eq)
 
+parseAppProp :: Parser AppProp
+parseAppProp =
+  AppProp <$> parseTightestProp <*> parseAppArgs
+
 data AppArgs = AppArgs (Maybe RecordAssignTerm) [TightestExpr]
   deriving (Show, Eq)
 
+parseAppArgs :: Parser AppArgs
+parseAppArgs =
+  AppArgs <$> (option $ parseLit "at" *> parseRecordAssignTerm) <*> (many1 parseTightestExpr)
+  
 data TightestExpr =
     TightestExprTerm TightestTerm
   | TightestExprProp TightestProp
@@ -429,6 +592,13 @@ data TightestExpr =
   | TightestExprProof ProofExpr
   deriving (Show, Eq)
 
+parseTightestExpr :: Parser TightestExpr
+parseTightestExpr =
+  TightestExprTerm <$> parseTightestTerm <||>
+  TightestExprProp <$> parseTightestProp <||>
+  TightestExprType <$> parseTightestType <||>
+  TightestExprProof <$> parseProofExpr
+  
 data TightestType =
     TightestTypeParen ParenType
   | TightestTypeAnnotated AnnotatedType
@@ -441,28 +611,45 @@ data TightestType =
   | TightestTypeStructure Structure
   deriving (Show, Eq)
 
+parseTightestType :: Parser TightestType
+parseTightestType =
+  TightestTypeParen <$> parseParenType <||>
+  TightestTypeAnnotated <$> parseAnnotatedType <||>
+  TightestTypeControlSeq <$> parseControlSeqType <||>
+  TightestTypeConst <$> parseConstType <||>
+  TightestTypeVar <$> parseVarType <||>
+  TightestTypeSubtype <$> parseSubtype <||>
+  TightestTypeInductive <$> parseInductiveType <||>
+  TightestTypeMutualInductive <$> parseMutualInductiveType <||>
+  TightestTypeStructure <$> parseStructure
+
+  
 newtype ParenType = ParenType GeneralType
   deriving (Show, Eq)
 
 parseParenType = between parseLParen parseRParen parseGeneralType >>= return . ParenType
-
 
 newtype AnnotatedType = AnnotatedType GeneralType
   deriving (Show, Eq)
 
 parseAnnotatedType = between parseLParen parseRParen $ parseGeneralType <* parseColon <* parseLit "type"
 
-
 newtype ControlSeqType = ControlSeqType (CSBrace PrimTypeControlSeq)
   deriving (Show, Eq)
 
+parseControlSeqType :: Parser ControlSeqType
+parseControlSeqType =
+  ControlSeqType <$> parseCSBrace parsePrimTypeControlSeq
+  
 newtype ConstType = ConstType TypeIdentifier
   deriving (Show, Eq)
-newtype TypeIdentifier = TypeIdentifier Identifier
-  deriving (Show, Eq)
-parseTypeIdentifier = parseIdentifier >>= return . TypeIdentifier
+
 parseConstType = parseTypeIdentifier >>= return . ConstType
 
+newtype TypeIdentifier = TypeIdentifier Identifier
+  deriving (Show, Eq)
+
+parseTypeIdentifier = parseIdentifier >>= return . TypeIdentifier
 
 data VarType =
     VarTypeVar Var
@@ -474,36 +661,42 @@ parseVarType = VarTypeAnnotated <$> (between parseLParen parseRParen $ parseVar 
 
 data Subtype = Subtype Term HoldingVar Statement
   deriving (Show, Eq)
+  
+parseSubtype = between parseLBrace parseRBrace $ do
+  t <- parseTerm
+  hvar <- parseHoldingVar
+  parseLit "//"
+  s <- parseStatement
+  return $ Subtype t hvar s
 
--- parseSubtype = between parseLBrace parseRBrace $ do
---   t <- parseTerm
---   hvar <- parseHoldingVar
---   parseLit "//" -- TODO(jesse): confirm this interpretation of LIT_SUBTYPEMID
---   s <- parseStatement
---   return $ Subtype t hvar s
-
-data InductiveType = InductiveType Identifier Args (Maybe ColonSort) [Maybe AltConstructor]
+data InductiveType = InductiveType Identifier Args (Maybe ColonSort) [OptAltConstructor]
   deriving (Show, Eq)
 
+parseInductiveType :: Parser InductiveType
+parseInductiveType = (InductiveType <$> (parseLit "inductive" *> parseIdentifier) <*> parseArgs <*> (option parseColonSort) <*> many' parseOptAltConstructor <* parseLit "end")
+  
 newtype ColonSort = ColonSort SortExpr
   deriving (Show, Eq)
 
--- parseColonSort = parseColon *> parseSortExpr >>= return . ColonSort
+parseColonSort = parseColon *> parseSortExpr >>= return . ColonSort
 
+data OptAltConstructor = OptAltConstructor Identifier Args (Maybe ColonType)
+  deriving (Show, Eq)
+
+parseOptAltConstructor :: Parser OptAltConstructor
+parseOptAltConstructor = OptAltConstructor <$> (parseAlt *> parseIdentifier) <*> parseArgs <*> option parseColonType
 
 data AltConstructor = AltConstructor Identifier Args ColonType
   deriving (Show, Eq)
 
--- parseAltConstructor = parseAlt *> do
---   id <- parseIdentifier
---   args <- parseArgs
---   ct <- parseColonType
---   return $ AltConstructor id args ct
+parseAltConstructor = AltConstructor <$> (parseAlt *> parseIdentifier) <*> parseArgs <*> parseColonType
 
 data MutualInductiveType = MutualInductiveType [Identifier] Args [(AtomicId, Args, ColonType, [AltConstructor])]   -- comma-separated nonempty list of identifiers, second list parsed with mandatory prefix LIT_WITH
 -- MutualInductiveType must be parsed with a LIT_END at the end.
   deriving (Show, Eq)
 
+parseMutualInductiveType :: Parser MutualInductiveType
+parseMutualInductiveType = (MutualInductiveType <$> (parseLit "inductive" *> comma_nonempty_list parseIdentifier) <*> parseArgs <*> many' (parseLit "with" *> ((,,,) <$> parseAtomicId <*> parseArgs <*> parseColonType <*> many parseAltConstructor))) <* parseLit "end"
 
 {-
 structure : option(LIT_NOTATIONAL) LIT_STRUCTURE 
@@ -514,6 +707,11 @@ structure : option(LIT_NOTATIONAL) LIT_STRUCTURE
 data Structure = Structure Args (Maybe [Field]) (Maybe SatisfyingPreds) -- [Field] is parsed by brace_semi
   deriving (Show, Eq)
 
+parseStructure :: Parser Structure
+parseStructure = Structure <$>
+  (option (parseLit "notational") *> parseLit "structure" *> option (parseLitParam) *> parseArgs) <*>
+  ((option $ parseLit "with") *> option (brace_semi parseField)) <*>
+  (option $ parseLit "satisfying" *> parseSatisfyingPreds)
 -- parseStructure = do
 --   args <- option(parseLit "notational") *> parseLit "structure" *> option (parseLitParam) parseArgs
 --   mfs <- option(parseLit "with") *> option(brace_semi parseField)
@@ -523,55 +721,66 @@ data Structure = Structure Args (Maybe [Field]) (Maybe SatisfyingPreds) -- [Fiel
 data Field = Field FieldPrefix FieldIdentifier (Maybe FieldSuffix)
   deriving (Show, Eq)
 
-newtype SatisfyingPreds =SatisfyingPreds [SatisfyingPred]
+parseField :: Parser Field
+parseField = Field <$> parseFieldPrefix <*> parseFieldIdentifier <*> option parseFieldSuffix
+
+newtype SatisfyingPreds = SatisfyingPreds [SatisfyingPred]
   deriving (Show, Eq)
 
+parseSatisfyingPreds :: Parser SatisfyingPreds
+parseSatisfyingPreds = SatisfyingPreds <$> brace_semi parseSatisfyingPred
+  
 newtype FieldPrefix = FieldPrefix [[Text]]
   deriving (Show, Eq)
+
 parseFieldPrefix = parseAlt *> (many1' parseLitFieldKey) >>= return . FieldPrefix
 
 
 data FieldIdentifier = FieldIdentifier VarOrAtomic (Maybe ColonType)
   deriving (Show, Eq)
 
-parseFieldIndentifier = do
-  va <- parseVarOrAtomic
-  mct <- option parseColonType
-  return $ FieldIdentifier va mct
+parseFieldIndentifier = FieldIdentifier <$> parseVarOrAtomic <*> option parseColonType
 
 data FieldSuffix =
     WithoutNotation
   | FieldSuffixFieldAssign FieldAssign
   deriving (Show, Eq)
 
--- parseFieldSuffix =
---   (do parseLit "without"
---       parseLit "notation"
---       return WithoutNotation) <||>
---   parseFieldAssign >>= return . FieldSuffixFieldAssign
+parseFieldSuffix =
+  parseLit "without" *> parseLit "notation" *> return WithoutNotation <||>
+  FieldSuffixFieldAssign <$> parseFieldAssign
 
 newtype FieldAssign = FieldAssign Expr
   deriving (Show, Eq)
 
--- parseFieldAssign = parseAssign *> parseExpr >>= return . FieldAssign
-
-
--- parseSatisfyingPreds = brace_semi (parseSatisfyingPred) >>= return . SatisfyingPreds
+parseFieldAssign = FieldAssign <$> (parseAssign *> parseExpr)
 
 data SatisfyingPred = SatisfyingPred (Maybe AtomicId) Prop
   deriving (Show, Eq)
 
--- parseSatisfyingPred = do
---   mid <- parseAlt *> option(parseAtomicId <* parseColon)
---   p <- parseProp
---   return $ SatisfyingPred mid p
+parseSatisfyingPred = do
+  mid <- parseAlt *> option(parseAtomicId <* parseColon)
+  p <- parseProp
+  return $ SatisfyingPred mid p
 
 data TightestTerm =
     TightestTerm TightestPrefix
   | TightestTermFieldAcc TightestTerm FieldAcc
-  | TightestTermApplySub [TightestTerm] -- should be parsed by a paren-enclosed nonempty list of tightest terms, preceded by an ApplySub literal
+  | TightestTermApplySub TightestTerms -- should be parsed by a paren-enclosed nonempty list of tightest terms, preceded by an ApplySub literal
   deriving (Show, Eq)
 
+parseTightestTerm :: Parser TightestTerm
+parseTightestTerm =
+  TightestTerm <$> parseTightestPrefix <||>
+  TightestTermFieldAcc <$> parseTightestTerm <*> parseFieldAcc <||>
+  TightestTermApplySub <$> (parseApplySub *> parseTightestTerms)
+
+newtype TightestTerms = TightestTerms [TightestTerm]
+  deriving (Show, Eq)
+
+parseTightestTerms :: Parser TightestTerms
+parseTightestTerms = paren $ (TightestTerms <$> many1' parseTightestTerm)
+  
 data TightestPrefix =
     TightestPrefixNumeric Numeric
   | TightestPrefixString String
@@ -585,47 +794,112 @@ data TightestPrefix =
   | TightestPrefixAltTerm AltTerm
   deriving (Show, Eq)
 
+parseTightestPrefix :: Parser TightestPrefix
+parseTightestPrefix =
+  TightestPrefixNumeric <$> parseNumeric <||>
+  TightestPrefixString <$> parseTkString <||>
+  TightestPrefixDecimal <$> parseDecimal <||>
+  TightestPrefixBlank <$> parseBlank <||>
+  TightestPrefixVar <$> parseVar <||>
+  TightestPrefixPrimIdentifierTerm <$> parsePrimIdentifierTerm <||>
+  TightestPrefixPrimPrefixFunction <$> parsePrimPrefixFunction <||>
+  TightestPrefixControlSeqTerm <$> parseControlSeqTerm <||>
+  TightestPrefixDelimitedTerm <$> parseDelimitedTerm <||>
+  TightestPrefixAltTerm <$> parseAltTerm
+  
 data AltTerm =
     AltTermCaseTerm Term -- parsed as CASE term OF
   | AltTermMatchTerm MatchSeq -- parsed as MATCH match_seq WITH
   | AltTermLambdaFunction LambdaFunction
   deriving (Show, Eq)
 
--- parseAltTerm :: Parser AltTerm
--- parseAltTerm =
---   parseLit "case" *> parseTerm <* parseLit "of" >>= return . AltTermCaseTerm <||>
---   parseMatchSeq >>= return . AltTermMatchTerm <||>
---   parseLambdaFunction >>= return . AltTermLambdaFunction
+parseAltTerm :: Parser AltTerm
+parseAltTerm =
+  AltTermCaseTerm <$> (parseLit "case" *> parseTerm <* parseLit "of") <||>
+  AltTermMatchTerm <$> (parseLit "match" *> parseMatchSeq <* parseLit "with") <||>
+  AltTermLambdaFunction <$> parseLambdaFunction
 
-newtype MatchSeq = MatchSeq [Term]  -- parsed as a comma-separated nonempty list
+newtype MatchSeq = MatchSeq [Term]  -- parsed as a nonempty list
   deriving (Show, Eq)
 
--- parseMatchSeq = sepby1 parseTerm parseComma >>= return . MatchSeq
+parseMatchSeq = sepby1 parseTerm parseComma >>= return . MatchSeq
 
 data LambdaFunction = LambdaFunction Identifier Args
   deriving (Show, Eq)
 
--- parseLambdaFunction = parseLit "function" *> do
---   id <- parseIdentifier
---   args <- parseArgs
---   return $ LambdaFunction id args
+parseLambdaFunction = parseLit "function" *> do
+  id <- parseIdentifier
+  args <- parseArgs
+  return $ LambdaFunction id args
 
 data ControlSeqTerm = ControlSeqTerm (CSBrace PrimTermControlSeq)
   deriving (Show, Eq)
 
+parseControlSeqTerm :: Parser ControlSeqTerm
+parseControlSeqTerm = ControlSeqTerm <$> parseCSBrace parsePrimTermControlSeq
+  
 data DelimitedTerm =
-    DelimitedTermParen
-  | DelimitedTermAnnotated
-  | DelimitedTermMake
-  | DelimitedTermList
-  | DelimitedTermTuple
-  | DelimitedTermSetEnum
-  | DelimitedTermSetComprehension
+    DelimitedTermParen Term
+  | DelimitedTermAnnotated AnnotatedTerm
+  | DelimitedTermMake MakeTerm
+  | DelimitedTermList ListTerm
+  | DelimitedTermTuple TupleTerm
+  | DelimitedTermSetEnum SetEnumTerm
+  | DelimitedTermSetComprehension SetComprehensionTerm
   deriving (Show, Eq)
 
+parseDelimitedTerm :: Parser DelimitedTerm
+parseDelimitedTerm =
+  DelimitedTermParen <$> paren parseTerm <||>
+  DelimitedTermAnnotated <$> parseAnnotatedTerm <||>
+  DelimitedTermMake <$> parseMakeTerm <||>
+  DelimitedTermList <$> parseListTerm <||>
+  DelimitedTermTuple <$> parseTupleTerm <||>
+  DelimitedTermSetEnum <$> parseSetEnumTerm <||>
+  DelimitedTermSetComprehension <$> parseSetComprehensionTerm
+
+data AnnotatedTerm = AnnotatedTerm Term ColonType
+  deriving (Show, Eq)
+
+parseAnnotatedTerm :: Parser AnnotatedTerm
+parseAnnotatedTerm = paren $ AnnotatedTerm <$> parseTerm <*> parseColonType
+
+data MakeTerm = MakeTerm [(VarOrAtomic, Maybe Term)]
+  deriving (Show, Eq)
+
+parseMakeTerm :: Parser MakeTerm
+parseMakeTerm = MakeTerm <$> brace_semi $ (,) <$> parseVarOrAtomic <*> option (parseAssign *> parseTerm) <* option (parseSemicolon *> parseBlank)
+
+newtype ListTerm = ListTerm [Term]
+  deriving (Show, Eq)
+
+parseListTerm :: Parser ListTerm
+parseListTerm = bracket $ ListTerm <$> sepby' parseTerm parseSemicolon
+
+data TupleTerm = TupleTerm Term [Term]
+  deriving (Show, Eq)
+
+parseTupleTerm :: Parser TupleTerm
+parseTupleTerm = paren $ TupleTerm <$> parseTerm <* parseComma <*> comma_nonempty_list parseTerm
+  
+data SetEnumTerm = SetEnumTerm [Term]
+  deriving (Show, Eq)
+
+parseSetEnumTerm :: Parser SetEnumTerm
+parseSetEnumTerm = brace $ SetEnumTerm <$> sepby parseTerm parseComma
+  
+data SetComprehensionTerm = SetComprehensionTerm Term HoldingVar Statement
+  deriving (Show, Eq)
+
+parseSetComprehensionTerm :: Parser SetComprehensionTerm
+parseSetComprehensionTerm = brace $ SetComprehensionTerm <$> parseTerm <*> parseHoldingVar <* parseLit "|" <*> parseStatement
+  
 newtype RecordAssignTerm = RecordAssignTerm [(VarOrAtomic, Maybe ColonType, Expr)] -- parsed as brace-enclosed semicolon-separated list of items, with LIT_ASSIGN between ColonType and Expr
   deriving (Show, Eq)
 
+parseRecordAssignTerm :: Parser RecordAssignTerm
+parseRecordAssignTerm = RecordAssignTerm <$> brace_semi ((,,) <$> parseVarOrAtomic <*> option parseColonType <* parseAssign <*> parseExpr)
+  
 data Expr =
     ExprGeneralType GeneralType
   | ExprTerm Term
@@ -634,12 +908,30 @@ data Expr =
   | ExprSortExpr SortExpr
   deriving (Show, Eq)
 
-newtype ProofExpr = ProofExpr Text -- note: removed paren(proof_expr) and moved into parser. this parses a SYMBOL_QED for the Text.
+parseExpr :: Parser Expr
+parseExpr =
+  ExprGeneralType <$> parseGeneralType <||>
+  ExprTerm <$> parseTerm <||>
+  ExprProp <$> parseProp <||>
+  ExprProofExpr <$> parseProofExpr <||>
+  ExprSortExpr <$> parseSortExpr
+  
+data ProofExpr =
+    ProofExprQED SymbolQED -- note: removed paren(proof_expr) and moved into parser. this parses a SYMBOL_QED for the Text.
+  | ProofExprParen ProofExpr
   deriving (Show, Eq)
 
-data SortExpr = SortExpr (Maybe Args) LitSort -- Args should be nonempty
+parseProofExpr :: Parser ProofExpr
+parseProofExpr =
+  ProofExprQED <$> parseSymbolQED <||>
+  ProofExprParen <$> paren parseProofExpr
+  
+data SortExpr = SortExpr (Maybe Args) LitSort -- Args should be nonempty TODO(jesse): clarify what this means wrt Args parsing
   deriving (Show, Eq)
 
+parseSortExpr :: Parser SortExpr
+parseSortExpr = SortExpr <$> (option $ parseArgs <* parseRArrow) <*> parseLitSort'
+  
 data LitSort = LitType | LitProp -- this information should not be discarded, so we need a separate type
   deriving (Show, Eq)
 
@@ -649,54 +941,101 @@ parseLitSort' = (parseLit "type" *> return LitType) <||> (parseLit "prop" *> ret
 data Args = Args (Maybe OptArgs) [RequiredArg] -- i think requiredargs are whitespace-separated?
   deriving (Show, Eq)
 
+parseArgs :: Parser Args
+parseArgs = Args <$> (option $ parseLit "at" *> parseOptArgs) <*> (many' parseRequiredArg)
+
 data RequiredArg =
-    RequiredArgAnnotated VarOrAtomic (Maybe ColonType) -- note, this must be parsed with enclosing parentheses
+    RequiredArgAnnotated [VarOrAtomic] (Maybe ColonType) -- note, this must be parsed with enclosing parentheses
   | RequiredArgVarOrAtomic VarOrAtomic
   deriving (Show, Eq)
 
+parseRequiredArg :: Parser RequiredArg
+parseRequiredArg =
+  (paren $ RequiredArgAnnotated <$> (many1' parseVarOrAtomic) <*> option parseColonType )<||>
+  RequiredArgVarOrAtomic <$> parseVarOrAtomic
+  
 data CSBrace a = CSBrace a [Expr]
   deriving (Show, Eq)
 
+parseCSBrace :: Parser a -> Parser (CSBrace a)
+parseCSBrace p = CSBrace <$> p <*> (many' $ brace parseExpr)
+  
 data BinaryRelationOp =
     BinaryRelationOpPrimBinaryRelationOp PrimBinaryRelationOp
   | BinaryRelationOpControlSeq (CSBrace PrimBinaryRelationControlSeq)
   deriving (Show, Eq)
 
+parseBinaryRelationOp :: Parser BinaryRelationOp
+parseBinaryRelationOp =
+  BinaryRelationOpPrimBinaryRelationOp <$> parsePrimBinaryRelationOp <||>
+  BinaryRelationOpControlSeq <$> parseCSBrace parsePrimBinaryRelationControlSeq
+  
 data Vars2 = Vars2 TVar [TVar] -- parse a TVar, then parse a comma-separated list of TVars
   deriving (Show, Eq)
 
+parseVars2 :: Parser Vars2
+parseVars2 = Vars2 <$> parseTVar <*> comma_nonempty_list parseTVar
+  
 newtype HoldingVar = HoldingVar (Maybe [Var]) -- for the parse to succeed, must be preceded by HOLDING and vars must be in a nonempty comma-separated list
   deriving (Show, Eq)
 
 parseHoldingVar :: Parser HoldingVar
 parseHoldingVar = HoldingVar <$> (option $ parseLit "holding" *> (sepby1 parseVar (parseComma)))
 
-data Attribute a = Attribute [LeftAttribute] a [RightAttribute]
+data Attribute a = Attribute [LeftAttribute] a (Maybe RightAttribute)
   deriving (Show, Eq)
 
+parseAttribute :: Parser a -> Parser (Attribute a)
+parseAttribute p = Attribute <$> (many' parseLeftAttribute) <*> p <*> option parseRightAttribute
+  
 data LeftAttribute =
     LeftAttributeSingleSubject PrimSimpleAdjective
   | LeftAttributeMultiSubject PrimSimpleAdjectiveMultiSubject
   deriving (Show, Eq)
 
+parseLeftAttribute :: Parser LeftAttribute
+parseLeftAttribute =
+  LeftAttributeSingleSubject <$> parsePrimSimpleAdjective <||>
+  LeftAttributeMultiSubject <$> parsePrimSimpleAdjectiveMultiSubject
+  
 data RightAttribute =
-    RightAttributeIsPred IsPred -- TODO(jesse) implement this inside of Primitive.hs
-  | RightAttributeDoesPred DoesPred -- TODO(jesse) implement this inside of Primitive.hs
+    RightAttributeIsPred [IsPred] -- TODO(jesse) implement this inside of Primitive.hs
+  | RightAttributeDoesPred [DoesPred] -- TODO(jesse) implement this inside of Primitive.hs
   | RightAttributeStatement Statement
   deriving (Show, Eq)
 
+parseRightAttribute :: Parser RightAttribute
+parseRightAttribute =
+  RightAttributeIsPred <$> sep_list (parseIsPred) <||>
+  RightAttributeDoesPred <$> sep_list (parseDoesPred) <||>
+  RightAttributeStatement <$> (parseLit "such" *> parseLit "that" *> parseStatement)
+  
 data AnyArg =
     AnyArgVar Var
   | AnyArgAnnotatedVars AnnotatedVars
   deriving (Show, Eq)
 
+parseAnyArg :: Parser AnyArg
+parseAnyArg =
+  AnyArgVar <$> parseVar <||>
+  AnyArgAnnotatedVars <$> parseAnnotatedVars
+  
 newtype LetAnnotation = LetAnnotation [AnnotatedVars] -- LIT_LET comma_nonempty_list(annotated_vars)
   deriving (Show, Eq)
 
--- note: we don't need annotatedvar because we can always just parse a singleton list
-data AnnotatedVars = AnnotatedVars {varModifier :: VarModifier, vars :: [Var], maybeColonType :: (Maybe ColonType)
-                                   }
-                     deriving (Show, Eq)
+parseLetAnnotation :: Parser LetAnnotation
+parseLetAnnotation = LetAnnotation <$> (parseLit "let" *> comma_nonempty_list parseAnnotatedVars)
+  
+data AnnotatedVar = AnnotatedVar VarModifier Var (Maybe ColonType)
+
+parseAnnotatedVar :: Parser AnnotatedVar
+parseAnnotatedVar = paren $ AnnotatedVar <$> parseVarModifier <*> (parseVar) <*> option parseColonType
+
+data AnnotatedVars = AnnotatedVars VarModifier [Var] (Maybe ColonType)
+  deriving (Show, Eq)
+
+parseAnnotatedVars :: Parser AnnotatedVars
+parseAnnotatedVars = paren $ AnnotatedVars <$> parseVarModifier <*> (many1' parseVar) <*> option parseColonType
                      
 newtype VarModifier = VarModifier (Maybe [Text]) -- this is parsed as an optional LitVarMod
   deriving (Show, Eq)
@@ -704,13 +1043,5 @@ newtype VarModifier = VarModifier (Maybe [Text]) -- this is parsed as an optiona
 parseVarModifier :: Parser VarModifier
 parseVarModifier = VarModifier <$> option parseLitVarMod
 
-parseAnnotatedVars :: Parser AnnotatedVars
-parseAnnotatedVars = between parseLParen parseRParen $
-  do varmod <- option parseLitVarMod
-     vs     <- (many1' parseVar)
-     mct    <- option parseColonType
-     return $ AnnotatedVars (VarModifier varmod) vs mct
 
-parseLetAnnotation :: Parser [AnnotatedVars]
-parseLetAnnotation = parseLit "let" *> (sepby1 parseAnnotatedVars parseComma)
 
