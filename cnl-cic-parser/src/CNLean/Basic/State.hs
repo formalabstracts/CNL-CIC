@@ -49,7 +49,7 @@ data FState = FState {
   idCount :: Int, hiddenCount :: Int, serialCounter :: Int}
   deriving (Show, Eq)
 
-initialFState :: FState --TODO(jesse): fix this
+initialFState :: FState --TODO(jesse): move the rest of phrase_list.txt into the state and define corresponding parsers
 initialFState = FState
   [] [] [] []
   [] []

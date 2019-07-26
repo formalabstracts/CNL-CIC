@@ -91,9 +91,10 @@ parseLitWith =
        (rp $ parseLit "")
   <||> (rp $ parseLit "of")
   <||> (rp $ parseLit "having")
+  <||> (rp $ parseLit "with")
 
 parseLitTrue =
-       (rp $ parseLit "with")
+       (rp $ parseLit "on")
   <||> (rp $ parseLit "true")
   <||> (rp $ parseLit "yes")
 
@@ -498,6 +499,9 @@ newtype Label = Label AtomicId
 
 parseLabel :: Parser Label
 parseLabel = Label <$> parseAtomicId
+
+parseBool :: Parser Bool
+parseBool = parseLitTrue *> return True <||> parseLitFalse *> return False
 
 -- litTestString :: Text
 -- litTestString = "a any APPLICABLE induction"

@@ -20,154 +20,92 @@ import Data.Foldable
 import qualified Data.Text.IO as TIO
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
-import CNLean.Basic
-import CNLean.Token
+import CNLean.Basic.Basic
 
-data KeywordCommand =
-  KeywordCommandMk Token
+data Instr = -- TODO(jesse) make sure that slash-dash synonyms are correctly registered
+    InstrInstructCommand InstructCommand
+  | InstrInstructSynonym InstructSynonym
+  | InstrInstructString InstructString
+  | InstrInstructBool InstructBool
+  | InstrInstructInt InstructInt
   deriving (Show, Eq)
-
-parseKeywordCommand :: Parser KeywordCommand
-parseKeywordCommand = do
-  parseLit_aux EXIT >>= return . KeywordCommandMk . Lit
-
-data KeywordString =
-  KeywordStringToken Token
-  deriving (Show, Eq)
-
-parseKeywordString :: Parser KeywordString
-parseKeywordString = do
-  (parseLit_aux READ <||> parseLit_aux LIBRARY) >>= return . KeywordStringToken . Lit
-
-data KeywordBool =
-  KeywordBoolToken Token
-  deriving (Show, Eq)
-
-parseKeywordBool :: Parser KeywordBool
-parseKeywordBool = do
-  (parseLit_aux PRINTGOAL <||> parseLit_aux DUMP <||> parseLit_aux ONTORED) >>= return . KeywordBoolToken . Lit
-
-data KeywordInt =
-  KeywordIntToken Token
-  deriving (Show, Eq)
-
-parseKeywordInt :: Parser KeywordInt
-parseKeywordInt = do
-  parseLit_aux TIMELIMIT >>= return . KeywordIntToken . Lit
-
-data KeywordSynonym =
-  KeywordSynonymToken CNLean.Token.Token
-  deriving (Show, Eq)
-
-parseKeywordSynonym :: Parser KeywordSynonym
-parseKeywordSynonym = do
-  parseLit_aux SYNONYM >>= return . KeywordSynonymToken . Lit
-
-data InstrSep =
-  InstrSepToken CNLean.Token.Token
-  deriving (Show, Eq)
-
-parseInstrSep :: Parser InstrSep
-parseInstrSep = do
-  (parseSlashDash <||> parseSlash) >>= return . InstrSepToken
-
-data Instr =
-    InstructCommand KeywordCommand
-  | InstructSynonym KeywordSynonym [[Token]]
-  | InstructString KeywordString Token
-  | InstructBool KeywordBool Bool
-  | InstructInt KeywordInt Token
-  deriving (Show, Eq)
-
-parseInstructCommand :: Parser Instr
-parseInstructCommand = do
-  parseKeywordCommand >>= return . InstructCommand
-
-parseInstructSynonym :: Parser Instr
-parseInstructSynonym = do
-  s <- parseKeywordSynonym
-  tks <- (sepby1 (many1' parseTk) (parseInstrSep))
-  return $ InstructSynonym s tks
-
-parseInstructString :: Parser Instr
-parseInstructString = do
-  s <- parseKeywordString
-  str <- parseString
-  return $ InstructString s str
-
-parseInstructBool :: Parser Instr
-parseInstructBool = do
-  k <- parseKeywordBool
-  t <- (parseLit_aux TRUE <||> parseLit_aux ON <||> parseLit_aux YES >> return True)
-        <||> (parseLit_aux FALSE <||> parseLit_aux OFF <||> parseLit_aux NO >> return False)
-  return $ InstructBool k t
-
-parseInstructInt :: Parser Instr
-parseInstructInt = do
-  k <- parseKeywordInt
-  n <- parseNumber
-  return $ InstructInt k n
 
 parseInstr :: Parser Instr
-parseInstr = between parseLBrack parseRBrack $
-        parseInstructCommand
-  <||>  parseInstructSynonym
-  <||>  parseInstructString
-  <||>  parseInstructBool
-  <||>  parseInstructInt
+parseInstr =
+  InstrInstructCommand <$> parseInstructCommand <||>
+  InstrInstructSynonym <$> parseInstructSynonym <||>
+  InstrInstructString <$> parseInstructString <||>
+  InstrInstructBool <$> parseInstructBool <||>
+  InstrInstructInt <$> parseInstructInt
 
--- -- example1 :: Instr
--- -- example1 = Synonym LitSynonym ["HELLO", "TOM"]
+data InstructCommand = InstructCommand InstructKeywordCommand
+  deriving (Show, Eq)
 
--- -- example2 :: Instr
--- -- example2 = String LitRead ["FOO","BAR"]
+parseInstructCommand :: Parser InstructCommand
+parseInstructCommand = bracket $ InstructCommand <$> parseInstructKeywordCommand
 
--- -- example3 :: Instr
--- -- example3 = Bool PrintGoal True
+data InstructKeywordCommand =
+  LitExit
+  deriving (Show, Eq)
 
--- -- myToken :: Parser Text
--- -- myToken = not_space <* sc
+parseInstructKeywordCommand :: Parser InstructKeywordCommand
+parseInstructKeywordCommand = parseLit "exit" *> return LitExit
 
--- -- myToken' :: Parser Text
--- -- myToken' = (many $ notFollowedBy (parseSlashDash <|> parseSlash <|> (symbol "]")) >> item) >>= return . pack
+data InstructSynonym = InstructSynonym [Token]
+  deriving (Show, Eq)
 
--- -- parseKeywordSynonym :: Parser KeywordSynonym
--- -- parseKeywordSynonym = do
--- --   symbol "synonym"  
--- --   return LitSynonym
+parseInstructSynonym :: Parser InstructSynonym
+parseInstructSynonym = InstructSynonym <$> (bracket $ parseLit "synonym" *> (sepby1 parseToken parseInstructSep))
 
--- -- parseBrackets :: Parser a -> Parser a
--- -- parseBrackets p = between (symbol "[") (symbol "]") p
+data InstructSep = InstructSepSlash | InstructSepSlashDash
 
--- -- parseSlash :: Parser (Tokens Text)
--- -- parseSlash = (symbol "/")  
+parseInstructSep :: Parser InstructSep
+parseInstructSep =
+  parseSlashDash *> return InstructSepSlashDash <||>
+  parseSlash *> return InstructSepSlash
+  
+data InstructString = InstructString InstructKeywordString TkString
+  deriving (Show, Eq)
 
--- -- parseSlashDash :: Parser (Tokens Text)
--- -- parseSlashDash = do (symbol "/-")
+parseInstructString :: Parser InstructString
+parseInstructString = bracket $ InstructString <$> parseInstructKeywordString <*> parseTkString
+  
+data InstructKeywordString =
+    LitRead
+  | LitLibrary
+  deriving (Show, Eq)
 
--- -- parseSynonym :: Parser Instr
--- -- parseSynonym =
--- --   parseBrackets $ do
--- --   k   <- parseKeywordSynonym
--- --   tks <- sepBy1 (myToken') $ parseSlashDash <|> parseSlash
--- --   return $ Synonym k tks
+parseInstructKeywordString :: Parser InstructKeywordString
+parseInstructKeywordString =
+  parseLit "read" *> return LitRead <||> parseLit "library" *> return LitLibrary
 
--- -- tksTest :: Parser [Text]
--- -- tksTest = sepBy1 myToken $ (parseSlashDash <|> parseSlash)
+data InstructBool = InstructBool InstructKeywordBool Bool
+  deriving (Show, Eq)
 
--- -- -- parseTest (tksTest <* eof) "a / b /- c / d"
+parseInstructBool :: Parser InstructBool
+parseInstructBool = bracket $ InstructBool <$> parseInstructKeywordBool <*> parseBool
+  
+data InstructKeywordBool =
+    LitPrintGoal
+  | LitDump
+  | LitOntored
+  deriving (Show, Eq)
 
--- -- parseBracketsTest :: Parser Text
--- -- parseBracketsTest =
--- --   parseBrackets $ (many $ satisfy (\_ -> True)) >>= return . pack
+parseInstructKeywordBool :: Parser InstructKeywordBool
+parseInstructKeywordBool =
+  (parseLit "print" *> parseLit "goal") *> return LitPrintGoal <||>
+  (parseLit "dump") *> return LitDump <||>
+  (parseLit "ontored") *> return LitOntored
 
--- -- parseInstr :: Parser Instr
--- -- parseInstr = (many1' item) >> return example3
+data InstructInt = InstructInt InstructKeywordInt Number
+  deriving (Show, Eq)
 
--- helloWorld :: IO ()
--- helloWorld = do
---   parseTest parseInstr "[synonym foo/bar]"
-  -- parseTest (parseSynonym <* eof) "[ synonym number /- s ]"
-  -- parseTest (parseSynonym <* eof) "[ synonym element / elements /elemental ]"
-  -- parseTest (parseSynonym <* eof) "[synonym almost everywhere / ae ]"
-  -- parseTest (parseSynonym <* eof) "[ synonym almost all/all but finitely many]"
+parseInstructInt :: Parser InstructInt
+parseInstructInt = bracket $ InstructInt <$> parseInstructKeywordInt <*> parseNumber
+
+data InstructKeywordInt =
+  LitTimeLimit
+  deriving (Show, Eq)
+
+parseInstructKeywordInt :: Parser InstructKeywordInt
+parseInstructKeywordInt = parseLit "time" *> parseLit "limit" *> return LitTimeLimit
