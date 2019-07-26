@@ -203,10 +203,8 @@ parse_list as m = case as of
   [] -> return []
   x:xs -> (rp $ m x) <+> parse_list xs m
 
--- TODO(jesse) define csbrace parser
-
--- sepBy' :: Parser a -> Parser b -> Parser [a]
--- sepBy' p sep = do
---   x <- try p
---   xs <- try (sepBy' sep *> p)
---   return $ x:xs
+with_result :: Parser a -> (a -> Parser b) -> Parser a
+with_result p m = do
+  r <- p
+  m r
+  return r

@@ -19,6 +19,7 @@ import Data.Void
 import Data.Foldable
 import qualified Data.Text.IO as TIO
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
+import Control.Monad.Trans.State.Lazy (modify, gets)
 
 import CNLean.Basic.Basic
 
@@ -38,6 +39,8 @@ parseInstr =
   InstrInstructBool <$> parseInstructBool <||>
   InstrInstructInt <$> parseInstructInt
 
+-- test (parseInstr *> gets strSyms) "[synonym foo/bar/baz]"
+
 data InstructCommand = InstructCommand InstructKeywordCommand
   deriving (Show, Eq)
 
@@ -55,7 +58,8 @@ data InstructSynonym = InstructSynonym [Token]
   deriving (Show, Eq)
 
 parseInstructSynonym :: Parser InstructSynonym
-parseInstructSynonym = InstructSynonym <$> (bracket $ parseLit "synonym" *> (sepby1 parseToken parseInstructSep))
+parseInstructSynonym = with_result (InstructSynonym <$> (bracket $ (parseLit "synonyms" <||> parseLit "synonym") *> (sepby1 parseToken parseInstructSep))) $
+  updateStrSyms . (\x -> case x of InstructSynonym y -> (map tokenToText y))
 
 data InstructSep = InstructSepSlash | InstructSepSlashDash
 

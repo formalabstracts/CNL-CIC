@@ -25,7 +25,7 @@ updateSerialCounter fs x = fs {serialCounter = x}
 updateHiddenCount fs x = fs {hiddenCount = x}
 updateIdCount fs x = fs {idCount = x}
 updateVarDecl fs x = fs {varDecl = x}
-updateStrSyms fs x = fs {strSyms = x}
+
 
 setClsList x fs = fs {clsList = x}
 pushClsList z fs = setClsList (z:(clsList fs)) fs
@@ -36,5 +36,16 @@ updateClsList = modify . pushClsList
 
 updateClsList2 :: [[Text]] -> Parser ()
 updateClsList2 = modify . prependClsList
+
+setStrSyms x fs = fs {strSyms = x}
+pushStrSyms z fs = setStrSyms (z:(strSyms fs)) fs
+prependStrSyms zs fs = setStrSyms (zs <> (strSyms fs)) fs
+
+updateStrSyms :: [Text] -> Parser ()
+updateStrSyms = modify . pushStrSyms
+
+updateStrSyms2 :: [[Text]] -> Parser ()
+updateStrSyms2 = modify . prependStrSyms
+
 
 -- TODO(jesse): define analogous functions for the rest of the state
