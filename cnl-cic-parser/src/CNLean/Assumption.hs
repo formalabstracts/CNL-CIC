@@ -40,7 +40,7 @@ parseAssumptionPrefix = AssumptionPrefix <$> (do
     Just lt3 -> return $ Just $ lt1 <> lt2 <> lt3) <||>
   (AssumptionPrefix . Just) <$> (rp $ parseLit "let")
 
-data ThenPrefix = ThenPrefix (Maybe Text)
+data ThenPrefix = ThenPrefix (Maybe [Text])
   deriving (Show, Eq)
 
-parseThenPrefix = ThenPrefix <$> (option $ parseLit "then")
+parseThenPrefix = ThenPrefix <$> (option $ parseLitThen)
