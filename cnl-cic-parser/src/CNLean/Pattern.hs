@@ -1,7 +1,7 @@
 {-
 Author(s): Jesse Michael Han (2019)
 
-Parsing patterns.
+Parsing (derived) patterns.
 -}
 
 {-# LANGUAGE OverloadedStrings #-}
@@ -21,6 +21,4 @@ import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
 import CNLean.Basic.Basic
-import CNLean.Basic.Token
 
-  

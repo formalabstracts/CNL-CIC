@@ -21,19 +21,19 @@ import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
 import CNLean.Basic.Basic
-import CNLean.Basic.Token
 import CNLean.Assumption
+import CNLean.Type
 
 data Axiom = Axiom { preamble :: AxiomPreamble, assumptions :: [Assumption], thenPrefix :: ThenPrefix, statement :: Statement }
 
 data AxiomPreamble = AxiomPreamble Token (Maybe Label) -- parse (Lit AXIOM), maybe a label, optional period.
   deriving (Show, Eq)
 
-parseAxiomPreamble :: Parser AxiomPreamble
-parseAxiomPreamble = do
-  tk <- ((parseLit_aux AXIOM) <||> (parseLit_aux CONJECTURE) <||> (parseLit_aux HYPOTHESIS) >>= return . Lit)
-  maybeLabel <- option (parseLabel)
-  try (parsePeriod)
-  return $ AxiomPreamble tk maybeLabel
+-- parseAxiomPreamble :: Parser AxiomPreamble
+-- parseAxiomPreamble = do
+--   tk <- ((parseLit_aux AXIOM) <||> (parseLit_aux CONJECTURE) <||> (parseLit_aux HYPOTHESIS) >>= return . Lit)
+--   maybeLabel <- option (parseLabel)
+--   try (parsePeriod)
+--   return $ AxiomPreamble tk maybeLabel
 
   
