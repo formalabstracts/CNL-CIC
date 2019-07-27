@@ -31,7 +31,7 @@ parseLit arg = (str' arg) <* sc
 
 -- test (parse_any_Lits [["foo", "bar"]]) "foo      bar"
 parse_any_Lit :: [[Text]] -> Parser [Text]
-parse_any_Lit phs = parse_any (rp . parseLit) phs
+parse_any_Lit = parse_any (rp . parseLit)
 
 -- auxiliary lit parsers, of the form `lit_*` in the grammar specification
 
@@ -502,25 +502,3 @@ parseLabel = Label <$> parseAtomicId
 
 parseBool :: Parser Bool
 parseBool = parseLitTrue *> return True <||> parseLitFalse *> return False
-
--- litTestString :: Text
--- litTestString = "a any APPLICABLE induction"
-
--- tkTestString :: Text
--- tkTestString = "Let C := the category of semi-symplectic topological quantum paramonoids \\mathcal{P} of Rice-Paddy type satisfying the Mussolini-Rostropovich equations at infinity. Then C.objects and C.morphisms are both trivial. QED."
-
--- testLit :: IO ()
--- testLit = do
---   test (many1 parseLit) litTestString
-
--- testTk :: IO ()
--- testTk = do
---   parseTest (parseTokens) tkTestString
-
--- -- for interactive debugging. make sure that in ghci, you have entered
--- -- :set -XOverloadedStrings
-
--- -- example usage:
--- -- test_lexer "HEWWO.HEWWO"
--- test_lexer :: Text -> IO ()
--- test_lexer = parseTest parseTokens
