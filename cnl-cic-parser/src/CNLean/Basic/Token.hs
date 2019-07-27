@@ -12,7 +12,7 @@ module CNLean.Basic.Token where
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
 import qualified Control.Applicative.Combinators as PC
-import Text.Megaparsec hiding (Token, Label, option)
+import Text.Megaparsec hiding (Token, Label, option, Tokens)
 import Control.Monad (guard)
 import Text.Megaparsec.Char
 import qualified Data.Char as C

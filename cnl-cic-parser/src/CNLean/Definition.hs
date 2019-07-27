@@ -12,7 +12,7 @@ module CNLean.Definition where
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
 import qualified Control.Applicative.Combinators as PC
-import Text.Megaparsec hiding (Token, option, Label)
+import Text.Megaparsec hiding (Token, option, Label, Tokens)
 import Control.Monad (guard, liftM)
 import Text.Megaparsec.Char
 import qualified Data.Char as C
@@ -93,13 +93,120 @@ parseThisDirectiveRightAttr = ThisDirectiveRightAttr <$> (parse_list ["by", "rec
 
 data DefinitionStatement =
     DefinitionStatementClassifier ClassifierDef
-  -- | TypeDef  -- TODO(jesse): implement the rest of these
+  | DefinitionStatementTypeDef TypeDef
   -- | FunctionDef
   -- | PredicateDef
   -- | StructureDef 
   -- | InductiveDef
   -- | MutualInductiveDef
   deriving (Show, Eq)
+
+data TypeDef = TypeDef TypeHead Copula GeneralType
+  deriving (Show, Eq)
+
+parseTypeDef :: Parser TypeDef
+parseTypeDef = TypeDef <$> parseTypeHead <*> parseCopula <* parseLitA <*> parseGeneralType
+
+data TypeHead =
+    TypeHeadTypePattern TypePattern
+  | TypeHeadIdentifierPattern IdentifierPattern
+  | TypeHeadControlSeqPattern ControlSeqPattern
+  | TypeHeadBinaryControlSeqPattern BinaryControlSeqPattern (Maybe ParenPrecedenceLevel)
+  deriving (Show, Eq)
+
+parseTypeHead :: Parser TypeHead
+parseTypeHead =
+  TypeHeadTypePattern <$> parseTypePattern <||>
+  TypeHeadIdentifierPattern <$> parseIdentifierPattern <||>
+  TypeHeadControlSeqPattern <$> parseControlSeqPattern <||>
+  TypeHeadBinaryControlSeqPattern <$> parseBinaryControlSeqPattern <*> (option parseParenPrecedenceLevel)
+
+data TypePattern = TypePattern TokenPattern
+  deriving (Show, Eq)
+
+parseTypePattern :: Parser TypePattern
+parseTypePattern = TypePattern <$> (parseLitA *> parseTokenPattern)
+
+ -- (* restriction: tokens in pattern cannot be a variant of
+ --    "to be", "called", "iff" "a" "stand" "denote"
+ --    cannot start with "the"  *)
+
+parsePatternToken :: Parser Token
+parsePatternToken = guard_result "forbidden token parsed, failing" parseToken $
+                      \x -> not $ elem (tokenToText x) ["the", "to be", "called", "iff", "a", "stand", "denote"]
+
+newtype Tokens = Tokens [Token]
+  deriving (Show, Eq)
+
+parseTokens :: Parser Tokens
+parseTokens = Tokens <$> many1' parsePatternToken
+
+data TokenPattern = TokenPattern Tokens [(TVar, Tokens)] (Maybe TVar)
+  deriving (Show, Eq)
+
+data Copula =
+    CopulaIsDefinedAs
+  | CopulaAssign
+  | CopulaDenote
+  deriving (Show, Eq)
+
+parseCopula :: Parser Copula
+parseCopula =
+  parseLitIs *> (option parseLitDefinedAs) *> return CopulaIsDefinedAs <||>
+  parseAssign *> return CopulaAssign <||>
+  parseLitDenote *> return CopulaDenote
+
+data IdentifierPattern = IdentifierPattern Identifier Args (Maybe ColonType)
+  deriving (Show, Eq)
+
+parseIdentifierPattern :: Parser IdentifierPattern
+parseIdentifierPattern = IdentifierPattern <$> parseIdentifier <*> parseArgs <*> (option parseColonType)
+
+data ControlSeqPattern = ControlSeqPattern ControlSequence [TVar]
+  deriving (Show, Eq)
+
+parseControlSeqPattern :: Parser ControlSeqPattern
+parseControlSeqPattern = ControlSeqPattern <$> parseControlSequence <*> (many' $ brace $ parseTVar)
+
+data BinaryControlSeqPattern = BinaryControlSeqPattern TVar ControlSeqPattern TVar
+  deriving (Show, Eq)
+
+parseBinaryControlSeqPattern :: Parser BinaryControlSeqPattern
+parseBinaryControlSeqPattern = BinaryControlSeqPattern <$> parseTVar <*> parseControlSeqPattern <*> parseTVar
+
+data ParenPrecedenceLevel =
+    ParenPrecendenceLevelPrecedenceLevel PrecedenceLevel
+  | ParenPrecedenceLevelParen PrecedenceLevel 
+  deriving (Show, Eq)
+
+parseParenPrecedenceLevel :: Parser ParenPrecedenceLevel
+parseParenPrecedenceLevel =
+  ParenPrecendenceLevelPrecedenceLevel <$> parsePrecedenceLevel <||>
+  ParenPrecedenceLevelParen <$> (paren $ parsePrecedenceLevel)
+
+data AssociativeParity =
+    AssociatesLeft
+  | AssociatesRight
+  | AssociatesNone
+  deriving (Show, Eq)
+
+parseAssociativeParity :: Parser AssociativeParity
+parseAssociativeParity =
+  parseLit "left" *> return AssociatesLeft <||>
+  parseLit "right" *> return AssociatesRight <||>
+  parseLit "no" *> return AssociatesNone
+
+data PrecedenceLevel = PrecendenceLevel Numeric (Maybe AssociativeParity)
+  deriving (Show, Eq)
+
+parsePrecedenceLevel :: Parser PrecedenceLevel
+parsePrecedenceLevel = PrecendenceLevel <$> (parseLit "with" *> parseLit "precedence" *> parseNumeric) <*> (option $ parseLit "and" *> parseAssociativeParity <* parseLit "associativity")
+
+
+parseTokenPattern :: Parser TokenPattern
+parseTokenPattern = TokenPattern <$> parseTokens <*>
+                                     (many' $ (,) <$> parseTVar <*> parseTokens) <*>
+                                     (option parseTVar)
 
 newtype ClassifierDef = ClassifierDef ClassTokens
   deriving (Show, Eq)
