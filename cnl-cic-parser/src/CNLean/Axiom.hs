@@ -39,3 +39,6 @@ parseAxiomPreamble = AxiomPreamble <$> (parseLitAxiom *> (option parseLabel) <* 
 -- test parseAxiomPreamble "Axiom riemann_hypothesis."
 -- test parseThenPrefix "therefore"
 
+-- test parseAxiom "Axiom The_Riemann_Hypothesis. One is positive."
+-- test parseAxiom "Axiom The_Riemann_Hypothesis. The zero is not positive."
+

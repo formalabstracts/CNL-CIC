@@ -60,13 +60,14 @@ parseChainStatement =
 data AndOrChain =
     AndChain [PrimaryStatement] HeadPrimary
   | OrChain  [PrimaryStatement] HeadPrimary
+  | AndOrChainPrimaryStatement PrimaryStatement
   deriving (Show, Eq)
 
 parseAndOrChain :: Parser AndOrChain
 parseAndOrChain =
   AndChain <$> (sepby1 parsePrimaryStatement $ parseLit "and") <*> (parseLit "and" *> parseHeadPrimary) <||>
-  OrChain <$> (sepby1 parsePrimaryStatement $ parseLit "or") <*> (parseLit "or" *> parseHeadPrimary)
-
+  OrChain <$> (sepby1 parsePrimaryStatement $ parseLit "or") <*> (parseLit "or" *> parseHeadPrimary) <||>
+  AndOrChainPrimaryStatement <$> parsePrimaryStatement
   
 data HeadPrimary =
     HeadPrimaryHead HeadStatement
@@ -597,7 +598,7 @@ data AppArgs = AppArgs (Maybe RecordAssignTerm) [TightestExpr]
 
 parseAppArgs :: Parser AppArgs
 parseAppArgs =
-  AppArgs <$> (option $ parseLit "at" *> parseRecordAssignTerm) <*> (many1' parseTightestExpr)
+  AppArgs <$> (option $ parseLit "at" *> parseRecordAssignTerm) <*> (many' parseTightestExpr)
   
 data TightestExpr =
     TightestExprTerm TightestTerm
@@ -671,8 +672,10 @@ data VarType =
   | VarTypeAnnotated Var
   deriving (Show, Eq)
   
--- note: possibly need an extra sc in the first branch
-parseVarType = VarTypeAnnotated <$> (between parseLParen parseRParen $ parseVar <* parseLit "Type") <||> VarTypeVar <$> parseVar
+parseVarType = VarTypeAnnotated <$> (paren $ parseVar <* parseColon <* parseLit "Type") <||> VarTypeVar <$> parseVar
+
+-- test parseVarType "(x : Type)"
+-- test parseVarType "x"
 
 data Subtype = Subtype Term HoldingVar Statement
   deriving (Show, Eq)
@@ -1097,15 +1100,15 @@ parsePossessedNoun :: Parser PossessedNoun
 parsePossessedNoun = PossessedNoun <$> parseAttribute parsePrimPossessedNoun
 
 data IsPred =
-    IsPredPrimAdjective PrimAdjective
-  | IsPredPrimAdjectiveMultiSubject PrimAdjectiveMultiSubject
+    IsPredPrimAdjective (Maybe Text) PrimAdjective
+  | IsPredPrimAdjectiveMultiSubject (Maybe Text) (Maybe Text) PrimAdjectiveMultiSubject
   | IsPredHasPred HasPred
   deriving (Show, Eq)
 
 parseIsPred :: Parser IsPred
 parseIsPred =
-  IsPredPrimAdjective <$> ((option $ parseLit "not") *> parsePrimAdjective) <||>
-  IsPredPrimAdjectiveMultiSubject <$> ((option $ parseLit "not") *> (option $ parseLit "pairwise") *> parsePrimAdjectiveMultiSubject) <||>
+  IsPredPrimAdjective <$> (option $ parseLit "not") <*> (parsePrimAdjective) <||>
+  IsPredPrimAdjectiveMultiSubject <$> (option $ parseLit "not") <*> (option $ parseLit "pairwise") <*> parsePrimAdjectiveMultiSubject <||>
   IsPredHasPred <$> (parseLitWith *> parseHasPred)
   
 data IsAPred =

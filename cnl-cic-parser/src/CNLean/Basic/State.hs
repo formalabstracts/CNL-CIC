@@ -51,7 +51,7 @@ data FState = FState {
 
 initialFState :: FState --TODO(jesse): move the rest of phrase_list.txt into the state and define corresponding parsers
 initialFState = FState
-  [] [] [] []
+  primAdjective0 [] [] []
   primDefiniteNoun0 []
   [] []
   [] [] []
@@ -68,7 +68,8 @@ initialFState = FState
   [] [] clsL0
   0 0 0
   where
-  primDefiniteNoun0 = [[Wd ["zero"]]]
+  primAdjective0 = [[Wd ["positive"]]]
+  primDefiniteNoun0 = [[Wd ["zero"]], [Wd ["one"]]]
   -- adjE0 []    ntnE0 sntE0
   -- cfnE0 rfnE0 []    []
   -- []    []    []    iprE0
@@ -94,7 +95,8 @@ initialFState = FState
   --          ([Sm "!", Sm "="]),
   --          ([Sm "-", Sm "<", Sm "-"]),
   --          ([Sm "-~-"]) ]
-  clsL0 = [["function"],
+  clsL0 = [
+           ["function"],
            ["element"],
            ["object"],
            ["number"],
@@ -111,7 +113,8 @@ initialFState = FState
            ["binary", "operator"],
            ["pairs"],
            ["pair"],
-           ["result"]
+           ["result"],
+           ["natural", "number"]
           ]
   phraseListFiller :: [[Maybe' Text]]
   phraseListFiller = [
