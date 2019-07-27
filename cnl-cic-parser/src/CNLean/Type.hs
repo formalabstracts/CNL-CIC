@@ -87,16 +87,16 @@ data PrimaryStatement =
 
 parsePrimaryStatement :: Parser PrimaryStatement
 parsePrimaryStatement =
-  PrimaryStatementSimple <$> parseSimpleStatement <||> -- looping on period
+  PrimaryStatementSimple <$> parseSimpleStatement <||>
   PrimaryStatementThereIs <$> parseThereIsStatement <||>
-  PrimaryStatementSymbol <$> parseFiller <*> parseSymbolStatement <||> -- looping on period
+  PrimaryStatementSymbol <$> parseFiller <*> parseSymbolStatement <||>
   PrimaryStatementConst <$> parseFiller <*> parseConstStatement
   
 data SimpleStatement = SimpleStatement Terms [DoesPred]
   deriving (Show, Eq)
 -- parse [Term] using parseTerms and parse [DoesPred] using sepby1 parseDoesPred (parseLit "and")
 
-parseSimpleStatement :: Parser SimpleStatement -- TODO(jesse): fix me
+parseSimpleStatement :: Parser SimpleStatement
 parseSimpleStatement = SimpleStatement <$> parseTerms <*> (sepby1 parseDoesPred $ parseLit "and")
   
 data ThereIsStatement =
@@ -277,11 +277,11 @@ data OpenTailTerm =
 
 parseOpenTailTerm :: Parser OpenTailTerm
 parseOpenTailTerm =
-  OpenTailTermLambdaTerm <$> parseLambdaTerm <||> -- looping on period
+  OpenTailTermLambdaTerm <$> parseLambdaTerm <||>
   OpenTailTermLambdaFun <$> parseLambdaFun <||>
   OpenTaiLTermLetTerm <$> parseLetTerm <||>
   OpenTaiLTermIfThenElseTerm <$> parseIfThenElseTerm <||>
-  OpenTailTermTdopTerm <$> parseTdopTerm -- looping on period
+  OpenTailTermTdopTerm <$> parseTdopTerm
 
 data TdopTerm =
     TdopTermOps (Maybe AppTerm) TermOps [(AppTerm, TermOps)] (Maybe AppTerm)
@@ -290,7 +290,7 @@ data TdopTerm =
 
 parseTdopTerm :: Parser TdopTerm
 parseTdopTerm =
-  TdopTermOps <$> (option parseAppTerm) <*> parseTermOps <*>  -- TODO(jesse) both these branches are looping, see parseAppTerm
+  TdopTermOps <$> (option parseAppTerm) <*> parseTermOps <*>
                     (many' $ (,) <$> parseAppTerm <*> parseTermOps)
                     <*> (option parseAppTerm) <||>
   TdopTermApp <$> parseAppTerm
@@ -362,8 +362,8 @@ parseBinOpType :: Parser BinOpType
 parseBinOpType = BinOpType <$> parseTypeOperand <*> (many' $ (,) <$> parseTypeOp <*> parseTypeOperand)
   
 data TypeOp =
-    TypeOpPrimTypeOp PrimTypeOp -- TODO(jesse) fix me
-  | TypeOpCSBrace (CSBrace PrimTypeOpControlSeq) -- TODO(jesse) fix me
+    TypeOpPrimTypeOp PrimTypeOp
+  | TypeOpCSBrace (CSBrace PrimTypeOpControlSeq)
   deriving (Show, Eq)
 
 parseTypeOp :: Parser TypeOp
@@ -778,29 +778,11 @@ parseSatisfyingPred = do
   p <- parseProp
   return $ SatisfyingPred mid p
 
-data TightestTerm_aux = -- TODO(jesse): find a way to avoid using the auxiliary datatype
-    TighestTerm_auxTightestPrefix TightestPrefix
-  | TightestTerm_auxFieldAcc FieldAcc
-  | TightestTerm_auxTightestTerms TightestTerms
-  deriving (Show, Eq)
-
-parseTightestTerm_aux :: Parser TightestTerm_aux
-parseTightestTerm_aux =
-    TighestTerm_auxTightestPrefix <$> parseTightestPrefix <||>
-    TightestTerm_auxFieldAcc <$> parseFieldAcc <||>
-    (paren $ TightestTerm_auxTightestTerms <$> parseTightestTerms)
-
 data TightestTerm =
     TightestTermPrefix TightestPrefix
   | TightestTermFieldAcc TightestTerm FieldAcc
   | TightestTermApplySub TightestTerm TightestTerms
   deriving (Show, Eq)
-
--- data TightestTerm' =
---     TightestTermPrefix' TightestPrefix
---   | TightestTermFieldAcc' TightestTerm' FieldAcc
---   | TightestTermApplySub' TightestTerm' [TightestTerm'] -- should be parsed by a paren-enclosed nonempty list of tightest terms, preceded by an ApplySub literal
---   deriving (Show, Eq)
 
 parseTightestTerm :: Parser TightestTerm
 parseTightestTerm = do
@@ -812,19 +794,6 @@ parseTightestTerm = do
                (do tts <- (parseApplySub *> parseTightestTerms)
                    rest (TightestTermApplySub pfx tts)) <||>
                return pfx
-               
-               
--- parseTightestTerm :: Parser TightestTerm
--- parseTightestTerm = do
---   pfx <- parseTightestPrefix
---   chainl1' parseTightestTerm_aux (TightestTermPrefix $ TighestTerm_auxTightestPrefix pfx) $
---    (lookAhead' parseFieldAcc *> return TightestTermFieldAcc <||> ((lookAhead' parseApplySub) *> (paren $ return TightestTermApplySub)))
-
--- test parseTightestTerm "2.5.foo.bar"   
-  
-  -- fail_if_eof (TightestTerm <$> parseTightestPrefix <||>
-  -- TightestTermFieldAcc <$> parseTightestTerm <*> parseFieldAcc <||>
-  -- TightestTermApplySub <$> parseTightestTerm <*> (parseApplySub *> parseTightestTerms))
 
 newtype TightestTerms = TightestTerms [TightestTerm]
   deriving (Show, Eq)
@@ -1050,8 +1019,8 @@ parseLeftAttribute =
   LeftAttributeMultiSubject <$> parsePrimSimpleAdjectiveMultiSubject
   
 data RightAttribute =
-    RightAttributeIsPred [IsPred] -- TODO(jesse) implement this inside of Primitive.hs
-  | RightAttributeDoesPred [DoesPred] -- TODO(jesse) implement this inside of Primitive.hs
+    RightAttributeIsPred [IsPred]
+  | RightAttributeDoesPred [DoesPred]
   | RightAttributeStatement Statement
   deriving (Show, Eq)
 
