@@ -269,17 +269,24 @@ newtype TkString = TkString Text
   deriving (Show, Eq)
 newtype AtomicId = AtomicId Text
   deriving (Show, Eq)
-newtype HierId = HierId [AtomicId]
-  deriving (Show, Eq)
-
-data AtomicId_or_Number_or_Var =
-    OfAtomicId AtomicId
-  | OfNumber Number
+data VarOrNumber =
+    OfNumber Number
   | OfVar Var
   deriving (Show, Eq)
 
-newtype FieldAcc = FieldAcc AtomicId_or_Number_or_Var
+parseVarOrNumber :: Parser VarOrNumber
+parseVarOrNumber =
+  OfNumber <$> parseNumber <||>
+  OfVar <$> parseVar
+  
+data HierId = HierId [AtomicId] (Maybe VarOrNumber)
   deriving (Show, Eq)
+
+data FieldAcc =
+    FieldAccHierId HierId
+  | FieldAccAtomicId AtomicId
+  deriving (Show, Eq)
+
 data Coercion = Coercion
   deriving (Show, Eq)
 data NotImplemented = NotImplemented
@@ -446,20 +453,28 @@ parseAtomicId = atomicid >>= return . AtomicId
 -- test parseAtomicId "foo_" -- does not parse the underscore
 -- test parseAtomicId "foo123_ab" -- parses the underscore
 
-hierid :: Parser [AtomicId]
-hierid = do
-  (sepby1 (atomicid) (ch '.') >>= return . (map AtomicId)) <* sc
+-- hierid0 ensures that a hierid contains at least two atomicids separated by a period
+hierid0 :: Parser [AtomicId]
+hierid0 = do
+  aid0 <- AtomicId <$> atomicid <* (ch '.')
+  (:) aid0 <$> (sepby1 (atomicid) (ch '.') >>= return . (map AtomicId)) <* sc
+
+hierid1 :: Parser (Maybe VarOrNumber)
+hierid1 = option $ OfNumber <$> parseNumber <||> OfVar <$> parseVar
 
 parseHierId :: Parser HierId
-parseHierId = do
-  at_ids <- hierid
-  return $ HierId at_ids
+parseHierId = HierId <$> hierid0 <*> hierid1
 
 parseFieldAcc :: Parser FieldAcc
-parseFieldAcc =
-      ((do (ch '.') *> (parseAtomicId >>= return . FieldAcc . OfAtomicId))
-  <||> (do (ch '.') *> (parseNumber >>= return . FieldAcc . OfNumber))
-  <||> (do (ch '.') *> (parseVar >>= return . FieldAcc . OfVar))) <* sc
+parseFieldAcc = ch ('.') *>
+  (FieldAccHierId <$> parseHierId <||>
+   FieldAccAtomicId <$> parseAtomicId)
+  -- ch ('.') *> (FieldAccHierId <$> parseHierId <||>
+  -- FieldAccNumber <$> parseNumber <||>
+  -- FieldAccVar <$> parseVar )
+  --     ((do (ch '.') *> (parseAtomicId >>= return . FieldAcc . OfAtomicId))
+  -- <||> (do (ch '.') *> (parseNumber >>= return . FieldAcc . OfNumber))
+  -- <||> (do (ch '.') *> (parseVar >>= return . FieldAcc . OfVar))) <* sc
     
 parseCoercion :: Parser Coercion
 parseCoercion = (str "↑" <||> str "^|") >> return Coercion
