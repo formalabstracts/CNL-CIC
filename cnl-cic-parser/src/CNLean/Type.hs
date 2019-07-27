@@ -778,7 +778,7 @@ parseSatisfyingPred = do
   p <- parseProp
   return $ SatisfyingPred mid p
 
-data TightestTerm_aux =
+data TightestTerm_aux = -- TODO(jesse): find a way to avoid using the auxiliary datatype
     TighestTerm_auxTightestPrefix TightestPrefix
   | TightestTerm_auxFieldAcc FieldAcc
   | TightestTerm_auxTightestTerms TightestTerms
@@ -791,16 +791,36 @@ parseTightestTerm_aux =
     (paren $ TightestTerm_auxTightestTerms <$> parseTightestTerms)
 
 data TightestTerm =
-    TightestTermPrefix TightestTerm_aux
-  | TightestTermFieldAcc TightestTerm TightestTerm_aux
-  | TightestTermApplySub TightestTerm TightestTerm_aux -- should be parsed by a paren-enclosed nonempty list of tightest terms, preceded by an ApplySub literal
+    TightestTermPrefix TightestPrefix
+  | TightestTermFieldAcc TightestTerm FieldAcc
+  | TightestTermApplySub TightestTerm TightestTerms
   deriving (Show, Eq)
+
+-- data TightestTerm' =
+--     TightestTermPrefix' TightestPrefix
+--   | TightestTermFieldAcc' TightestTerm' FieldAcc
+--   | TightestTermApplySub' TightestTerm' [TightestTerm'] -- should be parsed by a paren-enclosed nonempty list of tightest terms, preceded by an ApplySub literal
+--   deriving (Show, Eq)
 
 parseTightestTerm :: Parser TightestTerm
 parseTightestTerm = do
-  pfx <- parseTightestPrefix
-  chainl1' parseTightestTerm_aux (TightestTermPrefix $ TighestTerm_auxTightestPrefix pfx) $
-   (lookAhead' parseFieldAcc *> return TightestTermFieldAcc <||> return TightestTermApplySub)
+  pfx <- (TightestTermPrefix <$> parseTightestPrefix)
+  rest pfx
+  where
+    rest pfx = (do fa <- parseFieldAcc
+                   rest (TightestTermFieldAcc pfx fa)) <||>
+               (do tts <- (parseApplySub *> parseTightestTerms)
+                   rest (TightestTermApplySub pfx tts)) <||>
+               return pfx
+               
+               
+-- parseTightestTerm :: Parser TightestTerm
+-- parseTightestTerm = do
+--   pfx <- parseTightestPrefix
+--   chainl1' parseTightestTerm_aux (TightestTermPrefix $ TighestTerm_auxTightestPrefix pfx) $
+--    (lookAhead' parseFieldAcc *> return TightestTermFieldAcc <||> ((lookAhead' parseApplySub) *> (paren $ return TightestTermApplySub)))
+
+-- test parseTightestTerm "2.5.foo.bar"   
   
   -- fail_if_eof (TightestTerm <$> parseTightestPrefix <||>
   -- TightestTermFieldAcc <$> parseTightestTerm <*> parseFieldAcc <||>

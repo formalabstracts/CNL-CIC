@@ -223,11 +223,14 @@ chainl1 p op        = do{ x <- p; rest x }
                                     }
                                 <||> return x
 
+-- chainl' :: Parser a -> b  -> Parser (b -> a -> b) -> Parser b
+-- chainl' p c op x       = chainl1' p c op <||> return x
+
 chainl1' :: Parser a -> b  -> Parser (b -> a -> b) -> Parser b
 chainl1' p c op        = do{ x <- p; g <- op; rest (g c x) }
                     where
-                      rest x    = do{ f <- op
+                      rest x    = ((do{ f <- op
                                     ; y <- p
                                     ; rest (f x y)
-                                    }
-                                <||> return x
+                                    })
+                                <||> return x)
