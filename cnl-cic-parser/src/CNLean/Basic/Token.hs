@@ -427,15 +427,19 @@ parseTkString = (between (ch '"') (ch '"') str >>= return . TkString) <* sc
 
   -- (many1 alpha) >>= return . Tk . join) <* sc
 
+
 atomicid :: Parser Text
 atomicid = (do
   alph <- alpha
-  rest <- (many' $ alpha <||> digit <||> ch '_') >>= return . join
+  rest <- (many' $ alpha <||> digit <||> (ch '_' <* lookAhead' (alpha <||> digit))) >>= return . join
   -- guard $ (any C.isAlpha (unpack rest)) || (any (\x -> x == (pack . pure $ '_')) rest) -- TODO fix this
   return $ alph <> rest) <* sc
 
 parseAtomicId :: Parser AtomicId
 parseAtomicId = atomicid >>= return . AtomicId
+
+-- test parseAtomicId "foo_" -- does not parse the underscore
+-- test parseAtomicId "foo123_ab" -- parses the underscore
 
 hierid :: Parser [AtomicId]
 hierid = do
