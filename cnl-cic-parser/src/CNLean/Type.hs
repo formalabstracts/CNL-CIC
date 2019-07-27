@@ -47,7 +47,6 @@ parseHeadStatement =
   (HeadStatementIfThen <$> (parseLit "if" *> parseStatement) <*> (parseLit "then" *> parseStatement)) <||>
   (HeadStatementItsWrong <$> (parseLitItsWrong *> parseStatement))
 
-
 data ChainStatement =
     AndOrChain AndOrChain
   | AndOrChainIff AndOrChain Statement
@@ -93,7 +92,7 @@ parsePrimaryStatement =
   PrimaryStatementSymbol <$> parseFiller <*> parseSymbolStatement <||>
   PrimaryStatementConst <$> parseFiller <*> parseConstStatement
   
-data SimpleStatement = SimpleStatement [Term] [DoesPred]
+data SimpleStatement = SimpleStatement Terms [DoesPred]
   deriving (Show, Eq)
 -- parse [Term] using parseTerms and parse [DoesPred] using sepby1 parseDoesPred (parseLit "and")
 
@@ -112,9 +111,10 @@ parseThereIsStatement =
 newtype ConstStatement = ConstStatement [Text]
   deriving (Show, Eq)
 
-parseConstStatement = option(parseLit "the") *> option(parseLit "thesis") *>
+parseConstStatement :: Parser ConstStatement
+parseConstStatement = ConstStatement <$> (option(parseLit "the") *> option(parseLit "thesis") *>
   ( option(parseLit "the") *> (rp $ parseLit "contrary" ) <||>
-    parseLitA *> (rp $ parseLit "contradiction"))
+    parseLitA *> (rp $ parseLit "contradiction")))
 
 data SymbolStatement =
     SymbolStatementForall FreePredicate SymbolStatement
@@ -288,6 +288,13 @@ data TdopTerm =
   | TdopTermApp AppTerm
   deriving (Show, Eq)
 
+parseTdopTerm :: Parser TdopTerm
+parseTdopTerm =
+  TdopTermOps <$> (option parseAppTerm) <*> parseTermOps <*>
+                    (many' $ (,) <$> parseAppTerm <*> parseTermOps)
+                    <*> (option parseAppTerm) <||>
+  TdopTermApp <$> parseAppTerm
+
 data AppTerm = AppTerm TightestTerm AppArgs
   deriving (Show, Eq)
 
@@ -381,7 +388,7 @@ data BinderType =
 
 parseBinderType :: Parser BinderType
 parseBinderType =
-  BinderTypeAppType <$> parseBinderType <||>
+  BinderTypeAppType <$> parseAppType <||>
   BinderTypePrimPiBinder <$> parsePrimPiBinder <*> (parseGeneralizedArgs <* parseLitBinderComma) <*> parseBinderType
 
 data AppType = AppType TightestType AppArgs
@@ -496,8 +503,8 @@ parseProp =
   PropTdopProp <$> parseTdopProp
   
 data TdopProp =
-    TdopPropHead (Maybe BinderProp) [PropOp]
-  | TdopPropTail [(BinderProp,[PropOp])] (Maybe BinderProp)
+    TdopPropHead (Maybe BinderProp) PropOps
+  | TdopPropTail [(BinderProp,PropOps)] (Maybe BinderProp)
   deriving (Show, Eq)
 
 parseTdopProp :: Parser TdopProp
@@ -514,6 +521,13 @@ parsePropOp :: Parser PropOp
 parsePropOp =
   PropOpPrim <$> parsePrimPropositionalOp <||>
   PropOpCS <$> parseCSBrace parsePrimPropositionalOpControlSeq
+
+newtype PropOps = PropOps [PropOp]
+  deriving (Show, Eq)
+
+parsePropOps :: Parser PropOps
+parsePropOps = PropOps <$> (many1' parsePropOp)
+  
   
 data BinderProp =
     BinderPropAppProp AppProp
@@ -632,7 +646,8 @@ parseParenType = between parseLParen parseRParen parseGeneralType >>= return . P
 newtype AnnotatedType = AnnotatedType GeneralType
   deriving (Show, Eq)
 
-parseAnnotatedType = between parseLParen parseRParen $ parseGeneralType <* parseColon <* parseLit "type"
+parseAnnotatedType :: Parser AnnotatedType
+parseAnnotatedType = AnnotatedType <$> (between parseLParen parseRParen $ parseGeneralType <* parseColon <* parseLit "type")
 
 newtype ControlSeqType = ControlSeqType (CSBrace PrimTypeControlSeq)
   deriving (Show, Eq)
@@ -783,7 +798,7 @@ parseTightestTerms = paren $ (TightestTerms <$> many1' parseTightestTerm)
   
 data TightestPrefix =
     TightestPrefixNumeric Numeric
-  | TightestPrefixString String
+  | TightestPrefixString TkString
   | TightestPrefixDecimal Decimal
   | TightestPrefixBlank Blank
   | TightestPrefixVar Var
@@ -868,13 +883,13 @@ data MakeTerm = MakeTerm [(VarOrAtomic, Maybe Term)]
   deriving (Show, Eq)
 
 parseMakeTerm :: Parser MakeTerm
-parseMakeTerm = MakeTerm <$> brace_semi $ (,) <$> parseVarOrAtomic <*> option (parseAssign *> parseTerm) <* option (parseSemicolon *> parseBlank)
+parseMakeTerm = MakeTerm <$> (brace_semi $ (,) <$> parseVarOrAtomic <*> option (parseAssign *> parseTerm) <* option (parseSemicolon *> parseBlank))
 
 newtype ListTerm = ListTerm [Term]
   deriving (Show, Eq)
 
 parseListTerm :: Parser ListTerm
-parseListTerm = bracket $ ListTerm <$> sepby' parseTerm parseSemicolon
+parseListTerm = bracket $ ListTerm <$> sepby parseTerm parseSemicolon
 
 data TupleTerm = TupleTerm Term [Term]
   deriving (Show, Eq)
@@ -1027,6 +1042,7 @@ parseLetAnnotation :: Parser LetAnnotation
 parseLetAnnotation = LetAnnotation <$> (parseLit "let" *> comma_nonempty_list parseAnnotatedVars)
   
 data AnnotatedVar = AnnotatedVar VarModifier Var (Maybe ColonType)
+  deriving (Show, Eq)
 
 parseAnnotatedVar :: Parser AnnotatedVar
 parseAnnotatedVar = paren $ AnnotatedVar <$> parseVarModifier <*> (parseVar) <*> option parseColonType
@@ -1043,5 +1059,55 @@ newtype VarModifier = VarModifier (Maybe [Text]) -- this is parsed as an optiona
 parseVarModifier :: Parser VarModifier
 parseVarModifier = VarModifier <$> option parseLitVarMod
 
+data DoesPred =
+    DoesPredPrimVerb PrimVerb
+  | DoesPredPrimVerbMultiSubject PrimVerbMultiSubject
+  | DoesPredHasPred HasPred
+  | DoesPredIsPreds [IsPred]
+  | DoesPredIsAPreds [IsAPred]
+  deriving (Show, Eq)
 
+parseDoesPred :: Parser DoesPred
+parseDoesPred =
+  DoesPredPrimVerb <$> (option parseLitDo *> (option $ parseLit "not") *> parsePrimVerb) <||>
+  DoesPredPrimVerbMultiSubject <$> (option parseLitDo *> (option $ parseLit "not") *> parsePrimVerbMultisubject) <||>
+  DoesPredHasPred <$> (parseLitHas *> parseHasPred) <||>
+  DoesPredIsPreds <$> (parseLitIs *> sep_list parseIsPred) <||>
+  DoesPredIsAPreds <$> (parseLitIs *> sep_list parseIsAPred)
+  
+data HasPred =
+    HasPredArticle [PossessedNoun]
+  | HasPredNo PossessedNoun
+  deriving (Show, Eq)
+
+parseHasPred :: Parser HasPred
+parseHasPred =
+  HasPredArticle <$> sep_list (parseArticle *> parsePossessedNoun) <||>
+  HasPredNo <$> (parseLit "no" *> parsePossessedNoun)
+  
+data PossessedNoun = PossessedNoun (Attribute PrimPossessedNoun)
+  deriving (Show, Eq)
+
+parsePossessedNoun :: Parser PossessedNoun
+parsePossessedNoun = PossessedNoun <$> parseAttribute parsePrimPossessedNoun
+
+data IsPred =
+    IsPredPrimAdjective PrimAdjective
+  | IsPredHasPred HasPred
+  deriving (Show, Eq)
+
+parseIsPred :: Parser IsPred
+parseIsPred =
+  IsPredPrimAdjective <$> ((option $ parseLit "not") *> parsePrimAdjective) <||>
+  IsPredHasPred <$> ((option $ parseLit "not") *> (option $ parseLit "pairwise") *> parsePrimAdjectiveMultiSubject)
+  
+data IsAPred =
+    IsAPredGeneralType GeneralType
+  | IsAPredNot DefiniteTerm
+  deriving (Show, Eq)
+
+parseIsAPred :: Parser IsAPred
+parseIsAPred =
+  IsAPredGeneralType <$> ((option $ parseLit "not") *> (option parseLitA) *> parseGeneralType) <||>
+  IsAPredNot <$> ((option $ parseLit "not") *> parseDefiniteTerm)
 

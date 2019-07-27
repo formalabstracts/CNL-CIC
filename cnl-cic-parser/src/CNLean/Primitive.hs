@@ -139,7 +139,7 @@ newtype PrimVerb = PrimVerb ([Patt], [ParsedPatt])
 
 --  (* from verb_multiset_pattern *)
 -- prim_verb_multisubject : PA17 {}
-newtype PrimVerbMultisubject = PrimVerbMultisubject ([Patt], [ParsedPatt]) 
+newtype PrimVerbMultiSubject = PrimVerbMultiSubject ([Patt], [ParsedPatt]) 
   deriving (Show, Eq)
 
 --  (* from type_def, when infix with precedence *)
@@ -166,9 +166,4 @@ newtype PrimPropositionalOp = PrimPropositionalOp ([Patt], [ParsedPatt])
 --  (* from predicate_def.identifier_pattern *)
 -- prim_relation : PA22 {} (* prop-valued *)
 newtype PrimRelation = PrimRelation ([Patt], [ParsedPatt]) 
-  deriving (Show, Eq)
-
-data DoesPred = DoesPredDummyConstructor -- TODO(jesse): fix me
-  deriving (Show, Eq)
-data IsPred = IsPredDummyConstructor --TODO(jesse): fix me
   deriving (Show, Eq)
