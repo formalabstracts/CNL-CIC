@@ -180,17 +180,17 @@ unoption p = do
     Just x -> return x
     Nothing -> fail "failing on Nothing"
 
-parse_any_aux :: (Text -> Parser (Maybe [Text])) -> [Text] -> Parser (Maybe [Text])
+parse_any_aux :: (a -> Parser (Maybe [b])) -> [a] -> Parser (Maybe [b])
 parse_any_aux m ph = case ph of
   [] -> return Nothing
   x:xs -> (m x) <+> (parse_any_aux m xs)
 
-parse_any_maybe :: (Text -> Parser (Maybe [Text])) -> [[Text]] -> Parser [Text]
+parse_any_maybe :: (a -> Parser (Maybe [b])) -> [[a]] -> Parser [b]
 parse_any_maybe m phs = case phs of
   [] -> empty
   x:xs -> (unoption $ parse_any_aux m x) <||> (parse_any_maybe m xs)
 
-parse_any :: (Text -> Parser [Text]) -> [[Text]] -> Parser [Text]
+parse_any :: (a -> Parser [b]) -> [[a]] -> Parser [b]
 parse_any m = parse_any_maybe (\x -> m x >>= return . Just)
 
 parse_any_of :: [Parser a] -> Parser a

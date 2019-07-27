@@ -30,14 +30,14 @@ data Maybe' a =
   deriving (Show, Eq)
 
 data FState = FState { 
-  primAdjective,        primAdjectiveMS,       primSimpleAdjective, primSimpleAdjectiveMultiSubject :: [[Patt]],
-  primDefiniteNoun,     primPosessedNoun :: [[Patt]],
-  primVerb,             primVerbMS :: [[Patt]],
-  primTermOp,           primTermOpControlSeq,  primTermControlSeq :: [[Patt]],
-  primTypeOp,           primTypeOpControlSeq,  primTypeControlSeq :: [[Patt]],
-  primLambdaBinder,     primPiBinder,          primBinderProp :: [[Patt]],
+  primAdjective,        primAdjectiveMultiSubject,   primSimpleAdjective, primSimpleAdjectiveMultiSubject :: [[Patt]],
+  primDefiniteNoun,     primPossessedNoun :: [[Patt]],
+  primVerb,             primVerbMultiSubject :: [[Patt]],
+  primTermOp,           primTermOpControlSeq,        primTermControlSeq :: [[Patt]],
+  primTypeOp,           primTypeOpControlSeq,        primTypeControlSeq :: [[Patt]],
+  primLambdaBinder,     primPiBinder,                primBinderProp :: [[Patt]],
   primBinaryRelationOp, primBinaryRelationControlSeq :: [[Patt]],
-  primPropositionalOp,  primPropositionaOpControlSeq :: [[Patt]],
+  primPropositionalOp,  primPropositionalOpControlSeq :: [[Patt]],
   primRelation :: [[Patt]],
   primPrefixFunction :: [[Patt]],
   primIdentifierTerm :: [[Patt]],

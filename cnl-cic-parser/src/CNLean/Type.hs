@@ -539,7 +539,7 @@ parseBinderProp :: Parser BinderProp
 parseBinderProp =
   BinderPropAppProp <$> parseAppProp <||>
   BinderPropTdopRelProp <$> parseTdopRelProp <||>
-  BinderPropPrimBinderProp <$> parsePrimBinderPropArgs <*> parseArgs <* parseLitBinderComma <*> parseBinderProp
+  BinderPropPrimBinderProp <$> parsePrimBinderProp <*> parseArgs <* parseLitBinderComma <*> parseBinderProp
   
 data TdopRelProp = TdopRelProp [TdopTerm] [(BinaryRelationOp, TdopTerm)] -- last list must be empty, tdop_terms is nonempty comma-separated
   deriving (Show, Eq)
@@ -754,7 +754,7 @@ parseFieldPrefix = parseAlt *> (many1' parseLitFieldKey) >>= return . FieldPrefi
 data FieldIdentifier = FieldIdentifier VarOrAtomic (Maybe ColonType)
   deriving (Show, Eq)
 
-parseFieldIndentifier = FieldIdentifier <$> parseVarOrAtomic <*> option parseColonType
+parseFieldIdentifier = FieldIdentifier <$> parseVarOrAtomic <*> option parseColonType
 
 data FieldSuffix =
     WithoutNotation
@@ -1070,7 +1070,7 @@ data DoesPred =
 parseDoesPred :: Parser DoesPred
 parseDoesPred =
   DoesPredPrimVerb <$> (option parseLitDo *> (option $ parseLit "not") *> parsePrimVerb) <||>
-  DoesPredPrimVerbMultiSubject <$> (option parseLitDo *> (option $ parseLit "not") *> parsePrimVerbMultisubject) <||>
+  DoesPredPrimVerbMultiSubject <$> (option parseLitDo *> (option $ parseLit "not") *> parsePrimVerbMultiSubject) <||>
   DoesPredHasPred <$> (parseLitHas *> parseHasPred) <||>
   DoesPredIsPreds <$> (parseLitIs *> sep_list parseIsPred) <||>
   DoesPredIsAPreds <$> (parseLitIs *> sep_list parseIsAPred)
@@ -1093,13 +1093,15 @@ parsePossessedNoun = PossessedNoun <$> parseAttribute parsePrimPossessedNoun
 
 data IsPred =
     IsPredPrimAdjective PrimAdjective
+  | IsPredPrimAdjectiveMultiSubject PrimAdjectiveMultiSubject
   | IsPredHasPred HasPred
   deriving (Show, Eq)
 
 parseIsPred :: Parser IsPred
 parseIsPred =
   IsPredPrimAdjective <$> ((option $ parseLit "not") *> parsePrimAdjective) <||>
-  IsPredHasPred <$> ((option $ parseLit "not") *> (option $ parseLit "pairwise") *> parsePrimAdjectiveMultiSubject)
+  IsPredPrimAdjectiveMultiSubject <$> ((option $ parseLit "not") *> (option $ parseLit "pairwise") *> parsePrimAdjectiveMultiSubject) <||>
+  IsPredHasPred <$> (parseLitWith *> parseHasPred)
   
 data IsAPred =
     IsAPredGeneralType GeneralType
@@ -1110,4 +1112,3 @@ parseIsAPred :: Parser IsAPred
 parseIsAPred =
   IsAPredGeneralType <$> ((option $ parseLit "not") *> (option parseLitA) *> parseGeneralType) <||>
   IsAPredNot <$> ((option $ parseLit "not") *> parseDefiniteTerm)
-

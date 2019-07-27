@@ -25,7 +25,7 @@ import CNLean.Basic.State
 import CNLean.Basic.Token
 
 data ParsedPatt =
-    ParsedWd [Token]
+    ParsedWd Token -- note, each 
   | ParsedSymbol Symbol
   | ParsedVar Var
   | ParsedName [Var]
@@ -34,7 +34,7 @@ data ParsedPatt =
 parsePatt :: Patt -> Parser ParsedPatt
 parsePatt ptt = case ptt of
   Nm -> ParsedName <$> (sepby1 parseVar parseComma)
-  Wd ts -> ParsedWd <$> parse_list ts parseTokenOfLit
+  Wd ts -> ParsedWd <$> parse_any_of (map parseTokenOfLit ts)
   Sm t -> do s <- parseSymbol
              guard (s == Symbol t)
              return $ ParsedSymbol s             
@@ -43,12 +43,17 @@ parsePatt ptt = case ptt of
 parsePatts :: [Patt] -> Parser [ParsedPatt]
 parsePatts ptts = parse_list ptts parsePatt
 
---tests
+parse_any_Patts :: [[Patt]] -> Parser [ParsedPatt]
+parse_any_Patts = parse_any $ rp . parsePatt
+-- note: this is equivalent to parse_any_of . map parsePatts
 
 examplePatts :: [Patt]
 examplePatts = [Wd ["foo"], Wd ["bar"], Vr]
 
--- test (parsePatts examplePatts) "foo bar a1"
+examplePatts2 :: [Patt]
+examplePatts2 = [Wd["subsets", "subset"], Nm, Wd["of"], Vr]
+-- note, prefixes must appear later in the list because they will succeed first
 
--- result:
--- [ParsedWd [Token "foo"],ParsedWd [Token "bar"],ParsedVar (Var "a1")]
+-- test (parsePatts examplePatts) "foo bar a1"
+-- test (parsePatts examplePatts2) "subset a of x0"
+-- test (parsePatts examplePatts2) "subsets a,b of x0"

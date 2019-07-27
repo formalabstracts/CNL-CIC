@@ -388,7 +388,7 @@ var = do a <- alpha
 parseVar :: Parser Var
 parseVar = (do
   x <- var
-  (lookAhead' spaceChar) <||> lookAhead' (char '.') <||> lookAhead' (parseEOF)
+  -- (lookAhead' spaceChar) <||> lookAhead' (char '.') <||> lookAhead' (parseEOF)
   return $ Var $ x) <* sc
 
 -- TODO(jesse) later, make sure to implement check against being substring of an identifier

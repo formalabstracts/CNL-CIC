@@ -26,7 +26,6 @@ updateHiddenCount fs x = fs {hiddenCount = x}
 updateIdCount fs x = fs {idCount = x}
 updateVarDecl fs x = fs {varDecl = x}
 
-
 setClsList x fs = fs {clsList = x}
 pushClsList z fs = setClsList (z:(clsList fs)) fs
 prependClsList zs fs = setClsList (zs <> (clsList fs)) fs

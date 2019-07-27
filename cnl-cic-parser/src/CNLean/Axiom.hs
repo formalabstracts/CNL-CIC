@@ -30,9 +30,6 @@ data Axiom = Axiom { preamble :: AxiomPreamble, assumptions :: [Assumption], the
 parseAxiom :: Parser Axiom
 parseAxiom = Axiom <$> parseAxiomPreamble <*> (many' parseAssumption) <*> parseThenPrefix <*> parseStatement
 
-data FooData = FooData Text Text Text
-  deriving (Show, Eq)
-
 data AxiomPreamble = AxiomPreamble (Maybe Label)
   deriving (Show, Eq)
 
