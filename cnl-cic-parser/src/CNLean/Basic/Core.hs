@@ -38,7 +38,7 @@ toParsec p = do (a,b) <- runtest0 p
                 return a
 
 ---- `test p arg` runs `p` on `arg`, suppressing information about the FState
-test:: Show a => Parser a -> Text -> IO ()
+test :: Show a => Parser a -> Text -> IO ()
 test p arg = parseTest (toParsec p) arg
 
 repeatN :: Int -> Parser a -> Parser a
@@ -208,3 +208,26 @@ with_result p m = do
   r <- p
   m r
   return r
+
+fail_if_eof :: Parser a -> Parser a
+fail_if_eof p = (notFollowedBy eof *> p) <|> fail "end of file detected, failing"
+
+-- from Parsec
+chainl p op x       = chainl1 p op <||> return x
+
+chainl1 p op        = do{ x <- p; rest x }
+                    where
+                      rest x    = do{ f <- op
+                                    ; y <- p
+                                    ; rest (f x y)
+                                    }
+                                <||> return x
+
+chainl1' :: Parser a -> b  -> Parser (b -> a -> b) -> Parser b
+chainl1' p c op        = do{ x <- p; g <- op; rest (g c x) }
+                    where
+                      rest x    = do{ f <- op
+                                    ; y <- p
+                                    ; rest (f x y)
+                                    }
+                                <||> return x

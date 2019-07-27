@@ -52,7 +52,7 @@ data FState = FState {
 initialFState :: FState --TODO(jesse): move the rest of phrase_list.txt into the state and define corresponding parsers
 initialFState = FState
   [] [] [] []
-  [] []
+  primDefiniteNoun0 []
   [] []
   [] [] []
   [] [] []
@@ -68,6 +68,7 @@ initialFState = FState
   [] [] clsL0
   0 0 0
   where
+  primDefiniteNoun0 = [[Wd ["zero"]]]
   -- adjE0 []    ntnE0 sntE0
   -- cfnE0 rfnE0 []    []
   -- []    []    []    iprE0

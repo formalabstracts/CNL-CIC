@@ -22,10 +22,6 @@ import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
 import CNLean.Basic.Basic
-import CNLean.Basic.Token
-import CNLean.Basic.State
-import CNLean.Basic.Pattern
-
 ----A primitive classifier phrase is a list [Text], where each item must be parsed verbatim, but during parsing the items may be separated by arbitrary whitespace
 newtype PrimClassifier = PrimClassifier [Text] 
   deriving (Show, Eq)

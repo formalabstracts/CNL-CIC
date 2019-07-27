@@ -16,12 +16,12 @@ import qualified Prelude
 import qualified Control.Applicative.Combinators as PC
 import Text.Megaparsec hiding (Token, Label, option)
 import Control.Monad (guard)
+import Control.Monad.Combinators.Expr
 import Text.Megaparsec.Char
 import qualified Data.Char as C
 import Data.Text (Text, pack, unpack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
-import Control.Applicative (liftA2)
 
 import CNLean.Basic.Basic
 import CNLean.Primitive
@@ -36,14 +36,14 @@ parseStatement :: Parser Statement
 parseStatement = (HeadStatement <$> parseHeadStatement) <||> (ChainStatement <$> parseChainStatement)
 
 data HeadStatement =
-    HeadStatementForAny [AnyName] Statement -- list of anyname parsed by a comma-or-LIT_AND separated list
+    HeadStatementForAny [AnyName] Statement
   | HeadStatementIfThen Statement Statement
   | HeadStatementItsWrong Statement
   deriving (Show, Eq)
 
 parseHeadStatement :: Parser HeadStatement
 parseHeadStatement =
-  (HeadStatementForAny <$> sep_list (parseAnyName) <*> parseStatement) <||>
+  (HeadStatementForAny <$> sep_list1 (parseAnyName) <*> parseStatement) <||>
   (HeadStatementIfThen <$> (parseLit "if" *> parseStatement) <*> (parseLit "then" *> parseStatement)) <||>
   (HeadStatementItsWrong <$> (parseLitItsWrong *> parseStatement))
 
@@ -87,9 +87,9 @@ data PrimaryStatement =
 
 parsePrimaryStatement :: Parser PrimaryStatement
 parsePrimaryStatement =
-  PrimaryStatementSimple <$> parseSimpleStatement <||>
+  PrimaryStatementSimple <$> parseSimpleStatement <||> -- looping on period
   PrimaryStatementThereIs <$> parseThereIsStatement <||>
-  PrimaryStatementSymbol <$> parseFiller <*> parseSymbolStatement <||>
+  PrimaryStatementSymbol <$> parseFiller <*> parseSymbolStatement <||> -- looping on period
   PrimaryStatementConst <$> parseFiller <*> parseConstStatement
   
 data SimpleStatement = SimpleStatement Terms [DoesPred]
@@ -97,7 +97,7 @@ data SimpleStatement = SimpleStatement Terms [DoesPred]
 -- parse [Term] using parseTerms and parse [DoesPred] using sepby1 parseDoesPred (parseLit "and")
 
 parseSimpleStatement :: Parser SimpleStatement -- TODO(jesse): fix me
-parseSimpleStatement = liftA2 SimpleStatement parseTerms (sepby1 parseDoesPred $ parseLit "and")
+parseSimpleStatement = SimpleStatement <$> parseTerms <*> (sepby1 parseDoesPred $ parseLit "and")
   
 data ThereIsStatement =
     ThereIs [NamedTerm] -- parsed with sep_list (option(lit_a) named_term)
@@ -256,8 +256,8 @@ data DefiniteTerm =
 
 parseDefiniteTerm :: Parser DefiniteTerm
 parseDefiniteTerm =
-  DefiniteTermSymbolicTerm <$> parseSymbolicTerm <||>
   DefiniteTermNoun <$> ((option $ parseLit "the") *> parsePrimDefiniteNoun) <||>
+  DefiniteTermSymbolicTerm <$> parseSymbolicTerm <||>
   DefiniteTermParenNoun <$> between parseLParen parseRParen ((option $ parseLit "the") *> parsePrimDefiniteNoun)
   
 data SymbolicTerm = SymbolicTerm OpenTailTerm (Maybe WhereSuffix)
@@ -277,11 +277,11 @@ data OpenTailTerm =
 
 parseOpenTailTerm :: Parser OpenTailTerm
 parseOpenTailTerm =
-  OpenTailTermLambdaTerm <$> parseLambdaTerm <||>
+  OpenTailTermLambdaTerm <$> parseLambdaTerm <||> -- looping on period
   OpenTailTermLambdaFun <$> parseLambdaFun <||>
   OpenTaiLTermLetTerm <$> parseLetTerm <||>
   OpenTaiLTermIfThenElseTerm <$> parseIfThenElseTerm <||>
-  OpenTailTermTdopTerm <$> parseTdopTerm
+  OpenTailTermTdopTerm <$> parseTdopTerm -- looping on period
 
 data TdopTerm =
     TdopTermOps (Maybe AppTerm) TermOps [(AppTerm, TermOps)] (Maybe AppTerm)
@@ -290,7 +290,7 @@ data TdopTerm =
 
 parseTdopTerm :: Parser TdopTerm
 parseTdopTerm =
-  TdopTermOps <$> (option parseAppTerm) <*> parseTermOps <*>
+  TdopTermOps <$> (option parseAppTerm) <*> parseTermOps <*>  -- TODO(jesse) both these branches are looping, see parseAppTerm
                     (many' $ (,) <$> parseAppTerm <*> parseTermOps)
                     <*> (option parseAppTerm) <||>
   TdopTermApp <$> parseAppTerm
@@ -597,7 +597,7 @@ data AppArgs = AppArgs (Maybe RecordAssignTerm) [TightestExpr]
 
 parseAppArgs :: Parser AppArgs
 parseAppArgs =
-  AppArgs <$> (option $ parseLit "at" *> parseRecordAssignTerm) <*> (many1 parseTightestExpr)
+  AppArgs <$> (option $ parseLit "at" *> parseRecordAssignTerm) <*> (many1' parseTightestExpr)
   
 data TightestExpr =
     TightestExprTerm TightestTerm
@@ -778,17 +778,33 @@ parseSatisfyingPred = do
   p <- parseProp
   return $ SatisfyingPred mid p
 
+data TightestTerm_aux =
+    TighestTerm_auxTightestPrefix TightestPrefix
+  | TightestTerm_auxFieldAcc FieldAcc
+  | TightestTerm_auxTightestTerms TightestTerms
+  deriving (Show, Eq)
+
+parseTightestTerm_aux :: Parser TightestTerm_aux
+parseTightestTerm_aux =
+    TighestTerm_auxTightestPrefix <$> parseTightestPrefix <||>
+    TightestTerm_auxFieldAcc <$> parseFieldAcc <||>
+    (paren $ TightestTerm_auxTightestTerms <$> parseTightestTerms)
+
 data TightestTerm =
-    TightestTerm TightestPrefix
-  | TightestTermFieldAcc TightestTerm FieldAcc
-  | TightestTermApplySub TightestTerms -- should be parsed by a paren-enclosed nonempty list of tightest terms, preceded by an ApplySub literal
+    TightestTermPrefix TightestTerm_aux
+  | TightestTermFieldAcc TightestTerm TightestTerm_aux
+  | TightestTermApplySub TightestTerm TightestTerm_aux -- should be parsed by a paren-enclosed nonempty list of tightest terms, preceded by an ApplySub literal
   deriving (Show, Eq)
 
 parseTightestTerm :: Parser TightestTerm
-parseTightestTerm =
-  TightestTerm <$> parseTightestPrefix <||>
-  TightestTermFieldAcc <$> parseTightestTerm <*> parseFieldAcc <||>
-  TightestTermApplySub <$> (parseApplySub *> parseTightestTerms)
+parseTightestTerm = do
+  pfx <- parseTightestPrefix
+  chainl1' parseTightestTerm_aux (TightestTermPrefix $ TighestTerm_auxTightestPrefix pfx) $
+   (lookAhead' parseFieldAcc *> return TightestTermFieldAcc <||> return TightestTermApplySub)
+  
+  -- fail_if_eof (TightestTerm <$> parseTightestPrefix <||>
+  -- TightestTermFieldAcc <$> parseTightestTerm <*> parseFieldAcc <||>
+  -- TightestTermApplySub <$> parseTightestTerm <*> (parseApplySub *> parseTightestTerms))
 
 newtype TightestTerms = TightestTerms [TightestTerm]
   deriving (Show, Eq)
@@ -815,12 +831,12 @@ parseTightestPrefix =
   TightestPrefixString <$> parseTkString <||>
   TightestPrefixDecimal <$> parseDecimal <||>
   TightestPrefixBlank <$> parseBlank <||>
+  TightestPrefixAltTerm <$> parseAltTerm <||>
   TightestPrefixVar <$> parseVar <||>
   TightestPrefixPrimIdentifierTerm <$> parsePrimIdentifierTerm <||>
   TightestPrefixPrimPrefixFunction <$> parsePrimPrefixFunction <||>
   TightestPrefixControlSeqTerm <$> parseControlSeqTerm <||>
-  TightestPrefixDelimitedTerm <$> parseDelimitedTerm <||>
-  TightestPrefixAltTerm <$> parseAltTerm
+  TightestPrefixDelimitedTerm <$> parseDelimitedTerm
   
 data AltTerm =
     AltTermCaseTerm Term -- parsed as CASE term OF

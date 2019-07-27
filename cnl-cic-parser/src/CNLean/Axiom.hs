@@ -35,3 +35,7 @@ data AxiomPreamble = AxiomPreamble (Maybe Label)
 
 parseAxiomPreamble :: Parser AxiomPreamble
 parseAxiomPreamble = AxiomPreamble <$> (parseLitAxiom *> (option parseLabel) <* parsePeriod)
+
+-- test parseAxiomPreamble "Axiom riemann_hypothesis."
+-- test parseThenPrefix "therefore"
+
