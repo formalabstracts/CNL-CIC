@@ -25,6 +25,12 @@ import CNLean.Basic.Basic
 import CNLean.Type
 import CNLean.Assumption
 
+data Definition = Definition DefinitionPreamble [Assumption] DefinitionAffirm
+  deriving (Show, Eq)
+
+parseDefinition :: Parser Definition
+parseDefinition = Definition <$> parseDefinitionPreamble <*> (many' parseAssumption) <*> parseDefinitionAffirm
+
 newtype DefinitionPreamble = DefinitionPreamble (Maybe Label) -- parse (Lit AXIOM), maybe a label, optional period.
   deriving (Show, Eq)
 
@@ -39,12 +45,12 @@ parseDefinitionPreamble = DefinitionPreamble <$> do
 
 -- test parseDefinitionPreamble "DEF."
 
-data Definition = Definition DefinitionPreamble [Assumption] DefinitionAffirm
-  deriving (Show, Eq)
-
 data DefinitionAffirm = DefinitionAffirm DefinitionStatement (Maybe ThisExists)
   deriving (Show, Eq)
 
+parseDefinitionAffirm :: Parser DefinitionAffirm
+parseDefinitionAffirm = DefinitionAffirm <$> parseDefinitionStatement <* parsePeriod <*> option (parseThisExists)
+  
 newtype ThisExists = ThisExists [ThisDirectivePred]
   deriving (Show, Eq)
 
@@ -94,12 +100,160 @@ parseThisDirectiveRightAttr = ThisDirectiveRightAttr <$> (parse_list ["by", "rec
 data DefinitionStatement =
     DefinitionStatementClassifier ClassifierDef
   | DefinitionStatementTypeDef TypeDef
-  -- | FunctionDef
-  -- | PredicateDef
-  -- | StructureDef 
-  -- | InductiveDef
-  -- | MutualInductiveDef
+  | DefinitionStatementFunctionDef FunctionDef
+  | DefinitionStatementPredicateDef PredicateDef
+  | DefinitionStatementStructureDef  StructureDef
+  | DefinitionStatementInductiveDef InductiveDef
+  | DefinitionStatementMutualInductiveDef MutualInductiveDef
   deriving (Show, Eq)
+
+parseDefinitionStatement :: Parser DefinitionStatement
+parseDefinitionStatement =
+  DefinitionStatementClassifier <$> parseClassifierDef <||>
+  DefinitionStatementTypeDef <$> parseTypeDef <||>
+  DefinitionStatementFunctionDef <$> parseFunctionDef <||>
+  DefinitionStatementPredicateDef <$> parsePredicateDef <||>
+  DefinitionStatementStructureDef <$> parseStructureDef <||>
+  DefinitionStatementInductiveDef <$> parseInductiveDef <||>
+  DefinitionStatementMutualInductiveDef <$> parseMutualInductiveDef
+
+data PredicateDef = PredicateDef PredicateHead IffJunction Statement
+  deriving (Show, Eq)
+
+parsePredicateDef :: Parser PredicateDef
+parsePredicateDef = PredicateDef <$> (parseOptSay *> parsePredicateHead) <*> parseIffJunction <*> parseStatement
+
+data IffJunction = IffJunction
+  deriving (Show, Eq)
+
+parseIffJunction = parseLitIff *> return IffJunction
+
+data PredicateHead =
+    PredicateHeadPredicateTokenPattern PredicateTokenPattern
+  | PredicateHeadSymbolPattern SymbolPattern (Maybe ParenPrecedenceLevel)
+  | PredicateHeadIdentifierPattern IdentifierPattern
+  | PredicateHeadControlSeqPattern ControlSeqPattern
+  | PredicateHeadBinaryControlSeqPattern BinaryControlSeqPattern (Maybe ParenPrecedenceLevel)
+  deriving (Show, Eq)
+
+parsePredicateHead :: Parser PredicateHead
+parsePredicateHead =
+  PredicateHeadPredicateTokenPattern <$> parsePredicateTokenPattern <||>
+  PredicateHeadSymbolPattern <$> parseSymbolPattern <*> (option parseParenPrecedenceLevel) <||>
+  PredicateHeadIdentifierPattern <$> parseIdentifierPattern <||>
+  PredicateHeadControlSeqPattern <$> parseControlSeqPattern <||>
+  PredicateHeadBinaryControlSeqPattern <$> parseBinaryControlSeqPattern <*> (option parseParenPrecedenceLevel)
+
+data PredicateTokenPattern =
+    PredicateTokenPatternAdjectivePattern AdjectivePattern
+  | PredicateTokenPatternAdjectiveMultiSubjectPattern AdjectiveMultiSubjectPattern
+  | PredicateTokenPatternVerbPattern VerbPattern
+  | PredicateTokenPatternVerbMultiSubjectPattern VerbMultiSubjectPattern
+  deriving (Show, Eq)
+
+data AdjectivePattern = AdjectivePattern TVar TokenPattern
+  deriving (Show, Eq)
+
+parseAdjectivePattern :: Parser AdjectivePattern
+parseAdjectivePattern =
+  AdjectivePattern <$> parseTVar <*> (parseLit "is" *> (option $ parseLit "called") *> parseTokenPattern)
+
+data AdjectiveMultiSubjectPattern = AdjectiveMultiSubjectPattern VarMultiSubject TokenPattern
+  deriving (Show, Eq)
+
+parseAdjectiveMultiSubjectPattern :: Parser AdjectiveMultiSubjectPattern
+parseAdjectiveMultiSubjectPattern = AdjectiveMultiSubjectPattern <$> parseVarMultiSubject <*> parseTokenPattern
+
+data VerbPattern = VerbPattern TVar TokenPattern
+  deriving (Show, Eq)
+
+parseVerbPattern :: Parser VerbPattern
+parseVerbPattern = VerbPattern <$> parseTVar <*> parseTokenPattern
+
+data VerbMultiSubjectPattern = VerbMultiSubjectPattern VarMultiSubject TokenPattern
+  deriving (Show, Eq)
+
+parseVerbMultiSubjectPattern :: Parser VerbMultiSubjectPattern
+parseVerbMultiSubjectPattern = VerbMultiSubjectPattern <$> parseVarMultiSubject <*> parseTokenPattern
+
+data VarMultiSubject =
+    VarMultiSubjectTVar TVar TVar
+  | VarMultiSubjectParen Var Var ColonType
+  deriving (Show, Eq)
+
+parseVarMultiSubject :: Parser VarMultiSubject
+parseVarMultiSubject =
+  VarMultiSubjectTVar <$> parseTVar <* parseComma <*> parseTVar <||>
+  (paren $ (VarMultiSubjectParen <$> parseVar <* parseComma <*> parseVar <*> parseColonType))
+
+parsePredicateTokenPattern :: Parser PredicateTokenPattern
+parsePredicateTokenPattern =
+  PredicateTokenPatternAdjectivePattern <$> parseAdjectivePattern <||>
+  PredicateTokenPatternAdjectiveMultiSubjectPattern <$> parseAdjectiveMultiSubjectPattern <||>
+  PredicateTokenPatternVerbPattern <$> parseVerbPattern <||>
+  PredicateTokenPatternVerbMultiSubjectPattern <$> parseVerbMultiSubjectPattern  
+
+data StructureDef = StructureDef IdentifierPattern Structure
+  deriving (Show, Eq)
+
+parseStructureDef :: Parser StructureDef
+parseStructureDef = StructureDef <$>
+  (option parseLitA *> parseIdentifierPattern) <* parseLit "is" <* parseLitA <*>
+  parseStructure
+
+
+data InductiveDef = InductiveDef InductiveType
+  deriving (Show, Eq)
+
+parseInductiveDef :: Parser InductiveDef
+parseInductiveDef = InductiveDef <$> (parseOptDefine *> parseInductiveType)
+
+data MutualInductiveDef = MutualInductiveDef MutualInductiveType
+  deriving (Show, Eq)
+
+parseMutualInductiveDef :: Parser MutualInductiveDef
+parseMutualInductiveDef = MutualInductiveDef <$> (parseOptDefine *> parseMutualInductiveType)
+
+
+data FunctionDef =
+    FunctionDefFunctionTokenPattern FunctionTokenPattern
+  | FunctionDefSymbolPattern SymbolPattern (Maybe ParenPrecedenceLevel)
+  | FunctionDefIdentifierPattern IdentifierPattern
+  | FunctionDefControlSeqPattern ControlSeqPattern
+  | FunctionDefBinaryControlSeqPattern BinaryControlSeqPattern (Maybe ParenPrecedenceLevel)
+  deriving (Show, Eq)
+
+parseFunctionDef :: Parser FunctionDef
+parseFunctionDef =
+  FunctionDefFunctionTokenPattern <$> parseFunctionTokenPattern <||>
+  FunctionDefSymbolPattern <$> parseSymbolPattern <*> (option parseParenPrecedenceLevel)<||>
+  FunctionDefIdentifierPattern <$> parseIdentifierPattern <||>
+  FunctionDefControlSeqPattern <$> parseControlSeqPattern <||>
+  FunctionDefBinaryControlSeqPattern <$> parseBinaryControlSeqPattern <*> (option parseParenPrecedenceLevel)
+
+data FunctionTokenPattern = FunctionTokenPattern TokenPattern
+  deriving (Show, Eq)
+
+parseFunctionTokenPattern :: Parser FunctionTokenPattern
+parseFunctionTokenPattern = FunctionTokenPattern <$> (parseLit "the" *> parseTokenPattern)
+
+data SymbolLowercase =
+    SymbolLowercaseSymbol Symbol
+  | SymbolLowercaseCSBrace (CSBrace ControlSequence)
+  deriving (Show, Eq)
+
+parseSymbolLowercase :: Parser SymbolLowercase
+parseSymbolLowercase =
+  SymbolLowercaseSymbol <$> parseSymbol <||>
+  SymbolLowercaseCSBrace <$> (parseCSBrace parseControlSequence)
+
+data SymbolPattern = SymbolPattern (Maybe TVar) SymbolLowercase [(TVar, SymbolLowercase)] (Maybe TVar)
+  deriving (Show, Eq)
+
+parseSymbolPattern :: Parser SymbolPattern
+parseSymbolPattern = SymbolPattern <$> (option parseTVar) <*> parseSymbolLowercase <*>
+                                       (many' $ (,) <$> parseTVar <*> parseSymbolLowercase) <*>
+                                       (option parseTVar)   
 
 data TypeDef = TypeDef TypeHead Copula GeneralType
   deriving (Show, Eq)
@@ -207,6 +361,8 @@ parseTokenPattern :: Parser TokenPattern
 parseTokenPattern = TokenPattern <$> parseTokens <*>
                                      (many' $ (,) <$> parseTVar <*> parseTokens) <*>
                                      (option parseTVar)
+
+
 
 newtype ClassifierDef = ClassifierDef ClassTokens
   deriving (Show, Eq)

@@ -20,8 +20,7 @@ import Data.Text (Text, pack, unpack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
-import CNLean.Basic
-import CNLean.Token
+import CNLean.Basic.Basic
 import CNLean.Namespace
 import CNLean.SectionPreamble
 import CNLean.Declaration
@@ -37,11 +36,12 @@ data TextItem =
   deriving (Show, Eq)
 
 parseTextItem :: Parser TextItem
-parseTextItem = (parseNamespace >>= return . Namespace)
-          <||>  (parseSectionPreamble >>= return . CNLean.Core.SectionPreamble)
-          <||>  (parseDeclaration >>= return . Declaration)
-          <||>  (parseMacro >>= return . Macro)
-          <||>  (parseInstr >>= return . Instr)
+parseTextItem =
+  (Namespace <$> parseNamespace) <||>
+  (SectionPreamble <$> parseSectionPreamble) <||>
+  (Declaration <$> parseDeclaration)  <||>
+  (Macro <$> parseMacro) <||>
+  (Instr <$> parseInstr)
 
 newtype ProgramText = TextItems [TextItem]
   deriving (Show, Eq)

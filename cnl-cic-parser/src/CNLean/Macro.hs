@@ -20,14 +20,10 @@ import Data.Text (Text, pack, unpack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
-import CNLean.Basic
-import CNLean.Token
+import CNLean.Basic.Basic
 
 data Macro = DummyConstructor
   deriving (Show, Eq)
 
 parseMacro :: Parser Macro
-parseMacro = empty
-
-  -- do xs <- (many1 item)
-             --    return DummyConstructor
+parseMacro = empty -- not implemented yet

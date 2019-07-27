@@ -20,10 +20,9 @@ import Data.Text (Text, pack, unpack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
-import CNLean.Basic
-import CNLean.Token
+import CNLean.Basic.Basic
 
-data Namespace = DummyConstructor
+data Namespace = NamespaceDummyConstructor
   deriving (Show, Eq)
 
 parseNamespace :: Parser Namespace

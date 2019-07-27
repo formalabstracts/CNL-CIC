@@ -28,7 +28,7 @@ data Axiom = Axiom { preamble :: AxiomPreamble, assumptions :: [Assumption], the
   deriving (Show, Eq)
 
 parseAxiom :: Parser Axiom
-parseAxiom = Axiom <$> parseAxiomPreamble <*> (many' parseAssumption) <*> parseThenPrefix <*> parseStatement
+parseAxiom = Axiom <$> parseAxiomPreamble <*> (many' parseAssumption) <*> parseThenPrefix <*> parseStatement <* parsePeriod
 
 data AxiomPreamble = AxiomPreamble (Maybe Label)
   deriving (Show, Eq)

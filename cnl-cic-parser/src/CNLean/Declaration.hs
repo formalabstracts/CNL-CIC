@@ -20,20 +20,22 @@ import Data.Text (Text, pack, unpack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
-import CNLean.Basic
-import CNLean.Token
+import CNLean.Basic.Basic
 import CNLean.Axiom
 import CNLean.Definition
 import CNLean.Theorem
 
 data Declaration =
-  DeclarationAxiom Axiom | DeclarationDefinition Definition | DeclarationTheorem Theorem
+    DeclarationAxiom Axiom
+  | DeclarationDefinition Definition
+  | DeclarationTheorem Theorem
+  deriving (Show, Eq)
 
 parseDeclaration :: Parser Declaration
-parseDeclaration = (parseAxiom >>= return . DeclarationAxiom) <||>
-                   (parseDefinition >>= return . DeclarationDefinition) <||>
-                   (parseTheorem >>= return . DeclarationTheorem)
-  
+parseDeclaration =
+  DeclarationAxiom <$> parseAxiom <||>
+  DeclarationDefinition <$> parseDefinition <||>
+  DeclarationTheorem <$> parseTheorem
 
 -- data Definition =
 

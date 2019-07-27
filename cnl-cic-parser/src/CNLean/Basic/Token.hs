@@ -59,6 +59,9 @@ parseSepAndComma = parseLit "and" <||> parseLit ","
 
 parseLitBinderComma = parseLit ","
 
+parseOptDefine :: Parser (Maybe [Text])
+parseOptDefine = (option $ parseLitLets) <+> (option $ rp $ parseLit "define")
+
 parseLitDefinedAs :: Parser [Text]
 parseLitDefinedAs =
        (rp $ parseLit "said") <+> (rp $ parseLit "to") <+> (rp $ parseLit "be")
@@ -133,6 +136,8 @@ parseLitProve = (rp $ parseLit "prove") <||> (rp $ parseLit "show")
 
 parseLitWeSay = (rp $ parseLit "we") <+> (rp $ parseLit "say") <+> (rp $ parseLit "that")
            <||> (rp $ parseLit "we") <+> (rp $ parseLit "say")
+
+parseOptSay = option parseLitWeSay                
 
 parseLitLeft =
        (rp $ parseLit "left")
