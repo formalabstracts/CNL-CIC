@@ -455,9 +455,9 @@ parseAtomicId = atomicid >>= return . AtomicId
 
 -- hierid0 ensures that a hierid contains at least two atomicids separated by a period
 hierid0 :: Parser [AtomicId]
-hierid0 = do
+hierid0 = (do
   aid0 <- AtomicId <$> atomicid <* (ch '.')
-  (:) aid0 <$> (sepby1 (atomicid) (ch '.') >>= return . (map AtomicId)) <* sc
+  (:) aid0 <$> (sepby1 (atomicid) (ch '.') >>= return . (map AtomicId))) <* sc
 
 hierid1 :: Parser (Maybe VarOrNumber)
 hierid1 = option $ OfNumber <$> parseNumber <||> OfVar <$> parseVar

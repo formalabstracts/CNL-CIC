@@ -48,7 +48,6 @@ newtype PrimBinaryRelationControlSeq = PrimBinaryRelationControlSeq ([ParsedPatt
 parsePrimBinaryRelationControlSeq :: Parser PrimBinaryRelationControlSeq
 parsePrimBinaryRelationControlSeq = PrimBinaryRelationControlSeq <$> (gets primBinaryRelationControlSeq >>= parse_any_Patts)
 
-
 --  (* from predicate_def.binary_controlseq_pattern, prec < 0 *)
 -- prim_propositional_op_controlseq : PA1b {}
 newtype PrimPropositionalOpControlSeq = PrimPropositionalOpControlSeq ([ParsedPatt]) 

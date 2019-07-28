@@ -58,15 +58,29 @@ data InstructSynonym = InstructSynonym [Token]
   deriving (Show, Eq)
 
 parseInstructSynonym :: Parser InstructSynonym
-parseInstructSynonym = with_result (InstructSynonym <$> (bracket $ (parseLit "synonyms" <||> parseLit "synonym") *> (sepby1 parseToken parseInstructSep))) $
+parseInstructSynonym = with_result (parse_synonym_main) $
   updateStrSyms . (\x -> case x of InstructSynonym y -> (map tokenToText y))
+  where
+    parse_synonym_main = InstructSynonym <$>
+      ((bracket $ (parseLit "snonyms" <||> parseLit "synonym") *> do
+          tk@(Token txt) <- parseToken <* parseInstructSepPlural
+          return [tk, Token (txt <> "s")]) <||>
+      (bracket $ (parseLit "synonyms" <||> parseLit "synonym") *> (sepby1 parseToken parseInstructSep)))
 
-data InstructSep = InstructSepSlash | InstructSepSlashDash
+-- test parseInstructSynonym "[synonym set/-s]"
+
+data InstructSepPlural = InstructSepPlural
+  deriving (Show, Eq)
+
+parseInstructSepPlural :: Parser InstructSepPlural
+parseInstructSepPlural = parseSlash *> parseLit "-" *> parseLit "s" *> return InstructSepPlural
+
+data InstructSep = InstructSep
+  deriving (Show, Eq)
 
 parseInstructSep :: Parser InstructSep
-parseInstructSep =
-  parseSlashDash *> return InstructSepSlashDash <||>
-  parseSlash *> return InstructSepSlash
+parseInstructSep = parseSlash *> return InstructSep
+
   
 data InstructString = InstructString InstructKeywordString TkString
   deriving (Show, Eq)
