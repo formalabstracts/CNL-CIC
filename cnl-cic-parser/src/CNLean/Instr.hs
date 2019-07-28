@@ -59,13 +59,27 @@ data InstructSynonym = InstructSynonym [Token]
 
 parseInstructSynonym :: Parser InstructSynonym
 parseInstructSynonym = with_result (parse_synonym_main) $
-  updateStrSyms . (\x -> case x of InstructSynonym y -> (map tokenToText y))
+  updateStrSyms . (\(InstructSynonym y) -> (map tokenToText y))
   where
-    parse_synonym_main = InstructSynonym <$>
-      ((bracket $ (parseLit "snonyms" <||> parseLit "synonym") *> do
-          tk@(Token txt) <- parseToken <* parseInstructSepPlural
-          return [tk, Token (txt <> "s")]) <||>
-      (bracket $ (parseLit "synonyms" <||> parseLit "synonym") *> (sepby1 parseToken parseInstructSep)))
+    parse_synonym_main = InstructSynonym <$> do
+      bracket $ (parseLit "synonyms" <||> parseLit "synonym") *> do
+        parseToken >>= rest . pure
+          where
+            rest syms = case (last syms) of
+              Token txt ->
+                (parseInstructSepPlural *> (rest $ syms <> [Token $ txt <> "s"])) <||>
+                (parseInstructSep *> parseToken >>= \x -> (rest $ syms <> [x])) <||>
+                return syms
+
+-- parseInstructSynonym :: Parser InstructSynonym
+-- parseInstructSynonym = with_result (parse_synonym_main) $
+--   updateStrSyms . (\x -> case x of InstructSynonym y -> (map tokenToText y))
+--   where
+--     parse_synonym_main = InstructSynonym <$>
+--       ((bracket $ (parseLit "synonyms" <||> parseLit "synonym") *> do
+--           tk@(Token txt) <- parseToken <* parseInstructSepPlural
+--           return [tk, Token (txt <> "s")]) <||>
+--       (bracket $ (parseLit "synonyms" <||> parseLit "synonym") *> (sepby1 parseToken parseInstructSep)))
 
 -- test parseInstructSynonym "[synonym set/-s]"
 
