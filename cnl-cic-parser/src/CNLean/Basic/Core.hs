@@ -49,10 +49,7 @@ infixl 3 <||>
 p <||> q = (try p) <|> q
 
 (<+>) :: Semigroup a => Parser a -> Parser a -> Parser a
-p <+> q = do
-  a <- p
-  b <- q
-  return $ a <> b
+p <+> q = (<>) <$> p <*> q
 
 rp :: Parser a -> Parser [a]
 rp p = p >>= return . pure

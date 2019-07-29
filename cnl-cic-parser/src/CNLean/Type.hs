@@ -233,6 +233,20 @@ data Term =
   | TermAnyName AnyName
   deriving (Show, Eq)
 
+isPlainTerm :: Term -> Bool
+isPlainTerm trm = case trm of
+  TermDefiniteTerm x -> True
+  TermAnyName x -> False
+
+newtype PlainTerm = PlainTerm Term
+  deriving (Show, Eq)
+
+parsePlainTerm :: Parser PlainTerm -- succeeds if and only if isPlainTerm x is True
+parsePlainTerm =
+  (parseTerm >>= \x -> if isPlainTerm x
+                       then PlainTerm <$> return x
+                       else empty) <||> empty
+
 parseTerm =
   TermDefiniteTerm <$> parseDefiniteTerm <||>
   TermAnyName <$> parseAnyName
@@ -490,7 +504,6 @@ parseFreePredicateWithoutAttribute =
   opt_paren (FreePredicateProp <$> parseProp <*> parseHoldingVar) <||>
   FreePredicateVars2 <$> parseVars2 <*> parseBinaryRelationOp <*> parseTdopTerm
   
--- TODO(jesse): see if this can be factored out of this mutually recursive mess into a separate file
 data Prop =
     PropBinderProp BinderProp
   | PropTdopProp TdopProp
@@ -976,9 +989,13 @@ parseRequiredArg =
   (paren $ RequiredArgAnnotated <$> (many1' parseVarOrAtomic) <*> option parseColonType )<||>
   RequiredArgVarOrAtomic <$> parseVarOrAtomic
   
-data CSBrace a = CSBrace a [TVar] -- TODO(jesse): add data of control sequence
+data CSBrace a = CSBrace a [TVar]
   deriving (Show, Eq)
 
+-- note: the control sequence is the generic type variable 'a'
+-- but CSBrace will work for any type 'a'
+
+-- TODO(jesse): ensure that backslashes are parsed correctly
 parseCSBrace :: Parser a -> Parser (CSBrace a)
 parseCSBrace p = CSBrace <$> p <*> (many' $ brace parseTVar)
   

@@ -101,7 +101,7 @@ data DefinitionStatement =
     DefinitionStatementClassifier ClassifierDef
   | DefinitionStatementTypeDef TypeDef
   | DefinitionStatementFunctionDef FunctionDef
-  | DefinitionStatementPredicateDef PredicateDef -- TODO(jesse): remove the 3 fields StructureDef, InductiveDef, MutualInductiveDef
+  | DefinitionStatementPredicateDef PredicateDef
   -- | DefinitionStatementStructureDef  StructureDef
   -- | DefinitionStatementInductiveDef InductiveDef
   -- | DefinitionStatementMutualInductiveDef MutualInductiveDef
@@ -128,21 +128,21 @@ data IffJunction = IffJunction
 
 parseIffJunction = parseLitIff *> return IffJunction
 
-data PredicateHead = -- TODO(jesse): remove controlseq and binarycontrolseq cases
+data PredicateHead =
     PredicateHeadPredicateTokenPattern PredicateTokenPattern
   | PredicateHeadSymbolPattern SymbolPattern (Maybe ParenPrecedenceLevel)
   | PredicateHeadIdentifierPattern IdentifierPattern
-  | PredicateHeadControlSeqPattern ControlSeqPattern
-  | PredicateHeadBinaryControlSeqPattern BinaryControlSeqPattern (Maybe ParenPrecedenceLevel)
+  -- | PredicateHeadControlSeqPattern ControlSeqPattern
+  -- | PredicateHeadBinaryControlSeqPattern BinaryControlSeqPattern (Maybe ParenPrecedenceLevel)
   deriving (Show, Eq)
 
 parsePredicateHead :: Parser PredicateHead
 parsePredicateHead =
   PredicateHeadPredicateTokenPattern <$> parsePredicateTokenPattern <||>
   PredicateHeadSymbolPattern <$> parseSymbolPattern <*> (option parseParenPrecedenceLevel) <||>
-  PredicateHeadIdentifierPattern <$> parseIdentifierPattern <||>
-  PredicateHeadControlSeqPattern <$> parseControlSeqPattern <||>
-  PredicateHeadBinaryControlSeqPattern <$> parseBinaryControlSeqPattern <*> (option parseParenPrecedenceLevel)
+  PredicateHeadIdentifierPattern <$> parseIdentifierPattern--  <||>
+  -- PredicateHeadControlSeqPattern <$> parseControlSeqPattern <||>
+  -- PredicateHeadBinaryControlSeqPattern <$> parseBinaryControlSeqPattern <*> (option parseParenPrecedenceLevel)
 
 data PredicateTokenPattern =
     PredicateTokenPatternAdjectivePattern AdjectivePattern
@@ -214,23 +214,31 @@ data MutualInductiveDef = MutualInductiveDef MutualInductiveType
 parseMutualInductiveDef :: Parser MutualInductiveDef
 parseMutualInductiveDef = MutualInductiveDef <$> (parseOptDefine *> parseMutualInductiveType)
 
--- TODO(jesse): implement function def (and functionhead) correctly
-
-data FunctionDef =
-    FunctionDefFunctionTokenPattern FunctionTokenPattern
-  | FunctionDefSymbolPattern SymbolPattern (Maybe ParenPrecedenceLevel)
-  | FunctionDefIdentifierPattern IdentifierPattern
-  | FunctionDefControlSeqPattern ControlSeqPattern
-  | FunctionDefBinaryControlSeqPattern BinaryControlSeqPattern (Maybe ParenPrecedenceLevel)
+data FunctionDef = FunctionDef FunctionHead Copula PlainTerm
   deriving (Show, Eq)
 
 parseFunctionDef :: Parser FunctionDef
 parseFunctionDef =
-  FunctionDefFunctionTokenPattern <$> parseFunctionTokenPattern <||>
-  FunctionDefSymbolPattern <$> parseSymbolPattern <*> (option parseParenPrecedenceLevel)<||>
-  FunctionDefIdentifierPattern <$> parseIdentifierPattern <||>
-  FunctionDefControlSeqPattern <$> parseControlSeqPattern <||>
-  FunctionDefBinaryControlSeqPattern <$> parseBinaryControlSeqPattern <*> (option parseParenPrecedenceLevel)
+  FunctionDef <$> (parseOptDefine *> parseFunctionHead) <*>
+                  parseCopula <* option (parseLitEqual)
+                              <* option (parseLit "the") <*>
+                  parsePlainTerm
+
+data FunctionHead =
+    FunctionHeadFunctionTokenPattern FunctionTokenPattern
+  | FunctionHeadSymbolPattern SymbolPattern (Maybe ParenPrecedenceLevel)
+  | FunctionHeadIdentifierPattern IdentifierPattern
+  -- | FunctionHeadControlSeqPattern ControlSeqPattern
+  -- | FunctionHeadBinaryControlSeqPattern BinaryControlSeqPattern (Maybe ParenPrecedenceLevel)
+  deriving (Show, Eq)
+
+parseFunctionHead :: Parser FunctionHead
+parseFunctionHead =
+  FunctionHeadFunctionTokenPattern <$> parseFunctionTokenPattern <||>
+  FunctionHeadSymbolPattern <$> parseSymbolPattern <*> (option parseParenPrecedenceLevel)<||>
+  FunctionHeadIdentifierPattern <$> parseIdentifierPattern--  <||>
+  -- FunctionHeadControlSeqPattern <$> parseControlSeqPattern <||>
+  -- FunctionHeadBinaryControlSeqPattern <$> parseBinaryControlSeqPattern <*> (option parseParenPrecedenceLevel)
 
 data FunctionTokenPattern = FunctionTokenPattern TokenPattern
   deriving (Show, Eq)
@@ -262,11 +270,11 @@ data TypeDef = TypeDef TypeHead Copula GeneralType
 parseTypeDef :: Parser TypeDef
 parseTypeDef = TypeDef <$> parseTypeHead <*> parseCopula <* parseLitA <*> parseGeneralType
 
-data TypeHead = -- TODO(jesse): remove the maybe parenprecedencelevel
+data TypeHead =
     TypeHeadTypeTokenPattern TypeTokenPattern
   | TypeHeadIdentifierPattern IdentifierPattern
   | TypeHeadControlSeqPattern ControlSeqPattern
-  | TypeHeadBinaryControlSeqPattern BinaryControlSeqPattern (Maybe ParenPrecedenceLevel)
+  | TypeHeadBinaryControlSeqPattern BinaryControlSeqPattern
   deriving (Show, Eq)
 
 parseTypeHead :: Parser TypeHead
@@ -274,7 +282,7 @@ parseTypeHead =
   TypeHeadTypeTokenPattern <$> parseTypeTokenPattern <||>
   TypeHeadIdentifierPattern <$> parseIdentifierPattern <||>
   TypeHeadControlSeqPattern <$> parseControlSeqPattern <||>
-  TypeHeadBinaryControlSeqPattern <$> parseBinaryControlSeqPattern <*> (option parseParenPrecedenceLevel)
+  TypeHeadBinaryControlSeqPattern <$> parseBinaryControlSeqPattern
 
 data TypeTokenPattern = TypeTokenPattern TokenPattern
   deriving (Show, Eq)

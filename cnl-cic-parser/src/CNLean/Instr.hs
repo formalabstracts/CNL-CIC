@@ -23,7 +23,7 @@ import Control.Monad.Trans.State.Lazy (modify, gets)
 
 import CNLean.Basic.Basic
 
-data Instr = -- TODO(jesse) make sure that slash-dash synonyms are correctly registered
+data Instr =
     InstrInstructCommand InstructCommand
   | InstrInstructSynonym InstructSynonym
   | InstrInstructString InstructString

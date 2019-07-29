@@ -108,13 +108,10 @@ parseLitFalse =
 parseLitItsWrong = (rp $ parseLit "it") <+> (rp $ parseLit "is") <+> (rp $ parseLit "wrong") <+> (rp $ parseLit "that")
 
 parseLitWeRecord =
-       (rp $ parseLit "we") <+> (rp $ parseLit "record") <+> (rp $ parseLit "that")
-  <||> (rp $ parseLit "we") <+> (rp $ parseLit "record")
-  <||> (rp $ parseLit "we") <+> (rp $ parseLit "register") <+> (rp $ parseLit "that")
-  <||> (rp $ parseLit "we") <+> (rp $ parseLit "register")
-
-parseLitWeRecord' = -- TODO(jesse): incorporate into parseLitWeRecord
-  option (parseLit "we") *> (parseLit "record" <||> parseLit "register") *> option (parseLit "that")
+  unoption $ option (rp $ parseLit "we") <+>
+             (Just <$> ((rp $ parseLit "record") <||>
+                        (rp $ parseLit "register"))) <+>
+             option (rp $ parseLit "that")
   
 parseLitAny =
        (rp $ parseLit "every")
@@ -413,7 +410,6 @@ parseSlashDash :: Parser SlashDash
 parseSlashDash = parseDataHelper0 SlashDash "/-"
 
 
---TODO(jesse): add case for alpha__alphanumeric
 var_old :: Parser Text
 var_old = do a <- alpha
              ts    <- (many $ digit <||> ch '_' <||> ch '\'') >>= return . join
