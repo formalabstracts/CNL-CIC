@@ -62,7 +62,7 @@ parseInstructSynonym = with_result (parse_synonym_main) $
   updateStrSyms . (\(InstructSynonym y) -> (map tokenToText y))
   where
     parse_synonym_main = InstructSynonym <$> do
-      bracket $ (parseLit "synonyms" <||> parseLit "synonym") *> do
+      bracket $ (parseLit "synonyms" <||> parseLit "synonym") *>
         parseToken >>= rest . pure
           where
             rest syms = case (last syms) of
@@ -70,6 +70,8 @@ parseInstructSynonym = with_result (parse_synonym_main) $
                 (parseInstructSepPlural *> (rest $ syms <> [Token $ txt <> "s"])) <||>
                 (parseInstructSep *> parseToken >>= \x -> (rest $ syms <> [x])) <||>
                 return syms
+
+-- test parseInstructSynonym "[synonym set/-s/basket/-s/ensemble/ensembles]"
 
 -- parseInstructSynonym :: Parser InstructSynonym
 -- parseInstructSynonym = with_result (parse_synonym_main) $
