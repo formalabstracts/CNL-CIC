@@ -38,6 +38,7 @@ Thomas C. Hales, 2019.
   Features not implemented: 
 
   Specific lines of the file are marked NOT_IMPLEMENTED.
+  Unification hints. 
 
   *)
 
@@ -121,9 +122,9 @@ lit_with : LIT_WITH | LIT_OF | LIT_HAVING {}
 lit_true : LIT_ON | LIT_TRUE | LIT_YES {}
 lit_false : LIT_OFF | LIT_FALSE | LIT_NO {}
 lit_its_wrong : LIT_IT LIT_IS LIT_WRONG LIT_THAT {}
-lit_we_record : 
-| LIT_WE LIT_RECORD option(LIT_THAT) 
-| LIT_WE LIT_REGISTER option(LIT_THAT) {}
+lit_we_record :  (* for instances / type class mechanism *)
+| option(LIT_WE) LIT_RECORD option(LIT_THAT) 
+| option(LIT_WE) LIT_REGISTER option(LIT_THAT) {}
 lit_any : (* can extend: finitely many, almost all, etc. *)
 | LIT_EVERY
 | LIT_EACH
@@ -152,7 +153,7 @@ lit_document :
 | LIT_SUBSECTION
 | LIT_SUBSUBSECTION {}
 lit_def : LIT_DEF | LIT_DEFINITION {}
-lit_axiom : LIT_AXIOM | LIT_CONJECTURE | LIT_HYPOTHESIS {}
+lit_axiom : LIT_AXIOM | LIT_CONJECTURE | LIT_HYPOTHESIS | LIT_EQUATION | LIT_FORMULA {}
 lit_theorem :
 | LIT_PROPOSITION
 | LIT_THEOREM
@@ -172,18 +173,9 @@ label : ATOMIC_IDENTIFIER {}
 
 (* stub rules suppress errors for unused nonterminals. *)
 stub_nonterminal :
-| stub_token
-| stub_misc
+| NOT_DEBUGGED
+| make_term_opt_colon_type (* NOT_IMPLEMENTED instance declaration *)
 {}
-
-  stub_token :
-  | NOT_DEBUGGED
-  {}
-
-  stub_misc :
-  | controlseq_macro
-  | make_term_opt_colon_type (* NOT_IMPLEMENTED instance declaration *)
-  {}
 
 (* primitives *)
 
@@ -226,19 +218,19 @@ prim_type_controlseq : PA2 {}
 
  (* from NOT_IMPLEMENTED *)
 prim_lambda_binder : PA3 {} (* term binders *)
-
- (* from NOT_IMPLEMENTED *)
 prim_pi_binder : PA4 {} (* type binders *)
-
- (* from NOT_IMPLEMENTED *)
 prim_binder_prop : PA5 {}
+
 
  (* from declarations of structures, quotients, 
     inductive types, mutual inductive types  *) 
 prim_typed_name : PA6 {} 
 
- (* from NOT_IMPLEMENTED. Forthel: primClassRelation *)
- (* prim_free_predicate : PA7 {} *) (* used in quantifier scoping *)
+ (* from NOT_IMPLEMENTED. Forthel: primClassRelation
+    Forthel uses this for quantifier scoping. 
+    This might not be needed in the end. 
+    prim_free_predicate : PA7 {} 
+  *)
 
  (* from adjective_pattern *)
 prim_adjective : PA8 {} 
@@ -252,14 +244,17 @@ prim_simple_adjective : PA10 {}
  (* derived from prim_adjective_multisubject as in Forthel *)
 prim_simple_adjective_multisubject : PA11 {} 
 
- (* from NOT_IMPLEMENTED *)
+ (* from function_def *)
 prim_definite_noun : PA12 {} (* functions and terms *)
 
- (* from NOT_IMPLEMENTED *)
+ (* from function_def *)
 prim_identifier_term : PA13 {} (* all identifiers that are terms *)
 
- (* from NOT_IMPLEMENTED *)
-prim_prefix_function : PA14 {} (* symbolic functions like sin,cos,exp *)
+ (* from type_def *)
+prim_identifier_type : PA7 {} (* all identifiers that are terms *)
+
+ (* from function_def *)
+prim_prefix_function : PA14 {} (* symbolic identifiers like sin,cos,exp *)
 
  (* derived as in Forthel *)
 prim_possessed_noun : PA15 {} 
@@ -270,7 +265,7 @@ prim_verb : PA16 {}
  (* from verb_multiset_pattern *)
 prim_verb_multisubject : PA17 {} 
 
- (* from structure_def *)
+ (* from type_def *)
  (* NOT_IMPLEMENTED. 
     This is a stub for Cabarete mode structure notation, such as a
     vector_space over R.  Note that LIT_OVER is used to debundle parameters. 
@@ -460,6 +455,7 @@ tightest_type :
 | inductive_type
 | mutual_inductive_type
 | structure
+| prim_structure 
 {}
 
 paren_type : paren(general_type) {}
@@ -468,9 +464,9 @@ annotated_type : paren(general_type COLON LIT_TYPE {}) {}
 
 controlseq_type : cs_brace(prim_type_controlseq) {}
 
-const_type : type_identifier {}
-  type_identifier : identifier {}
+const_type : prim_identifier_type {}
 
+(* if not annotated here, the VAR should be previously annotated in the context. *)
 var_type : 
 | VAR 
 | paren(VAR COLON LIT_TYPE {}) {}
@@ -487,9 +483,11 @@ binder_type :
 (** binop_type *)
  (* for product types A * B, sum types A + B, 
     including arrows A -> B,
-    including Agda style dependent arrows (x:A) -> B.
-    all type operators are right assoc with the same precedence *)
-binop_type : type_operand list(type_op type_operand {}) {}
+    including Agda style dependent arrows (x:A) -> B x.
+    all type operators are right assoc with the same precedence
+    N.B. binder_types is tighter than binop_type, which might be non-intuitive.  *)
+binop_type : 
+| list(type_operand type_op {}) binder_type  {}
 
   type_op :
   | prim_type_op 
@@ -507,7 +505,6 @@ opentail_type :
 | binop_type
 | quotient_type
 | coercion_type
-| prim_structure
 {}
 
  (* agda_pi_type : nonempty_list(annotated_vars) ARROW opentail_type {} *)
@@ -515,7 +512,6 @@ opentail_type :
 quotient_type : LIT_QUOTIENT option(LIT_OF) general_type LIT_BY term {}
 
 coercion_type : 
-| PL4 term  (* implicit coercion from a term to a type *)
 | COERCION term (* explicit coercion *)
 {}
 
@@ -547,9 +543,13 @@ mutual_inductive_type : LIT_INDUCTIVE
 
 (** structure *)
 
+ (* we require at least one field.  Later, if needed
+    we can create prop_structure, without fields. 
+  *)
+
 structure : option(LIT_NOTATIONAL) LIT_STRUCTURE 
   option(lit_param) args
-  option(LIT_WITH) option(brace_semi(field))
+  option(LIT_WITH) brace_semi(field)
   option(LIT_SATISFYING satisfying_preds {}) {}
 
   lit_param : LIT_WITH LIT_PARAMETERS {}
@@ -1018,27 +1018,27 @@ definition_statement :
 | type_def
 | function_def
 | predicate_def
-| structure_def 
-| inductive_def
-| mutual_inductive_def
+(* | structure_def | inductive_def| mutual_inductive_def, subsumed by type_def *)
 {}
 
   copula : lit_is option(lit_defined_as) | ASSIGN | lit_denote {}
   iff_junction : lit_iff {}
   opt_say : option(lit_we_say) {}
+  opt_record : option(lit_we_record) {}
   opt_define : 
-  | option(lit_lets) option(LIT_DEFINE) {}
+  | option(lit_lets) option(LIT_DEFINE)
+  | opt_record {}
 
   classifier_def : LIT_LET class_tokens lit_is lit_a lit_classifier {}
     class_tokens : comma_nonempty_list(TOKEN) {}
 
-  type_def : type_head copula lit_a general_type {}
+  type_def : opt_define type_head copula lit_a general_type {}
 
     type_head :  
-    | type_pattern 
+    | type_token_pattern 
     | identifier_pattern 
     | controlseq_pattern 
-    | binary_controlseq_pattern option(paren_precedence_level)
+    | binary_controlseq_pattern (* fixed precedence level, right assoc *)
     {} 
 
   function_def : opt_define function_head
@@ -1047,24 +1047,22 @@ definition_statement :
     function_head :
     | function_token_pattern
     | symbol_pattern option(paren_precedence_level)
-    | identifier_pattern 
-    | controlseq_pattern
-    | binary_controlseq_pattern option(paren_precedence_level) {}
+    | identifier_pattern  {}
 
   predicate_def : opt_say predicate_head iff_junction statement {}
     predicate_head :
     | predicate_token_pattern
     | symbol_pattern option(paren_precedence_level)
-    | identifier_pattern 
-    | controlseq_pattern
-    | binary_controlseq_pattern option(paren_precedence_level) {}
+    | identifier_pattern {}
 
+(*
   structure_def : option(lit_a) identifier_pattern LIT_IS 
     lit_a structure {}
 
   inductive_def : opt_define inductive_type {}
   
   mutual_inductive_def : opt_define mutual_inductive_type {}
+ *)
 
  (*
 
@@ -1093,48 +1091,49 @@ definition_statement :
 
   Functions use the copula.
   token patterns starts with LIT_THE token ...
-  symbol patterns contain a symbol.
+  symbol patterns contain a symbol or CONTROLSEQ.
   identifier patterns start with an identifier.
 
   Types use the copula.
-   (* NOT_DEBUGGED need to disambiguiate *)
+  type_def vs. function_def distinguished by whether the RHS of the copula is
+  a type or term. 
   *)
 
 (* macro *)
 
- (* 
-  NOT_IMPLEMENTED. NOT_DEBUGGED. This section should be roughly parallel to the
-  definitions section.  It still needs much work. 
-  *)
-
 macro : option(insection) sep_list(assuming) macro_bodies {}
+
   assuming : LIT_ASSUMING option(LIT_THAT) statement {}
+
   insection : LIT_IN LIT_THIS section_tag {}
 
   macro_bodies : macro_body list(SEMI option(LIT_AND) macro_body {}) PERIOD {}
+
   macro_body : 
-  | type_macro 
-  | function_macro 
-  | predicate_macro 
+  | classifier_def  
+  | type_def 
+  | function_def 
+  | predicate_def 
   | let_annotation 
-  | instance_macro (* for type class resolution *)
+  | we_record_def
   {}
 
-  type_macro : LIT_LET type_pattern
+  let_annotation : LIT_LET comma_nonempty_list(annotated_vars) {}
+
+  we_record_def : lit_we_record comma_nonempty_list(plain_term) {}
+
+ (* subsumed by type_def, function_def, etc. 
+
+  type_macro : LIT_LET type_token_pattern
     lit_denote lit_a general_type {}
 
-  function_macro : LIT_LET function_token_pattern
+  function_macro : LIT_LET function_head 
     lit_denote plain_term {}
-
-  controlseq_macro : NOT_IMPLEMENTED  {}
 
   predicate_macro :
   | LIT_LET predicate_token_pattern lit_denote statement {}
   | LIT_LET symbol_pattern lit_denote statement {}
-
-  let_annotation : LIT_LET comma_nonempty_list(annotated_vars) {}
-
-  instance_macro : lit_we_record NOT_IMPLEMENTED {}
+ *)
 
 (* pattern *)
 
@@ -1146,7 +1145,7 @@ token_pattern : tokens list(tvar tokens {}) option(tvar) {}
 
   tokens : nonempty_list(TOKEN) {}
 
-type_pattern : option(lit_a) token_pattern {}
+type_token_pattern : option(lit_a) token_pattern {}
 
 function_token_pattern : LIT_THE token_pattern {}
 
@@ -1171,25 +1170,25 @@ predicate_token_pattern :
   | paren(VAR COMMA VAR colon_type {}) {}
 
 
-
 identifier_pattern :
 | identifier args opt_colon_type {}
+| BLANK args opt_colon_type {} (* instance can be anonymous *)
 
-controlseq_pattern : CONTROLSEQ list(brace(tvar)) {}
+controlseq_pattern : CONTROLSEQ list(brace(tvar)) {} (* subsumed by symbol_pattern *)
 
-binary_controlseq_pattern : tvar controlseq_pattern tvar {}
+binary_controlseq_pattern : tvar controlseq_pattern tvar {} (* subsumed by symbol_pattern *)
 
 symbol_pattern : option(tvar) symbol list(tvar symbol {}) 
   option(tvar) {}
 
-  symbol : SYMBOL | cs_brace(CONTROLSEQ) {} 
+  symbol : SYMBOL | CONTROLSEQ list(brace(tvar)) {} 
 
 paren_precedence_level :
 | precedence_level
 | paren(precedence_level) {}
 
   precedence_level :
-  | LIT_WITH LIT_PRECEDENCE NUMERIC
+  | LIT_WITH LIT_PRECEDENCE INTEGER 
     option(LIT_AND lit_left LIT_ASSOCIATIVITY {}) {}
 
 (* program *)

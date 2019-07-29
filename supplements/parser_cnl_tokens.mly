@@ -3,6 +3,7 @@
 
 %token <string> NUMBER (*digit+ *)
 %token <string> DECIMAL (*digit+ . digit+ *)
+%token <string> INTEGER (* (+|-)? number  *)
 %token <string> NUMERIC (*(+|-)? (number | decimal) *)
 %token <string> SYMBOL
 %token <string> SYMBOL_QED (* proof token *)
@@ -78,6 +79,7 @@ LIT_ELSE
 LIT_EMBEDDED
 LIT_END
 LIT_EQUAL
+LIT_EQUATION
 LIT_EVERY
 LIT_EXHAUSTIVE
 LIT_EXIST
@@ -87,6 +89,7 @@ LIT_FALSE
 LIT_FIXED
 LIT_FOR
 LIT_FORALL
+LIT_FORMULA
 LIT_FUN
 LIT_FUNCTION
 LIT_HAS
@@ -194,7 +197,7 @@ PA3
 PA4
 PA5
 PA6
-(* PA7 *)
+PA7
 PA8
 PA9
 PA10
@@ -216,7 +219,7 @@ PL1
 PL2
 PL2a
 PL3
-PL4
+(* PL4 *)
 
 
 
