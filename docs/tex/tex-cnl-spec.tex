@@ -173,6 +173,13 @@ In particular, this pattern allows variable disambiguation based on the followin
 \verb!\mathbb!, \verb!\mathbbm!, \verb!\mathbbmss!, 
 \verb!\mathbbmtt!, \verb!\mathds!, \verb!\mathfrak!.
 
+Accents can be handled in the same way.  For example, a \verb!\mathtilde! macro
+can be defined 
+
+\verb!\def\mathtilde{\tilde}!
+
+which in the CNL image will expand in the same fashion as a math font.
+
 
 
 %https://tex.stackexchange.com/questions/58098/what-are-all-the-font-styles-i-can-use-in-math-mode
@@ -276,6 +283,50 @@ For example,
 \item \verb!\subgroupIndex{G}{H}! -\qquad $[G:H]$
 \end{itemize}
 
+\subsubsection{foreign accents}
+
+In material originating in \TeX horizontal mode, 
+the CNL image is
+stripped of many of the foreign accents.
+
+\begin{itemize}
+\item G\"odel - Godel
+\item \'etale - etale
+\end{itemize}
+
+\subsubsection{control sequences as variables}
+
+We wish for it to be possible to use some control sequences (and more general token lists)
+as variables: \verb!\alpha!, etc.
+We use special control sequences \verb!\var! and \verb!\id! for this.
+They have no effect on the \TeX:
+
+\verb!\def\var#1{#1}!
+
+\verb!\def\id#1{#1}!
+
+\verb!\var{\alpha_1} --> V__alpha_1!. In the CNL, \verb!V__! is always prepended.  Nonalphanumeric
+characters are deleted.
+
+\verb!\id{\alpha_1} --> id_alpha_1!.  In the CNL, \verb!id_! is always prepended. Nonalphanumeric
+characters are deleted.
+
+It is up to the user to avoid name collisions in the CNL image.
+
+No macros are expanded inside \verb!\id! and \verb!\var!  That is, these macros freeze what is in their
+replacement patterns.   
+For example,
+
+\verb!\var{\mathcal{C}} --> V__mathcalC!
+
+But in the other direction, other macros can have replacement patterns that
+expand to \verb!\id! and \verb!\var!:
+
+\verb!\def\myalph#1{\var{\alpha_{#1}}}!.
+
+\verb!\myalpha{33} --> V__alpha_33!.
+
+
 \section{environments}
 
 In CNL mode, everything is ignored outside the
@@ -365,16 +416,6 @@ appropriate language constructs in the CNL image.
 \section{outstanding issues}
 
 
-\subsubsection{foreign accents}
-
-In material originating in \TeX horizontal mode, 
-the CNL image is
-stripped of many of the foreign accents.
-
-\begin{itemize}
-\item G\"odel - Godel
-\item \'etale - etale
-\end{itemize}
 
 \subsubsection{curly braces and font selection}
 
@@ -384,12 +425,6 @@ We generally wish to strip font variations \verb!{\it such as italics}! in
 text mode.  Note that this doesn't fit the usual pattern of control sequence applied
 to arguments.
 
-
-
-\subsubsection{control sequences as variables}
-
-We wish for it to be possible to use some control sequences
-as variables: \verb!\alpha!, etc.
 
 
 

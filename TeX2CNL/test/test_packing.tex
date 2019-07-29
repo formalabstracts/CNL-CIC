@@ -28,10 +28,17 @@
 \begin{cnl}
 
 %% We start with some that will eventually be moved to a standard library.
+\def\parenI#1{#1}
 \CnlCustom[1]\parenI{ (#1) }
+\def\*{}
+\CnlCustom\*{*}
+\def\concat#1#2{#2}
+% CNL behavior of concat is built in (concat tokens).
 
-% prohibited control sequences. They should be used outside the cnl environment.
-% We should include most TeX primitive control sequences here.
+% Prohibited control sequences. 
+% That is, they should remain outside the cnl environment.
+% We should list many TeX primitive control sequences here.
+
 \CnlError\if
 \CnlError\else
 \CnlError\fi
@@ -92,6 +99,21 @@
 \CnlEnvirDelete{remark}
 \CnlEnvirDelete{tikzpicture}
 
+% Accents- Use these versions to fuse with variable name in CNL image.
+% \mathcheck{c} --> c__mathcheck
+% \check{c} --> \check{c} (function application)
+\def\mathhat{\hat}
+\def\mathwidehat{\widehat}
+\def\mathcheck{\check}
+\def\mathtilde{\tilde}
+\def\mathwidetilde{\widetilde}
+\def\mathacute{\acute}
+\def\mathgrave{\grave}
+\def\mathdot{\dot}
+\def\mathddot{\ddot}
+\def\mathbreve{\breve}
+\def\mathbar{\bar}
+\def\mathvec{\vec}
 
 
 
@@ -178,6 +200,9 @@
 %% ENVIRONMENTS
 \CnlEnvirDelete{remark}
 \CnlEnvirDelete{summary}
+\CnlEnvirDelete{tikzpicture}
+\CnlEnvirDelete{fancyvrb}
+
 
 %% BEGIN TEXT
 

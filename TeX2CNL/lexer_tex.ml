@@ -27,6 +27,7 @@ type token =
    | RBrace
    | LDisplay
    | RDisplay
+   | Display 
    | Dollar
    | Sub
    | Comma
@@ -50,6 +51,7 @@ let token_to_string = function
   | RBrack -> "]"
   | LBrace -> "{"
   | RBrace -> "}"
+  | Display -> "$$"
   | Dollar -> "$"
   | Sub -> "\\sb"
   | Comma -> ","
@@ -81,7 +83,7 @@ let white =
 
 let alphabet = [%sedlex.regexp? 'a'..'z' | 'A'..'Z']
 
-let alphanum = [%sedlex.regexp? alphabet | numeral10 | '_' | "'"]
+let alphanum = [%sedlex.regexp? alphabet | numeral10 | '_' | "'" | "-" ] (* - for hyphen *)
              
 let controlseq = [%sedlex.regexp? '\\', Plus(alphabet)]
 
@@ -110,18 +112,34 @@ let semi = [%sedlex.regexp? ';']
 let punct = [%sedlex.regexp? period | colon ]
 
 let dollar = [%sedlex.regexp? '$']
+let doubledollar = [%sedlex.regexp? dollar, dollar ]
 let sub = [%sedlex.regexp? '_']
 
 let symbol = [%sedlex.regexp? punct | '|' | '<' | '>' | '^' | '+' | '-' | '=' | '/' | '*']
 
 (* this is to allow mathfonts to create new variables \mathcal{C}, etc. *)
-let mathfont_id = [%sedlex.regexp? "\\math", Star(alphabet), 
+(* Deprecated.
+   let mathfont_id = [%sedlex.regexp? "\\math", Star(alphabet), 
                    lbrace, alphabet, Star(alphanum), rbrace, Star(alphanum) ]
+ *)
+
+let accent_char = [%sedlex.regexp? '\'' | '`' | '^' | '"' | '~' | '=' | '.']
+
+let accent_letter = [%sedlex.regexp? 'c' | 'v' | 'u' | 'H']
+
+let accent_chars = [%sedlex.regexp? "oe" | "ae" | "ss" | "aa" | "AA" | "o" | "O" | "AE" | "OE" | "l" | "L" ]
+
+let accent_cluster = [%sedlex.regexp? "\\", accent_char, alphabet 
+ | "\\", accent_letter, '{', alphabet, '}'
+ | '{', "\\", accent_chars, '}' 
+]
+
+let word = [%sedlex.regexp? Plus(alphabet | accent_cluster) ]
 
 let unmarked_id_more = [%sedlex.regexp? alphanum | '.' ]
 let unmarked_id = [%sedlex.regexp? alphabet, Star(unmarked_id_more), Plus(alphanum) ]
 let id = [%sedlex.regexp? '!', unmarked_id, '!' ]
-let tok = [%sedlex.regexp?  alphabet | unmarked_id | mathfont_id ]
+let tok = [%sedlex.regexp?  alphabet | unmarked_id ]
 
 
            
@@ -139,6 +157,22 @@ let string_lexeme buf = string_of_ints(lexeme buf);;
 
 let trim_bang s = String.sub s 1 (String.length s - 2);;
 
+let drop s k = String.sub s k (String.length s - k);;
+
+let convert_hyphen = String.map (function | '-' -> '_' | c -> c);;
+
+let strip_nonalpha s = 
+ let s' = String.map (function | 'a'..'z' as c -> c | 'A'..'Z' as c -> c | _ -> ',') s in
+ let ls = String.split_on_char ',' s' in
+  String.concat "" ls;;
+
+
+let test = strip_nonalpha "abcd 234 efg\\={h}";;
+let test = strip_nonalpha "\\\'etale";;
+let test = strip_nonalpha "Erd\\H{o}s";;
+let test = strip_nonalpha "Poincar\\\'e";;
+
+
 let rec lex_token buf = 
  match%sedlex buf with 
  | Plus(white) -> (lex_token buf)
@@ -146,9 +180,9 @@ let rec lex_token buf =
   | natural_number -> Natural(int_of_string(string_lexeme buf)) 
     | numeric -> Numeric(string_lexeme buf)
     | eol -> Eol
-    | controlseq -> ControlSeq(string_lexeme buf)
+    | controlseq -> ControlSeq(drop (string_lexeme buf) 1)
     | controlchar -> ControlSeq(string_lexeme buf)
-    | arg -> Arg(int_of_string(String.sub(string_lexeme buf) 1 1))
+    | arg -> Arg(int_of_string(drop (string_lexeme buf) 1))
     | rparen -> RParen
     | lparen -> LParen
     | lbrack -> LBrack
@@ -160,8 +194,9 @@ let rec lex_token buf =
     | dollar -> Dollar
     | format_eol -> FormatEol
     | format_col -> FormatCol
-    | id -> Tok(trim_bang(string_lexeme buf))
-    | tok -> Tok(string_lexeme buf) 
+    | id -> Tok(trim_bang(convert_hyphen(string_lexeme buf)))
+    | word -> Tok(strip_nonalpha(string_lexeme buf))
+    | tok -> Tok(convert_hyphen(string_lexeme buf))
     | symbol -> Tok(string_lexeme buf)
     | comma -> Comma 
     | semi -> Semi
@@ -174,7 +209,7 @@ let rec lex_token buf =
 (* testing stuff *)
 
 let buf_example1 = Sedlexing.Latin1.from_string
-               "hello\\alpha33[1]there !ready!  (xx) \\mathfrak{C}33 [$] {yy} %comment \n more #4 # 5  $ ))))))))"
+               "hello\\alpha33[1]there !ready! Riemann-Hilbert Poincar\\\'e {\\ae} { \\ae} (xx) \\mathfrak{C}33 [$] {yy} %comment \n more #4 # 5  $ ))))))))"
 
 let ff = fun () -> print_endline(token_to_string(lex_token buf_example1));;
 
