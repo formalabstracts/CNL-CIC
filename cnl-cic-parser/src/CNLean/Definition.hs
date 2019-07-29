@@ -101,7 +101,7 @@ data DefinitionStatement =
     DefinitionStatementClassifier ClassifierDef
   | DefinitionStatementTypeDef TypeDef
   | DefinitionStatementFunctionDef FunctionDef
-  | DefinitionStatementPredicateDef PredicateDef
+  | DefinitionStatementPredicateDef PredicateDef -- TODO(jesse): remove the 3 fields StructureDef, InductiveDef, MutualInductiveDef
   | DefinitionStatementStructureDef  StructureDef
   | DefinitionStatementInductiveDef InductiveDef
   | DefinitionStatementMutualInductiveDef MutualInductiveDef
@@ -128,7 +128,7 @@ data IffJunction = IffJunction
 
 parseIffJunction = parseLitIff *> return IffJunction
 
-data PredicateHead =
+data PredicateHead = -- TODO(jesse): remove controlseq and binarycontrolseq cases
     PredicateHeadPredicateTokenPattern PredicateTokenPattern
   | PredicateHeadSymbolPattern SymbolPattern (Maybe ParenPrecedenceLevel)
   | PredicateHeadIdentifierPattern IdentifierPattern
@@ -214,6 +214,7 @@ data MutualInductiveDef = MutualInductiveDef MutualInductiveType
 parseMutualInductiveDef :: Parser MutualInductiveDef
 parseMutualInductiveDef = MutualInductiveDef <$> (parseOptDefine *> parseMutualInductiveType)
 
+-- TODO(jesse): implement function def (and functionhead) correctly
 
 data FunctionDef =
     FunctionDefFunctionTokenPattern FunctionTokenPattern
@@ -261,8 +262,8 @@ data TypeDef = TypeDef TypeHead Copula GeneralType
 parseTypeDef :: Parser TypeDef
 parseTypeDef = TypeDef <$> parseTypeHead <*> parseCopula <* parseLitA <*> parseGeneralType
 
-data TypeHead =
-    TypeHeadTypePattern TypePattern
+data TypeHead = -- TODO(jesse): remove the maybe parenprecedencelevel
+    TypeHeadTypeTokenPattern TypeTokenPattern
   | TypeHeadIdentifierPattern IdentifierPattern
   | TypeHeadControlSeqPattern ControlSeqPattern
   | TypeHeadBinaryControlSeqPattern BinaryControlSeqPattern (Maybe ParenPrecedenceLevel)
@@ -270,16 +271,16 @@ data TypeHead =
 
 parseTypeHead :: Parser TypeHead
 parseTypeHead =
-  TypeHeadTypePattern <$> parseTypePattern <||>
+  TypeHeadTypeTokenPattern <$> parseTypeTokenPattern <||>
   TypeHeadIdentifierPattern <$> parseIdentifierPattern <||>
   TypeHeadControlSeqPattern <$> parseControlSeqPattern <||>
   TypeHeadBinaryControlSeqPattern <$> parseBinaryControlSeqPattern <*> (option parseParenPrecedenceLevel)
 
-data TypePattern = TypePattern TokenPattern
+data TypeTokenPattern = TypeTokenPattern TokenPattern
   deriving (Show, Eq)
 
-parseTypePattern :: Parser TypePattern
-parseTypePattern = TypePattern <$> (parseLitA *> parseTokenPattern)
+parseTypeTokenPattern :: Parser TypeTokenPattern
+parseTypeTokenPattern = TypeTokenPattern <$> (parseLitA *> parseTokenPattern)
 
  -- (* restriction: tokens in pattern cannot be a variant of
  --    "to be", "called", "iff" "a" "stand" "denote"
@@ -310,11 +311,15 @@ parseCopula =
   parseAssign *> return CopulaAssign <||>
   parseLitDenote *> return CopulaDenote
 
-data IdentifierPattern = IdentifierPattern Identifier Args (Maybe ColonType)
+data IdentifierPattern =
+    IdentifierPattern Identifier Args (Maybe ColonType)
+  | IdentifierPatternBlank Args (Maybe ColonType)
   deriving (Show, Eq)
 
 parseIdentifierPattern :: Parser IdentifierPattern
-parseIdentifierPattern = IdentifierPattern <$> parseIdentifier <*> parseArgs <*> (option parseColonType)
+parseIdentifierPattern =
+  IdentifierPattern <$> parseIdentifier <*> parseArgs <*> (option parseColonType) <||>
+  IdentifierPatternBlank <$> parseArgs <*> (option parseColonType)
 
 data ControlSeqPattern = ControlSeqPattern ControlSequence [TVar]
   deriving (Show, Eq)
@@ -350,11 +355,12 @@ parseAssociativeParity =
   parseLit "right" *> return AssociatesRight <||>
   parseLit "no" *> return AssociatesNone
 
-data PrecedenceLevel = PrecendenceLevel Numeric (Maybe AssociativeParity)
+data PrecedenceLevel = PrecendenceLevel Integer (Maybe AssociativeParity)
   deriving (Show, Eq)
 
+--TODO(jesse): parse integers
 parsePrecedenceLevel :: Parser PrecedenceLevel
-parsePrecedenceLevel = PrecendenceLevel <$> (parseLit "with" *> parseLit "precedence" *> parseNumeric) <*> (option $ parseLit "and" *> parseAssociativeParity <* parseLit "associativity")
+parsePrecedenceLevel = PrecendenceLevel <$> (parseLit "with" *> parseLit "precedence" *> parseInteger) <*> (option $ parseLit "and" *> parseAssociativeParity <* parseLit "associativity")
 
 
 parseTokenPattern :: Parser TokenPattern

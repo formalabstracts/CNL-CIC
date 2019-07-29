@@ -59,8 +59,7 @@ parseSepAndComma = parseLit "and" <||> parseLit ","
 
 parseLitBinderComma = parseLit ","
 
-parseOptDefine :: Parser (Maybe [Text])
-parseOptDefine = (option $ parseLitLets) <+> (option $ rp $ parseLit "define")
+parseOptDefine = (option $ parseLitLets) <+> (option $ rp $ parseLit "define") <||> option (parseLitWeRecord)
 
 parseLitDefinedAs :: Parser [Text]
 parseLitDefinedAs =
@@ -113,6 +112,9 @@ parseLitWeRecord =
   <||> (rp $ parseLit "we") <+> (rp $ parseLit "record")
   <||> (rp $ parseLit "we") <+> (rp $ parseLit "register") <+> (rp $ parseLit "that")
   <||> (rp $ parseLit "we") <+> (rp $ parseLit "register")
+
+parseLitWeRecord' = -- TODO(jesse): incorporate into parseLitWeRecord
+  option (parseLit "we") *> (parseLit "record" <||> parseLit "register") *> option (parseLit "that")
   
 parseLitAny =
        (rp $ parseLit "every")
@@ -163,7 +165,9 @@ parseLitDef = (rp $ parseLit "definition") <||> (rp $ parseLit "def")
 parseLitAxiom =
   (rp $ parseLit "axiom")      <||>
   (rp $ parseLit "conjecture") <||>
-  (rp $ parseLit "hypothesis")
+  (rp $ parseLit "hypothesis") <||>
+  (rp $ parseLit "equation")   <||>
+  (rp $ parseLit "formula")
 
 parseLitTheorem =
   (rp $ parseLit "proposition")  <||>
@@ -392,14 +396,21 @@ parseSlash = parseDataHelper0 Slash "/"
 parseSlashDash :: Parser SlashDash
 parseSlashDash = parseDataHelper0 SlashDash "/-"
 
-var :: Parser Text
-var = do a <- alpha
-         ts    <- (many $ digit <||> ch '_' <||> ch '\'') >>= return . join
-         return $ a <> ts
+
+--TODO(jesse): add case for alpha__alphanumeric
+var_old :: Parser Text
+var_old = do a <- alpha
+             ts    <- (many $ digit <||> ch '_' <||> ch '\'') >>= return . join
+             return $ a <> ts
+
+var_new :: Parser Text
+var_new = alpha <+> ch '_' <+> ch '_' <+> alphanum
+
+-- test parseVar "C__mathcal"
 
 parseVar :: Parser Var
 parseVar = (do
-  x <- var
+  x <- var_new <||> var_old
   -- (lookAhead' spaceChar) <||> lookAhead' (char '.') <||> lookAhead' (parseEOF)
   return $ Var $ x) <* sc
 

@@ -21,8 +21,11 @@ import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
 import CNLean.Basic.Basic
+import CNLean.Definition
 
-data Macro = DummyConstructor
+data Macro =
+    MacroClassifierDef ClassifierDef
+  | ... -- TODO(jesse): finish this
   deriving (Show, Eq)
 
 parseMacro :: Parser Macro

@@ -41,6 +41,7 @@ data FState = FState {
   primRelation :: [[Patt]],
   primPrefixFunction :: [[Patt]],
   primIdentifierTerm :: [[Patt]],
+  primIdentifierType :: [[Patt]],
   primTypedName :: [[Patt]],
   primFreePredicate :: [[Patt]],
   primPhraseListFiller :: [[Maybe' Text]],
@@ -59,6 +60,7 @@ initialFState = FState
   [] [] []
   [] []
   [] []
+  []
   []
   []
   []

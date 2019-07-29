@@ -198,15 +198,13 @@ data OpenTailType =
     OpenTailTypeBinOpType BinOpType
   | OpenTailTypeQuotientType QuotientType
   | OpenTailTypeCoercionType CoercionType
-  | OpenTailTypePrimStructure PrimStructure
   deriving (Show, Eq)
 
 parseOpenTailType :: Parser OpenTailType
 parseOpenTailType =
   OpenTailTypeBinOpType <$> parseBinOpType <||>
   OpenTailTypeQuotientType <$> parseQuotientType <||>
-  OpenTailTypeCoercionType <$> parseCoercionType <||>
-  OpenTailTypePrimStructure <$> parsePrimStructure
+  OpenTailTypeCoercionType <$> parseCoercionType
   
 data CoercionType =
     CoercionTypeTerm Term 
@@ -356,11 +354,11 @@ parseLambdaTerm =
   LambdaTermPrimLambdaBinder <$> parsePrimLambdaBinder <*> parseGeneralizedArgs <*> parseOpenTailTerm <||>
   LambdaTermGeneralizedArg <$> parseGeneralizedArg <* parseMapsTo <*> parseOpenTailTerm
   
-data BinOpType = BinOpType { head :: TypeOperand, tail :: [(TypeOp,TypeOperand)]}
+data BinOpType = BinOpType [(TypeOperand,TypeOp,BinderType)]
   deriving (Show, Eq)
 
 parseBinOpType :: Parser BinOpType
-parseBinOpType = BinOpType <$> parseTypeOperand <*> (many' $ (,) <$> parseTypeOp <*> parseTypeOperand)
+parseBinOpType = BinOpType <$> (many' $ (,,) <$> parseTypeOperand <*> parseTypeOp <*> parseBinderType)
   
 data TypeOp =
     TypeOpPrimTypeOp PrimTypeOp
@@ -624,6 +622,7 @@ data TightestType =
   | TightestTypeInductive InductiveType
   | TightestTypeMutualInductive MutualInductiveType
   | TightestTypeStructure Structure
+  | TightestTypePrimStructure
   deriving (Show, Eq)
 
 parseTightestType :: Parser TightestType
@@ -636,8 +635,8 @@ parseTightestType =
   TightestTypeSubtype <$> parseSubtype <||>
   TightestTypeInductive <$> parseInductiveType <||>
   TightestTypeMutualInductive <$> parseMutualInductiveType <||>
-  TightestTypeStructure <$> parseStructure
-
+  TightestTypeStructure <$> parseStructure <||>
+  TightestTypePrimStructure <$> parsePrimStructure -- TODO(jesse): fix this
   
 newtype ParenType = ParenType GeneralType
   deriving (Show, Eq)
@@ -977,11 +976,11 @@ parseRequiredArg =
   (paren $ RequiredArgAnnotated <$> (many1' parseVarOrAtomic) <*> option parseColonType )<||>
   RequiredArgVarOrAtomic <$> parseVarOrAtomic
   
-data CSBrace a = CSBrace a [Expr]
+data CSBrace a = CSBrace a [TVar] -- TODO(jesse): add data of control sequence
   deriving (Show, Eq)
 
 parseCSBrace :: Parser a -> Parser (CSBrace a)
-parseCSBrace p = CSBrace <$> p <*> (many' $ brace parseExpr)
+parseCSBrace p = CSBrace <$> p <*> (many' $ brace parseTVar)
   
 data BinaryRelationOp =
     BinaryRelationOpPrimBinaryRelationOp PrimBinaryRelationOp

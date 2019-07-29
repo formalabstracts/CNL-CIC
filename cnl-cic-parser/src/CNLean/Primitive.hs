@@ -169,6 +169,13 @@ newtype PrimIdentifierTerm = PrimIdentifierTerm ([ParsedPatt])
 parsePrimIdentifierTerm :: Parser PrimIdentifierTerm
 parsePrimIdentifierTerm = PrimIdentifierTerm <$> (gets primIdentifierTerm >>= parse_any_Patts)
 
+newtype PrimIdentifierType = PrimIdentifierType ([ParsedPatt]) 
+  deriving (Show, Eq)
+
+-- from type_defs
+parsePrimIdentifierType :: Parser PrimIdentifierType
+parsePrimIdentifierType = PrimIdentifierType <$> (gets primIdentifierType >>= parse_any_Patts)
+
 --  (* from NOT_IMPLEMENTED *)
 -- prim_prefix_function : PA14 {} (* symbolic functions like sin,cos,exp *)
 newtype PrimPrefixFunction = PrimPrefixFunction ([ParsedPatt]) 
