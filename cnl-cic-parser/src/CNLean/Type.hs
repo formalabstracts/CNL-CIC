@@ -622,7 +622,7 @@ data TightestType =
   | TightestTypeInductive InductiveType
   | TightestTypeMutualInductive MutualInductiveType
   | TightestTypeStructure Structure
-  | TightestTypePrimStructure
+  | TightestTypePrimStructure PrimStructure
   deriving (Show, Eq)
 
 parseTightestType :: Parser TightestType
@@ -636,7 +636,7 @@ parseTightestType =
   TightestTypeInductive <$> parseInductiveType <||>
   TightestTypeMutualInductive <$> parseMutualInductiveType <||>
   TightestTypeStructure <$> parseStructure <||>
-  TightestTypePrimStructure <$> parsePrimStructure -- TODO(jesse): fix this
+  TightestTypePrimStructure <$> parsePrimStructure
   
 newtype ParenType = ParenType GeneralType
   deriving (Show, Eq)

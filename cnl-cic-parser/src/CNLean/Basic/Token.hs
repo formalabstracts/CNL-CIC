@@ -214,6 +214,19 @@ data EOF = EOF
 newtype Number = Number Text
   deriving (Show, Eq)
 
+data Sign =
+    Pos
+  | Neg
+  deriving (Show, Eq)
+
+parseSign :: Parser Sign
+parseSign =
+  parseLit "+" *> return Pos <||>
+  parseLit "-" *> return Neg
+
+data NumInt = NumInt (Maybe Sign) Number
+  deriving (Show, Eq)
+
 data Decimal = Decimal {dec_left :: Text, dec_right :: Text}
   deriving (Show, Eq)
 
@@ -305,6 +318,9 @@ parseEOF = eof *> return EOF
 
 parseNumber :: Parser Number
 parseNumber = (number <* sc) >>= return . Number
+
+parseNumInt :: Parser NumInt
+parseNumInt = NumInt <$> (option parseSign) <*> parseNumber
 
 parseDecimal :: Parser Decimal
 parseDecimal = (do

@@ -102,9 +102,9 @@ data DefinitionStatement =
   | DefinitionStatementTypeDef TypeDef
   | DefinitionStatementFunctionDef FunctionDef
   | DefinitionStatementPredicateDef PredicateDef -- TODO(jesse): remove the 3 fields StructureDef, InductiveDef, MutualInductiveDef
-  | DefinitionStatementStructureDef  StructureDef
-  | DefinitionStatementInductiveDef InductiveDef
-  | DefinitionStatementMutualInductiveDef MutualInductiveDef
+  -- | DefinitionStatementStructureDef  StructureDef
+  -- | DefinitionStatementInductiveDef InductiveDef
+  -- | DefinitionStatementMutualInductiveDef MutualInductiveDef
   deriving (Show, Eq)
 
 parseDefinitionStatement :: Parser DefinitionStatement
@@ -112,10 +112,10 @@ parseDefinitionStatement =
   DefinitionStatementClassifier <$> parseClassifierDef <||>
   DefinitionStatementTypeDef <$> parseTypeDef <||>
   DefinitionStatementFunctionDef <$> parseFunctionDef <||>
-  DefinitionStatementPredicateDef <$> parsePredicateDef <||>
-  DefinitionStatementStructureDef <$> parseStructureDef <||>
-  DefinitionStatementInductiveDef <$> parseInductiveDef <||>
-  DefinitionStatementMutualInductiveDef <$> parseMutualInductiveDef
+  DefinitionStatementPredicateDef <$> parsePredicateDef--  <||>
+  -- DefinitionStatementStructureDef <$> parseStructureDef <||>
+  -- DefinitionStatementInductiveDef <$> parseInductiveDef <||>
+  -- DefinitionStatementMutualInductiveDef <$> parseMutualInductiveDef
 
 data PredicateDef = PredicateDef PredicateHead IffJunction Statement
   deriving (Show, Eq)
@@ -355,12 +355,11 @@ parseAssociativeParity =
   parseLit "right" *> return AssociatesRight <||>
   parseLit "no" *> return AssociatesNone
 
-data PrecedenceLevel = PrecendenceLevel Integer (Maybe AssociativeParity)
+data PrecedenceLevel = PrecendenceLevel NumInt (Maybe AssociativeParity)
   deriving (Show, Eq)
 
---TODO(jesse): parse integers
 parsePrecedenceLevel :: Parser PrecedenceLevel
-parsePrecedenceLevel = PrecendenceLevel <$> (parseLit "with" *> parseLit "precedence" *> parseInteger) <*> (option $ parseLit "and" *> parseAssociativeParity <* parseLit "associativity")
+parsePrecedenceLevel = PrecendenceLevel <$> (parseLit "with" *> parseLit "precedence" *> parseNumInt) <*> (option $ parseLit "and" *> parseAssociativeParity <* parseLit "associativity")
 
 
 parseTokenPattern :: Parser TokenPattern
