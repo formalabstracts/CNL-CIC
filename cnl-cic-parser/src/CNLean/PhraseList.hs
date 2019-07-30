@@ -27,7 +27,7 @@ import CNLean.Basic.Basic
 -- TODO(jesse) write a parser which parses configuration files like phrase_lists.txt and outputs a parser
 -- for now, we hard-code the phrase lists as specific parsers. It will be easy to refactor this to a more general setup.
 
--- phraseListFiller :: [[Maybe' Text]]
+-- phraseListFiller :: [[ParserMarkUp Text]]
 -- phraseListFiller = [
 --                      [J "we", J "have", Q "that"],
 --                      [J "we", J "know", Q "that"],
@@ -40,48 +40,95 @@ import CNLean.Basic.Basic
 -- The output of a phrase list parser generated in this way will have to be sanitized
 -- but doing that should be easy.
 
--- TODO(jesse) refactor using `parse_any` now defined in Basic.
-maybe'ToParser :: (a -> Parser b) -> Maybe' a -> Parser (Maybe b)
-maybe'ToParser aux m = case m of
-  J x -> aux x >>= return . Just
-  Q x -> option (aux x)
+-- maybe'ToParser :: (a -> Parser b) -> ParserMarkUp a -> Parser (Maybe b)
+-- maybe'ToParser aux m = case m of
+--   J x -> aux x >>= return . Just
+--   Q x -> option (aux x)
 
-maybe'Lit :: Maybe' Text -> Parser (Maybe [Text])
-maybe'Lit = maybe'ToParser (rp . parseLit)
+-- maybe'Lit :: ParserMarkUp Text -> Parser (Maybe [Text])
+-- maybe'Lit = maybe'ToParser (rp . parseLit)
 
-parsePhraseList_aux0 :: [Maybe' Text] -> Parser (Maybe [Text])
-parsePhraseList_aux0 ph = case ph of
-  [] -> return Nothing
-  x:xs -> (maybe'Lit x) <+> (parsePhraseList_aux0 xs)
+-- parsePhraseList_aux0 :: [ParserMarkUp Text] -> Parser (Maybe [Text])
+-- parsePhraseList_aux0 ph = case ph of
+--   [] -> return Nothing
+--   x:xs -> (maybe'Lit x) <+> (parsePhraseList_aux0 xs)
 
-parsePhraseList_aux :: [[Maybe' Text]] -> Parser (Maybe [Text])
-parsePhraseList_aux phs = case phs of
-  [] -> empty
-  x:xs -> (parsePhraseList_aux0 x) <||> (parsePhraseList_aux xs)
+-- parsePhraseList_aux :: [[ParserMarkUp Text]] -> Parser (Maybe [Text])
+-- parsePhraseList_aux phs = case phs of
+--   [] -> empty
+--   x:xs -> (parsePhraseList_aux0 x) <||> (parsePhraseList_aux xs)
+
+parseOfParserMarkUp x =
+  case x of
+    J txt -> (Just <$> parseLit txt)
+    Q txt -> (option $ parseLit txt)
+    A ps -> parse_any_of (map parseOfParserMarkUp ps)
+
+parsePhraseList :: [[ParserMarkUp Text]] -> Parser ([Maybe Text])
+parsePhraseList mtxts = parse_any_of (map parseOfParserMarkUps mtxts)
+  where parseOfParserMarkUps :: [ParserMarkUp Text] -> Parser ([Maybe Text])
+        parseOfParserMarkUps z = case z of
+          [] -> return []
+          x:xs -> (pure <$> parseOfParserMarkUp x) <+> parseOfParserMarkUps xs
   
-parsePhraseListFiller = gets primPhraseListFiller >>= parsePhraseList_aux
+parsePhraseListFiller_aux :: Parser [Text] -- note(jesse): maybe make this [Maybe Text] for easier debugging?
+parsePhraseListFiller_aux = delete_nothings <$> (gets primPhraseListFiller >>= parsePhraseList)
 
--- test parsePhraseListFiller "we have" -> Just ["we", "have"]
--- test parsePhraseListFiller "put" -> Just ["put"]
--- test parsePhraseListFiller "ramalamadingdong" -> fails
+parsePhraseListTransition_aux :: Parser [Text]
+parsePhraseListTransition_aux = delete_nothings <$> (gets primPhraseListTransition >>= parsePhraseList)
+
+parsePhraseListProofStatement_aux :: Parser [Text]
+parsePhraseListProofStatement_aux = delete_nothings <$> (gets primPhraseListProofStatement >>= parsePhraseList)
+
+newtype PhraseListFiller = PhraseListFiller [Text]
+  deriving (Show, Eq)
+
+parsePhraseListFiller = PhraseListFiller <$> parsePhraseListFiller_aux
+
+newtype Filler = Filler (Maybe PhraseListFiller)
+  deriving (Show, Eq)
+
+parseFiller :: Parser Filler
+parseFiller = Filler <$> option parsePhraseListFiller
+
+newtype PhraseListTransition = PhraseListTransition [Text]
+  deriving (Show, Eq)
+
+parsePhraseListTransition :: Parser PhraseListTransition
+parsePhraseListTransition = PhraseListTransition <$> parsePhraseListTransition_aux
+
+newtype PhraseListProofStatement = PhraseListProofStatement [Text]
+  deriving (Show, Eq)
+
+parsePhraseListProofStatement :: Parser PhraseListProofStatement
+parsePhraseListProofStatement = PhraseListProofStatement <$> parsePhraseListProofStatement_aux
+
+-- test parsePhraseListFiller_aux "we have" -> Just ["we", "have"]
+-- test parsePhraseListFiller_aux "put" -> Just ["put"]
+-- test parsePhraseListFiller_aux "ramalamadingdong" -> fails
+-- test parsePhraseListTransition_aux "without loss of generality"
+-- test parsePhraseListProofStatement_aux "the theorem now follows."
+-- test parsePhraseListProofStatement_aux "the theorem follows."
 
 ocamlsc :: Parser ()
 ocamlsc = L.space space1 empty (L.skipBlockComment "(*" "*)")
 
-preprocessPhraseList :: Text -> Parser [[Maybe' Text]]
+preprocessPhraseList :: Text -> Parser [[ParserMarkUp Text]]
+                         -- TODO (jesse): add support for parsing alternation lists
+                         -- TODO (jesse): integrate this into the state for on-the-fly extension of the phrase lists
 preprocessPhraseList txt =
   case (runParser (toParsec parsePhraseListFile) "" txt) of
            Left _ -> fail "adios"
            Right s -> return s
   where
-  parsePhraseListFile :: Parser [[Maybe' Text]]
-  parsePhraseListFile = many1' $ many1' foo
+  parsePhraseListFile :: Parser [[ParserMarkUp Text]]
+  parsePhraseListFile = many1' $ many1' (foo <* ocamlsc)
     where
-      foo :: Parser (Maybe' Text)
+      foo :: Parser (ParserMarkUp Text)
       foo = do chnk <- (many1 not_whitespace_aux)
                let b = (last chnk)
                if (b == "?") then return (Q . join . init $ chnk)
                              else return (J . join $ chnk)
                         
-processPhraseList :: Text -> Parser (Maybe [Text])
-processPhraseList txt = preprocessPhraseList txt >>= parsePhraseList_aux
+-- processPhraseList :: Text -> Parser (Maybe [Text])
+-- processPhraseList txt = preprocessPhraseList txt >>= parsePhraseList_aux
