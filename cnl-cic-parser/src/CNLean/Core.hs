@@ -28,20 +28,20 @@ import CNLean.Macro
 import CNLean.Instr
 
 data TextItem =
-    Namespace Namespace
-  | SectionPreamble SectionPreamble
-  | Declaration Declaration
-  | Macro Macro
-  | Instr Instr
+    TextItemNamespace Namespace
+  | TextItemSectionPreamble SectionPreamble
+  | TextItemDeclaration Declaration
+  | TextItemMacro Macro
+  | TextItemInstr Instr
   deriving (Show, Eq)
 
 parseTextItem :: Parser TextItem
 parseTextItem =
-  (Namespace <$> parseNamespace) <||>
-  (SectionPreamble <$> parseSectionPreamble) <||>
-  (Declaration <$> parseDeclaration)  <||>
-  (Macro <$> parseMacro) <||>
-  (Instr <$> parseInstr)
+  (TextItemNamespace <$> parseNamespace) <||>
+  (TextItemSectionPreamble <$> parseSectionPreamble) <||>
+  (TextItemDeclaration <$> parseDeclaration)  <||>
+  (TextItemMacro <$> parseMacro) <||>
+  (TextItemInstr <$> parseInstr)
 
 newtype ProgramText = TextItems [TextItem]
   deriving (Show, Eq)

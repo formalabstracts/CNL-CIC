@@ -375,8 +375,6 @@ parseTokenPattern = TokenPattern <$> parseTokens <*>
                                      (many' $ (,) <$> parseTVar <*> parseTokens) <*>
                                      (option parseTVar)
 
-
-
 newtype ClassifierDef = ClassifierDef ClassTokens
   deriving (Show, Eq)
 

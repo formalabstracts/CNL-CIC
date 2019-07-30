@@ -22,6 +22,7 @@ import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 import Control.Monad.Trans.State.Lazy (modify, gets)
 
 import CNLean.Basic.Basic
+import CNLean.Pattern
 
 data Instr =
     InstrInstructCommand InstructCommand
