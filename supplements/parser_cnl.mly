@@ -1023,7 +1023,6 @@ proof_script : proof_preamble option(list(canned_prefix proof_body {})
   by_ref : option(paren(LIT_BY ref_item {})) {}
   ref_item : sep_list(option(lit_location) label {}) {}
 
-
 (** This exists and is well-defined. *)
 this_exists : LIT_THIS
   sep_list(this_directive_pred) PERIOD {}
