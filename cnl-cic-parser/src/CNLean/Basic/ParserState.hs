@@ -47,4 +47,14 @@ updateStrSyms2 :: [[Text]] -> Parser ()
 updateStrSyms2 = modify . prependStrSyms
 
 
+setPrimDefiniteNoun x fs = fs {primDefiniteNoun = x}
+pushPrimDefiniteNoun z fs = setPrimDefiniteNoun (z:(primDefiniteNoun fs)) fs
+prependPrimDefiniteNoun zs fs = setPrimDefiniteNoun (zs <> (primDefiniteNoun fs)) fs
+
+updatePrimDefiniteNoun :: [Patt] -> Parser ()
+updatePrimDefiniteNoun = modify . pushPrimDefiniteNoun
+
+updatePrimDefiniteNoun2 :: [[Patt]] -> Parser ()
+updatePrimDefiniteNoun2 = modify . prependPrimDefiniteNoun
+
 -- TODO(jesse): define analogous functions for the rest of the state
