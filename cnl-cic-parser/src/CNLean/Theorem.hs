@@ -66,7 +66,7 @@ newtype ByMethod = ByMethod (Maybe ProofMethod)
   deriving (Show, Eq)
 
 parseByMethod :: Parser ByMethod
-parseByMethod =  ByMethod <$> option $ parseLit "by" *> parseProofMethod
+parseByMethod =  ByMethod <$> (option $ parseLit "by" *> parseProofMethod)
 
 
 data StatementProof = StatementProof Statement ByRef (Maybe ProofScript)
@@ -82,7 +82,7 @@ newtype ByRef = ByRef (Maybe RefItem)
 parseByRef :: Parser ByRef
 parseByRef = ByRef <$> (option $ paren $ (parseLit "by" *> parseRefItem))
 
-newtype RefItem = RefItem [(Maybe Text, Label)]
+newtype RefItem = RefItem [(Maybe [Text], Label)]
   deriving (Show, Eq)
 
 parseRefItem :: Parser RefItem
@@ -98,10 +98,10 @@ data ProofScript = ProofScript ProofPreamble (Maybe ([(CannedPrefix, ProofBody)]
 parseProofScript :: Parser ProofScript
 parseProofScript = ProofScript <$>
   parseProofPreamble <*>
-  option $ ((,,) <$> (many' $
+  (option $ ((,,) <$> (many' $
                       ((,) <$> parseCannedPrefix <*> parseProofBody))
-                               <*> parseCannedPrefix <*> parseCannedTail) <*
-  parseLitQED <* parsePeriod
+                               <*> parseCannedPrefix <*> parseProofTail) <*
+  parseLitQED <* parsePeriod)
 
 data ProofPreamble =
     ProofPreambleByMethod ByMethod
@@ -154,7 +154,7 @@ data Case = Case Statement ProofScript
   deriving (Show, Eq)
 
 parseCase :: Parser Case
-parseCase = Case <$> parseLit "case" *> parseStatement <* parsePeriod <*> parseProofScript
+parseCase = Case <$> (parseLit "case" *> parseStatement <* parsePeriod) <*> parseProofScript
 
 data Choose = Choose ChoosePrefix NamedTerms ByRef ChooseJustify
   deriving (Show, Eq)
@@ -186,5 +186,5 @@ parseProofMethod :: Parser ProofMethod
 parseProofMethod =
   parseLit "contradiction" *> return ProofMethodContradiction <||>
   parseLit "case" *> parseLit "analysis" *> return ProofMethodCaseAnalysis <||>
-  ProofMethodInduction <$> (parseLit "induction" *> option $ parseLit "on" *> parsePlainTerm)
--- TODO(jesse): fill in remaining holes.
+  ProofMethodInduction <$> (parseLit "induction" *> (option $ parseLit "on" *> parsePlainTerm))
+

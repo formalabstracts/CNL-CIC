@@ -151,18 +151,6 @@ newtype NamedTerms = NamedTerms [NamedTerm]
 parseNamedTerms :: Parser NamedTerms
 parseNamedTerms = NamedTerms <$> (sep_list $ option parseLitA *> parseNamedTerm)
 
-newtype PhraseListFiller = PhraseListFiller (Maybe [Text])
-  deriving (Show, Eq)
-
-parsePhraseListFiller' :: Parser PhraseListFiller
-parsePhraseListFiller' = PhraseListFiller <$> parsePhraseListFiller
-
-newtype Filler = Filler (Maybe PhraseListFiller)
-  deriving (Show, Eq)
-
-parseFiller :: Parser Filler
-parseFiller = Filler <$> option parsePhraseListFiller'
-
 data TVar =
     TVarVar Var
   | TVarAnnotatedVar AnnotatedVar
