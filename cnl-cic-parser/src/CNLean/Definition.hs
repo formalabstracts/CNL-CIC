@@ -246,7 +246,7 @@ data FunctionTokenPattern = FunctionTokenPattern TokenPattern
 parseFunctionTokenPattern :: Parser FunctionTokenPattern
 parseFunctionTokenPattern = FunctionTokenPattern <$> (parseLit "the" *> parseTokenPattern)
 
-data SymbolLowercase =
+data SymbolLowercase = -- corresponds to literal "symbol", not "SYMBOL" in the grammar specification
     SymbolLowercaseSymbol Symbol
   | SymbolLowercaseCSBrace (CSBrace ControlSequence)
   deriving (Show, Eq)

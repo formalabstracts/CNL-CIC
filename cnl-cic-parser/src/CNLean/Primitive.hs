@@ -22,6 +22,7 @@ import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
 import CNLean.Basic.Basic
+
 ----A primitive classifier phrase is a list [Text], where each item must be parsed verbatim, but during parsing the items may be separated by arbitrary whitespace
 newtype PrimClassifier = PrimClassifier [Text] 
   deriving (Show, Eq)
@@ -153,7 +154,7 @@ newtype PrimSimpleAdjectiveMultiSubject = PrimSimpleAdjectiveMultiSubject ([Pars
 parsePrimSimpleAdjectiveMultiSubject :: Parser PrimSimpleAdjectiveMultiSubject
 parsePrimSimpleAdjectiveMultiSubject = PrimSimpleAdjectiveMultiSubject <$> (gets primSimpleAdjectiveMultiSubject >>= parse_any_Patts)
 
---  (* from NOT_IMPLEMENTED *)
+--  (* from function_def *)
 -- prim_definite_noun : PA12 {} (* functions and terms *)
 newtype PrimDefiniteNoun = PrimDefiniteNoun ([ParsedPatt]) 
   deriving (Show, Eq)
@@ -161,7 +162,7 @@ newtype PrimDefiniteNoun = PrimDefiniteNoun ([ParsedPatt])
 parsePrimDefiniteNoun :: Parser PrimDefiniteNoun
 parsePrimDefiniteNoun = PrimDefiniteNoun <$> (gets primDefiniteNoun >>= parse_any_Patts)
 
---  (* from NOT_IMPLEMENTED *)
+--  (* from function_def *)
 -- prim_identifier_term : PA13 {} (* all identifiers that are terms *)
 newtype PrimIdentifierTerm = PrimIdentifierTerm ([ParsedPatt]) 
   deriving (Show, Eq)
@@ -176,7 +177,7 @@ newtype PrimIdentifierType = PrimIdentifierType ([ParsedPatt])
 parsePrimIdentifierType :: Parser PrimIdentifierType
 parsePrimIdentifierType = PrimIdentifierType <$> (gets primIdentifierType >>= parse_any_Patts)
 
---  (* from NOT_IMPLEMENTED *)
+--  (* from function_def *)
 -- prim_prefix_function : PA14 {} (* symbolic functions like sin,cos,exp *)
 newtype PrimPrefixFunction = PrimPrefixFunction ([ParsedPatt]) 
   deriving (Show, Eq)
@@ -248,4 +249,3 @@ newtype PrimRelation = PrimRelation ([ParsedPatt])
 
 parsePrimRelation :: Parser PrimRelation
 parsePrimRelation = PrimRelation <$> (gets primRelation >>= parse_any_Patts)
-

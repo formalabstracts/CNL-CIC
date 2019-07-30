@@ -157,6 +157,10 @@ parseLitDocument = (rp $ parseLit "document")
               <||> (rp $ parseLit "subsection")
               <||> (rp $ parseLit "subsubsection")
 
+parseLitSection =  (rp $ parseLit "section")
+              <||> (rp $ parseLit "subsection")
+              <||> (rp $ parseLit "subsubsection")
+
 parseLitDef = (rp $ parseLit "definition") <||> (rp $ parseLit "def")
 
 parseLitAxiom =
