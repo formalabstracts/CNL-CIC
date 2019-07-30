@@ -17,6 +17,7 @@ import Control.Monad (guard, liftM)
 import Text.Megaparsec.Char
 import qualified Data.Char as C
 import Data.Text (Text, pack, unpack)
+import Data.List (intersperse)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 import Control.Monad.Trans.State.Lazy (modify, gets)
@@ -24,10 +25,12 @@ import Control.Monad.Trans.State.Lazy (modify, gets)
 import CNLean.Basic.Basic
 import CNLean.Type
 import CNLean.Assumption
+import CNLean.Pattern
 
 data Definition = Definition DefinitionPreamble [Assumption] DefinitionAffirm
   deriving (Show, Eq)
 
+--TODO(jesse): find fix for token parser in definition statement consuming copula literals
 parseDefinition :: Parser Definition
 parseDefinition = Definition <$> parseDefinitionPreamble <*> (many' parseAssumption) <*> parseDefinitionAffirm
 
@@ -221,6 +224,8 @@ patternOfFunctionDef :: FunctionDef -> Parser [Patt]
 patternOfFunctionDef fd = case fd of
   FunctionDef functionhead copula plainterm -> case functionhead of
     FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt) -> patternOfTokenPattern tkpatt
+    FunctionHeadIdentifierPattern idpatt -> patternOfIdentifierPattern idpatt
+    FunctionHeadSymbolPattern sympatt mpl -> patternOfSymbolPattern sympatt -- TODO(jesse): add side effect of registering precedence level
 
 parseFunctionDef :: Parser FunctionDef
 parseFunctionDef =
@@ -258,6 +263,11 @@ data SymbolLowercase = -- corresponds to literal "symbol", not "SYMBOL" in the g
   | SymbolLowercaseCSBrace (CSBrace ControlSequence)
   deriving (Show, Eq)
 
+patternOfSymbolLowercase :: SymbolLowercase -> Parser [Patt]
+patternOfSymbolLowercase x = case x of
+  SymbolLowercaseSymbol symb -> patternOfSymbol symb
+  SymbolLowercaseCSBrace (CSBrace cs tvars) -> patternOfControlSequence cs <+> (patternOfList patternOfTVar tvars)
+
 parseSymbolLowercase :: Parser SymbolLowercase
 parseSymbolLowercase =
   SymbolLowercaseSymbol <$> parseSymbol <||>
@@ -265,6 +275,13 @@ parseSymbolLowercase =
 
 data SymbolPattern = SymbolPattern (Maybe TVar) SymbolLowercase [(TVar, SymbolLowercase)] (Maybe TVar)
   deriving (Show, Eq)
+
+patternOfSymbolPattern :: SymbolPattern -> Parser [Patt]
+patternOfSymbolPattern (SymbolPattern mtvar symbs tvarsymbs mtvar') =
+  (patternOfOption patternOfTVar mtvar) <+>
+  (patternOfSymbolLowercase symbs) <+>
+  (patternOfList (\(a,b) -> patternOfTVar a <+> patternOfSymbolLowercase b) tvarsymbs)
+  <+> (patternOfOption patternOfTVar mtvar')
 
 parseSymbolPattern :: Parser SymbolPattern
 parseSymbolPattern = SymbolPattern <$> (option parseTVar) <*> parseSymbolLowercase <*>
@@ -350,6 +367,15 @@ parseIdentifierPattern =
   IdentifierPattern <$> parseIdentifier <*> parseArgs <*> (option parseColonType) <||>
   IdentifierPatternBlank <$> parseArgs <*> (option parseColonType)
 
+patternOfIdentifierPattern :: IdentifierPattern -> Parser [Patt]
+patternOfIdentifierPattern idpatt =
+  case idpatt of
+    IdentifierPattern ident args mct -> (patternOfIdent ident) <+> (patternOfArgs args)
+    IdentifierPatternBlank args mct -> (patternOfArgs args)
+  -- (<>) <$> (return $ (map (Wd . pure . tokenToText) tks) <>
+  --                    concat (map (\(tv,tks) -> Vr : map (Wd . pure . tokenToText) (tokensToTokens tks)) tvstkss) )
+  --           <*> ((unoption $ return mtvar) *> return [Vr] <||> return [])
+   
 data ControlSeqPattern = ControlSeqPattern ControlSequence [TVar]
   deriving (Show, Eq)
 

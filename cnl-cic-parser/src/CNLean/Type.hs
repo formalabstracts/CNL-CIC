@@ -26,6 +26,7 @@ import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
 import CNLean.Basic.Basic
 import CNLean.PhraseList
+import CNLean.Pattern
 
 data Statement =
     HeadStatement HeadStatement
@@ -155,6 +156,10 @@ data TVar =
     TVarVar Var
   | TVarAnnotatedVar AnnotatedVar
   deriving (Show, Eq)
+
+patternOfTVar :: TVar -> Parser [Patt]
+patternOfTVar (TVarVar v) = patternOfVar v
+patternOfTVar (TVarAnnotatedVar av) =  patternOfAnnotatedVar av
 
 parseTVar :: Parser TVar
 parseTVar =
@@ -416,6 +421,11 @@ data VarOrAtomic =
   | VarOrAtomicAtomic AtomicId
   deriving (Show, Eq)
 
+patternOfVarOrAtomic :: VarOrAtomic -> Parser [Patt]
+patternOfVarOrAtomic voa = case voa of
+  VarOrAtomicVar v -> patternOfVar v
+  VarOrAtomicAtomic aid -> patternOfAtomicId aid
+
 parseVarOrAtomic :: Parser VarOrAtomic
 parseVarOrAtomic = (VarOrAtomicVar <$> parseVar) <||> (VarOrAtomicAtomic <$> parseAtomicId)
   
@@ -440,11 +450,16 @@ parseDependentVars =
 newtype OptArgs = OptArgs [(VarOrAtomic, Maybe ColonType)]
   deriving (Show, Eq)
 
+patternOfOptArgs :: OptArgs -> Parser [Patt]
+patternOfOptArgs optarg@(OptArgs vacts) = patternOfList m vacts
+  where m (x,y) = patternOfVarOrAtomic x -- drop type ascription from generated pattern
+
 parseOptArgs :: Parser OptArgs
 parseOptArgs = (brace_semi $ do
   va <- parseVarOrAtomic
   mct <- option parseColonType
   return (va, mct)) >>= return . OptArgs
+  
 
 data AnyName =
     AnyNameAnyArgs [AnyArg]
@@ -571,6 +586,11 @@ data Identifier =
     IdentifierAtomicId AtomicId
   | IdentifierHierId HierId
   deriving (Show, Eq)
+
+patternOfIdent :: Identifier -> Parser [Patt]
+patternOfIdent ident = case ident of
+  IdentifierAtomicId atomicid -> patternOfAtomicId atomicid
+  IdentifierHierId hierid -> patternOfHierId hierid
 
 parseIdentifier :: Parser Identifier
 parseIdentifier =
@@ -973,10 +993,18 @@ data Args = Args (Maybe OptArgs) [RequiredArg] -- i think requiredargs are white
 parseArgs :: Parser Args
 parseArgs = Args <$> (option $ parseLit "at" *> parseOptArgs) <*> (many' parseRequiredArg)
 
+patternOfArgs :: Args -> Parser [Patt]
+patternOfArgs args@(Args moa reqargs) = (patternOfOption patternOfOptArgs moa) <+> (patternOfList patternOfRequiredArg reqargs)
+
 data RequiredArg =
     RequiredArgAnnotated [VarOrAtomic] (Maybe ColonType) -- note, this must be parsed with enclosing parentheses
   | RequiredArgVarOrAtomic VarOrAtomic
   deriving (Show, Eq)
+
+patternOfRequiredArg :: RequiredArg -> Parser [Patt]
+patternOfRequiredArg reqarg = case reqarg of
+  RequiredArgAnnotated voas mct -> (patternOfList patternOfVarOrAtomic voas)
+  RequiredArgVarOrAtomic voa -> patternOfVarOrAtomic voa
 
 parseRequiredArg :: Parser RequiredArg
 parseRequiredArg =
@@ -1061,6 +1089,9 @@ parseLetAnnotation = LetAnnotation <$> (parseLit "let" *> comma_nonempty_list pa
   
 data AnnotatedVar = AnnotatedVar VarModifier Var (Maybe ColonType)
   deriving (Show, Eq)
+
+patternOfAnnotatedVar :: AnnotatedVar -> Parser [Patt]
+patternOfAnnotatedVar (AnnotatedVar varmodifier var mct) = patternOfVar var
 
 parseAnnotatedVar :: Parser AnnotatedVar
 parseAnnotatedVar = paren $ AnnotatedVar <$> parseVarModifier <*> (parseVar) <*> option parseColonType
