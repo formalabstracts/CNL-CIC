@@ -22,7 +22,6 @@ import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 import Control.Monad.Trans.State.Lazy (modify, gets)
 
 import CNLean.Basic.Basic
-import CNLean.Pattern
 
 data Instr =
     InstrInstructCommand InstructCommand
@@ -59,8 +58,7 @@ data InstructSynonym = InstructSynonym [Token]
   deriving (Show, Eq)
 
 parseInstructSynonym :: Parser InstructSynonym
-parseInstructSynonym = with_result (parse_synonym_main) $
-  updateStrSyms . (\(InstructSynonym y) -> (map tokenToText y))
+parseInstructSynonym = with_result (parse_synonym_main) m
   where
     parse_synonym_main = InstructSynonym <$> do
       bracket $ (parseLit "synonyms" <||> parseLit "synonym") *>
@@ -71,6 +69,7 @@ parseInstructSynonym = with_result (parse_synonym_main) $
                 (parseInstructSepPlural *> (rest $ syms <> [Token $ txt <> "s"])) <||>
                 (parseInstructSep *> parseToken >>= \x -> (rest $ syms <> [x])) <||>
                 return syms
+    m = updateStrSyms . (\(InstructSynonym y) -> (map tokenToText y))
 
 -- test parseInstructSynonym "[synonym set/-s/basket/-s/ensemble/ensembles]"
 
