@@ -145,6 +145,12 @@ parseNamedTerm =
   NamedTermTypedName <$> parseTypedName <||>
   NamedTermPredicate <$> parseFreePredicate
 
+newtype NamedTerms = NamedTerms [NamedTerm]
+  deriving (Show, Eq)
+
+parseNamedTerms :: Parser NamedTerms
+parseNamedTerms = NamedTerms <$> (sep_list $ option parseLitA *> parseNamedTerm)
+
 newtype PhraseListFiller = PhraseListFiller (Maybe [Text])
   deriving (Show, Eq)
 

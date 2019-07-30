@@ -25,6 +25,7 @@ import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 import CNLean.Basic.Basic
 import CNLean.Assumption
 import CNLean.Type
+import CNLean.PhraseList
 
 data Theorem = Theorem TheoremPreamble [Assumption] AffirmProof
   deriving (Show, Eq)
@@ -136,10 +137,54 @@ parseProofTail =
   ProofTailCase <$> parseCase <||>
   ProofTailChoose <$> parseChoose
 
+newtype CannedProof = CannedProof PhraseListProofStatement
+  deriving (Show, Eq)
+
+parseCannedProof :: Parser CannedProof
+parseCannedProof = CannedProof <$> parsePhraseListProofStatement
+
+
 newtype CannedPrefix = CannedPrefix [PhraseListTransition]
   deriving (Show, Eq)
 
 parseCannedPrefix :: Parser CannedPrefix
 parseCannedPrefix = CannedPrefix <$> (sep_list parsePhraseListTransition) <* option parseComma
 
+data Case = Case Statement ProofScript
+  deriving (Show, Eq)
+
+parseCase :: Parser Case
+parseCase = Case <$> parseLit "case" *> parseStatement <* parsePeriod <*> parseProofScript
+
+data Choose = Choose ChoosePrefix NamedTerms ByRef ChooseJustify
+  deriving (Show, Eq)
+
+parseChoose :: Parser Choose
+parseChoose = Choose <$> parseChoosePrefix <*> parseNamedTerms <*> parseByRef <* parsePeriod <*> parseChooseJustify
+
+newtype ChoosePrefix = ChoosePrefix ThenPrefix
+  deriving (Show, Eq)
+
+parseChoosePrefix :: Parser ChoosePrefix
+parseChoosePrefix = ChoosePrefix <$> parseThenPrefix
+
+data ChooseJustify =
+    ChooseJustifyProofScript (Maybe ProofScript)
+  deriving (Show, Eq)
+
+parseChooseJustify :: Parser ChooseJustify
+parseChooseJustify =
+  ChooseJustifyProofScript <$> option parseProofScript
+
+data ProofMethod =
+    ProofMethodContradiction
+  | ProofMethodCaseAnalysis
+  | ProofMethodInduction (Maybe PlainTerm)
+  deriving (Show, Eq)
+  
+parseProofMethod :: Parser ProofMethod
+parseProofMethod =
+  parseLit "contradiction" *> return ProofMethodContradiction <||>
+  parseLit "case" *> parseLit "analysis" *> return ProofMethodCaseAnalysis <||>
+  ProofMethodInduction <$> (parseLit "induction" *> option $ parseLit "on" *> parsePlainTerm)
 -- TODO(jesse): fill in remaining holes.
