@@ -434,9 +434,10 @@ parseVar = (do
 -- A token is a string of alpha characters which is not followed by a period and another alpha character
 parseToken :: Parser Token
 parseToken = do
+  a <- alpha
   as <- many1 alpha <* sc
   notFollowedBy (char '.' >> (alpha <||> digit))
-  return $ Token . join $ as
+  return $ Token . join $ a:as
 
 parseTokenOfLit :: Text -> Parser Token -- TODO(jesse): insert guard to ensure that `arg` is Token-compliant
 parseTokenOfLit arg = parseLit arg >>= return . Token

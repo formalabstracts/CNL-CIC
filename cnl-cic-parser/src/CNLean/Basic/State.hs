@@ -33,6 +33,10 @@ data ParserMarkUp a =
   | A [ParserMarkUp a]
   deriving (Show, Eq)
 
+
+-- TODO(jesse): make state section-local. possibilities:
+-- - change underlying state of Parser from FState to a "state stack" [FState].
+-- - additionally parametrize all fields by an extra natural number for scope. insert checks when parsing patterns to ignore patterns outside of scope. When entering new scopes, sanitize state fields of items with a forbidden scope.
 data FState = FState { 
   primAdjective,        primAdjectiveMultiSubject,   primSimpleAdjective, primSimpleAdjectiveMultiSubject :: [[Patt]],
   primDefiniteNoun,     primPossessedNoun :: [[Patt]],

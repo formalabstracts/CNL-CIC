@@ -1306,7 +1306,7 @@ parsePrimSimpleAdjectiveMultiSubject = PrimSimpleAdjectiveMultiSubject <$> (gets
 
 --  (* from function_def *)
 -- prim_definite_noun : PA12 {} (* functions and terms *)
-newtype PrimDefiniteNoun = PrimDefiniteNoun ([ParsedPatt]) 
+newtype PrimDefiniteNoun = PrimDefiniteNoun ([ParsedPatt])
   deriving (Show, Eq)
 
 parsePrimDefiniteNoun :: Parser PrimDefiniteNoun

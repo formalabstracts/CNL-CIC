@@ -68,7 +68,6 @@ newtype ByMethod = ByMethod (Maybe ProofMethod)
 parseByMethod :: Parser ByMethod
 parseByMethod =  ByMethod <$> (option $ parseLit "by" *> parseProofMethod)
 
-
 data StatementProof = StatementProof Statement ByRef (Maybe ProofScript)
   deriving (Show, Eq)
 
@@ -143,7 +142,6 @@ newtype CannedProof = CannedProof PhraseListProofStatement
 parseCannedProof :: Parser CannedProof
 parseCannedProof = CannedProof <$> parsePhraseListProofStatement
 
-
 newtype CannedPrefix = CannedPrefix [PhraseListTransition]
   deriving (Show, Eq)
 
@@ -187,4 +185,3 @@ parseProofMethod =
   parseLit "contradiction" *> return ProofMethodContradiction <||>
   parseLit "case" *> parseLit "analysis" *> return ProofMethodCaseAnalysis <||>
   ProofMethodInduction <$> (parseLit "induction" *> (option $ parseLit "on" *> parsePlainTerm))
-

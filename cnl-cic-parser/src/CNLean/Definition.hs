@@ -217,12 +217,19 @@ parseMutualInductiveDef = MutualInductiveDef <$> (parseOptDefine *> parseMutualI
 data FunctionDef = FunctionDef FunctionHead Copula PlainTerm
   deriving (Show, Eq)
 
+patternOfFunctionDef :: FunctionDef -> Parser [Patt]
+patternOfFunctionDef fd = case fd of
+  FunctionDef functionhead copula plainterm -> case functionhead of
+    FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt) -> patternOfTokenPattern tkpatt
+
 parseFunctionDef :: Parser FunctionDef
 parseFunctionDef =
-  FunctionDef <$> (parseOptDefine *> parseFunctionHead) <*>
-                  parseCopula <* option (parseLitEqual)
-                              <* option (parseLit "the") <*>
-                  parsePlainTerm
+  with_result parse_function_def_main m
+  where
+    parse_function_def_main = FunctionDef <$> (parseOptDefine *> parseFunctionHead) <*>
+                                parseCopula <* option (parseLitEqual) <* option (parseLit "the")
+                                <*> parsePlainTerm
+    m = \x -> patternOfFunctionDef x >>= updatePrimDefiniteNoun
 
 data FunctionHead =
     FunctionHeadFunctionTokenPattern FunctionTokenPattern
@@ -304,8 +311,22 @@ newtype Tokens = Tokens [Token]
 parseTokens :: Parser Tokens
 parseTokens = Tokens <$> many1' parsePatternToken
 
+tokensToTokens :: Tokens -> [Token]
+tokensToTokens tks0@(Tokens tks) = tks
+
 data TokenPattern = TokenPattern Tokens [(TVar, Tokens)] (Maybe TVar)
   deriving (Show, Eq)
+
+parseTokenPattern :: Parser TokenPattern
+parseTokenPattern = TokenPattern <$> parseTokens <*>
+                                     (many' $ (,) <$> parseTVar <*> parseTokens) <*>
+                                     (option parseTVar)
+
+patternOfTokenPattern :: TokenPattern -> Parser [Patt]
+patternOfTokenPattern tkPatt@(TokenPattern (Tokens tks) tvstkss mtvar) =
+  (<>) <$> (return $ (map (Wd . pure . tokenToText) tks) <>
+                     concat (map (\(tv,tks) -> Vr : map (Wd . pure . tokenToText) (tokensToTokens tks)) tvstkss) )
+            <*> ((unoption $ return mtvar) *> return [Vr] <||> return [])
 
 data Copula =
     CopulaIsDefinedAs
@@ -368,12 +389,6 @@ data PrecedenceLevel = PrecendenceLevel NumInt (Maybe AssociativeParity)
 
 parsePrecedenceLevel :: Parser PrecedenceLevel
 parsePrecedenceLevel = PrecendenceLevel <$> (parseLit "with" *> parseLit "precedence" *> parseNumInt) <*> (option $ parseLit "and" *> parseAssociativeParity <* parseLit "associativity")
-
-
-parseTokenPattern :: Parser TokenPattern
-parseTokenPattern = TokenPattern <$> parseTokens <*>
-                                     (many' $ (,) <$> parseTVar <*> parseTokens) <*>
-                                     (option parseTVar)
 
 newtype ClassifierDef = ClassifierDef ClassTokens
   deriving (Show, Eq)
