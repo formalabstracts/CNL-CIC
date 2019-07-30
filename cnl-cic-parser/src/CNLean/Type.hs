@@ -25,7 +25,6 @@ import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
 import CNLean.Basic.Basic
-import CNLean.Primitive
 import CNLean.PhraseList
 
 data Statement =
