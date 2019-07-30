@@ -231,3 +231,11 @@ chainl1' p c op        = do{ x <- p; g <- op; rest (g c x) }
                                     ; rest (f x y)
                                     })
                                 <||> return x)
+
+delete_nothings :: [Maybe a] -> [a]
+delete_nothings z = case z of
+  [] -> []
+  x:xs -> case x of
+    Just y -> y:(delete_nothings xs)
+    Nothing -> delete_nothings xs
+
