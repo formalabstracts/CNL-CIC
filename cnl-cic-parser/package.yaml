@@ -33,6 +33,8 @@ dependencies:
 - uuid
 - threads
 - parser-combinators
+- lens
+- template-haskell
 
 library:
   source-dirs: src
