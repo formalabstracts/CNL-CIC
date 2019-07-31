@@ -61,11 +61,22 @@ data FState = FState {
   deriving (Show, Eq)
 
 -- a stack is a nonempty list of states
-data Stack a = Stack {top :: a, states :: [a]}
+data Stack a = Stack {top :: a, rest :: [a]}
   deriving (Show, Eq)
 
 instance Functor Stack where
   fmap g (Stack t fs) = Stack (g t) (map g fs)
+
+states :: Stack a -> [a]
+states (Stack a as) = a:as
+
+depthStack :: Stack a -> Int
+depthStack (Stack x xs) = (length xs)
+
+mkStack :: [a] -> Maybe (Stack a)
+mkStack xs = case xs of
+  [] -> Nothing
+  x:xs -> Just $ Stack x xs
 
 consStack :: a -> Stack a -> Stack a
 consStack x (Stack t fs) = Stack x (t:fs)
@@ -77,11 +88,45 @@ popStack n (Stack t (f:fs)) = popStack (n-1) $ Stack f fs
 
 pushStack :: a -> Int -> Stack a -> Stack a
 pushStack default_value 0 stk = stk
-pushStack default_value n stk = consStack default_value (pushStack default_value (n-1) stk)
+pushStack default_value n stk = consStack default_value $ pushStack default_value (n-1) stk
 
 ---- refreshes the top of the stack with the underlying value
 refreshStack :: a -> Stack a -> Stack a
 refreshStack default_value stk = stk {top = default_value}
+
+---- helper function for handling section-local states
+sectionHandler :: a -> a -> Int -> Stack a -> Stack a
+sectionHandler default_value1 default_value2 0 stk =
+  Stack default_value1 []
+sectionHandler default_value1 default_value2 n stk =
+  if (n < depthStack stk)
+    then refreshStack default_value2 $ popStack (depthStack stk - n) stk
+    else if (n == depthStack stk)
+           then refreshStack default_value2 stk
+           else pushStack default_value2 (n - depthStack stk) stk
+
+emptyFState :: FState
+emptyFState = FState
+  [] [] [] []
+  [] []
+  [] []
+  [] [] []
+  [] [] []
+  [] [] []
+  [] []
+  [] []
+  []
+  []
+  []
+  []
+  []
+  []
+  []
+  []
+  []
+  [] [] []
+  0 0 0
+
 
 initialFState :: FState --TODO(jesse): move the rest of phrase_list.txt into the state and define corresponding parsers
 initialFState = FState
