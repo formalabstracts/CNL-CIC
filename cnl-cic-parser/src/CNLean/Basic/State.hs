@@ -60,6 +60,29 @@ data FState = FState {
   idCount :: Int, hiddenCount :: Int, serialCounter :: Int}
   deriving (Show, Eq)
 
+-- a stack is a nonempty list of states
+data Stack a = Stack {top :: a, states :: [a]}
+  deriving (Show, Eq)
+
+instance Functor Stack where
+  fmap g (Stack t fs) = Stack (g t) (map g fs)
+
+consStack :: a -> Stack a -> Stack a
+consStack x (Stack t fs) = Stack x (t:fs)
+
+popStack :: Int -> Stack a -> Stack a
+popStack 0 stk = stk
+popStack n (Stack t []) = (Stack t [])
+popStack n (Stack t (f:fs)) = popStack (n-1) $ Stack f fs
+
+pushStack :: a -> Int -> Stack a -> Stack a
+pushStack default_value 0 stk = stk
+pushStack default_value n stk = consStack default_value (pushStack default_value (n-1) stk)
+
+---- refreshes the top of the stack with the underlying value
+refreshStack :: a -> Stack a -> Stack a
+refreshStack default_value stk = stk {top = default_value}
+
 initialFState :: FState --TODO(jesse): move the rest of phrase_list.txt into the state and define corresponding parsers
 initialFState = FState
   primAdjective0 [] [] []
