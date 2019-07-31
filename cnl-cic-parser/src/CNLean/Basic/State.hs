@@ -105,6 +105,9 @@ sectionHandler default_value1 default_value2 n stk =
            then refreshStack default_value2 stk
            else pushStack default_value2 (n - depthStack stk) stk
 
+initialFStack :: Stack FState
+initialFStack = Stack initialFState []
+
 emptyFState :: FState
 emptyFState = FState
   [] [] [] []

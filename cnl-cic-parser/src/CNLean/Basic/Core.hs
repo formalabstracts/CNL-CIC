@@ -25,10 +25,10 @@ type Parser0 = Parsec Void Text
 
 type ParserSt s = StateT s (Parser0)
 
-type Parser = ParserSt FState
+type Parser = ParserSt (Stack FState)
 
-runtest0 :: Parser a -> Parser0 (a, FState)
-runtest0 p = (runStateT p) initialFState
+runtest0 :: Parser a -> Parser0 (a, Stack FState)
+runtest0 p = (runStateT p) initialFStack
 
 test_all :: Show a => Parser a -> Text -> IO ()
 test_all p arg = parseTest (runtest0 p) arg
@@ -238,4 +238,3 @@ delete_nothings z = case z of
   x:xs -> case x of
     Just y -> y:(delete_nothings xs)
     Nothing -> delete_nothings xs
-
