@@ -61,7 +61,7 @@ data FState = FState {
   deriving (Show, Eq)
 
 -- a stack is a nonempty list of states
-data Stack a = Stack {top :: a, rest :: [a]}
+data Stack a = Stack {_top :: a, _rest :: [a]}
   deriving (Show, Eq)
 
 instance Functor Stack where
@@ -92,7 +92,7 @@ pushStack default_value n stk = consStack default_value $ pushStack default_valu
 
 ---- refreshes the top of the stack with the underlying value
 refreshStack :: a -> Stack a -> Stack a
-refreshStack default_value stk = stk {top = default_value}
+refreshStack default_value stk = stk {_top = default_value}
 
 ---- helper function for handling section-local states
 sectionHandler :: a -> a -> Int -> Stack a -> Stack a
