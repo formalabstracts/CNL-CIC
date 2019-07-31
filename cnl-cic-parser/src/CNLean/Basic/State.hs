@@ -38,26 +38,26 @@ data ParserMarkUp a =
 -- - change underlying state of Parser from FState to a "state stack" [FState].
 -- - additionally parametrize all fields by an extra natural number for scope. insert checks when parsing patterns to ignore patterns outside of scope. When entering new scopes, sanitize state fields of items with a forbidden scope.
 data FState = FState { 
-  primAdjective,        primAdjectiveMultiSubject,   primSimpleAdjective, primSimpleAdjectiveMultiSubject :: [[Patt]],
-  primDefiniteNoun,     primPossessedNoun :: [[Patt]],
-  primVerb,             primVerbMultiSubject :: [[Patt]],
-  primTermOp,           primTermOpControlSeq,        primTermControlSeq :: [[Patt]],
-  primTypeOp,           primTypeOpControlSeq,        primTypeControlSeq :: [[Patt]],
-  primLambdaBinder,     primPiBinder,                primBinderProp :: [[Patt]],
-  primBinaryRelationOp, primBinaryRelationControlSeq :: [[Patt]],
-  primPropositionalOp,  primPropositionalOpControlSeq :: [[Patt]],
-  primRelation :: [[Patt]],
-  primPrefixFunction :: [[Patt]],
-  primIdentifierTerm :: [[Patt]],
-  primIdentifierType :: [[Patt]],
-  primTypedName :: [[Patt]],
-  primFreePredicate :: [[Patt]],
-  primPhraseListFiller :: [[ParserMarkUp Text]],
-  primPhraseListProofStatement :: [[ParserMarkUp Text]],
-  primPhraseListTransition :: [[ParserMarkUp Text]],
+  _primAdjective,        _primAdjectiveMultiSubject,   _primSimpleAdjective, _primSimpleAdjectiveMultiSubject :: [[Patt]],
+  _primDefiniteNoun,     _primPossessedNoun :: [[Patt]],
+  _primVerb,             _primVerbMultiSubject :: [[Patt]],
+  _primTermOp,           _primTermOpControlSeq,        _primTermControlSeq :: [[Patt]],
+  _primTypeOp,           _primTypeOpControlSeq,        _primTypeControlSeq :: [[Patt]],
+  _primLambdaBinder,     _primPiBinder,                _primBinderProp :: [[Patt]],
+  _primBinaryRelationOp, _primBinaryRelationControlSeq :: [[Patt]],
+  _primPropositionalOp,  _primPropositionalOpControlSeq :: [[Patt]],
+  _primRelation :: [[Patt]],
+  _primPrefixFunction :: [[Patt]],
+  _primIdentifierTerm :: [[Patt]],
+  _primIdentifierType :: [[Patt]],
+  _primTypedName :: [[Patt]],
+  _primFreePredicate :: [[Patt]],
+  _primPhraseListFiller :: [[ParserMarkUp Text]],
+  _primPhraseListProofStatement :: [[ParserMarkUp Text]],
+  _primPhraseListTransition :: [[ParserMarkUp Text]],
   -- tvrExpr :: [TVar] -- TODO(jesse) integrate this later
-  strSyms :: [[Text]], varDecl :: [Text], clsList :: [[Text]],
-  idCount :: Int, hiddenCount :: Int, serialCounter :: Int}
+  _strSyms :: [[Text]], varDecl :: [Text], _clsList :: [[Text]],
+  _idCount :: Int, _hiddenCount :: Int, _serialCounter :: Int}
   deriving (Show, Eq)
 
 -- a stack is a nonempty list of states
