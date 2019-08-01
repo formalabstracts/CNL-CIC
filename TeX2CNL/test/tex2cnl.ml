@@ -17,7 +17,12 @@ type token =
    | Numeric of string
    | Eol
    | Par 
+   | Input of string
    | ControlSeq of string
+   | BeginSeq of string
+   | EndSeq of string
+   | BeginCnl
+   | EndCnl
    | Arg of int
    | LParen
    | RParen
@@ -38,6 +43,7 @@ type token =
    | Tok of string
    | Symbol of string
    | Error of string
+   | Warn of string 
    | Eof
    | Ignore
    | NotImplemented;;
@@ -48,7 +54,12 @@ let token_to_string = function
   | Numeric s -> s
   | Eol -> "\n"
   | Par -> ""
+  | Input s -> "\\input{"^s ^"}"
   | ControlSeq s -> "\\"^s
+  | BeginSeq s -> "\\begin{"^s^"}"
+  | EndSeq s -> "\\end{"^s^"}"
+  | BeginCnl -> "\\begin{cnl}"
+  | EndCnl -> "\\end{cnl}"
   | Arg i -> "#"^(string_of_int i)
   | LParen -> "("
   | RParen -> ")"
@@ -58,19 +69,35 @@ let token_to_string = function
   | RBrace -> "}"
   | Dollar -> "$"
   | Display -> "$$"
-  | Sub -> "\\sb"
+  | Sub -> "_"
   | Comma -> ","
   | Semi -> ";"
-  | FormatEol -> "&"
-  | FormatCol -> "\\"
+  | FormatEol -> "\\"
+  | FormatCol -> "&"
   | Label s -> s
   | Tok s -> s
   | Symbol s -> s
-  | Error s -> "[TeX2CnlError: "^s^"]"
+  | Error s -> "[TeX2CnlError \"" ^s^ "\"]"
+  | Warn s -> "[TeX2CnlWarning \"" ^s^ "\"]"
   | Eof -> "EOF"
   | Ignore -> ""
   | NotImplemented -> "NotImplemented"
   | _ -> "";;
+
+let token_to_string_output = function
+  | Dollar -> " "
+  | Display -> " "
+  | Sub -> "\\sb "
+  | Eof -> " "
+  | BeginCnl -> " "
+  | EndCnl -> " "
+  | BeginSeq _ -> " "
+  | EndSeq _ -> " "
+  | Input s -> "[read \"" ^(Filename.remove_extension s)^ ".cnl\"]"
+  | NotImplemented -> " "
+  | _ as t -> (token_to_string t)^" ";;
+
+let test = token_to_string_output (Input "file");;
 
 let string_clean =
   let f c = match c with
@@ -117,8 +144,66 @@ let test = mk_var [ControlSeq "alpha";Sub;LBrace;Natural 33;RBrace];;
 let no_expand = ControlSeq "noexpand";;
 
 let id_fun x = x;;
+
+
 (* I/O output *)
 
+
+type io_channels = 
+  {
+    infile : string;
+    outfile : string;
+    mutable intoks : token list ;
+    outc : out_channel;
+  };;
+
+let mk_outfile s = 
+  (Filename.remove_extension s)^".cnl";;
+
+let mk_infile s = 
+  (Filename.remove_extension s)^".tex";;
+
+let test = mk_outfile "myfile.txt";;
+
+let read_lines name : string list =
+  let ic = open_in name in
+  let try_read () =
+    try Some (input_line ic) with End_of_file -> None in
+  let rec loop acc = match try_read () with
+    | Some s -> loop (s :: acc)
+    | None -> close_in ic; List.rev acc in
+  loop [];;
+
+(*
+let read_tokens f s = (* XX assume f terminates each token list with a Eol *)
+ *)
+
+let mk_iochannels f s =
+let infile = mk_infile s in
+let outfile = mk_outfile s in
+let rs = read_lines infile in 
+let toks = List.map f rs in
+  {
+    infile = infile; 
+    outfile = outfile;
+    outc = open_out outfile;
+    intoks = List.flatten toks;
+  };;
+  
+
+ (*
+let output_token outc tok =
+  output_string outc (token_to_string_output tok);;
+ *)
+
+
+let output_token ios tok = 
+  output_string (ios.outc) (token_to_string_output tok);;
+
+let output_token_list ios toks = 
+  ignore(List.map (output_token ios) toks);;
+
+(*
 let outstream = ref [];;
 
 let write_output a =
@@ -130,22 +215,28 @@ ignore(List.map print_string (List.map token_to_string ls));;
 
 let write_error_message s = (* this takes the form of a CNL string instruction *)
   write_output_list [LBrack;Tok "error";Symbol "\"";Tok s;Symbol "\"";RBrack];;
+ *)
 
-let (write_error,get_error_count) =
+let (output_error,get_error_count) =
   let error_limit = 20 in
   let error_count = ref 0 in 
-  ((fun s ->
-        let _ = write_error_message s in
+  let o_error ios s = output_token ios (Error s) in
+  ((fun ios s ->
+        let _ = o_error ios s in
         let _ = error_count := 1 + !error_count in
         if !error_count > error_limit then 
-          write_error_message "error_limit exceeded"
-                  (* flush and close outfile, NOT_IMPLEMENTED, debug *)
+          let _ = o_error ios "error_limit exceeded" in
+          let _ = close_out (ios.outc) in
+          failwith "error limit exceeded"  (* debug, close all files *)
         else ()),
   (fun () -> !error_count));;
 
-(* I/O source stream pop, peek, and return *)
+let output_warning ios s = 
+  output_token ios (Warn s);;
 
-let stream = ref [];;
+(* I/O source stream input, peek, and return *)
+
+(* let stream = ref [];; *)
 
  (* We preserve line numbers in transforming from input to output. The
    LF is placed in the output the first time encountered. Except I/O
@@ -153,47 +244,49 @@ let stream = ref [];;
    operations that return tokens to the input stream. 
  *)
 
-let popstream = 
-  let pop1 show_par =
-    if !stream = [] then Eof else 
-      let a = List.hd !stream in
-      let _ = stream := List.tl !stream in
-      let a' = if show_par && (a = Eol) && (!stream=[]) && (Eol = List.hd !stream)
+
+let input_ios = 
+  let input_1 ios respect_par =
+    if ios.intoks = [] then Eof else 
+      let tok = List.hd ios.intoks in
+      let _ = ios.intoks <- List.tl ios.intoks in
+      let tok' = if respect_par && (tok = Eol) && not(ios.intoks =[]) && (Eol = List.hd ios.intoks)
                then Par 
-               else a in
-      a' in
-  let rec poprec acc k show_par = 
+               else tok in
+      tok' in
+  let rec input_rec ios acc k respect_par = 
     if (k=0) then List.rev acc
     else 
-      match pop1 show_par with 
-      | Eol -> (write_output Eol; poprec acc k show_par)
-      | Par -> (write_output Eol; poprec (Eol::acc) (k-1) show_par)
-      | _ as t -> poprec (t::acc) (k-1) show_par in
-  fun show_par k -> poprec [] k show_par;;
+      match input_1 ios respect_par with 
+      | Eol -> (output_token ios Eol; input_rec ios acc k respect_par)
+      | Par -> (output_token ios Eol; input_rec ios (Eol::acc) (k-1) respect_par)
+      | _ as t -> input_rec ios (t::acc) (k-1) respect_par in
+  fun ios respect_par k -> input_rec ios [] k respect_par;;
 
-let pop b = List.hd(popstream b 1);;
+let input ios b = List.hd(input_ios ios b 1);;
 
-let returnstream ls = 
+let returnstream = 0;;
+let return_input ios ls = 
   let ls' = List.filter (fun t -> not(t = Par)) ls in
- stream := ls' @ !stream;;
+  ios.intoks <- ls' @ ios.intoks;;
 
-let popfilter b f s = 
-  let t = pop b in
-  let _ = f t || (write_error s ; true) in 
+let input_filter ios b f s = 
+  let t = input ios b in
+  let _ = f t || (output_error ios s ; true) in 
   t;;
 
-let poptok b tok = popfilter b ((=) tok) ("expected "^token_to_string tok);;
+let input_tok ios b tok = input_filter ios b ((=) tok) ("expected "^token_to_string tok);;
 
-let peek b = 
-  let a = pop b in
-  let _ = returnstream [a] in
-  a;;
+let peek ios b = 
+  let tok = input ios b in
+  let _ = return_input ios [tok] in
+  tok;;
   
-let pop_brack_num b = 
-  let (x,y,z) = (pop b,pop b,pop b) in
+let input_brack_num ios b = 
+  let (x,y,z) = (input ios b,input ios b,input ios b) in
   match(x,y,z) with
   | (LBrack,Arg i,RBrack) -> i
-  | _ -> (returnstream [x;y;z]; 0);;
+  | _ -> (return_input ios [x;y;z]; 0);;
 
 let is_controlseq t = 
   match t with 
@@ -205,7 +298,7 @@ let get_csname t =
   | ControlSeq s -> s
   | _ -> "";; (* softfailure *)
 
-let popcs b = popfilter b is_controlseq "control sequence  expected" ;;
+let input_cs ios b = input_filter ios b is_controlseq "control sequence  expected" ;;
 
 
 (* delimiters {} [] ()  *)
@@ -231,7 +324,7 @@ let left_mate =
   | RBrack -> LBrack
   | ControlSeq ")" -> ControlSeq "("
   | ControlSeq "]" -> ControlSeq "["
-  | ControlSeq "end" -> ControlSeq "begin" 
+  | EndSeq s -> BeginSeq s
   | _ -> NotImplemented;;
 
 let check_mate (ldlims,tok) = 
@@ -239,40 +332,40 @@ let check_mate (ldlims,tok) =
   | t :: ldlims' -> (ldlims',(if t = left_mate tok then [] else [Error "mismatched end group"]))
   | _ -> ldlims,[Error "unexpected end group"];;
 
-let record_level (ldlims,a) = (* ldlims = left delimiter stack  *)
-  match a with
-  | ControlSeq "(" | ControlSeq "[" | ControlSeq "begin" | LParen | LBrace | LBrack -> 
-     (a :: ldlims,[a])
-  | ControlSeq ")" | ControlSeq "]" | ControlSeq "end" | RParen | RBrace | RBrack -> 
-     let (ldlims',err) = check_mate (ldlims,a) in (ldlims', (a :: err))
+let record_level (ldlims,tok) = (* ldlims = left delimiter stack  *)
+  match tok with
+  | ControlSeq "(" | ControlSeq "[" | BeginSeq _ | LParen | LBrace | LBrack -> 
+     (tok :: ldlims,[tok])
+  | ControlSeq ")" | ControlSeq "]" | EndSeq _ | RParen | RBrace | RBrack -> 
+     let (ldlims',err) = check_mate (ldlims,tok) in (ldlims', (tok :: err))
   | Dollar -> if (match ldlims with | Dollar :: _ -> true | _ -> false) then 
                 (List.tl ldlims,[])
               else (Dollar :: ldlims,[])
   | Display -> if (match ldlims with | Display :: _ -> true | _ -> false) then 
                 (List.tl ldlims,[])
               else (Display :: ldlims,[])
-  | _ -> (ldlims,[a]);;
+  | _ -> (ldlims,[tok]);;
 
  (*    We read the tokens using an arbitrary read function with state. *)
 
  (*
-let rec leveled_pop_until acc ldlims endif =
-  let a = pop() in
-  if (endif (ldlims,a)) then (returnstream [a]; List.rev acc)
+let rec leveled_input_until acc ldlims endif =
+  let tok = input_() in
+  if (endif (ldlims,tok)) then (return_input [tok]; List.rev acc)
   else 
-    let (ldlims',a') = record_level (ldlims,a) in 
-    leveled_pop_until (a' @ acc) ldlims' endif;;
+    let (ldlims',tok') = record_level (ldlims,tok) in 
+    leveled_input_until (tok' @ acc) ldlims' endif;;
   *)
 
  (* tr is an arbitrary token transformation *)
 let rec leveled_read_until acc read state ldlims tr endif = 
   try (
-    let (a,state') = read state in
-    if endif (ldlims,a) then ([a],List.rev acc,state)
+    let (tok,state') = read state in
+    if endif (ldlims,tok) then ([tok],List.rev acc,state)
     else 
-      let (ldlims',a') = record_level (ldlims,a) in 
+      let (ldlims',tok') = record_level (ldlims,tok) in 
       leveled_read_until 
-        ((List.map (fun t -> tr(ldlims',t)) a') @ acc) read state' ldlims' tr endif)
+        ((List.map (fun t -> tr(ldlims',t)) tok') @ acc) read state' ldlims' tr endif)
   with _ -> ([],List.rev acc,state);;
 
  (* 
@@ -287,7 +380,7 @@ let rec leveled_read_until acc read state ldlims tr endif =
 let rec mate_delim read state right ldlims = 
   let left = left_mate right in
   let (current,toks,state') = leveled_read_until [] read state ldlims snd 
-   (fun (ldlims,a) -> (ldlims = [left] && (a = right))) in 
+   (fun (ldlims,tok) -> (ldlims = [left] && (tok = right))) in 
   (toks,state');;
 
 let mate_from_list = 
@@ -295,21 +388,21 @@ let mate_from_list =
   fun right ls -> let (toks,unused) = mate_delim f ls right [left_mate right] in 
             (toks,unused);;
 
-(* pop_matched_brace pop balanced expression, output doesn't include delimiters.  *)
-let pop_to_right b right = 
-  let _ = poptok b (left_mate right) in 
-  fst(mate_delim (fun () -> pop b, ()) () right [left_mate right]);;
+(* input_matched_brace input balanced expression, output doesn't include delimiters.  *)
+let input_to_right ios b right = 
+  let _ = input_tok ios b (left_mate right) in 
+  fst(mate_delim (fun () -> input ios b, ()) () right [left_mate right]);;
 
-let pop_to_right_wo_par right = 
-  let toks = pop_to_right true right in
+let input_to_right_wo_par ios right = 
+  let toks = input_to_right ios true right in
   let toks' = List.filter (fun t -> not(t = Par)) toks in
   let error = if List.length toks = List.length toks' then [] else [Error "unexpected par while scanning {}"] in
   error @ toks' ;;
 
-let rec pop_matched_brace_list acc k = 
+let rec input_matched_brace_list ios acc k = 
   if (k=0) then List.rev acc else 
-    let t = pop_to_right_wo_par RBrace in 
-    pop_matched_brace_list (t::acc) (k-1);;
+    let t = input_to_right_wo_par ios RBrace in 
+    input_matched_brace_list ios (t::acc) (k-1);;
 
 (* tuples *)
  (* convert tuple to list at outermost layer, with respect to () {}:
@@ -318,27 +411,9 @@ let rec pop_matched_brace_list acc k =
 
 let rec list_of_tuple_rec b insep outsep toks = (* outer brackets not included *)
   let (_,toks',_) = leveled_read_until [] (fun ls -> (List.hd ls,List.tl ls)) toks []
-   (fun (ds,a) -> if (ds = [] && a = insep) then outsep else a)
+   (fun (ds,tok) -> if (ds = [] && tok = insep) then outsep else tok)
    (fun (_,_) -> false) in (* read until List.hd gives error *)
   toks';;
-
-(*
-  match toks with
-  | [] -> paren(List.rev acc)
-  | a :: rest ->
-      match a with
-      | LBrace -> 
-          let (m,rest') = mate_brace_from_list rest in 
-          let ls = brace(m) in 
-          list_of_tuple_rec sep ((List.rev ls) @ acc) rest'
-      | LParen -> 
-          let (m,rest') = mate_paren_from_list rest in 
-          let ls = paren(m) in
-          list_of_tuple_rec sep ((List.rev ls) @ acc) rest' 
-      | RParen -> write_error "unmatched ) in list_of_tuple_rec"; paren(List.rev acc )
-      | Comma -> list_of_tuple_rec sep (LParen :: sep(RParen :: acc)) rest
-      | _ -> list_of_tuple_rec sep (a :: acc) rest;;
- *)
 
 let list_of_noparen_tuple b toks =
   bracket(list_of_tuple_rec b Comma Semi toks);;
@@ -368,6 +443,11 @@ let rec opt_assoc s ls =
   | [] -> None
   | e::tl -> if (s = fst e)  then Some (snd e) else opt_assoc s tl;;
 
+let rec default_assoc ls s = 
+  match ls with 
+  | [] -> s
+  | e::tl -> if (s = fst e) then snd e else default_assoc tl s;;
+
 (* control sequence processing *)
 
 let is_math_font cs_string = 
@@ -380,155 +460,365 @@ let test = is_math_font "Bbb";;
     function process_environment. 
   *)
 
-let nopar toks s = 
+let nopar ios toks s = 
   let toks' = List.filter (fun t -> not(t = Par)) toks in
-  let _ = (List.length toks' = List.length toks) || (write_error s; true) in
+  let _ = (List.length toks' = List.length toks) || (output_error ios s; true) in
   toks';;
 
-let process_controlseq p_environ p_document cs_string =
+let process_controlseq ios cs_string =
   match cs_string with
   | "CnlDelete" -> 
-      let i = pop_brack_num true in
-      let cs = popcs true in setmacro (get_csname cs,(i,[])); []
+      let i = input_brack_num ios true in
+      let cs = input_cs ios true in setmacro (get_csname cs,(i,[])); []
   | "CnlNoExpand" -> 
-      let i = pop_brack_num true in
-      let cs = popcs true in setmacro (get_csname cs,(i,[no_expand;cs])); []
+      let i = input_brack_num ios true in
+      let cs = input_cs ios true in setmacro (get_csname cs,(i,[no_expand;cs])); []
   | "CnlCustom" | "CnlDef"  ->
-      let i = pop_brack_num true in
-      let cs = popcs true in
-      let toks = pop_to_right_wo_par RBrace in setmacro (get_csname cs,(i,toks)); []
+      let i = input_brack_num ios true in
+      let cs = input_cs ios true in
+      let toks = input_to_right_wo_par ios RBrace in setmacro (get_csname cs,(i,toks)); []
+(*
   | "input" -> 
-      let toks = pop_to_right_wo_par RBrace in
+      let toks = input_to_right_wo_par ios RBrace in
       (match toks with
       | [Tok s] -> 
           let ls = [LBrack;Tok "read";Symbol "\"";Tok s;Symbol "\"";RBrack] in
           let _ = p_document s in
           ls
       | _ -> [Error "\\input filename missing"])
+ *)
   | "noexpand" -> 
-      let cs = popcs true in [cs]
+      let cs = input_cs ios true in [cs]
+(*
   | "begin" ->
-      let toks = pop_to_right_wo_par RBrace in p_environ(toks)
-  | "var" -> [mk_var (pop_to_right_wo_par RBrace)]
-  | "id" -> [mk_id (pop_to_right_wo_par RBrace)]
+      let toks = input_to_right_wo_par ios RBrace in p_environ(toks)
+ *)
+  | "var" -> [mk_var (input_to_right_wo_par ios RBrace)]
+  | "id" -> [mk_id (input_to_right_wo_par ios RBrace)]
   | "list" ->
-      let toks = pop_to_right_wo_par RBrace in 
-      (returnstream (list_of_noparen_tuple true toks) ; [])
+      let toks = input_to_right_wo_par ios RBrace in 
+      (return_input ios (list_of_noparen_tuple true toks) ; [])
   | "concat" ->
-      let t1 = pop_to_right_wo_par RBrace in
-      let t2 = pop_to_right_wo_par RBrace in
+      let t1 = input_to_right_wo_par ios RBrace in
+      let t2 = input_to_right_wo_par ios RBrace in
       (match (t1,t2) with 
        | ([Tok s1],[Tok s2]) -> [Tok (s1^s2)]
        | _ -> [Error ("cannot concat ("^(tokens_to_clean_string t1)^") ("^
                         (tokens_to_clean_string t2)^")")])
   | "app" ->
-      let ftoks = (pop_to_right_wo_par RBrace) in 
-      let argtoks = (pop_to_right_wo_par RBrace) in 
-      let cargs = nopar argtoks "illegal par in cargs" in
+      let ftoks = (input_to_right_wo_par ios RBrace) in 
+      let argtoks = (input_to_right_wo_par ios RBrace) in 
+      let cargs = nopar ios argtoks "illegal par in cargs" in
       let ls = paren(paren(ftoks) @ cargs) in 
-       (returnstream (ls) ; [])
+       (return_input ios (ls) ; [])
   | _ -> let otoks = opt_assoc cs_string !macrotable in
          (match otoks with
          | Some (k,pat) -> 
-             let args = (pop_matched_brace_list [] k) in 
+             let args = (input_matched_brace_list ios [] k) in 
              let repl_text = macroexpand [] pat args in 
-             (returnstream repl_text;[])
+             (return_input ios repl_text;[])
          | None ->
              if is_math_font(cs_string) then (* \mathfrak{C} -> C__mathfrak *)
-               let toks = pop_to_right_wo_par RBrace in 
-               if (List.length toks != 1) then (returnstream toks; [])
+               let toks = input_to_right_wo_par ios RBrace in 
+               if (List.length toks != 1) then (return_input ios toks; [])
                else 
                  match List.hd toks with 
                  | Tok s -> [Tok (s^"__"^cs_string)]
-                 | _ -> (returnstream toks; [])
+                 | _ -> (return_input ios toks; [])
              else [ControlSeq cs_string]);;
 
 (* environments *) 
 
+let transcribe_token ios ifexpand outputif tr tok = 
+  let p tok = if outputif tok then output_token ios (default_assoc tr tok) else () in
+  let ps toks = output_token_list ios 
+                  (List.map (default_assoc tr) (List.filter outputif toks)) in 
+  match tok with
+  | ControlSeq s -> if ifexpand then ps(process_controlseq ios s) else p tok
+  | Arg _ -> output_error ios "# parameters must appear in macro patterns"
+  | FormatEol -> output_error ios "FormatEol must appear in environment"
+  | FormatCol -> output_error ios "FormatCol must appear in environment"
+  | Eol -> output_error ios "unexpected EOL"
+  | Eof -> raise End_of_file
+  | _ -> p tok;;
 
-let delete_option b = (* material in [] *)
-  let l = peek b in
+type environ_item =
+{
+  name : string;
+  begin_token : token;
+  tr_token : (token*token) list;
+  end_token : token;
+  drop_toks : token list;
+  is_delete : bool;
+  respect_par : bool;
+};;
+
+let null_env  = 
+  {
+    name = "NULL";
+    begin_token = Ignore;
+    end_token = Ignore;
+    tr_token = [];
+    drop_toks = [];
+    is_delete = false;
+    respect_par = false;
+  };;
+
+let mk_drop_env s drop is_delete = 
+  {
+    name = s;
+    begin_token = Ignore;
+    end_token = Ignore;
+    tr_token = [];
+    drop_toks = drop;
+    is_delete = is_delete;
+    respect_par = false;
+  };;
+
+let mk_delete_env s = 
+  {
+    name = s;
+    begin_token = Ignore;
+    end_token = Ignore;
+    tr_token = [];
+    drop_toks = [];
+    is_delete = true;
+    respect_par = false;
+  };;
+
+let mk_eqn_env s is_delete = 
+  {
+    name = s;
+    begin_token = if is_delete then Ignore else Symbol "\\eqnarray{[(";
+    end_token = if is_delete then Ignore else Symbol ")]}";
+    tr_token = if is_delete then [] else [(FormatEol,Symbol "); (")];
+    drop_toks = [FormatCol];
+    is_delete = is_delete;
+    respect_par = true;
+  };;
+
+let mk_matrix_env s is_delete = 
+  {
+    name = s; 
+    begin_token = if is_delete then Ignore else Symbol ("\\"^s^"{[[(");
+    end_token = if is_delete then Ignore else Symbol (")]]}");
+    tr_token = (if is_delete then []
+               else [(FormatEol,Symbol ")]; [(");(FormatCol,Symbol "); (")]);
+    drop_toks = [];
+    is_delete = is_delete;
+    respect_par = true;
+  };;
+
+let mk_e_item s e =
+  match s with 
+  | "center" -> mk_drop_env s [] (e.is_delete)
+  | "flushleft" | "flushright" | "minipage" 
+  | "quotation" | "quote" | "verse" -> mk_drop_env s [FormatEol] (e.is_delete)
+  | "tabbing" -> mk_drop_env s [FormatEol;FormatCol;ControlSeq "=";ControlSeq ">";ControlSeq "+";ControlSeq "-"] e.is_delete
+  | "array" -> mk_matrix_env s (e.is_delete) 
+  | "align" | "align*" | "eqnarray" | "eqnarray*" 
+  | "gather" | "gather*" | "equation" | "equation*" -> mk_eqn_env s e.is_delete
+  | "figure" | "picture" | "remark" 
+  | "thebibliography" | "titlepage" -> mk_delete_env s
+  | "multline" | "split" -> mk_drop_env s [FormatEol;FormatCol] (e.is_delete)
+  | "matrix" | "pmatrix" | "bmatrix" | "Bmatrix" | "vmatrix" | "Vmatrix"
+  | "smallmatrix" -> mk_matrix_env s e.is_delete
+  | _ -> mk_delete_env s ;;
+
+(* declarations *)
+let delete_matching_brack ios b = (* material in [] *)
+  let l = peek ios b in
   if (l = LBrack) then 
-    ignore(pop_to_right b RBrack)
+    ignore(input_to_right ios b RBrack)
   else ();;
 
-let get_label() = (* read \label *)
- let l = peek true in
+let get_label ios = (* read \label *)
+ let l = peek ios true in
  match l with
  | ControlSeq "label" -> 
-     let toks = pop_to_right_wo_par RBrace in Some(mk_label toks)
+     let toks = input_to_right_wo_par ios RBrace in Some(mk_label toks)
  | _ -> None;;
-
-let write_declaration_preamble s label = 
-  let _ = write_output (Tok s) in
-  let _ = match label with | None -> () | Some t -> write_output t in
-  write_output (Symbol ".");;
-
-let transcribe1 p_environ p_document writeif a = 
-  let p a = if writeif a then write_output a else () in
-  let ps toks = write_output_list (List.filter writeif toks) in 
-  match a with
-  | ControlSeq s -> ps(process_controlseq p_environ p_document s) (* recursion here into sub environ *)
-  | Arg _ -> write_error "# parameters must appear in macro patterns"
-  | FormatEol -> write_error "FormatEol must appear in environment"
-  | FormatCol -> write_error "FormatCol must appear in environment"
-  | Eol -> write_error "unexpected EOL"
-  | Eof -> write_error "unexpected EOF"
-  | _ -> p a;;
-
-let rec transcribe_until b p_environ writeif endif =
-  let a = pop b in
-  if (endif a) then (returnstream [a])
-  else 
-    let () = transcribe1 p_environ writeif a in
-    transcribe_until b p_environ writeif endif;;
 
 let declaration_table = 
   [
     ("def","Definition");
     ("thm","Theorem");
     ("cor","Corollary");
+    ("hyp","Hypothesis");
     ("prop","Proposition");
   ];;
 
-let cleanup_environ b env_name = 
-  let t = popcs b in
-  let _ = (t = ControlSeq "end") || (write_error ("end "^env_name^" expected"); true) in
-  let s = tokens_to_clean_string(pop_to_right_wo_par RBrace) in
-  let _ = (s = env_name) || (write_error ("end "^env_name^" expected; "^s^" found"); true) in
-  ();;
-
-let transcribe_decl_environ p_environ env_name = (* \begin{definition} has been read *)
- let _ = delete_option false in
- let label = get_label() in 
+let output_decl_prologue ios env_name = 
+ let _ = delete_matching_brack ios false in
+ let label = get_label ios in 
  let odecl = opt_assoc env_name declaration_table in 
  let s = match odecl with 
    | None -> String.capitalize_ascii env_name
    | Some s' -> s' in
- let _ = write_declaration_preamble s label in 
- let _ = transcribe_until false p_environ (fun _ -> true) ((=) (ControlSeq "end")) in
- cleanup_environ false env_name;;
+ let _ = output_token ios (Tok s) in
+ let _ = match label with | None -> () | Some t -> output_token ios t in
+ output_token ios (Symbol ".");;
 
-let delete_environ b p_environ env_name =  (* \begin{env_name} already read *)
-  let _ = transcribe_until b p_environ (fun _ -> false) ((=) (ControlSeq "end")) in
-  cleanup_environ b env_name;;
 
-let ignore_in_environ b p_environ env_name ignored_chars = 
-  let _ = transcribe_until b p_environ (fun a -> not(List.mem a ignored_chars))
+let output_prologue ios s = 
+  match s with 
+  | "def" | "definition" | "Definition" 
+  | "thm" | "theorem" | "Theorem"
+  | "prop" | "proposition" | "Proposition"
+  | "axiom" | "Axiom"
+  | "hyp" | "hypothesis" | "Hypothesis"
+  | "cor" | "corollary" | "Corollary" -> output_decl_prologue ios s 
+  | _ -> ();;
+
+ (*
+   output token will be unhandled EndCnl, Input, Eof 
+  *)
+
+let rec process_environ ios e_stack = 
+  let par_filter e = 
+    let nrp = not(e.respect_par) in
+    let _ = nrp || (output_error ios 
+                      ("inserting end "^e.name); true) in
+    nrp in
+  let rec output_err_stack es = 
+    if (List.length e_stack <= 1) then () 
+    else 
+      (output_error ios ("unended "^((List.hd e_stack).name)); 
+       output_err_stack (List.tl es)) in
+  if (e_stack=[]) 
+  then (output_error ios "unexpected empty environment. ending cnl envir"; EndCnl) else 
+    let e = List.hd e_stack in
+    let tok = input ios (e.respect_par) in 
+    match tok with
+    | Par -> (output_error ios "paragraph ended before envir end."; 
+              let ignore_par_stack = 
+                List.filter par_filter  e_stack in 
+              process_environ ios ignore_par_stack)
+    | BeginCnl -> (output_error ios "improper nesting of \\begin{cnl}; ignored"; 
+                   process_environ ios e_stack)
+    | EndCnl | Input _ | Eof -> (output_err_stack e_stack; tok) 
+    | EndSeq s -> if (s = e.name) then 
+                    (output_token ios e.end_token; process_environ ios (List.tl e_stack))
+                  else 
+                    let msg = "\\end{" ^(e.name)^ "} expected, \\end{" 
+                              ^s^ "} found. Ignoring." in
+                    (output_error ios msg; process_environ ios e_stack) 
+    | BeginSeq s -> let e' = mk_e_item s e in
+                    let () = output_prologue ios s in
+                    process_environ ios (e' :: e_stack)
+    | _ -> let ifexpand = not(e.is_delete) in
+           let outputif tok = not(e.is_delete) && not(List.mem tok (e.drop_toks)) in 
+           let tr = e.tr_token in
+           (transcribe_token ios ifexpand outputif tr tok;
+            process_environ ios e_stack)
+;;
+
+(* restart *)
+
+
+let rec seek_cnl_block ios = 
+  match (input ios false) with
+  | BeginCnl -> BeginCnl 
+  | Eof -> Eof 
+  | _ -> seek_cnl_block ios;;
+
+let rec process_cnl_block ios = 
+  match seek_cnl_block ios with
+  | Eof -> Eof
+  | _ -> (match (process_environ ios [null_env]) with
+         | EndCnl -> process_cnl_block ios 
+         | Eof -> Eof
+         | Input _ as t -> t
+         | _ -> (output_error ios "fatal, ending file"; Eof));;  
+
+let rec process_ios convert_toks io_stack = 
+  if io_stack = [] then true 
+  else
+    let ios = List.hd io_stack in
+    match (process_cnl_block ios) with
+    | Eof -> let _ = close_out ios.outc in process_ios convert_toks (List.tl io_stack)
+    | Input filename -> (let ios = mk_iochannels convert_toks filename in
+                        process_ios convert_toks (ios :: io_stack))
+    | _ -> (output_error ios "fatal ending file";
+            process_ios convert_toks (List.tl io_stack))
+;;
+  
+let process_doc convert_toks filename = 
+  process_ios convert_toks [mk_iochannels convert_toks filename];;
+
+
+
+(*
+let End_cnl = 0;;
+let process_document = 0;;
+let process_cnl_block = 0;;
+let transcribe1 = 0;; 
+
+let delete_option = 0;;
+let output_declaration_preamble = 0;;
+let output_declaration_preamble ios s label = 
+  let _ = output_token ios (Tok s) in
+  let _ = match label with | None -> () | Some t -> output_token ios t in
+  output_token ios (Symbol ".");;
+ *)
+
+
+(*
+let transcribe_decl_environ = 0;;
+let cleanup_environ = 0;;
+let cleanup_environ ios b env_name = 
+  let t = input_cs ios b in
+  let _ = (t = ControlSeq "end") || (output_error ios ("end "^env_name^" expected"); true) in
+  let s = tokens_to_clean_string(input_to_right_wo_par ios RBrace) in
+  let _ = (s = env_name) || (output_error ios ("end "^env_name^" expected; "^s^" found"); true) in
+  ();;
+ *)
+
+(*
+ let _ = output_declaration_preamble ios s label in 
+ let _ = transcribe_until ios false p_environ (fun _ -> true) ((=) (ControlSeq "end")) in
+ cleanup_environ ios false env_name;;
+ *)
+
+
+
+
+(*
+let rec transcribe_until ios b p_environ p_document outputif endif =
+  let tok = input ios b in
+  if (endif tok) then (return_input ios [tok])
+  else 
+    let () = transcribe_token ios outputif tok in
+    transcribe_until ios b p_environ p_document outputif endif;;
+
+
+let delete_environ ios b p_environ env_name =  (* \begin{env_name} already read *)
+  let _ = transcribe_until ios b p_environ (fun _ -> false) ((=) (ControlSeq "end")) in
+  cleanup_environ ios b env_name;;
+
+let ignore_in_environ ios b p_environ env_name ignored_chars = 
+  let _ = transcribe_until ios b p_environ (fun tok -> not(List.mem tok ignored_chars))
             ((=) (ControlSeq "end")) in
-  cleanup_environ b env_name;;
+  cleanup_environ ios b env_name;;
 
-let process_environment toks = toks;; (* debug *)
+ *)
 
 
-let process_document s = 
-   open_file;
-   tokenize;
-   look_for_cnl_start;
-   process_to_cnl_end;
-   continue_to_loop_until_eof;
-   flush_file_and_close;
-   
+(* let process_environment toks = toks;; (* toks = name of environment *) *)
+
+(*
+let seek_and_destroy = 
+let rec seek_and_destroy_rec ios restart toks = (* doesn't handle overlap in matches. *)
+  if toks = [] then () else 
+    let tok = input ios false in 
+    if (tok = List.hd toks) then seek_and_destroy_rec ios restart (List.tl toks) else
+      seek_and_destroy_rec ios restart restart in
+fun ios toks -> seek_and_destroy_rec ios toks toks;;
+
+
+let seek_and_destroy = 0;;
+ *)
+
 
 
 

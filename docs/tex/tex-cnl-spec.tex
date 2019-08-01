@@ -329,11 +329,19 @@ expand to \verb!\id! and \verb!\var!:
 
 \section{environments}
 
-In CNL mode, everything is ignored outside the
+All text is entirely ignored outside the
 \verb!\begin{cnl}...\end{cnl}! environment.
 
+Environments should be properly nested.  In particular, they should be properly
+nested and terminated within the cnl environment.
+
+\verb!\input! should not be enclosed within any environment, except possibly a \verb!\begin{cnl}! environment.
+The input file is read iff the input statement is enclosed in the cnl environment.
+
 In CNL mode, there is a list of ignored environments, such as the
-\verb!remark! environment.
+\verb!remark! environment.  No macro expansion is performed in
+the ignored environments.  However, bracketing must be properly nested.
+
 
 In CNL mode, there is a list of translated environments, with custom
 translation for each of them, such as the \verb!definition!  and

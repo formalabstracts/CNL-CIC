@@ -17,7 +17,12 @@ type token =
    | Natural of int
    | Numeric of string
    | Eol
+   | Input of string
    | ControlSeq of string
+   | BeginSeq of string
+   | EndSeq of string
+   | BeginCnl
+   | EndCnl 
    | Arg of int
    | LParen
    | RParen
@@ -43,7 +48,12 @@ type token =
 let token_to_string = function
   | Natural i -> (string_of_int i)
   | Numeric s -> s
+  | Input s -> "\\input{"^s^"}"
   | ControlSeq s -> s
+  | BeginSeq s -> "\\begin{"^s^"}"
+  | EndSeq s -> "\\end{"^s^"}"
+  | BeginCnl -> "\\begin{cnl}"
+  | EndCnl -> "\\end{cnl}"
   | Arg i -> "#"^(string_of_int i)
   | LParen -> "("
   | RParen -> ")"
@@ -103,6 +113,21 @@ let ldisplay = [%sedlex.regexp? '\\', '['  ]
 let rdisplay = [%sedlex.regexp? '\\', ']'  ]
 let format_eol = [%sedlex.regexp? "\\\\", Opt('*') ]
 let format_col = [%sedlex.regexp? '&']
+
+let beginseq = [%sedlex.regexp? "\\begin", Star(white), "{", Star(white), 
+                Plus(alphabet), Opt("*"), Star(white), "}"] 
+
+let endseq = [%sedlex.regexp? "\\end", Star(white), "{", Star(white), 
+                Plus(alphabet), Opt("*"), Star(white), "}"] 
+
+let begincnl = [%sedlex.regexp? "\\begin", Star(white), "{", Star(white), 
+                "cnl" ,  Star(white), "}"] 
+
+let endcnl = [%sedlex.regexp? "\\end", Star(white), "{", Star(white), 
+                "cnl" ,  Star(white), "}"] 
+
+let inputseq = [%sedlex.regexp? "\\input", Star(white), "{", Star(white), 
+                Plus(alphabet), Star(white), "}"] 
 
 
 let period = [%sedlex.regexp? '.']           
@@ -172,6 +197,12 @@ let test = strip_nonalpha "\\\'etale";;
 let test = strip_nonalpha "Erd\\H{o}s";;
 let test = strip_nonalpha "Poincar\\\'e";;
 
+let strip_to_brace s = 
+  let n1 = String.index s '{' in
+  let n2 = String.index s '}' in
+  String.trim (String.sub s (n1+1) (n2-n1-1));;
+
+let test = strip_to_brace "begin { hello } ";;
 
 let rec lex_token buf = 
  match%sedlex buf with 
@@ -180,6 +211,11 @@ let rec lex_token buf =
   | natural_number -> Natural(int_of_string(string_lexeme buf)) 
     | numeric -> Numeric(string_lexeme buf)
     | eol -> Eol
+    | begincnl -> BeginCnl
+    | endcnl -> EndCnl
+    | beginseq -> BeginSeq(strip_to_brace(string_lexeme buf))
+    | endseq -> EndSeq(strip_to_brace(string_lexeme buf))
+    | inputseq -> Input(strip_to_brace(string_lexeme buf))
     | controlseq -> ControlSeq(drop (string_lexeme buf) 1)
     | controlchar -> ControlSeq(string_lexeme buf)
     | arg -> Arg(int_of_string(drop (string_lexeme buf) 1))
@@ -209,7 +245,7 @@ let rec lex_token buf =
 (* testing stuff *)
 
 let buf_example1 = Sedlexing.Latin1.from_string
-               "hello\\alpha33[1]there !ready! Riemann-Hilbert Poincar\\\'e {\\ae} { \\ae} (xx) \\mathfrak{C}33 [$] {yy} %comment \n more #4 # 5  $ ))))))))"
+               "hello\\alpha33[1]there !ready! \\begin{ cnl } Riemann-Hilbert Poincar\\\'e {\\ae} { \\ae} (xx) \\input{file} \\mathfrak{C}33 [$] {yy} %comment \n more #4 # 5  $ ))))))))"
 
 let ff = fun () -> print_endline(token_to_string(lex_token buf_example1));;
 
