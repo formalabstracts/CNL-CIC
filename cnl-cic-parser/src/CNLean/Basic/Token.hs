@@ -330,6 +330,12 @@ parseNumber = (number <* sc) >>= return . Number
 parseNumInt :: Parser NumInt
 parseNumInt = NumInt <$> (option parseSign) <*> parseNumber
 
+readNumInt :: NumInt -> Parser Int
+readNumInt (NumInt msgn num@(Number txt)) = case msgn of
+  Nothing -> readNumInt (NumInt (Just Pos) num)
+  (Just Neg) -> (*) (-1) <$> readNumInt (NumInt (Just Pos) num)
+  (Just Pos) -> return $ read (unpack txt)
+
 parseDecimal :: Parser Decimal
 parseDecimal = (do
   n1 <- (number <* ch '.')
