@@ -23,20 +23,5 @@ import qualified Data.Text.IO as TIO
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
 import CNLean.Core
-import CNLean.Basic
-import CNLean.Token
-import CNLean.Namespace
-import CNLean.SectionPreamble
-import CNLean.Declaration
-import CNLean.Macro
-import CNLean.Instr
 
-testSectionPreamble :: IO ()
-testSectionPreamble = do
-  txt <- TIO.readFile "/home/pv/org/projects/jmh-CNL-CIC/cnl-cic-parser/test/section.txt"
-  parseTest (many1 $ sc *> parseSectionPreamble <* sc) txt
-
-testInstr :: IO ()
-testInstr = do
-  txt <- TIO.readFile "/home/pv/org/projects/jmh-CNL-CIC/cnl-cic-parser/test/instruction.txt"
-  parseTest (many1 $ sc *> parseInstr <* sc) txt
+-- TODO(jesse): reimplement tests
