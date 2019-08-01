@@ -151,11 +151,18 @@ parseLitFieldKey =
 
 parseLitQED = (rp $ parseLit "end") <||> (rp $ parseLit "QED") <||> (rp $ parseLit "obvious") <||> (rp $ parseLit "trivial")
 
-parseLitDocument = (rp $ parseLit "document")
-              <||> (rp $ parseLit "article")
-              <||> (rp $ parseLit "section")
-              <||> (rp $ parseLit "subsection")
-              <||> (rp $ parseLit "subsubsection")
+parseLitDocument_aux :: Parser ([Text], Int)
+parseLitDocument_aux =
+  parse_any_of_with_index $ map (rp . parseLit)
+                ["document",
+                  "article",
+                  "section",
+                  "subsection",
+                  "subsubsection"
+                ]
+
+parseLitDocument :: Parser [Text]
+parseLitDocument = fst <$> parseLitDocument_aux
 
 parseLitSection =  (rp $ parseLit "section")
               <||> (rp $ parseLit "subsection")
