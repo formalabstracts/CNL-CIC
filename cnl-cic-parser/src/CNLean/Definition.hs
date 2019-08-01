@@ -398,12 +398,6 @@ parseParenPrecedenceLevel =
   ParenPrecendenceLevelPrecedenceLevel <$> parsePrecedenceLevel <||>
   ParenPrecedenceLevelParen <$> (paren $ parsePrecedenceLevel)
 
-data AssociativeParity =
-    AssociatesLeft
-  | AssociatesRight
-  | AssociatesNone
-  deriving (Show, Eq)
-
 parseAssociativeParity :: Parser AssociativeParity
 parseAssociativeParity =
   parseLit "left" *> return AssociatesLeft <||>

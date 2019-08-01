@@ -85,6 +85,7 @@ parseInstructSynonym = with_result (parse_synonym_main) m
 
 -- test parseInstructSynonym "[synonym set/-s]"
 
+-- TODO(jesse): allow parsing of arbitrary postfixes after parsing a "/-"
 data InstructSepPlural = InstructSepPlural
   deriving (Show, Eq)
 

@@ -17,6 +17,7 @@ import Text.Megaparsec
 import Text.Megaparsec.Char
 import Data.Text (Text, pack, unpack, toLower)
 import Data.Void
+import qualified Data.Map as M
 import Control.Monad (guard)
 import qualified Data.Char as C
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -33,6 +34,11 @@ data ParserMarkUp a =
   | A [ParserMarkUp a]
   deriving (Show, Eq)
 
+data AssociativeParity =
+    AssociatesLeft
+  | AssociatesRight
+  | AssociatesNone
+  deriving (Show, Eq)
 
 -- TODO(jesse): make state section-local. possibilities:
 -- - change underlying state of Parser from FState to a "state stack" [FState].
@@ -55,6 +61,7 @@ data FState = FState {
   _primPhraseListFiller :: [[ParserMarkUp Text]],
   _primPhraseListProofStatement :: [[ParserMarkUp Text]],
   _primPhraseListTransition :: [[ParserMarkUp Text]],
+  _primPrecTable :: M.Map [Patt] (Int, AssociativeParity),
   -- tvrExpr :: [TVar] -- TODO(jesse) integrate this later
   _strSyms :: [[Text]], varDecl :: [Text], _clsList :: [[Text]],
   _idCount :: Int, _hiddenCount :: Int, _serialCounter :: Int}
