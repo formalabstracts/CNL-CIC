@@ -69,7 +69,7 @@ data FState = FState {
   _primPhraseListTransition :: [[ParserMarkUp Text]],
   _primPrecTable :: M.Map [Patt] (Int, AssociativeParity),
   -- tvrExpr :: [TVar] -- TODO(jesse) integrate this later
-  _strSyms :: [[Text]], varDecl :: [Text], _clsList :: [[Text]],
+  _strSyms :: [[Text]], _varDecl :: [Text], _clsList :: [[Text]],
   _idCount :: Int, _hiddenCount :: Int, _serialCounter :: Int}
   deriving (Show, Eq)
 

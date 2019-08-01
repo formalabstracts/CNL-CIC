@@ -22,6 +22,8 @@ import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 import Control.Monad.Trans.State.Lazy (modify, gets)
 
+import Control.Lens
+
 import CNLean.Basic.Basic
 import CNLean.Type
 import CNLean.Assumption
@@ -358,7 +360,8 @@ parseTokenPattern = TokenPattern <$> parseTokens <*>
 
 patternOfTokenPattern :: TokenPattern -> Parser [Patt]
 patternOfTokenPattern tkPatt@(TokenPattern (Tokens tks) tvstkss mtvar) =
-  (<>) <$> (return $ (map (Wd . pure . tokenToText) tks) <>
+  (<>) <$> ( do strsyms <- concat <$> use (allStates strSyms)
+                return $ (map (Wd . tokenToText'_aux strsyms) tks) <>
                      concat (map (\(tv,tks) -> Vr : map (Wd . pure . tokenToText) (tokensToTokens tks)) tvstkss) )
             <*> ((unoption $ return mtvar) *> return [Vr] <||> return [])
 

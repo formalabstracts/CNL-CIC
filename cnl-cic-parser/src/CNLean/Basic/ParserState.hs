@@ -14,7 +14,7 @@ module CNLean.Basic.ParserState where
 import Prelude
 import Control.Monad.Trans.State
 import qualified Prelude
-import Text.Megaparsec
+import Text.Megaparsec hiding (Token, Label, option, Tokens)
 import Text.Megaparsec.Char
 import Data.Text (Text, pack, unpack, toLower)
 import Data.Void
@@ -30,6 +30,7 @@ import Language.Haskell.TH
 
 import CNLean.Basic.Core
 import CNLean.Basic.State
+import CNLean.Basic.Token
 
 $(makeLenses ''FState)
 
@@ -78,3 +79,14 @@ allStates g = to $ \stk -> stk^..(top . g) <> (stk^..(rest . traverse . g))
 ---- returns the current document level of the parser
 parserDocumentLevel :: Parser Int
 parserDocumentLevel = depthStack <$> get
+
+tokenToText'_aux :: [[Text]] -> Token -> [Text]
+tokenToText'_aux strsyms tk = case tk of
+  Token txt -> case (filter (elem txt) strsyms) of
+    [] -> [txt]
+    (x:xs) -> ((<>) x $ concat xs)
+
+-- tokenToText' extracts the underlying Text of a token and adds all available synonyms from the state.
+tokenToText' :: Token -> Parser [Text]
+tokenToText' tk = tokenToText'_aux <$> (concat <$> (use (allStates strSyms))) <*> return tk
+
