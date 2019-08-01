@@ -128,6 +128,17 @@ data PredicateDef = PredicateDef PredicateHead IffJunction Statement
 parsePredicateDef :: Parser PredicateDef
 parsePredicateDef = PredicateDef <$> (parseOptSay *> parsePredicateHead) <*> parseIffJunction <*> parseStatement
 
+patternOfPredicateDef :: PredicateDef -> Parser [Patt]
+patternOfPredicateDef fd = case fd of
+  PredicateDef predicatehead iffjunction statement -> case predicatehead of
+    PredicateHeadPredicateTokenPattern (predtkpatt) -> patternOfPredicateTokenPattern predtkpatt
+    PredicateHeadIdentifierPattern idpatt -> patternOfIdentifierPattern idpatt
+    PredicateHeadSymbolPattern sympatt mpl -> patternOfSymbolPattern sympatt
+
+--TODO(jesse): add side effects for predicate definitions
+-- identifier pattern becomes primRelation
+-- Symbolpattern becomes... binary?
+
 data IffJunction = IffJunction
   deriving (Show, Eq)
 
@@ -156,6 +167,20 @@ data PredicateTokenPattern =
   | PredicateTokenPatternVerbMultiSubjectPattern VerbMultiSubjectPattern
   deriving (Show, Eq)
 
+parsePredicateTokenPattern :: Parser PredicateTokenPattern
+parsePredicateTokenPattern =
+  PredicateTokenPatternAdjectivePattern <$> parseAdjectivePattern <||>
+  PredicateTokenPatternAdjectiveMultiSubjectPattern <$> parseAdjectiveMultiSubjectPattern <||>
+  PredicateTokenPatternVerbPattern <$> parseVerbPattern <||>
+  PredicateTokenPatternVerbMultiSubjectPattern <$> parseVerbMultiSubjectPattern
+
+patternOfPredicateTokenPattern :: PredicateTokenPattern -> Parser [Patt]
+patternOfPredicateTokenPattern ptkpatt = case ptkpatt of
+  (PredicateTokenPatternAdjectivePattern adjpatt) -> patternOfAdjectivePattern adjpatt
+  (PredicateTokenPatternAdjectiveMultiSubjectPattern adjmspatt) -> patternOfAdjectiveMultiSubjectPattern adjmspatt
+  (PredicateTokenPatternVerbPattern vpatt) -> patternOfVerbPattern vpatt
+  (PredicateTokenPatternVerbMultiSubjectPattern vmspatt) -> patternOfVerbMultiSubjectPattern vmspatt
+
 data AdjectivePattern = AdjectivePattern TVar TokenPattern
   deriving (Show, Eq)
 
@@ -163,8 +188,16 @@ parseAdjectivePattern :: Parser AdjectivePattern
 parseAdjectivePattern =
   AdjectivePattern <$> parseTVar <*> (parseLit "is" *> (option $ parseLit "called") *> parseTokenPattern)
 
+patternOfAdjectivePattern :: AdjectivePattern -> Parser [Patt]
+patternOfAdjectivePattern (AdjectivePattern tv tkpatt) =
+  (<>) <$> patternOfTVar tv <*> patternOfTokenPattern tkpatt
+
 data AdjectiveMultiSubjectPattern = AdjectiveMultiSubjectPattern VarMultiSubject TokenPattern
   deriving (Show, Eq)
+
+patternOfAdjectiveMultiSubjectPattern :: AdjectiveMultiSubjectPattern -> Parser [Patt]
+patternOfAdjectiveMultiSubjectPattern (AdjectiveMultiSubjectPattern varms tkpatt) =
+  (<>) <$> patternOfVarMultiSubject varms <*> patternOfTokenPattern tkpatt
 
 parseAdjectiveMultiSubjectPattern :: Parser AdjectiveMultiSubjectPattern
 parseAdjectiveMultiSubjectPattern = AdjectiveMultiSubjectPattern <$> parseVarMultiSubject <*> parseTokenPattern
@@ -172,11 +205,19 @@ parseAdjectiveMultiSubjectPattern = AdjectiveMultiSubjectPattern <$> parseVarMul
 data VerbPattern = VerbPattern TVar TokenPattern
   deriving (Show, Eq)
 
+patternOfVerbPattern :: VerbPattern -> Parser [Patt]
+patternOfVerbPattern (VerbPattern tv tkpatt) =
+  (<>) <$> patternOfTVar tv <*> patternOfTokenPattern tkpatt
+
 parseVerbPattern :: Parser VerbPattern
 parseVerbPattern = VerbPattern <$> parseTVar <*> parseTokenPattern
 
 data VerbMultiSubjectPattern = VerbMultiSubjectPattern VarMultiSubject TokenPattern
   deriving (Show, Eq)
+
+patternOfVerbMultiSubjectPattern :: VerbMultiSubjectPattern -> Parser [Patt]
+patternOfVerbMultiSubjectPattern (VerbMultiSubjectPattern vms tkpatt) =
+  (<>) <$> patternOfVarMultiSubject vms <*> patternOfTokenPattern tkpatt
 
 parseVerbMultiSubjectPattern :: Parser VerbMultiSubjectPattern
 parseVerbMultiSubjectPattern = VerbMultiSubjectPattern <$> parseVarMultiSubject <*> parseTokenPattern
@@ -186,17 +227,15 @@ data VarMultiSubject =
   | VarMultiSubjectParen Var Var ColonType
   deriving (Show, Eq)
 
+patternOfVarMultiSubject :: VarMultiSubject -> Parser [Patt]
+patternOfVarMultiSubject x = case x of
+  (VarMultiSubjectTVar tv1 tv2) -> (<>) <$> patternOfTVar tv1 <*> patternOfTVar tv2
+  (VarMultiSubjectParen v1 v2 ct) -> (<>) <$> patternOfVar v1 <*> patternOfVar v2
+
 parseVarMultiSubject :: Parser VarMultiSubject
 parseVarMultiSubject =
   VarMultiSubjectTVar <$> parseTVar <* parseComma <*> parseTVar <||>
   (paren $ (VarMultiSubjectParen <$> parseVar <* parseComma <*> parseVar <*> parseColonType))
-
-parsePredicateTokenPattern :: Parser PredicateTokenPattern
-parsePredicateTokenPattern =
-  PredicateTokenPatternAdjectivePattern <$> parseAdjectivePattern <||>
-  PredicateTokenPatternAdjectiveMultiSubjectPattern <$> parseAdjectiveMultiSubjectPattern <||>
-  PredicateTokenPatternVerbPattern <$> parseVerbPattern <||>
-  PredicateTokenPatternVerbMultiSubjectPattern <$> parseVerbMultiSubjectPattern  
 
 data StructureDef = StructureDef IdentifierPattern Structure
   deriving (Show, Eq)
@@ -253,6 +292,7 @@ parseFunctionDef =
     m = \x -> patternOfFunctionDef x >>= updatePrimDefiniteNoun
     m' = \x -> do patt <- patternOfFunctionDef x
                   precOfFunctionDef x >>= (uncurry $ updatePrimPrecTable patt)
+-- TODO(jesse): differentiate updates based on the parsed pattern---maybe move side effects to simpler parsers
 
 data FunctionHead =
     FunctionHeadFunctionTokenPattern FunctionTokenPattern
