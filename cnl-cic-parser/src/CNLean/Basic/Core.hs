@@ -195,6 +195,14 @@ parse_any_of ps = case ps of
   [] -> empty
   x:xs -> x <||> parse_any_of xs
 
+parse_any_of_with_index_aux :: Int -> [Parser a] -> Parser (a, Int)
+parse_any_of_with_index_aux k ps = case ps of
+  [] -> empty
+  x:xs -> (((,) <$> x <*> (return k)) <||> (parse_any_of_with_index_aux (k+1) xs))
+
+parse_any_of_with_index :: [Parser a] -> Parser (a, Int)
+parse_any_of_with_index = parse_any_of_with_index_aux 0
+
 parse_list :: [a] -> (a -> Parser b) -> Parser [b]
 parse_list as m = case as of
   [] -> return []
