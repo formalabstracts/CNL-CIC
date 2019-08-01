@@ -21,6 +21,7 @@ import qualified Data.Char as C
 import Data.Text (Text, pack, unpack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
+import Control.Lens
 
 import CNLean.Basic.Basic
 
@@ -72,13 +73,18 @@ parsePhraseList mtxts = parse_any_of (map parseOfParserMarkUps mtxts)
           x:xs -> (pure <$> parseOfParserMarkUp x) <+> parseOfParserMarkUps xs
   
 parsePhraseListFiller_aux :: Parser [Text] -- note(jesse): maybe make this [Maybe Text] for easier debugging?
-parsePhraseListFiller_aux = delete_nothings <$> (gets primPhraseListFiller >>= parsePhraseList)
+parsePhraseListFiller_aux =
+  delete_nothings <$> ((use $ allStates primPhraseListFiller) >>= parsePhraseList . concat)
+
+  -- (use (top . primPhraseListFiller) >>= parsePhraseList) -- TODO(jesse) fix this, use top . isn't right
 
 parsePhraseListTransition_aux :: Parser [Text]
-parsePhraseListTransition_aux = delete_nothings <$> (gets primPhraseListTransition >>= parsePhraseList)
+parsePhraseListTransition_aux =
+  delete_nothings <$> ((use $ allStates primPhraseListTransition) >>= parsePhraseList . concat)
 
 parsePhraseListProofStatement_aux :: Parser [Text]
-parsePhraseListProofStatement_aux = delete_nothings <$> (gets primPhraseListProofStatement >>= parsePhraseList)
+parsePhraseListProofStatement_aux =
+  delete_nothings <$> ((use $ allStates primPhraseListProofStatement) >>= parsePhraseList . concat)
 
 newtype PhraseListFiller = PhraseListFiller [Text]
   deriving (Show, Eq)

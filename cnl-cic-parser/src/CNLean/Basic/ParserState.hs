@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-
 Author(s): Jesse Michael Han (2019)
@@ -64,3 +65,7 @@ updatePrimDefiniteNoun2 txtss = top . primDefiniteNoun %= (<>) txtss
 
 updateGlobalPrimDefiniteNoun :: [Patt] -> Parser ()
 updateGlobalPrimDefiniteNoun txts = updateGlobal $ primDefiniteNoun %~ (:) txts
+
+allStates :: Getter FState a -> Getter (Stack FState) [a]
+allStates g = to $ \stk -> stk^..(top . g) <> (stk^.rest.m)
+  where m = to $ \fs -> map (^.g) fs
