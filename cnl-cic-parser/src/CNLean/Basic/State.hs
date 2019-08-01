@@ -22,7 +22,7 @@ import Control.Monad (guard)
 import qualified Data.Char as C
 import qualified Text.Megaparsec.Char.Lexer as L
 
-data Patt = Wd [Text] | Sm Text | Vr | Nm
+data Patt = Wd [Text] | Sm Text | Vr | Nm | CSeq Text [Patt]
             deriving (Eq, Show, Ord)
 
 -- wrapper datatype for parsing phrase lists (and extending the parser in general)

@@ -1166,12 +1166,13 @@ parseIsAPred =
 ------------------
 -- PATTERN PARSING
 ------------------
--- TODO(jesse): insert synonyms upon pattern creation in the state
+
 data ParsedPatt =
     ParsedWd Token
   | ParsedSymbol Symbol
   | ParsedVar Term
   | ParsedName [Var]
+  | ParsedCSeqBrace ControlSequence [Term]
   deriving (Show, Eq)
 
 parsePatt :: Patt -> Parser ParsedPatt
@@ -1182,6 +1183,8 @@ parsePatt ptt = case ptt of
              guard (s == Symbol t)
              return $ ParsedSymbol s             
   Vr   -> ParsedVar <$> parseTerm
+  CSeq cseq vs -> ParsedCSeqBrace <$> (ControlSequence <$> str cseq <* sc) <*> parse_list vs (\_ -> brace $ parseTerm)
+  -- a control sequence with k variables is parsed as a control sequence followed by k brace-enclosed terms
 
 parsePatts :: [Patt] -> Parser [ParsedPatt]
 parsePatts ptts = parse_list ptts parsePatt
