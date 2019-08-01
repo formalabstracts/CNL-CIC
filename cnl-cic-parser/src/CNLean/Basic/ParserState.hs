@@ -68,3 +68,7 @@ updateGlobalPrimDefiniteNoun txts = updateGlobal $ primDefiniteNoun %~ (:) txts
 
 allStates :: Getter FState a -> Getter (Stack FState) [a]
 allStates g = to $ \stk -> stk^..(top . g) <> (stk^..(rest . traverse . g))
+
+---- returns the current document level of the parser
+parserDocumentLevel :: Parser Int
+parserDocumentLevel = depthStack <$> get

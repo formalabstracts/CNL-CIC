@@ -27,16 +27,25 @@ import CNLean.Assumption
 import CNLean.Type
 import CNLean.PhraseList
 
+import Control.Lens
+
 data SectionPreamble = SectionPreamble SectionTag (Maybe Label)
   deriving (Show, Eq)
 
+parseSectionPreamble_aux :: Parser (SectionPreamble, Int)
+parseSectionPreamble_aux = do
+  (sec_tag, level) <- parseSectionTag_aux
+  (,) <$> (SectionPreamble sec_tag <$> (option parseLabel <* parsePeriod)) <*> return level
+  
 parseSectionPreamble :: Parser SectionPreamble
-parseSectionPreamble = SectionPreamble <$> parseSectionTag <*> option parseLabel <* parsePeriod
+parseSectionPreamble =
+  fst <$> (with_result parseSectionPreamble_aux (updateStack . snd))
+  where
+    updateStack k = modify $ sectionHandler initialFState emptyFState k
 
 newtype SectionTag = SectionTag [Text]
   deriving (Show, Eq)
 
-parseSectionTag :: Parser SectionTag
-parseSectionTag = SectionTag <$> parseLitDocument
-
-
+parseSectionTag_aux :: Parser (SectionTag, Int)
+parseSectionTag_aux =
+  (_1 %~ SectionTag) <$> parseLitDocument_aux
