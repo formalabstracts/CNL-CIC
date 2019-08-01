@@ -69,7 +69,7 @@ parseInstructSynonym = with_result (parse_synonym_main) m
                 (parseInstructSepPlural *> (rest $ syms <> [Token $ txt <> "s"])) <||>
                 (parseInstructSep *> parseToken >>= \x -> (rest $ syms <> [x])) <||>
                 return syms
-    m = updateStrSyms . (\(InstructSynonym y) -> (map tokenToText y))
+    m = updateGlobalStrSyms . (\(InstructSynonym y) -> (map tokenToText y))
 
 -- test parseInstructSynonym "[synonym set/-s/basket/-s/ensemble/ensembles]"
 

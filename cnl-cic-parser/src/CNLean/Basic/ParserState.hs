@@ -39,6 +39,8 @@ updateGlobal f =
   (rest %= \fs -> (fs & _last %~ f)) <||> -- if the first branch fails, then rest is empty, so modify top instead
   (top %= f)
 
+--TODO(jesse): possibly make updates global only, except when parsing macros
+
 updateClsList :: [Text] -> Parser ()
 updateClsList txts = top . clsList %= (:) txts
 
