@@ -18,6 +18,7 @@ import Text.Megaparsec
 import Text.Megaparsec.Char
 import Data.Text (Text, pack, unpack, toLower)
 import Data.Void
+import qualified Data.Map as M
 import Control.Monad.Trans.State.Lazy (modify, gets)
 import qualified Data.Char as C
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -40,6 +41,9 @@ updateGlobal f =
   (top %= f)
 
 --TODO(jesse): possibly make updates global only, except when parsing macros
+
+updatePrimPrecTable :: [Patt] -> Int -> AssociativeParity -> Parser ()
+updatePrimPrecTable ptts level parity = top . primPrecTable %= M.insert ptts (level, parity)
 
 updateClsList :: [Text] -> Parser ()
 updateClsList txts = top . clsList %= (:) txts

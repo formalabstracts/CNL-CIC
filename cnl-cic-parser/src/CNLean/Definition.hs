@@ -225,16 +225,32 @@ patternOfFunctionDef fd = case fd of
   FunctionDef functionhead copula plainterm -> case functionhead of
     FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt) -> patternOfTokenPattern tkpatt
     FunctionHeadIdentifierPattern idpatt -> patternOfIdentifierPattern idpatt
-    FunctionHeadSymbolPattern sympatt mpl -> patternOfSymbolPattern sympatt -- TODO(jesse): add side effect of registering precedence level
+    FunctionHeadSymbolPattern sympatt mpl -> patternOfSymbolPattern sympatt
+
+precOfFunctionDef :: FunctionDef -> Parser (Int, AssociativeParity)
+precOfFunctionDef fd = case fd of
+  FunctionDef functionhead copula plainterm -> case functionhead of
+    FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt) -> empty
+    FunctionHeadIdentifierPattern idpatt -> empty
+    FunctionHeadSymbolPattern sympatt mpl -> case mpl of
+      Nothing -> return defaultPrec
+      Just (ParenPrecedenceLevelPrecedenceLevel (PrecedenceLevel ni mp)) -> precHandler ni mp
+      Just (ParenPrecedenceLevelParen (PrecedenceLevel ni mp)) -> precHandler ni mp
+      where
+        precHandler ni mp = case mp of
+          Nothing -> precHandler ni (Just defaultAssociativeParity)
+          (Just ap) -> (,) <$> (readNumInt ni) <*> return ap
 
 parseFunctionDef :: Parser FunctionDef
 parseFunctionDef =
-  with_result parse_function_def_main m
+  with_result (with_result parse_function_def_main m) m'
   where
     parse_function_def_main = FunctionDef <$> (parseOptDefine *> parseFunctionHead) <*>
                                 parseCopula <* option (parseLitEqual) <* option (parseLit "the")
                                 <*> parsePlainTerm
     m = \x -> patternOfFunctionDef x >>= updatePrimDefiniteNoun
+    m' = \x -> do patt <- patternOfFunctionDef x
+                  precOfFunctionDef x >>= (uncurry $ updatePrimPrecTable patt)
 
 data FunctionHead =
     FunctionHeadFunctionTokenPattern FunctionTokenPattern
@@ -389,13 +405,13 @@ parseBinaryControlSeqPattern :: Parser BinaryControlSeqPattern
 parseBinaryControlSeqPattern = BinaryControlSeqPattern <$> parseTVar <*> parseControlSeqPattern <*> parseTVar
 
 data ParenPrecedenceLevel =
-    ParenPrecendenceLevelPrecedenceLevel PrecedenceLevel
+    ParenPrecedenceLevelPrecedenceLevel PrecedenceLevel
   | ParenPrecedenceLevelParen PrecedenceLevel 
   deriving (Show, Eq)
 
 parseParenPrecedenceLevel :: Parser ParenPrecedenceLevel
 parseParenPrecedenceLevel =
-  ParenPrecendenceLevelPrecedenceLevel <$> parsePrecedenceLevel <||>
+  ParenPrecedenceLevelPrecedenceLevel <$> parsePrecedenceLevel <||>
   ParenPrecedenceLevelParen <$> (paren $ parsePrecedenceLevel)
 
 parseAssociativeParity :: Parser AssociativeParity
@@ -404,11 +420,11 @@ parseAssociativeParity =
   parseLit "right" *> return AssociatesRight <||>
   parseLit "no" *> return AssociatesNone
 
-data PrecedenceLevel = PrecendenceLevel NumInt (Maybe AssociativeParity)
+data PrecedenceLevel = PrecedenceLevel NumInt (Maybe AssociativeParity)
   deriving (Show, Eq)
 
 parsePrecedenceLevel :: Parser PrecedenceLevel
-parsePrecedenceLevel = PrecendenceLevel <$> (parseLit "with" *> parseLit "precedence" *> parseNumInt) <*> (option $ parseLit "and" *> parseAssociativeParity <* parseLit "associativity")
+parsePrecedenceLevel = PrecedenceLevel <$> (parseLit "with" *> parseLit "precedence" *> parseNumInt) <*> (option $ parseLit "and" *> parseAssociativeParity <* parseLit "associativity")
 
 newtype ClassifierDef = ClassifierDef ClassTokens
   deriving (Show, Eq)

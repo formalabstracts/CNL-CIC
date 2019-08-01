@@ -23,7 +23,7 @@ import qualified Data.Char as C
 import qualified Text.Megaparsec.Char.Lexer as L
 
 data Patt = Wd [Text] | Sm Text | Vr | Nm
-            deriving (Eq, Show)
+            deriving (Eq, Show, Ord)
 
 -- wrapper datatype for parsing phrase lists (and extending the parser in general)
 -- J stands for "Just", Q stands for question mark (as in postfix question mark)
@@ -39,6 +39,12 @@ data AssociativeParity =
   | AssociatesRight
   | AssociatesNone
   deriving (Show, Eq)
+
+defaultPrec :: (Int, AssociativeParity)
+defaultPrec =  (10, AssociatesLeft)
+
+defaultAssociativeParity :: AssociativeParity
+defaultAssociativeParity = AssociatesLeft
 
 -- TODO(jesse): make state section-local. possibilities:
 -- - change underlying state of Parser from FState to a "state stack" [FState].
@@ -134,6 +140,7 @@ emptyFState = FState
   []
   []
   []
+  M.empty
   [] [] []
   0 0 0
 
@@ -157,6 +164,7 @@ initialFState = FState
   phraseListFiller
   phraseListProofStatement
   phraseListTransition
+  M.empty
   [] [] clsL0
   0 0 0
   where
