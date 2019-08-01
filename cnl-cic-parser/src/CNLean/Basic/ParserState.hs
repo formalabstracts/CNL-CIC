@@ -67,5 +67,4 @@ updateGlobalPrimDefiniteNoun :: [Patt] -> Parser ()
 updateGlobalPrimDefiniteNoun txts = updateGlobal $ primDefiniteNoun %~ (:) txts
 
 allStates :: Getter FState a -> Getter (Stack FState) [a]
-allStates g = to $ \stk -> stk^..(top . g) <> (stk^.rest.m)
-  where m = to $ \fs -> map (^.g) fs
+allStates g = to $ \stk -> stk^..(top . g) <> (stk^..(rest . traverse . g))
