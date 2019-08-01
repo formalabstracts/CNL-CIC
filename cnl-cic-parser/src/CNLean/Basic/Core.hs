@@ -82,7 +82,15 @@ not_space :: Parser Text
 not_space = (many1 $ not_ch ' ') >>= return . join
 
 succeeds :: Parser a -> Parser Bool
-succeeds p = (p >> return True) <|> return False
+succeeds p = (p *> return True) <||> return False
+
+fails :: Parser a -> Parser Bool
+fails p = (p *> return False) <||> return True
+
+fail_iff_succeeds :: Parser a -> Parser ()
+fail_iff_succeeds p = do
+  b <- fails p
+  if b then return () else empty
 
 item :: Parser Text
 item = satisfy (\_ -> True) >>= return . pack . pure

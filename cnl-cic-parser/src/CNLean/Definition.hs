@@ -335,8 +335,9 @@ parseTypeTokenPattern = TypeTokenPattern <$> (parseLitA *> parseTokenPattern)
  --    cannot start with "the"  *)
 
 parsePatternToken :: Parser Token
-parsePatternToken = guard_result "forbidden token parsed, failing" parseToken $
-                      \x -> not $ elem (tokenToText x) ["the", "to be", "called", "iff", "a", "stand", "denote"]
+parsePatternToken = fail_iff_succeeds (lookAhead' parseCopula) *> -- note(jesse): added to ensure copula literals are not consumed by token pattern parsing
+  (guard_result "forbidden token parsed, failing" parseToken $
+                      \x -> not $ elem (tokenToText x) ["the", "to be", "called", "iff", "a", "stand", "denote"])
 
 newtype Tokens = Tokens [Token]
   deriving (Show, Eq)
