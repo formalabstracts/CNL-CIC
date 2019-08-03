@@ -36,15 +36,11 @@ data Definition = Definition DefinitionPreamble [Assumption] DefinitionAffirm
 parseDefinition :: Parser Definition
 parseDefinition = Definition <$> parseDefinitionPreamble <*> (many' parseAssumption) <*> parseDefinitionAffirm
 
-newtype DefinitionPreamble = DefinitionPreamble (Maybe Label) -- parse (Lit AXIOM), maybe a label, optional period.
+newtype DefinitionPreamble = DefinitionPreamble (Maybe Label)
   deriving (Show, Eq)
 
 parseDefinitionPreamble :: Parser DefinitionPreamble
-parseDefinitionPreamble = DefinitionPreamble <$> do
-  parseLitDef
-  ml <- option parseLabel
-  parsePeriod
-  return ml
+parseDefinitionPreamble = DefinitionPreamble <$> (parseLitDef *> option parseLabel <* parsePeriod)
 
 -- test parseDefinitionPreamble "DEFINITION foo."
 
@@ -398,6 +394,8 @@ parseTokenPattern = TokenPattern <$> parseTokens <*>
                                      (many' $ (,) <$> parseTVar <*> parseTokens) <*>
                                      (option parseTVar)
 
+-- test parseTokenPattern "foo bar baz a foo b bar c baz"                                     
+
 patternOfTokenPattern :: TokenPattern -> Parser [Patt]
 patternOfTokenPattern tkPatt@(TokenPattern (Tokens tks) tvstkss mtvar) =
   (<>) <$> ( do strsyms <- concat <$> use (allStates strSyms)
@@ -485,5 +483,5 @@ parseClassifierDef =
       return $ ctkss)
 
 -- test parseClassifierDef "let scheme, schemes, stacks be classifiers"
--- test (parseClassifierDef *> gets clsList) "let scheme, schemes, stacks, derived stacks be classifiers"
+-- test (parseClassifierDef *> (use $ top.clsList)) "let scheme, schemes, stacks, derived stacks be classifiers"
 -- test parseClassifierDef "let lattice be a classifier"
