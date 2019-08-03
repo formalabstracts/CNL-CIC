@@ -40,7 +40,7 @@ library:
   source-dirs: src
 
 executables:
-  cnl-cic-parser-exe:
+  colada:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
@@ -51,7 +51,7 @@ executables:
     - cnl-cic-parser
 
 tests:
-  cnl-cic-parser-test:
+  colada-test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
