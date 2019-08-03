@@ -73,6 +73,9 @@ updatePrimDefiniteNoun2 txtss = top . primDefiniteNoun %= (<>) txtss
 updateGlobalPrimDefiniteNoun :: [Patt] -> Parser ()
 updateGlobalPrimDefiniteNoun txts = updateGlobal $ primDefiniteNoun %~ (:) txts
 
+updateIdCount :: Int -> Parser ()
+updateIdCount k = top . idCount %= (const k)
+
 allStates :: Getter FState a -> Getter (Stack FState) [a]
 allStates g = to $ \stk -> stk^..(top . g) <> (stk^..(rest . traverse . g))
 
