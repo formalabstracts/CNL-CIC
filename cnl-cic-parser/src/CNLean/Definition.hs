@@ -324,7 +324,7 @@ data SymbolLowercase = -- corresponds to literal "symbol", not "SYMBOL" in the g
 patternOfSymbolLowercase :: SymbolLowercase -> Parser [Patt]
 patternOfSymbolLowercase x = case x of
   SymbolLowercaseSymbol symb -> patternOfSymbol symb
-  SymbolLowercaseCSBrace (CSBrace cs tvars) -> patternOfControlSequence cs <+> (patternOfList patternOfTVar tvars)
+  SymbolLowercaseCSBrace (CSBrace cs tvars) -> (patternOfList patternOfTVar tvars) >>= patternOfControlSequence cs 
 
 parseSymbolLowercase :: Parser SymbolLowercase
 parseSymbolLowercase =

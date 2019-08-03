@@ -48,5 +48,6 @@ patternOfVar v = return [Vr]
 patternOfSymbol :: Symbol -> Parser [Patt]
 patternOfSymbol (Symbol txt) = return . pure . Sm $ txt
 
-patternOfControlSequence :: ControlSequence -> Parser [Patt]
-patternOfControlSequence (ControlSequence txt) = return . pure . Sm $ txt
+patternOfControlSequence :: ControlSequence -> ([Patt] -> Parser [Patt])
+patternOfControlSequence (ControlSequence txt) args = return . pure $ CSeq txt args
+
