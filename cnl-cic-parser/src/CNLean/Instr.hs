@@ -64,7 +64,8 @@ parseInstructSynonym = with_result (parse_synonym_main) m
       bracket $ (parseLit "synonyms" <||> parseLit "synonym") *>
         parseToken >>= rest . pure
           where
-            rest syms = case (last syms) of
+            rest :: [Token] -> Parser [Token]
+            rest syms = case (last syms) of -- note from Simon: maybe use let instead of case
               Token txt ->
                 (parseInstructSepPlural *> (rest $ syms <> [Token $ txt <> "s"])) <||>
                 (parseInstructSep *> parseToken >>= \x -> (rest $ syms <> [x])) <||>
