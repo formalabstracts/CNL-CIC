@@ -190,6 +190,15 @@ updatePrimPropositionalOpControlSeq2 txtss = top . primPropositionalOpControlSeq
 updateGlobalPrimPropositionalOpControlSeq :: [Patt] -> Parser ()
 updateGlobalPrimPropositionalOpControlSeq txts = updateGlobal $ primPropositionalOpControlSeq %~ (:) txts
 
+updatePrimIdentifierType :: [Patt] -> Parser ()
+updatePrimIdentifierType txts = top . primPropositionalOpControlSeq %= (:) txts
+
+updatePrimIdentifierType2 :: [[Patt]] -> Parser ()
+updatePrimIdentifierType2 txtss = top . primPropositionalOpControlSeq %= (<>) txtss
+
+updateGlobalPrimIdentifierType :: [Patt] -> Parser ()
+updateGlobalPrimIdentifierType txts = updateGlobal $ primPropositionalOpControlSeq %~ (:) txts
+
 updateIdCount :: Int -> Parser ()
 updateIdCount k = top . idCount %= (const k)
 

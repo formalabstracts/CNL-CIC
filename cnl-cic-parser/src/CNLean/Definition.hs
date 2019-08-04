@@ -525,8 +525,40 @@ parseSymbolPattern = SymbolPattern <$> (option parseTVar) <*> parseSymbolLowerca
 data TypeDef = TypeDef TypeHead Copula GeneralType
   deriving (Show, Eq)
 
+patternOfTypeDef :: TypeDef -> Parser [Patt]
+patternOfTypeDef (TypeDef th cpla gtp) = patternOfTypeHead th
+
+registerPrimIdentifierType :: TypeDef -> Parser () --  (* from type_def *) all identifiers that are types
+registerPrimIdentifierType td@(TypeDef th cpla gtp) =
+  case th of
+    (TypeHeadIdentifierPattern idpatt) -> patternOfTypeDef td >>= updatePrimIdentifierType
+    _ -> empty
+
+registerPrimTypeOp :: TypeDef -> Parser () --  (* from type_def, when infix with precedence *)
+registerPrimTypeOp pd@(TypeDef th cpla gtp) = empty -- TODO(jesse): finish implementing this after clarifying production rules
+
+registerPrimTypeOpControlSeq :: TypeDef -> Parser ()
+registerPrimTypeOpControlSeq pd@(TypeDef th cpla gtp) =
+  case th of _ -> empty -- TODO(jesse): finish implementing this after clarifying production rules
+
+registerPrimTypeControlSeq :: TypeDef -> Parser ()
+registerPrimTypeControlSeq pd@(TypeDef th cpla gtp) =
+  case th of _ -> empty -- TODO(jesse): finish implementing this after clarifying production rules
+
 parseTypeDef :: Parser TypeDef
-parseTypeDef = TypeDef <$> parseTypeHead <*> parseCopula <* parseLitA <*> parseGeneralType
+parseTypeDef = with_any_result parse_type_def_main side_effects
+  where
+    parse_type_def_main :: Parser TypeDef
+    parse_type_def_main =
+      TypeDef <$> parseTypeHead <*> parseCopula <* parseLitA <*> parseGeneralType
+      
+    side_effects :: [TypeDef -> Parser ()]
+    side_effects = [
+      registerPrimIdentifierType,
+      registerPrimTypeOp,
+      registerPrimTypeOpControlSeq,
+      registerPrimTypeControlSeq
+                   ]
 
 data TypeHead =
     TypeHeadTypeTokenPattern TypeTokenPattern
@@ -534,6 +566,13 @@ data TypeHead =
   | TypeHeadControlSeqPattern ControlSeqPattern
   | TypeHeadBinaryControlSeqPattern BinaryControlSeqPattern
   deriving (Show, Eq)
+
+patternOfTypeHead :: TypeHead -> Parser [Patt]
+patternOfTypeHead th = case th of
+  (TypeHeadTypeTokenPattern (TypeTokenPattern tkpatt)) -> patternOfTokenPattern tkpatt
+  (TypeHeadIdentifierPattern idpatt) -> patternOfIdentifierPattern idpatt
+  (TypeHeadControlSeqPattern cspatt) -> patternOfControlSeqPattern cspatt
+  (TypeHeadBinaryControlSeqPattern bcspatt) -> patternOfBinaryControlSeqPattern bcspatt
 
 parseTypeHead :: Parser TypeHead
 parseTypeHead =
@@ -617,11 +656,19 @@ patternOfIdentifierPattern idpatt =
 data ControlSeqPattern = ControlSeqPattern ControlSequence [TVar]
   deriving (Show, Eq)
 
+patternOfControlSeqPattern :: ControlSeqPattern -> Parser [Patt]
+patternOfControlSeqPattern (ControlSeqPattern cs tvs) =
+  (patternOfList patternOfTVar tvs) >>= patternOfControlSequence cs
+
 parseControlSeqPattern :: Parser ControlSeqPattern
 parseControlSeqPattern = ControlSeqPattern <$> parseControlSequence <*> (many' $ brace $ parseTVar)
 
 data BinaryControlSeqPattern = BinaryControlSeqPattern TVar ControlSeqPattern TVar
   deriving (Show, Eq)
+
+patternOfBinaryControlSeqPattern :: BinaryControlSeqPattern -> Parser [Patt]
+patternOfBinaryControlSeqPattern (BinaryControlSeqPattern tv1 cspatt tv2) =
+  patternOfTVar tv1 <+> patternOfControlSeqPattern cspatt <+> patternOfTVar tv2
 
 parseBinaryControlSeqPattern :: Parser BinaryControlSeqPattern
 parseBinaryControlSeqPattern = BinaryControlSeqPattern <$> parseTVar <*> parseControlSeqPattern <*> parseTVar
