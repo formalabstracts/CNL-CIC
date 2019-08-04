@@ -203,6 +203,11 @@ parse_any_of ps = case ps of
   [] -> empty
   x:xs -> x <||> parse_any_of xs
 
+parse_any_of' :: a -> [a -> Parser b] -> Parser b
+parse_any_of' x ps = case ps of
+  [] -> empty
+  q:qs -> q x <||> parse_any_of' x qs
+
 parse_any_of_with_index_aux :: Int -> [Parser a] -> Parser (a, Int)
 parse_any_of_with_index_aux k ps = case ps of
   [] -> empty
@@ -221,6 +226,18 @@ with_result p m = do
   r <- p
   m r
   return r
+
+with_any_result :: Parser a -> [a -> Parser b] -> Parser a
+with_any_result p ms = do
+  r <- p
+  parse_any_of' r ms
+  return r
+
+with_side_effects :: Parser a -> ([a -> Parser b]) -> Parser a
+with_side_effects p ms = do
+  case ms of
+    [] -> p
+    q:qs -> with_result (with_side_effects p qs) q
 
 fail_if_eof :: Parser a -> Parser a
 fail_if_eof p = (notFollowedBy eof *> p) <|> fail "end of file detected, failing"
@@ -254,3 +271,8 @@ delete_nothings z = case z of
   x:xs -> case x of
     Just y -> y:(delete_nothings xs)
     Nothing -> delete_nothings xs
+
+isNothing :: Maybe a -> Bool
+isNothing m = case m of
+  Nothing -> True
+  _ -> False

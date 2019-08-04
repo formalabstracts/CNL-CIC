@@ -278,17 +278,89 @@ precOfFunctionDef fd = case fd of
           Nothing -> precHandler ni (Just defaultAssociativeParity)
           (Just ap) -> (,) <$> (readNumInt ni) <*> return ap
 
+registerPrimDefiniteNoun :: FunctionDef -> Parser ()
+registerPrimDefiniteNoun fd@(FunctionDef fh c pt) =
+  case fh of
+    (FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt)) ->
+      patternOfTokenPattern tkpatt >>= updatePrimDefiniteNoun
+    _ -> empty
+
+registerPrimIdentifierTerm :: FunctionDef -> Parser ()
+registerPrimIdentifierTerm fd@(FunctionDef fh c pt) =
+  case fh of
+    (FunctionHeadIdentifierPattern idpatt) -> patternOfIdentifierPattern idpatt >>= updatePrimIdentifierTerm
+    _ -> empty
+
+registerPrimPrefixFunction :: FunctionDef -> Parser ()
+registerPrimPrefixFunction fd@(FunctionDef fh c pt) =
+  case fh of
+    (FunctionHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl) ->
+      case mtv1 of
+        Nothing -> if (isCSBrace slc) || (vs /= []) || (isNothing mtv2) then empty
+          else patternOfSymbolPattern sympatt >>= updatePrimPrefixFunction
+        _ -> empty
+    _ -> empty
+              
+--  (* from function_def.binary_controlseq_pattern, prec > 0 )*
+registerPrimTermOpControlSeq :: FunctionDef -> Parser ()
+registerPrimTermOpControlSeq fd@(FunctionDef fh c pt) =
+  case fh of
+    (FunctionHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl) ->
+      if (isBinaryControlSeqSymbolPattern sympatt)
+         then do {b <- isPositivePrecedence mpl;
+                  if b then patternOfSymbolPattern sympatt >>= updatePrimTermOpControlSeq else empty}
+         else empty
+    _ -> empty
+    
+--  (* from function_def.controlseq_pattern, no prec *)
+registerPrimTermControlSeq :: FunctionDef -> Parser ()
+registerPrimTermControlSeq fd@(FunctionDef fh c pt) =
+  case fh of
+    (FunctionHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl) ->
+      if (isCSBrace slc)
+         then case mpl of
+                Nothing -> patternOfSymbolPattern sympatt >>= updatePrimTermControlSeq
+                _ -> empty
+         else empty
+    _ -> empty
+
+
 parseFunctionDef :: Parser FunctionDef
-parseFunctionDef =
-  with_result (with_result parse_function_def_main m) m'
+parseFunctionDef = with_any_result parse_function_def_main side_effects
   where
+    parse_function_def_main :: Parser FunctionDef
     parse_function_def_main = FunctionDef <$> (parseOptDefine *> parseFunctionHead) <*>
                                 parseCopula <* option (parseLitEqual) <* option (parseLit "the")
                                 <*> parsePlainTerm
-    m = \x -> patternOfFunctionDef x >>= updatePrimDefiniteNoun
-    m' = \x -> do patt <- patternOfFunctionDef x
-                  precOfFunctionDef x >>= (uncurry $ updatePrimPrecTable patt)
--- TODO(jesse): differentiate updates based on the parsed pattern---maybe move side effects to simpler parsers
+    side_effects :: [FunctionDef -> Parser ()]
+    side_effects = [
+      registerPrimDefiniteNoun,
+      registerPrimIdentifierTerm,
+      registerPrimPrefixFunction,
+      registerPrimTermOpControlSeq,
+      registerPrimTermControlSeq
+                   ]
+
+ 
+  --  do
+  -- functiondef@(FunctionDef functionhead _ _) <- parse_function_def_main
+  -- case functionhead of
+  --   FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt) -> (patternOfFunctionDef functiondef >>= updatePrimDefiniteNoun) *> return functiondef
+  --   FunctionHeadIdentifierPattern idpatt -> (patternOfFunctionDef functiondef >>= updatePrimIdentifierTerm) *> return functiondef
+  --   FunctionHeadSymbolPattern sympatt mpl ->
+  --     (do ptt <- patternOfFunctionDef functiondef
+  --         updatePrimTermControlSeq ptt
+  --         (precOfFunctionDef functiondef >>= (uncurry $ updatePrimPrecTable ptt))) *>
+  --         return functiondef
+  -- where
+  --   parse_function_def_main = FunctionDef <$> (parseOptDefine *> parseFunctionHead) <*>
+  --                               parseCopula <* option (parseLitEqual) <* option (parseLit "the")
+  --                               <*> parsePlainTerm
+
+-- note: this currently sends token patterns to prim_definite_noun,
+-- identifier patterns to prim_identifier_term,
+-- and all symbol patterns to prim_term_control_seq.
+-- for now, we are following the rule that side-effects on the state are constraineed to top-level declaration parsers (like the branches of parseDefinition)
 
 data FunctionHead =
     FunctionHeadFunctionTokenPattern FunctionTokenPattern
@@ -317,10 +389,15 @@ data SymbolLowercase = -- corresponds to literal "symbol", not "SYMBOL" in the g
   | SymbolLowercaseCSBrace (CSBrace ControlSequence)
   deriving (Show, Eq)
 
+isCSBrace :: SymbolLowercase -> Bool
+isCSBrace slc = case slc of
+  SymbolLowercaseSymbol symb -> False
+  _ -> True
+
 patternOfSymbolLowercase :: SymbolLowercase -> Parser [Patt]
 patternOfSymbolLowercase x = case x of
   SymbolLowercaseSymbol symb -> patternOfSymbol symb
-  SymbolLowercaseCSBrace (CSBrace cs tvars) -> (patternOfList patternOfTVar tvars) >>= patternOfControlSequence cs 
+  SymbolLowercaseCSBrace (CSBrace cs tvars) -> (patternOfList patternOfTVar tvars) >>= patternOfControlSequence cs  
 
 parseSymbolLowercase :: Parser SymbolLowercase
 parseSymbolLowercase =
@@ -329,6 +406,15 @@ parseSymbolLowercase =
 
 data SymbolPattern = SymbolPattern (Maybe TVar) SymbolLowercase [(TVar, SymbolLowercase)] (Maybe TVar)
   deriving (Show, Eq)
+
+isBinarySymbolPattern :: SymbolPattern -> Bool
+isBinarySymbolPattern (SymbolPattern mtv1 slc vs mtv2) =
+  (not $ isNothing mtv1) && (not $ isCSBrace slc) && (vs == []) && (not $ isNothing mtv2)
+
+--- currently, i'm interpreting "binary control seq pattern" to mean binary in the sense of binary infix
+isBinaryControlSeqSymbolPattern :: SymbolPattern -> Bool
+isBinaryControlSeqSymbolPattern (SymbolPattern mtv1 slc vs mtv2) =
+  (not $ isNothing mtv1) && (isCSBrace slc) && (vs == []) && (not $ isNothing mtv2)
 
 patternOfSymbolPattern :: SymbolPattern -> Parser [Patt]
 patternOfSymbolPattern (SymbolPattern mtvar symbs tvarsymbs mtvar') =
@@ -450,6 +536,39 @@ data ParenPrecedenceLevel =
     ParenPrecedenceLevelPrecedenceLevel PrecedenceLevel
   | ParenPrecedenceLevelParen PrecedenceLevel 
   deriving (Show, Eq)
+
+isPositivePrecedence :: (Maybe ParenPrecedenceLevel) -> Parser Bool
+isPositivePrecedence mpl = case mpl of
+  (Just (ParenPrecedenceLevelPrecedenceLevel (PrecedenceLevel numint map))) ->
+    isPositivePrecedence_aux numint map
+  (Just (ParenPrecedenceLevelParen (PrecedenceLevel numint map))) ->
+    isPositivePrecedence_aux numint map
+  _ -> return False
+  where
+    isPositivePrecedence_aux numint map =
+          do {k <- readNumInt numint; if k > 0 then return True else return False}
+
+isNegativePrecedence :: (Maybe ParenPrecedenceLevel) -> Parser Bool
+isNegativePrecedence mpl = case mpl of
+  (Just (ParenPrecedenceLevelPrecedenceLevel (PrecedenceLevel numint map))) ->
+    isNegativePrecedence_aux numint map
+  (Just (ParenPrecedenceLevelParen (PrecedenceLevel numint map))) ->
+    isNegativePrecedence_aux numint map
+  _ -> return False
+  where
+    isNegativePrecedence_aux numint map =
+          do {k <- readNumInt numint; if k < 0 then return True else return False}
+
+isZeroPrecedence :: (Maybe ParenPrecedenceLevel) -> Parser Bool
+isZeroPrecedence mpl = case mpl of
+  (Just (ParenPrecedenceLevelPrecedenceLevel (PrecedenceLevel numint map))) ->
+    isZeroPrecedence_aux numint map
+  (Just (ParenPrecedenceLevelParen (PrecedenceLevel numint map))) ->
+    isZeroPrecedence_aux numint map
+  _ -> return False
+  where
+    isZeroPrecedence_aux numint map =
+          do {k <- readNumInt numint; if k == 0 then return True else return False}
 
 parseParenPrecedenceLevel :: Parser ParenPrecedenceLevel
 parseParenPrecedenceLevel =

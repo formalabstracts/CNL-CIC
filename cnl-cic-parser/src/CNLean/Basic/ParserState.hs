@@ -73,6 +73,42 @@ updatePrimDefiniteNoun2 txtss = top . primDefiniteNoun %= (<>) txtss
 updateGlobalPrimDefiniteNoun :: [Patt] -> Parser ()
 updateGlobalPrimDefiniteNoun txts = updateGlobal $ primDefiniteNoun %~ (:) txts
 
+updatePrimIdentifierTerm :: [Patt] -> Parser ()
+updatePrimIdentifierTerm txts = top . primIdentifierTerm %= (:) txts
+
+updatePrimIdentifierTerm2 :: [[Patt]] -> Parser ()
+updatePrimIdentifierTerm2 txtss = top . primIdentifierTerm %= (<>) txtss
+
+updateGlobalPrimIdentifierTerm :: [Patt] -> Parser ()
+updateGlobalPrimIdentifierTerm txts = updateGlobal $ primIdentifierTerm %~ (:) txts
+
+updatePrimTermControlSeq :: [Patt] -> Parser ()
+updatePrimTermControlSeq txts = top . primTermControlSeq %= (:) txts
+
+updatePrimTermControlSeq2 :: [[Patt]] -> Parser ()
+updatePrimTermControlSeq2 txtss = top . primTermControlSeq %= (<>) txtss
+
+updateGlobalPrimTermControlSeq :: [Patt] -> Parser ()
+updateGlobalPrimTermControlSeq txts = updateGlobal $ primTermControlSeq %~ (:) txts
+
+updatePrimTermOpControlSeq :: [Patt] -> Parser ()
+updatePrimTermOpControlSeq txts = top . primTermOpControlSeq %= (:) txts
+
+updatePrimTermOpControlSeq2 :: [[Patt]] -> Parser ()
+updatePrimTermOpControlSeq2 txtss = top . primTermOpControlSeq %= (<>) txtss
+
+updateGlobalPrimTermOpControlSeq :: [Patt] -> Parser ()
+updateGlobalPrimTermOpControlSeq txts = updateGlobal $ primTermOpControlSeq %~ (:) txts
+
+updatePrimPrefixFunction :: [Patt] -> Parser ()
+updatePrimPrefixFunction txts = top . primPrefixFunction %= (:) txts
+
+updatePrimPrefixFunction2 :: [[Patt]] -> Parser ()
+updatePrimPrefixFunction2 txtss = top . primPrefixFunction %= (<>) txtss
+
+updateGlobalPrimPrefixFunction :: [Patt] -> Parser ()
+updateGlobalPrimPrefixFunction txts = updateGlobal $ primPrefixFunction %~ (:) txts
+
 updateIdCount :: Int -> Parser ()
 updateIdCount k = top . idCount %= (const k)
 
