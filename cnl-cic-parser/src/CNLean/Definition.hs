@@ -32,7 +32,6 @@ import CNLean.Pattern
 data Definition = Definition DefinitionPreamble [Assumption] DefinitionAffirm
   deriving (Show, Eq)
 
---TODO(jesse): find fix for token parser in definition statement consuming copula literals
 parseDefinition :: Parser Definition
 parseDefinition = Definition <$> parseDefinitionPreamble <*> (many' parseAssumption) <*> parseDefinitionAffirm
 
@@ -87,6 +86,8 @@ parseThisDirectiveAdjective =
         ["exhaustive"]
       ]
 
+-- test parseThisDirectiveAdjective "well-defined"
+
 newtype ThisDirectiveVerb = ThisDirectiveVerbExists (Maybe ThisDirectiveRightAttr)
   deriving (Show, Eq)
 
@@ -121,8 +122,98 @@ parseDefinitionStatement =
 data PredicateDef = PredicateDef PredicateHead IffJunction Statement
   deriving (Show, Eq)
 
+registerPrimAdjective :: PredicateDef -> Parser () -- (* from adjective_pattern *)
+registerPrimAdjective pd@(PredicateDef ph iffj stmt) =
+  case ph of
+    (PredicateHeadPredicateTokenPattern (PredicateTokenPatternAdjectivePattern adjpatt))
+      -> patternOfPredicateDef pd >>= updatePrimAdjective
+    _ -> empty
+
+registerPrimAdjectiveMultiSubject :: PredicateDef -> Parser () --  (* from adjective_multisubject_pattern *)
+registerPrimAdjectiveMultiSubject pd@(PredicateDef ph iffj stmt) =
+  case ph of
+    (PredicateHeadPredicateTokenPattern (PredicateTokenPatternAdjectiveMultiSubjectPattern adjpatt))
+      -> patternOfPredicateDef pd >>= updatePrimAdjectiveMultiSubject
+    _ -> empty
+
+registerPrimVerb :: PredicateDef -> Parser () --  (* from verb_pattern *)
+registerPrimVerb pd@(PredicateDef ph iffj stmt) =
+  case ph of
+    (PredicateHeadPredicateTokenPattern (PredicateTokenPatternVerbPattern adjpatt))
+      -> patternOfPredicateDef pd >>= updatePrimVerb
+    _ -> empty
+
+registerPrimVerbMultiSubject :: PredicateDef -> Parser () --  (* from verb_multiset_pattern *)
+registerPrimVerbMultiSubject pd@(PredicateDef ph iffj stmt) =
+  case ph of
+    (PredicateHeadPredicateTokenPattern (PredicateTokenPatternVerbMultiSubjectPattern adjpatt))
+      -> patternOfPredicateDef pd >>= updatePrimVerbMultiSubject
+    _ -> empty
+
+registerPrimRelation :: PredicateDef -> Parser () --  (* from predicate_def.identifier_pattern *)
+registerPrimRelation pd@(PredicateDef ph iffj stmt) =
+  case ph of
+    (PredicateHeadIdentifierPattern idpatt)
+      -> patternOfPredicateDef pd >>= updatePrimRelation
+    _ -> empty
+
+registerPrimPropositionalOp :: PredicateDef -> Parser () --  (* from predicate_def.symbol_pattern, with prec < 0 *)
+registerPrimPropositionalOp pd@(PredicateDef ph iffj stmt) =
+  case ph of
+    (PredicateHeadSymbolPattern (SymbolPattern mtv1 slc vs mtv2) mpl)
+      -> do b <- isNegativePrecedence mpl
+            if b then patternOfPredicateDef pd >>= updatePrimPropositionalOp
+                 else empty
+    _ -> empty
+
+registerPrimBinaryRelationOp :: PredicateDef -> Parser () --   (* from predicate_def.symbol_pattern, binary infix with prec=0 or none  *)
+registerPrimBinaryRelationOp pd@(PredicateDef ph iffj stmt) =
+  case ph of
+    (PredicateHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl)
+      -> do b <- (|| isNothing mpl) <$> (isZeroPrecedence mpl)
+            if b && (isBinarySymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimBinaryRelationOp
+                 else empty
+    _ -> empty
+    
+
+registerPrimBinaryRelationControlSeq :: PredicateDef -> Parser () -- (* from predicate_def.binary_controlseq_pattern, binary, prec=0 or none *)
+registerPrimBinaryRelationControlSeq pd@(PredicateDef ph iffj stmt) =
+  case ph of
+    (PredicateHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl)
+      -> do b <- (|| isNothing mpl) <$> (isZeroPrecedence mpl)
+            if b && (isBinaryControlSeqSymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimBinaryRelationControlSeq
+                 else empty
+    _ -> empty
+
+registerPrimPropositionalOpControlSeq :: PredicateDef -> Parser () -- (* from predicate_def.binary_controlseq_pattern, prec < 0 *)
+registerPrimPropositionalOpControlSeq pd@(PredicateDef ph iffj stmt) =
+  case ph of
+    (PredicateHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl)
+      -> do b <- (isNegativePrecedence mpl)
+            if b && (isBinaryControlSeqSymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimPropositionalOpControlSeq
+                 else empty
+    _ -> empty
+
+
 parsePredicateDef :: Parser PredicateDef
-parsePredicateDef = PredicateDef <$> (parseOptSay *> parsePredicateHead) <*> parseIffJunction <*> parseStatement
+parsePredicateDef = with_any_result parse_predicate_def_main side_effects
+  where
+        parse_predicate_def_main :: Parser PredicateDef
+        parse_predicate_def_main =
+          PredicateDef <$> (parseOptSay *> parsePredicateHead)<*> parseIffJunction <*> parseStatement
+
+        side_effects :: [PredicateDef -> Parser ()]
+        side_effects = [
+          registerPrimAdjective,
+          registerPrimAdjectiveMultiSubject,
+          registerPrimVerb,
+          registerPrimRelation,
+          registerPrimVerbMultiSubject,
+          registerPrimPropositionalOp,
+          registerPrimBinaryRelationOp,
+          registerPrimBinaryRelationControlSeq,
+          registerPrimPropositionalOpControlSeq
+                       ]
 
 patternOfPredicateDef :: PredicateDef -> Parser [Patt]
 patternOfPredicateDef fd = case fd of
@@ -393,6 +484,9 @@ isCSBrace :: SymbolLowercase -> Bool
 isCSBrace slc = case slc of
   SymbolLowercaseSymbol symb -> False
   _ -> True
+
+isSymbol :: SymbolLowercase -> Bool
+isSymbol = not . isCSBrace
 
 patternOfSymbolLowercase :: SymbolLowercase -> Parser [Patt]
 patternOfSymbolLowercase x = case x of

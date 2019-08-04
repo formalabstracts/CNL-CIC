@@ -109,6 +109,87 @@ updatePrimPrefixFunction2 txtss = top . primPrefixFunction %= (<>) txtss
 updateGlobalPrimPrefixFunction :: [Patt] -> Parser ()
 updateGlobalPrimPrefixFunction txts = updateGlobal $ primPrefixFunction %~ (:) txts
 
+updatePrimAdjective :: [Patt] -> Parser ()
+updatePrimAdjective txts = top . primAdjective %= (:) txts
+
+updatePrimAdjective2 :: [[Patt]] -> Parser ()
+updatePrimAdjective2 txtss = top . primAdjective %= (<>) txtss
+
+updateGlobalPrimAdjective :: [Patt] -> Parser ()
+updateGlobalPrimAdjective txts = updateGlobal $ primAdjective %~ (:) txts
+
+updatePrimAdjectiveMultiSubject :: [Patt] -> Parser ()
+updatePrimAdjectiveMultiSubject txts = top . primAdjectiveMultiSubject %= (:) txts
+
+updatePrimAdjectiveMultiSubject2 :: [[Patt]] -> Parser ()
+updatePrimAdjectiveMultiSubject2 txtss = top . primAdjectiveMultiSubject %= (<>) txtss
+
+updateGlobalPrimAdjectiveMultiSubject :: [Patt] -> Parser ()
+updateGlobalPrimAdjectiveMultiSubject txts = updateGlobal $ primAdjectiveMultiSubject %~ (:) txts
+
+updatePrimVerb :: [Patt] -> Parser ()
+updatePrimVerb txts = top . primVerb %= (:) txts
+
+updatePrimVerb2 :: [[Patt]] -> Parser ()
+updatePrimVerb2 txtss = top . primVerb %= (<>) txtss
+
+updateGlobalPrimVerb :: [Patt] -> Parser ()
+updateGlobalPrimVerb txts = updateGlobal $ primVerb %~ (:) txts
+
+updatePrimVerbMultiSubject :: [Patt] -> Parser ()
+updatePrimVerbMultiSubject txts = top . primVerbMultiSubject %= (:) txts
+
+updatePrimVerbMultiSubject2 :: [[Patt]] -> Parser ()
+updatePrimVerbMultiSubject2 txtss = top . primVerbMultiSubject %= (<>) txtss
+
+updateGlobalPrimVerbMultiSubject :: [Patt] -> Parser ()
+updateGlobalPrimVerbMultiSubject txts = updateGlobal $ primVerbMultiSubject %~ (:) txts
+
+updatePrimRelation :: [Patt] -> Parser ()
+updatePrimRelation txts = top . primRelation %= (:) txts
+
+updatePrimRelation2 :: [[Patt]] -> Parser ()
+updatePrimRelation2 txtss = top . primRelation %= (<>) txtss
+
+updateGlobalPrimRelation :: [Patt] -> Parser ()
+updateGlobalPrimRelation txts = updateGlobal $ primRelation %~ (:) txts
+
+updatePrimPropositionalOp :: [Patt] -> Parser ()
+updatePrimPropositionalOp txts = top . primPropositionalOp %= (:) txts
+
+updatePrimPropositionalOp2 :: [[Patt]] -> Parser ()
+updatePrimPropositionalOp2 txtss = top . primPropositionalOp %= (<>) txtss
+
+updateGlobalPrimPropositionalOp :: [Patt] -> Parser ()
+updateGlobalPrimPropositionalOp txts = updateGlobal $ primPropositionalOp %~ (:) txts
+
+updatePrimBinaryRelationOp :: [Patt] -> Parser ()
+updatePrimBinaryRelationOp txts = top . primBinaryRelationOp %= (:) txts
+
+updatePrimBinaryRelationOp2 :: [[Patt]] -> Parser ()
+updatePrimBinaryRelationOp2 txtss = top . primBinaryRelationOp %= (<>) txtss
+
+updateGlobalPrimBinaryRelationOp :: [Patt] -> Parser ()
+updateGlobalPrimBinaryRelationOp txts = updateGlobal $ primBinaryRelationOp %~ (:) txts
+
+updatePrimBinaryRelationControlSeq :: [Patt] -> Parser ()
+updatePrimBinaryRelationControlSeq txts = top . primBinaryRelationControlSeq %= (:) txts
+
+updatePrimBinaryRelationControlSeq2 :: [[Patt]] -> Parser ()
+updatePrimBinaryRelationControlSeq2 txtss = top . primBinaryRelationControlSeq %= (<>) txtss
+
+updateGlobalPrimBinaryRelationControlSeq :: [Patt] -> Parser ()
+updateGlobalPrimBinaryRelationControlSeq txts = updateGlobal $ primBinaryRelationControlSeq %~ (:) txts
+
+updatePrimPropositionalOpControlSeq :: [Patt] -> Parser ()
+updatePrimPropositionalOpControlSeq txts = top . primPropositionalOpControlSeq %= (:) txts
+
+updatePrimPropositionalOpControlSeq2 :: [[Patt]] -> Parser ()
+updatePrimPropositionalOpControlSeq2 txtss = top . primPropositionalOpControlSeq %= (<>) txtss
+
+updateGlobalPrimPropositionalOpControlSeq :: [Patt] -> Parser ()
+updateGlobalPrimPropositionalOpControlSeq txts = updateGlobal $ primPropositionalOpControlSeq %~ (:) txts
+
 updateIdCount :: Int -> Parser ()
 updateIdCount k = top . idCount %= (const k)
 
