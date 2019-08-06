@@ -19,6 +19,7 @@ import qualified Data.Char as C
 import Data.Text (Text, pack, unpack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
+import Control.Monad.Trans.State
 import Control.Monad.Trans.State.Lazy (modify, gets)
 
 import Control.Lens
@@ -59,7 +60,8 @@ data MacroBodies = MacroBodies MacroBody [MacroBody]
   deriving (Show, Eq)
 
 registerMacroBodies :: [Assuming] -> MacroBodies -> LocalGlobalFlag -> Parser ()
-registerMacroBodies asms mbs lgflag = empty -- TODO(jesse): fix this
+registerMacroBodies asms (MacroBodies mb mbs) lgflag =
+  run_all $ map (registerMacroBody asms lgflag) (mb:mbs)
 
 parseMacroBodies :: Parser MacroBodies
 parseMacroBodies =
@@ -75,6 +77,19 @@ data MacroBody =
   | MacroBodyWeRecordDef WeRecordDef
   deriving (Show, Eq)
 
+registerMacroBody :: [Assuming] -> LocalGlobalFlag -> MacroBody -> Parser ()
+registerMacroBody asms lgflag mb =
+  case lgflag of
+    Globally -> registerMacroBody asms (AtLevel 0) mb
+    Locally -> do {d <- depthStack <$> get; registerMacroBody asms (AtLevel d) mb}
+    AtLevel k -> case mb of
+      (MacroBodyClassifierDef c) -> registerClassifierDef (AtLevel k) c -- TODO(jesse): fix this
+      (MacroBodyTypeDef x) -> patternOfTypeDef x >>= registerTypeDef (AtLevel k) . toMacroPatts
+      (MacroBodyFunctionDef x) -> patternOfFunctionDef x >>= registerFunctionDef (AtLevel k) . toMacroPatts
+      (MacroBodyPredicateDef x) -> patternOfPredicateDef x >>= registerPredicateDef (AtLevel k). toMacroPatts
+      (MacroBodyLetAnnotation x) -> empty -- currently not supported in the state
+      (MacroBodyWeRecordDef x) -> empty -- currently not supported in the state
+
 parseMacroBody :: Parser MacroBody
 parseMacroBody =
   MacroBodyClassifierDef <$> parseClassifierDef <||>
@@ -82,7 +97,7 @@ parseMacroBody =
   MacroBodyFunctionDef <$> parseFunctionDef <||>
   MacroBodyPredicateDef <$> parsePredicateDef <||>
   MacroBodyLetAnnotation <$> parseLetAnnotation <||>
-  MacroBodyWeRecordDef <$> parseWeRecordDef 
+  MacroBodyWeRecordDef <$> parseWeRecordDef
 
 newtype WeRecordDef = WeRecordDef [PlainTerm]
   deriving (Show, Eq)

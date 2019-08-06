@@ -32,8 +32,21 @@ import CNLean.Pattern
 data Definition = Definition DefinitionPreamble [Assumption] DefinitionAffirm
   deriving (Show, Eq)
 
+registerDefinition :: Definition -> Parser ()
+registerDefinition def@(Definition dp asms (DefinitionAffirm ds _)) =
+  case ds of
+    (DefinitionStatementClassifier x) -> registerClassifierDef Globally x
+    (DefinitionStatementTypeDef x) -> registerTypeDef Globally x
+    (DefinitionStatementFunctionDef x) -> registerFunctionDef Globally x
+    (DefinitionStatementPredicateDef x) -> registerPredicateDef Globally x
+
 parseDefinition :: Parser Definition
-parseDefinition = Definition <$> parseDefinitionPreamble <*> (many' parseAssumption) <*> parseDefinitionAffirm
+parseDefinition =
+  with_any_result parse_definition_main side_effects
+  where
+    parse_definition_main = Definition <$> parseDefinitionPreamble <*> (many' parseAssumption) <*> parseDefinitionAffirm
+
+    side_effects = [registerDefinition]
 
 newtype DefinitionPreamble = DefinitionPreamble (Maybe Label)
   deriving (Show, Eq)
@@ -122,98 +135,96 @@ parseDefinitionStatement =
 data PredicateDef = PredicateDef PredicateHead IffJunction Statement
   deriving (Show, Eq)
 
-registerPrimAdjective :: PredicateDef -> Parser () -- (* from adjective_pattern *)
-registerPrimAdjective pd@(PredicateDef ph iffj stmt) =
+registerPrimAdjective :: LocalGlobalFlag ->  PredicateDef -> Parser () -- (* from adjective_pattern *)
+registerPrimAdjective lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadPredicateTokenPattern (PredicateTokenPatternAdjectivePattern adjpatt))
-      -> patternOfPredicateDef pd >>= updatePrimAdjective Globally
+      -> patternOfPredicateDef pd >>= updatePrimAdjective lgflag
     _ -> empty
 
-registerPrimAdjectiveMultiSubject :: PredicateDef -> Parser () --  (* from adjective_multisubject_pattern *)
-registerPrimAdjectiveMultiSubject pd@(PredicateDef ph iffj stmt) =
+registerPrimAdjectiveMultiSubject :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from adjective_multisubject_pattern *)
+registerPrimAdjectiveMultiSubject lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadPredicateTokenPattern (PredicateTokenPatternAdjectiveMultiSubjectPattern adjpatt))
-      -> patternOfPredicateDef pd >>= updatePrimAdjectiveMultiSubject Globally
+      -> patternOfPredicateDef pd >>= updatePrimAdjectiveMultiSubject lgflag
     _ -> empty
 
-registerPrimVerb :: PredicateDef -> Parser () --  (* from verb_pattern *)
-registerPrimVerb pd@(PredicateDef ph iffj stmt) =
+registerPrimVerb :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from verb_pattern *)
+registerPrimVerb lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadPredicateTokenPattern (PredicateTokenPatternVerbPattern adjpatt))
-      -> patternOfPredicateDef pd >>= updatePrimVerb Globally
+      -> patternOfPredicateDef pd >>= updatePrimVerb lgflag
     _ -> empty
 
-registerPrimVerbMultiSubject :: PredicateDef -> Parser () --  (* from verb_multiset_pattern *)
-registerPrimVerbMultiSubject pd@(PredicateDef ph iffj stmt) =
+registerPrimVerbMultiSubject :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from verb_multiset_pattern *)
+registerPrimVerbMultiSubject lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadPredicateTokenPattern (PredicateTokenPatternVerbMultiSubjectPattern adjpatt))
-      -> patternOfPredicateDef pd >>= updatePrimVerbMultiSubject Globally
+      -> patternOfPredicateDef pd >>= updatePrimVerbMultiSubject lgflag
     _ -> empty
 
-registerPrimRelation :: PredicateDef -> Parser () --  (* from predicate_def.identifier_pattern *)
-registerPrimRelation pd@(PredicateDef ph iffj stmt) =
+registerPrimRelation :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from predicate_def.identifier_pattern *)
+registerPrimRelation lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadIdentifierPattern idpatt)
-      -> patternOfPredicateDef pd >>= updatePrimRelation Globally
+      -> patternOfPredicateDef pd >>= updatePrimRelation lgflag
     _ -> empty
 
-registerPrimPropositionalOp :: PredicateDef -> Parser () --  (* from predicate_def.symbol_pattern, with prec < 0 *)
-registerPrimPropositionalOp pd@(PredicateDef ph iffj stmt) =
+registerPrimPropositionalOp :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from predicate_def.symbol_pattern, with prec < 0 *)
+registerPrimPropositionalOp lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadSymbolPattern (SymbolPattern mtv1 slc vs mtv2) mpl)
       -> do b <- isNegativePrecedence mpl
-            if b then patternOfPredicateDef pd >>= updatePrimPropositionalOp Globally
+            if b then patternOfPredicateDef pd >>= updatePrimPropositionalOp lgflag
                  else empty
     _ -> empty
 
-registerPrimBinaryRelationOp :: PredicateDef -> Parser () --   (* from predicate_def.symbol_pattern, binary infix with prec=0 or none  *)
-registerPrimBinaryRelationOp pd@(PredicateDef ph iffj stmt) =
+registerPrimBinaryRelationOp :: LocalGlobalFlag ->  PredicateDef -> Parser () --   (* from predicate_def.symbol_pattern, binary infix with prec=0 or none  *)
+registerPrimBinaryRelationOp lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl)
       -> do b <- (|| isNothing mpl) <$> (isZeroPrecedence mpl)
-            if b && (isBinarySymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimBinaryRelationOp Globally
+            if b && (isBinarySymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimBinaryRelationOp lgflag
                  else empty
     _ -> empty
     
 
-registerPrimBinaryRelationControlSeq :: PredicateDef -> Parser () -- (* from predicate_def.binary_controlseq_pattern, binary, prec=0 or none *)
-registerPrimBinaryRelationControlSeq pd@(PredicateDef ph iffj stmt) =
+registerPrimBinaryRelationControlSeq :: LocalGlobalFlag ->  PredicateDef -> Parser () -- (* from predicate_def.binary_controlseq_pattern, binary, prec=0 or none *)
+registerPrimBinaryRelationControlSeq lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl)
       -> do b <- (|| isNothing mpl) <$> (isZeroPrecedence mpl)
-            if b && (isBinaryControlSeqSymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimBinaryRelationControlSeq Globally
+            if b && (isBinaryControlSeqSymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimBinaryRelationControlSeq lgflag
                  else empty
     _ -> empty
 
-registerPrimPropositionalOpControlSeq :: PredicateDef -> Parser () -- (* from predicate_def.binary_controlseq_pattern, prec < 0 *)
-registerPrimPropositionalOpControlSeq pd@(PredicateDef ph iffj stmt) =
+registerPrimPropositionalOpControlSeq :: LocalGlobalFlag ->  PredicateDef -> Parser () -- (* from predicate_def.binary_controlseq_pattern, prec < 0 *)
+registerPrimPropositionalOpControlSeq lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl)
       -> do b <- (isNegativePrecedence mpl)
-            if b && (isBinaryControlSeqSymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimPropositionalOpControlSeq Globally
+            if b && (isBinaryControlSeqSymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimPropositionalOpControlSeq lgflag
                  else empty
     _ -> empty
 
+registerPredicateDef :: LocalGlobalFlag -> PredicateDef -> Parser () 
+registerPredicateDef lgflag pd = with_any_result (return pd) side_effects *> skip
+  where
+        side_effects = [
+          registerPrimAdjective lgflag,
+          registerPrimAdjectiveMultiSubject lgflag,
+          registerPrimVerb lgflag,
+          registerPrimRelation lgflag,
+          registerPrimVerbMultiSubject lgflag,
+          registerPrimPropositionalOp lgflag,
+          registerPrimBinaryRelationOp lgflag,
+          registerPrimBinaryRelationControlSeq lgflag,
+          registerPrimPropositionalOpControlSeq lgflag
+                       ]
 
 parsePredicateDef :: Parser PredicateDef
-parsePredicateDef = with_any_result parse_predicate_def_main side_effects
-  where
-        parse_predicate_def_main :: Parser PredicateDef
-        parse_predicate_def_main =
+parsePredicateDef = 
           PredicateDef <$> (parseOptSay *> parsePredicateHead)<*> parseIffJunction <*> parseStatement
-
-        side_effects :: [PredicateDef -> Parser ()]
-        side_effects = [
-          registerPrimAdjective,
-          registerPrimAdjectiveMultiSubject,
-          registerPrimVerb,
-          registerPrimRelation,
-          registerPrimVerbMultiSubject,
-          registerPrimPropositionalOp,
-          registerPrimBinaryRelationOp,
-          registerPrimBinaryRelationControlSeq,
-          registerPrimPropositionalOpControlSeq
-                       ]
 
 patternOfPredicateDef :: PredicateDef -> Parser Pattern
 patternOfPredicateDef fd = case fd of
@@ -369,69 +380,69 @@ precOfFunctionDef fd = case fd of
           Nothing -> precHandler ni (Just defaultAssociativeParity)
           (Just ap) -> (,) <$> (readNumInt ni) <*> return ap
 
-registerPrimDefiniteNoun :: FunctionDef -> Parser ()
-registerPrimDefiniteNoun fd@(FunctionDef fh c pt) =
+registerPrimDefiniteNoun :: LocalGlobalFlag ->  FunctionDef -> Parser ()
+registerPrimDefiniteNoun lgflag fd@(FunctionDef fh c pt) =
   case fh of
     (FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt)) ->
-      patternOfTokenPattern tkpatt >>= updatePrimDefiniteNoun Globally
+      patternOfTokenPattern tkpatt >>= updatePrimDefiniteNoun lgflag
     _ -> empty
 
-registerPrimIdentifierTerm :: FunctionDef -> Parser ()
-registerPrimIdentifierTerm fd@(FunctionDef fh c pt) =
+registerPrimIdentifierTerm :: LocalGlobalFlag ->  FunctionDef -> Parser ()
+registerPrimIdentifierTerm lgflag fd@(FunctionDef fh c pt) =
   case fh of
-    (FunctionHeadIdentifierPattern idpatt) -> patternOfIdentifierPattern idpatt >>= updatePrimIdentifierTerm Globally
+    (FunctionHeadIdentifierPattern idpatt) -> patternOfIdentifierPattern idpatt >>= updatePrimIdentifierTerm lgflag
     _ -> empty
 
--- registerPrimPrefixFunction :: FunctionDef -> Parser ()
--- registerPrimPrefixFunction fd@(FunctionDef fh c pt) =
+-- registerPrimPrefixFunction :: LocalGlobalFlag ->  FunctionDef -> Parser ()
+-- registerPrimPrefixFunction lgflag fd@(FunctionDef fh c pt) =
 --   case fh of -- TODO(jesse): change this to an identifier which only accepts one argument
 --     (FunctionHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl) ->
 --       case mtv1 of
 --         Nothing -> if (isCSBrace slc) || (vs /= []) || (isNothing mtv2) then empty
---           else patternOfSymbolPattern sympatt >>= updatePrimPrefixFunction Globally
+--           else patternOfSymbolPattern sympatt >>= updatePrimPrefixFunction lgflag
 --         _ -> empty
 --     _ -> empty
               
 --  (* from function_def.binary_controlseq_pattern, prec > 0 )*
-registerPrimTermOpControlSeq :: FunctionDef -> Parser ()
-registerPrimTermOpControlSeq fd@(FunctionDef fh c pt) =
+registerPrimTermOpControlSeq :: LocalGlobalFlag ->  FunctionDef -> Parser ()
+registerPrimTermOpControlSeq lgflag fd@(FunctionDef fh c pt) =
   case fh of
     (FunctionHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl) ->
       if (isBinaryControlSeqSymbolPattern sympatt)
          then do {b <- isPositivePrecedence mpl;
-                  if b then patternOfSymbolPattern sympatt >>= updatePrimTermOpControlSeq Globally else empty} 
-         else empty
+                  if b
+                    then patternOfSymbolPattern sympatt >>= updatePrimTermOpControlSeq lgflag
+                    else empty}
+       else empty
     _ -> empty
-    
+
 --  (* from function_def.controlseq_pattern, no prec *)
-registerPrimTermControlSeq :: FunctionDef -> Parser ()
-registerPrimTermControlSeq fd@(FunctionDef fh c pt) =
+registerPrimTermControlSeq :: LocalGlobalFlag ->  FunctionDef -> Parser ()
+registerPrimTermControlSeq lgflag fd@(FunctionDef fh c pt) =
   case fh of
     (FunctionHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl) ->
       if (isCSBrace slc)
          then case mpl of
-                Nothing -> patternOfSymbolPattern sympatt >>= updatePrimTermControlSeq Globally
+                Nothing -> patternOfSymbolPattern sympatt >>= updatePrimTermControlSeq lgflag
                 _ -> empty
          else empty
     _ -> empty
 
-
-parseFunctionDef :: Parser FunctionDef
-parseFunctionDef = with_any_result parse_function_def_main side_effects
+registerFunctionDef :: LocalGlobalFlag -> FunctionDef -> Parser ()
+registerFunctionDef lgflag fd = with_any_result (return fd) side_effects *> skip
   where
-    parse_function_def_main :: Parser FunctionDef
-    parse_function_def_main = FunctionDef <$> (parseOptDefine *> parseFunctionHead) <*>
-                                parseCopula <* option (parseLitEqual) <* option (parseLit "the")
-                                <*> parsePlainTerm
-    side_effects :: [FunctionDef -> Parser ()]
     side_effects = [
-      registerPrimDefiniteNoun,
-      registerPrimIdentifierTerm,
-      -- registerPrimPrefixFunction,
-      registerPrimTermOpControlSeq,
-      registerPrimTermControlSeq
+      registerPrimDefiniteNoun lgflag,
+      registerPrimIdentifierTerm lgflag,
+      -- registerPrimPrefixFunction lgflag,
+      registerPrimTermOpControlSeq lgflag,
+      registerPrimTermControlSeq lgflag
                    ]
 
+parseFunctionDef :: Parser FunctionDef
+parseFunctionDef = FunctionDef <$> (parseOptDefine *> parseFunctionHead) <*>
+                                parseCopula <* option (parseLitEqual) <* option (parseLit "the")
+                                <*> parsePlainTerm
  
   --  do
   -- functiondef@(FunctionDef functionhead _ _) <- parse_function_def_main
@@ -528,47 +539,46 @@ data TypeDef = TypeDef TypeHead Copula GeneralType
 patternOfTypeDef :: TypeDef -> Parser Pattern
 patternOfTypeDef (TypeDef th cpla gtp) = patternOfTypeHead th
 
-registerPrimIdentifierType :: TypeDef -> Parser () --  (* from type_def *) all identifiers that are types
-registerPrimIdentifierType td@(TypeDef th cpla gtp) =
+registerPrimIdentifierType :: LocalGlobalFlag ->  TypeDef -> Parser () --  (* from type_def *) all identifiers that are types
+registerPrimIdentifierType lgflag td@(TypeDef th cpla gtp) =
   case th of
-    (TypeHeadIdentifierPattern idpatt) -> patternOfTypeDef td >>= updatePrimIdentifierType Globally
+    (TypeHeadIdentifierPattern idpatt) -> patternOfTypeDef td >>= updatePrimIdentifierType lgflag
     _ -> empty
 
-registerPrimTypeOp :: TypeDef -> Parser () --  (* from type_def, when infix with precedence (from tokenpattern)*)
-registerPrimTypeOp td@(TypeDef th cpla gtp) =
+registerPrimTypeOp :: LocalGlobalFlag ->  TypeDef -> Parser () --  (* from type_def, when infix with precedence (from tokenpattern)*)
+registerPrimTypeOp lgflag td@(TypeDef th cpla gtp) =
   case th of
     (TypeHeadTypeTokenPattern (TypeTokenPattern tkpatt)) ->
       if isBinaryTokenPattern tkpatt
-        then patternOfTypeDef td >>= updatePrimTypeOp Globally
+        then patternOfTypeDef td >>= updatePrimTypeOp lgflag
         else empty
     _ -> empty
 
-registerPrimTypeOpControlSeq :: TypeDef -> Parser ()
-registerPrimTypeOpControlSeq pd@(TypeDef th cpla gtp) =
+registerPrimTypeOpControlSeq :: LocalGlobalFlag ->  TypeDef -> Parser ()
+registerPrimTypeOpControlSeq lgflag pd@(TypeDef th cpla gtp) =
   case th of
-    (TypeHeadControlSeqPattern cseqpatt) -> patternOfControlSeqPattern cseqpatt >>= updatePrimTypeOpControlSeq Globally
+    (TypeHeadControlSeqPattern cseqpatt) -> patternOfControlSeqPattern cseqpatt >>= updatePrimTypeOpControlSeq lgflag
     _ -> empty
 
-registerPrimTypeControlSeq :: TypeDef -> Parser ()
-registerPrimTypeControlSeq pd@(TypeDef th cpla gtp) =
+registerPrimTypeControlSeq :: LocalGlobalFlag ->  TypeDef -> Parser ()
+registerPrimTypeControlSeq lgflag pd@(TypeDef th cpla gtp) =
   case th of
-    (TypeHeadBinaryControlSeqPattern bcseqpatt) -> patternOfBinaryControlSeqPattern bcseqpatt >>= updatePrimTypeControlSeq Globally
+    (TypeHeadBinaryControlSeqPattern bcseqpatt) -> patternOfBinaryControlSeqPattern bcseqpatt >>= updatePrimTypeControlSeq lgflag
     _ -> empty
 
-parseTypeDef :: Parser TypeDef
-parseTypeDef = with_any_result parse_type_def_main side_effects
+registerTypeDef :: LocalGlobalFlag ->  TypeDef -> Parser ()
+registerTypeDef lgflag td = with_any_result (return td) side_effects *> skip
   where
-    parse_type_def_main :: Parser TypeDef
-    parse_type_def_main =
-      TypeDef <$> parseTypeHead <*> parseCopula <* parseLitA <*> parseGeneralType
-      
     side_effects :: [TypeDef -> Parser ()]
     side_effects = [
-      registerPrimIdentifierType,
-      registerPrimTypeOp,
-      registerPrimTypeOpControlSeq,
-      registerPrimTypeControlSeq
+      registerPrimIdentifierType lgflag,
+      registerPrimTypeOp lgflag,
+      registerPrimTypeOpControlSeq lgflag,
+      registerPrimTypeControlSeq lgflag
                    ]
+
+parseTypeDef :: Parser TypeDef
+parseTypeDef = TypeDef <$> parseTypeHead <*> parseCopula <* parseLitA <*> parseGeneralType
 
 data TypeHead =
     TypeHeadTypeTokenPattern TypeTokenPattern
@@ -751,10 +761,11 @@ newtype ClassTokens = ClassTokens [[Token]]
 parseClassTokens = ClassTokens <$> sepby1 (many1' ((notFollowedBy (parseLitIs <* option parseLitA <* parseLitClassifier)) *> parseToken)) parseComma
 
 parseClassifierDef =
-  ClassifierDef <$>
-  (do ctkss@(ClassTokens tkss) <- (parseLit "let" *>  parseClassTokens <* parseLitIs <* option parseLitA <* parseLitClassifier)
-      updateGlobalClsList2 (map (liftM tokenToText) tkss)
-      return $ ctkss)
+  ClassifierDef <$> (parseLit "let" *>  parseClassTokens <* parseLitIs <* option parseLitA <* parseLitClassifier)
+
+registerClassifierDef :: LocalGlobalFlag -> ClassifierDef -> Parser ()
+registerClassifierDef lgflag clsdef@(ClassifierDef (ClassTokens tkss)) =
+  updateClsList2 lgflag (map (liftM tokenToText) tkss)
 
 -- test parseClassifierDef "let scheme, schemes, stacks be classifiers"
 -- test (parseClassifierDef *> (use $ top.clsList)) "let scheme, schemes, stacks, derived stacks be classifiers"
