@@ -21,27 +21,34 @@ import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 import Control.Monad.Trans.State.Lazy (modify, gets)
 
+import Control.Lens
+
 import CNLean.Basic.Basic
 import CNLean.Definition
 import CNLean.Type
+import CNLean.SectionPreamble
 
 data Macro = Macro (Maybe InSection) [Assuming] MacroBodies
   deriving (Show, Eq)
 
 parseMacro :: Parser Macro
-parseMacro = Macro <$> (option parseInSection) <*> sep_list parseAssuming <*> parseMacroBodies
+parseMacro = do
+  result@(Macro mis asms mbs) <- Macro <$> (option parseInSection) <*> (sep_list parseAssuming) <*> parseMacroBodies
+  parseMacro_aux mis asms mbs
+  return result
+  where
+    parseMacro_aux :: (Maybe InSection) -> [Assuming] -> MacroBodies -> Parser ()
+    parseMacro_aux mis asms mbs =
+      case mis of
+        Nothing -> parseMacro_aux (Just (InSection 0)) asms mbs -- if no level is given, then automatically modify global state
+        (Just (InSection k)) -> registerMacroBodies asms mbs (AtLevel k) -- TODO(jesse): finish this
+      
 
-newtype InSection = InSection SectionTag
+newtype InSection = InSection Int
   deriving (Show, Eq)
 
 parseInSection :: Parser InSection
-parseInSection = InSection <$> (parseLit "in" *> parseLit "this" *> parseSectionTag)
-
-newtype SectionTag = SectionTag [Text]
-  deriving (Show, Eq)
-
-parseSectionTag :: Parser SectionTag
-parseSectionTag = SectionTag <$> parseLitDocument
+parseInSection = InSection <$> (parseLit "in" *> parseLit "this" *> do {(a,b) <- parseSectionTag_aux; return b})
 
 newtype Assuming = Assuming Statement
   deriving (Show, Eq)
