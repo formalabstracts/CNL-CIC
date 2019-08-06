@@ -1107,7 +1107,8 @@ newtype VarModifier = VarModifier (Maybe [Text]) -- this is parsed as an optiona
   deriving (Show, Eq)
 
 parseVarModifier :: Parser VarModifier
-parseVarModifier = VarModifier <$> option parseLitVarMod
+-- parseVarModifier = VarModifier <$> option parseLitVarMod
+parseVarModifier = VarModifier <$> option (pure <$> parseLit "inferred")
 
 data DoesPred =
     DoesPredPrimVerb PrimVerb

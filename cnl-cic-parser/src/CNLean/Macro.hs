@@ -29,20 +29,20 @@ import CNLean.Definition
 import CNLean.Type
 import CNLean.SectionPreamble
 
-data Macro = Macro (Maybe InSection) [Assuming] MacroBodies
+data Macro = Macro (Maybe InSection) MacroBodies
   deriving (Show, Eq)
 
 parseMacro :: Parser Macro
 parseMacro = do
-  result@(Macro mis asms mbs) <- Macro <$> (option parseInSection) <*> (sep_list parseAssuming) <*> parseMacroBodies
-  parseMacro_aux mis asms mbs
+  result@(Macro mis mbs) <- Macro <$> (option parseInSection) <*> parseMacroBodies
+  parseMacro_aux mis mbs
   return result
   where
-    parseMacro_aux :: (Maybe InSection) -> [Assuming] -> MacroBodies -> Parser ()
-    parseMacro_aux mis asms mbs =
+    parseMacro_aux :: (Maybe InSection) -> MacroBodies -> Parser ()
+    parseMacro_aux mis mbs =
       case mis of
-        Nothing -> parseMacro_aux (Just (InSection 0)) asms mbs -- if no level is given, then automatically modify global state
-        (Just (InSection k)) -> registerMacroBodies asms mbs (AtLevel k)
+        Nothing -> parseMacro_aux (Just (InSection 0)) mbs -- if no level is given, then automatically modify global state
+        (Just (InSection k)) -> registerMacroBodies mbs (AtLevel k)
 
 newtype InSection = InSection Int
   deriving (Show, Eq)
@@ -59,9 +59,9 @@ parseAssuming = Assuming <$> (parseLit "assuming" *> (option $ parseLit "that") 
 data MacroBodies = MacroBodies MacroBody [MacroBody]
   deriving (Show, Eq)
 
-registerMacroBodies :: [Assuming] -> MacroBodies -> LocalGlobalFlag -> Parser ()
-registerMacroBodies asms (MacroBodies mb mbs) lgflag =
-  run_all $ map (registerMacroBody asms lgflag) (mb:mbs)
+registerMacroBodies :: MacroBodies -> LocalGlobalFlag -> Parser ()
+registerMacroBodies (MacroBodies mb mbs) lgflag =
+  run_all $ map (registerMacroBody lgflag) (mb:mbs)
 
 parseMacroBodies :: Parser MacroBodies
 parseMacroBodies =
@@ -77,11 +77,11 @@ data MacroBody =
   | MacroBodyWeRecordDef WeRecordDef
   deriving (Show, Eq)
 
-registerMacroBody :: [Assuming] -> LocalGlobalFlag -> MacroBody -> Parser ()
-registerMacroBody asms lgflag mb =
+registerMacroBody :: LocalGlobalFlag -> MacroBody -> Parser ()
+registerMacroBody lgflag mb =
   case lgflag of
-    Globally -> registerMacroBody asms (AtLevel 0) mb
-    Locally -> do {d <- depthStack <$> get; registerMacroBody asms (AtLevel d) mb}
+    Globally -> registerMacroBody (AtLevel 0) mb
+    Locally -> do {d <- depthStack <$> get; registerMacroBody (AtLevel d) mb}
     AtLevel k -> case mb of
       (MacroBodyClassifierDef c) -> registerClassifierDef (AtLevel k) c -- TODO(jesse): fix this
       (MacroBodyTypeDef x) -> registerTypeDefMacro (AtLevel k) x

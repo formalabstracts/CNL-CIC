@@ -50,9 +50,9 @@ parseSectionPreamble =
   where
     parse_section_preamble_main :: Parser SectionPreamble
     parse_section_preamble_main =
-      fst <$> (with_result parseSectionPreamble_aux (updateStack . snd))
+      fst <$> (with_result parseSectionPreamble_aux (preUpdateStack . snd))
       where
-        updateStack k = modify $ sectionHandler initialFState emptyFState k
+        preUpdateStack k = modify $ sectionHandler initialFState emptyFState k
 
     -- when the side effect is called, the new state has already been initialized on the stack
     modify_section_id :: SectionPreamble -> Parser ()
@@ -85,7 +85,7 @@ parseSectionPostamble_aux = do
   (sec_tag, level) <- parseLit "end" *> parseSectionTag_aux
   (,) <$> (SectionPostamble sec_tag <$> (option parseLabel <* parsePeriod)) <*> return level
   
-parseSectionPostamble :: Parser SectionPostamble -- TODO(jesse): test this
+parseSectionPostamble :: Parser SectionPostamble -- TODO(jesse): test this and ensure only 1 state is popped when leaving a subdivision
 parseSectionPostamble =
   fst <$> (with_result parseSectionPostamble_aux (postUpdateStack))
   where

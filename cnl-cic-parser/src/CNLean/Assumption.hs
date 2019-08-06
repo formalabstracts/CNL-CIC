@@ -36,7 +36,7 @@ parseAssumption =
 data AssumptionPrefix = AssumptionPrefix (Maybe [Text]) -- make consumption inspectable for debugging
   deriving (Show, Eq)
 
-parseAssumptionPrefix = AssumptionPrefix <$> (do
+parseAssumptionPrefix = AssumptionPrefix <$> (do -- TODO(jesse): clean this up
   lt1 <- parseLitLets
   lt2 <- parseLitAssume
   mlt3 <- option (rp $ parseLit "that")

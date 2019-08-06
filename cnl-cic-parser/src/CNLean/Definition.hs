@@ -620,9 +620,10 @@ data FunctionHead =
 
 parseFunctionHead :: Parser FunctionHead
 parseFunctionHead =
+  FunctionHeadIdentifierPattern <$> parseIdentifierPattern <||>
   FunctionHeadFunctionTokenPattern <$> parseFunctionTokenPattern <||>
-  FunctionHeadSymbolPattern <$> parseSymbolPattern <*> (option parseParenPrecedenceLevel)<||>
-  FunctionHeadIdentifierPattern <$> parseIdentifierPattern--  <||>
+  FunctionHeadSymbolPattern <$> parseSymbolPattern <*> (option parseParenPrecedenceLevel)
+  --  <||>
   -- FunctionHeadControlSeqPattern <$> parseControlSeqPattern <||>
   -- FunctionHeadBinaryControlSeqPattern <$> parseBinaryControlSeqPattern <*> (option parseParenPrecedenceLevel)
 
