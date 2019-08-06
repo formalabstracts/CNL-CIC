@@ -28,8 +28,8 @@ import CNLean.Basic.Basic
 import CNLean.Core
 
 -- note: the state, and all stateful side-effects, backtracks if the nearest parser fails in the orelse combinator:
--- test ((updateStrSyms ["foo"] *> (use $ top . strSyms) *> empty) <||> (updateStrSyms ["bar"] *> (use $ top . strSyms))) "foo"
+-- test ((updateStrSyms Globally ["foo"] *> (use $ top . strSyms) *> empty) <||> (updateStrSyms Globally ["bar"] *> (use $ top . strSyms))) "foo"
 
--- test (using idCount) "foo"
+-- test (use (allStates idCount)) "foo"
 
 -- TODO(jesse): reimplement tests
