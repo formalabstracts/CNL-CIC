@@ -142,11 +142,25 @@ registerPrimAdjective lgflag pd@(PredicateDef ph iffj stmt) =
       -> patternOfPredicateDef pd >>= updatePrimAdjective lgflag
     _ -> empty
 
+registerPrimAdjectiveMacro :: LocalGlobalFlag ->  PredicateDef -> Parser () -- (* from adjective_pattern *)
+registerPrimAdjectiveMacro lgflag pd@(PredicateDef ph iffj stmt) =
+  case ph of
+    (PredicateHeadPredicateTokenPattern (PredicateTokenPatternAdjectivePattern adjpatt))
+      -> patternOfPredicateDef pd >>= updatePrimAdjective lgflag . toMacroPatts
+    _ -> empty
+
 registerPrimAdjectiveMultiSubject :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from adjective_multisubject_pattern *)
 registerPrimAdjectiveMultiSubject lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadPredicateTokenPattern (PredicateTokenPatternAdjectiveMultiSubjectPattern adjpatt))
       -> patternOfPredicateDef pd >>= updatePrimAdjectiveMultiSubject lgflag
+    _ -> empty
+
+registerPrimAdjectiveMultiSubjectMacro :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from adjective_multisubject_pattern *)
+registerPrimAdjectiveMultiSubjectMacro lgflag pd@(PredicateDef ph iffj stmt) =
+  case ph of
+    (PredicateHeadPredicateTokenPattern (PredicateTokenPatternAdjectiveMultiSubjectPattern adjpatt))
+      -> patternOfPredicateDef pd >>= updatePrimAdjectiveMultiSubject lgflag . toMacroPatts
     _ -> empty
 
 registerPrimVerb :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from verb_pattern *)
@@ -156,6 +170,13 @@ registerPrimVerb lgflag pd@(PredicateDef ph iffj stmt) =
       -> patternOfPredicateDef pd >>= updatePrimVerb lgflag
     _ -> empty
 
+registerPrimVerbMacro :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from verb_pattern *)
+registerPrimVerbMacro lgflag pd@(PredicateDef ph iffj stmt) =
+  case ph of
+    (PredicateHeadPredicateTokenPattern (PredicateTokenPatternVerbPattern adjpatt))
+      -> patternOfPredicateDef pd >>= updatePrimVerb lgflag . toMacroPatts
+    _ -> empty
+
 registerPrimVerbMultiSubject :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from verb_multiset_pattern *)
 registerPrimVerbMultiSubject lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
@@ -163,11 +184,25 @@ registerPrimVerbMultiSubject lgflag pd@(PredicateDef ph iffj stmt) =
       -> patternOfPredicateDef pd >>= updatePrimVerbMultiSubject lgflag
     _ -> empty
 
+registerPrimVerbMultiSubjectMacro :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from verb_multiset_pattern *)
+registerPrimVerbMultiSubjectMacro lgflag pd@(PredicateDef ph iffj stmt) =
+  case ph of
+    (PredicateHeadPredicateTokenPattern (PredicateTokenPatternVerbMultiSubjectPattern adjpatt))
+      -> patternOfPredicateDef pd >>= updatePrimVerbMultiSubject lgflag . toMacroPatts
+    _ -> empty
+
 registerPrimRelation :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from predicate_def.identifier_pattern *)
 registerPrimRelation lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadIdentifierPattern idpatt)
       -> patternOfPredicateDef pd >>= updatePrimRelation lgflag
+    _ -> empty
+
+registerPrimRelationMacro :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from predicate_def.identifier_pattern *)
+registerPrimRelationMacro lgflag pd@(PredicateDef ph iffj stmt) =
+  case ph of
+    (PredicateHeadIdentifierPattern idpatt)
+      -> patternOfPredicateDef pd >>= updatePrimRelation lgflag . toMacroPatts
     _ -> empty
 
 registerPrimPropositionalOp :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from predicate_def.symbol_pattern, with prec < 0 *)
@@ -179,12 +214,30 @@ registerPrimPropositionalOp lgflag pd@(PredicateDef ph iffj stmt) =
                  else empty
     _ -> empty
 
+registerPrimPropositionalOpMacro :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from predicate_def.symbol_pattern, with prec < 0 *)
+registerPrimPropositionalOpMacro lgflag pd@(PredicateDef ph iffj stmt) =
+  case ph of
+    (PredicateHeadSymbolPattern (SymbolPattern mtv1 slc vs mtv2) mpl)
+      -> do b <- isNegativePrecedence mpl
+            if b then patternOfPredicateDef pd >>= updatePrimPropositionalOp lgflag . toMacroPatts
+                 else empty
+    _ -> empty
+
 registerPrimBinaryRelationOp :: LocalGlobalFlag ->  PredicateDef -> Parser () --   (* from predicate_def.symbol_pattern, binary infix with prec=0 or none  *)
 registerPrimBinaryRelationOp lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl)
       -> do b <- (|| isNothing mpl) <$> (isZeroPrecedence mpl)
             if b && (isBinarySymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimBinaryRelationOp lgflag
+                 else empty
+    _ -> empty
+
+registerPrimBinaryRelationOpMacro :: LocalGlobalFlag ->  PredicateDef -> Parser () --   (* from predicate_def.symbol_pattern, binary infix with prec=0 or none  *)
+registerPrimBinaryRelationOpMacro lgflag pd@(PredicateDef ph iffj stmt) =
+  case ph of
+    (PredicateHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl)
+      -> do b <- (|| isNothing mpl) <$> (isZeroPrecedence mpl)
+            if b && (isBinarySymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimBinaryRelationOp lgflag . toMacroPatts
                  else empty
     _ -> empty
     
@@ -198,12 +251,30 @@ registerPrimBinaryRelationControlSeq lgflag pd@(PredicateDef ph iffj stmt) =
                  else empty
     _ -> empty
 
+registerPrimBinaryRelationControlSeqMacro :: LocalGlobalFlag ->  PredicateDef -> Parser () -- (* from predicate_def.binary_controlseq_pattern, binary, prec=0 or none *)
+registerPrimBinaryRelationControlSeqMacro lgflag pd@(PredicateDef ph iffj stmt) =
+  case ph of
+    (PredicateHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl)
+      -> do b <- (|| isNothing mpl) <$> (isZeroPrecedence mpl)
+            if b && (isBinaryControlSeqSymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimBinaryRelationControlSeq lgflag . toMacroPatts
+                 else empty
+    _ -> empty
+
 registerPrimPropositionalOpControlSeq :: LocalGlobalFlag ->  PredicateDef -> Parser () -- (* from predicate_def.binary_controlseq_pattern, prec < 0 *)
 registerPrimPropositionalOpControlSeq lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl)
       -> do b <- (isNegativePrecedence mpl)
             if b && (isBinaryControlSeqSymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimPropositionalOpControlSeq lgflag
+                 else empty
+    _ -> empty
+
+registerPrimPropositionalOpControlSeqMacro :: LocalGlobalFlag ->  PredicateDef -> Parser () -- (* from predicate_def.binary_controlseq_pattern, prec < 0 *)
+registerPrimPropositionalOpControlSeqMacro lgflag pd@(PredicateDef ph iffj stmt) =
+  case ph of
+    (PredicateHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl)
+      -> do b <- (isNegativePrecedence mpl)
+            if b && (isBinaryControlSeqSymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimPropositionalOpControlSeq lgflag . toMacroPatts
                  else empty
     _ -> empty
 
@@ -221,6 +292,22 @@ registerPredicateDef lgflag pd = with_any_result (return pd) side_effects *> ski
           registerPrimBinaryRelationControlSeq lgflag,
           registerPrimPropositionalOpControlSeq lgflag
                        ]
+
+registerPredicateDefMacro :: LocalGlobalFlag -> PredicateDef -> Parser () 
+registerPredicateDefMacro lgflag pd = with_any_result (return pd) side_effects *> skip
+  where
+        side_effects = [
+          registerPrimAdjectiveMacro lgflag,
+          registerPrimAdjectiveMultiSubjectMacro lgflag,
+          registerPrimVerbMacro lgflag,
+          registerPrimRelationMacro lgflag,
+          registerPrimVerbMultiSubjectMacro lgflag,
+          registerPrimPropositionalOpMacro lgflag,
+          registerPrimBinaryRelationOpMacro lgflag,
+          registerPrimBinaryRelationControlSeqMacro lgflag,
+          registerPrimPropositionalOpControlSeqMacro lgflag
+                       ]
+
 
 parsePredicateDef :: Parser PredicateDef
 parsePredicateDef = 
@@ -387,10 +474,23 @@ registerPrimDefiniteNoun lgflag fd@(FunctionDef fh c pt) =
       patternOfTokenPattern tkpatt >>= updatePrimDefiniteNoun lgflag
     _ -> empty
 
+registerPrimDefiniteNounMacro :: LocalGlobalFlag ->  FunctionDef -> Parser ()
+registerPrimDefiniteNounMacro lgflag fd@(FunctionDef fh c pt) =
+  case fh of
+    (FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt)) ->
+      patternOfTokenPattern tkpatt >>= updatePrimDefiniteNoun lgflag . toMacroPatts
+    _ -> empty
+
 registerPrimIdentifierTerm :: LocalGlobalFlag ->  FunctionDef -> Parser ()
 registerPrimIdentifierTerm lgflag fd@(FunctionDef fh c pt) =
   case fh of
     (FunctionHeadIdentifierPattern idpatt) -> patternOfIdentifierPattern idpatt >>= updatePrimIdentifierTerm lgflag
+    _ -> empty
+
+registerPrimIdentifierTermMacro :: LocalGlobalFlag ->  FunctionDef -> Parser ()
+registerPrimIdentifierTermMacro lgflag fd@(FunctionDef fh c pt) =
+  case fh of
+    (FunctionHeadIdentifierPattern idpatt) -> patternOfIdentifierPattern idpatt >>= updatePrimIdentifierTerm lgflag . toMacroPatts
     _ -> empty
 
 -- registerPrimPrefixFunction :: LocalGlobalFlag ->  FunctionDef -> Parser ()
@@ -402,7 +502,17 @@ registerPrimIdentifierTerm lgflag fd@(FunctionDef fh c pt) =
 --           else patternOfSymbolPattern sympatt >>= updatePrimPrefixFunction lgflag
 --         _ -> empty
 --     _ -> empty
-              
+
+-- registerPrimPrefixFunctionMacro :: LocalGlobalFlag ->  FunctionDef -> Parser ()
+-- registerPrimPrefixFunctionMacro lgflag fd@(FunctionDef fh c pt) =
+--   case fh of -- TODO(jesse): change this to an identifier which only accepts one argument
+--     (FunctionHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl) ->
+--       case mtv1 of
+--         Nothing -> if (isCSBrace slc) || (vs /= []) || (isNothing mtv2) then empty
+--           else patternOfSymbolPattern sympatt >>= updatePrimPrefixFunction lgflag . toMacroPatts
+--         _ -> empty
+--     _ -> empty
+         
 --  (* from function_def.binary_controlseq_pattern, prec > 0 )*
 registerPrimTermOpControlSeq :: LocalGlobalFlag ->  FunctionDef -> Parser ()
 registerPrimTermOpControlSeq lgflag fd@(FunctionDef fh c pt) =
@@ -412,6 +522,18 @@ registerPrimTermOpControlSeq lgflag fd@(FunctionDef fh c pt) =
          then do {b <- isPositivePrecedence mpl;
                   if b
                     then patternOfSymbolPattern sympatt >>= updatePrimTermOpControlSeq lgflag
+                    else empty}
+       else empty
+    _ -> empty
+
+registerPrimTermOpControlSeqMacro :: LocalGlobalFlag ->  FunctionDef -> Parser ()
+registerPrimTermOpControlSeqMacro lgflag fd@(FunctionDef fh c pt) =
+  case fh of
+    (FunctionHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl) ->
+      if (isBinaryControlSeqSymbolPattern sympatt)
+         then do {b <- isPositivePrecedence mpl;
+                  if b
+                    then patternOfSymbolPattern sympatt >>= updatePrimTermOpControlSeq lgflag . toMacroPatts
                     else empty}
        else empty
     _ -> empty
@@ -428,6 +550,17 @@ registerPrimTermControlSeq lgflag fd@(FunctionDef fh c pt) =
          else empty
     _ -> empty
 
+registerPrimTermControlSeqMacro :: LocalGlobalFlag ->  FunctionDef -> Parser ()
+registerPrimTermControlSeqMacro lgflag fd@(FunctionDef fh c pt) =
+  case fh of
+    (FunctionHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl) ->
+      if (isCSBrace slc)
+         then case mpl of
+                Nothing -> patternOfSymbolPattern sympatt >>= updatePrimTermControlSeq lgflag . toMacroPatts
+                _ -> empty
+         else empty
+    _ -> empty
+
 registerFunctionDef :: LocalGlobalFlag -> FunctionDef -> Parser ()
 registerFunctionDef lgflag fd = with_any_result (return fd) side_effects *> skip
   where
@@ -438,6 +571,17 @@ registerFunctionDef lgflag fd = with_any_result (return fd) side_effects *> skip
       registerPrimTermOpControlSeq lgflag,
       registerPrimTermControlSeq lgflag
                    ]
+
+registerFunctionDefMacro :: LocalGlobalFlag -> FunctionDef -> Parser ()
+registerFunctionDefMacro lgflag fd = with_any_result (return fd) side_effects *> skip
+  where
+    side_effects = [
+      registerPrimDefiniteNounMacro lgflag,
+      registerPrimIdentifierTermMacro lgflag,
+      -- registerPrimPrefixFunctionMacro lgflag,
+      registerPrimTermOpControlSeqMacro lgflag,
+      registerPrimTermControlSeqMacro lgflag
+                   ]                   
 
 parseFunctionDef :: Parser FunctionDef
 parseFunctionDef = FunctionDef <$> (parseOptDefine *> parseFunctionHead) <*>
@@ -545,6 +689,12 @@ registerPrimIdentifierType lgflag td@(TypeDef th cpla gtp) =
     (TypeHeadIdentifierPattern idpatt) -> patternOfTypeDef td >>= updatePrimIdentifierType lgflag
     _ -> empty
 
+registerPrimIdentifierTypeMacro :: LocalGlobalFlag ->  TypeDef -> Parser () --  (* from type_def *) all identifiers that are types
+registerPrimIdentifierTypeMacro lgflag td@(TypeDef th cpla gtp) =
+  case th of
+    (TypeHeadIdentifierPattern idpatt) -> patternOfTypeDef td >>= updatePrimIdentifierType lgflag . toMacroPatts
+    _ -> empty
+
 registerPrimTypeOp :: LocalGlobalFlag ->  TypeDef -> Parser () --  (* from type_def, when infix with precedence (from tokenpattern)*)
 registerPrimTypeOp lgflag td@(TypeDef th cpla gtp) =
   case th of
@@ -554,16 +704,37 @@ registerPrimTypeOp lgflag td@(TypeDef th cpla gtp) =
         else empty
     _ -> empty
 
+registerPrimTypeOpMacro :: LocalGlobalFlag ->  TypeDef -> Parser () --  (* from type_def, when infix with precedence (from tokenpattern)*)
+registerPrimTypeOpMacro lgflag td@(TypeDef th cpla gtp) =
+  case th of
+    (TypeHeadTypeTokenPattern (TypeTokenPattern tkpatt)) ->
+      if isBinaryTokenPattern tkpatt
+        then patternOfTypeDef td >>= updatePrimTypeOp lgflag . toMacroPatts
+        else empty
+    _ -> empty
+
 registerPrimTypeOpControlSeq :: LocalGlobalFlag ->  TypeDef -> Parser ()
 registerPrimTypeOpControlSeq lgflag pd@(TypeDef th cpla gtp) =
   case th of
     (TypeHeadControlSeqPattern cseqpatt) -> patternOfControlSeqPattern cseqpatt >>= updatePrimTypeOpControlSeq lgflag
     _ -> empty
 
+registerPrimTypeOpControlSeqMacro :: LocalGlobalFlag ->  TypeDef -> Parser ()
+registerPrimTypeOpControlSeqMacro lgflag pd@(TypeDef th cpla gtp) =
+  case th of
+    (TypeHeadControlSeqPattern cseqpatt) -> patternOfControlSeqPattern cseqpatt >>= updatePrimTypeOpControlSeq lgflag . toMacroPatts
+    _ -> empty
+
 registerPrimTypeControlSeq :: LocalGlobalFlag ->  TypeDef -> Parser ()
 registerPrimTypeControlSeq lgflag pd@(TypeDef th cpla gtp) =
   case th of
     (TypeHeadBinaryControlSeqPattern bcseqpatt) -> patternOfBinaryControlSeqPattern bcseqpatt >>= updatePrimTypeControlSeq lgflag
+    _ -> empty
+
+registerPrimTypeControlSeqMacro :: LocalGlobalFlag ->  TypeDef -> Parser ()
+registerPrimTypeControlSeqMacro lgflag pd@(TypeDef th cpla gtp) =
+  case th of
+    (TypeHeadBinaryControlSeqPattern bcseqpatt) -> patternOfBinaryControlSeqPattern bcseqpatt >>= updatePrimTypeControlSeq lgflag . toMacroPatts
     _ -> empty
 
 registerTypeDef :: LocalGlobalFlag ->  TypeDef -> Parser ()
@@ -575,6 +746,17 @@ registerTypeDef lgflag td = with_any_result (return td) side_effects *> skip
       registerPrimTypeOp lgflag,
       registerPrimTypeOpControlSeq lgflag,
       registerPrimTypeControlSeq lgflag
+                   ]
+
+registerTypeDefMacro :: LocalGlobalFlag ->  TypeDef -> Parser ()
+registerTypeDefMacro lgflag td = with_any_result (return td) side_effects *> skip
+  where
+    side_effects :: [TypeDef -> Parser ()]
+    side_effects = [
+      registerPrimIdentifierTypeMacro lgflag,
+      registerPrimTypeOpMacro lgflag,
+      registerPrimTypeOpControlSeqMacro lgflag,
+      registerPrimTypeControlSeqMacro lgflag
                    ]
 
 parseTypeDef :: Parser TypeDef

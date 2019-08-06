@@ -42,7 +42,7 @@ parseMacro = do
     parseMacro_aux mis asms mbs =
       case mis of
         Nothing -> parseMacro_aux (Just (InSection 0)) asms mbs -- if no level is given, then automatically modify global state
-        (Just (InSection k)) -> registerMacroBodies asms mbs (AtLevel k) -- TODO(jesse): finish this
+        (Just (InSection k)) -> registerMacroBodies asms mbs (AtLevel k)
 
 newtype InSection = InSection Int
   deriving (Show, Eq)
@@ -84,9 +84,9 @@ registerMacroBody asms lgflag mb =
     Locally -> do {d <- depthStack <$> get; registerMacroBody asms (AtLevel d) mb}
     AtLevel k -> case mb of
       (MacroBodyClassifierDef c) -> registerClassifierDef (AtLevel k) c -- TODO(jesse): fix this
-      (MacroBodyTypeDef x) -> patternOfTypeDef x >>= registerTypeDef (AtLevel k) . toMacroPatts
-      (MacroBodyFunctionDef x) -> patternOfFunctionDef x >>= registerFunctionDef (AtLevel k) . toMacroPatts
-      (MacroBodyPredicateDef x) -> patternOfPredicateDef x >>= registerPredicateDef (AtLevel k). toMacroPatts
+      (MacroBodyTypeDef x) -> registerTypeDefMacro (AtLevel k) x
+      (MacroBodyFunctionDef x) -> registerFunctionDefMacro (AtLevel k)  x
+      (MacroBodyPredicateDef x) -> registerPredicateDefMacro (AtLevel k) x
       (MacroBodyLetAnnotation x) -> empty -- currently not supported in the state
       (MacroBodyWeRecordDef x) -> empty -- currently not supported in the state
 

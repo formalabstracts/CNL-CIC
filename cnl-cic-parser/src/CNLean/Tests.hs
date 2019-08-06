@@ -30,8 +30,6 @@ import CNLean.Core
 -- note: the state, and all stateful side-effects, backtracks if the nearest parser fails in the orelse combinator:
 -- test ((updateStrSyms ["foo"] *> (use $ top . strSyms) *> empty) <||> (updateStrSyms ["bar"] *> (use $ top . strSyms))) "foo"
 
-
-
 -- test (using idCount) "foo"
 
 -- TODO(jesse): reimplement tests
