@@ -179,7 +179,7 @@ lookAhead' p = (lookAhead p >> return ()) <||> fail "lookahead failed"
 
 option :: Parser a -> Parser (Maybe a)
 option p =
-  (p >>= return . Just) <||> return Nothing
+  ((p >>= return . Just) <||> return Nothing) <* sc
 
 unoption :: Parser (Maybe a) -> Parser a
 unoption p = do
