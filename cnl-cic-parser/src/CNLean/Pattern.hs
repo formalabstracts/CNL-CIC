@@ -22,32 +22,33 @@ import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 import Control.Monad.Trans.State.Lazy (modify, gets)
 
+import Control.Lens
+
 import CNLean.Basic.Basic
 
-patternOfOption :: (a -> Parser [Patt]) -> (Maybe a -> Parser [Patt])
+patternOfOption :: (a -> Parser Pattern) -> (Maybe a -> Parser Pattern)
 patternOfOption p mx =
   case mx of
-    Nothing -> return []
+    Nothing -> return . Patts $ []
     Just x -> p x
 
-patternOfList :: (a -> Parser [Patt]) -> ([a] -> Parser [Patt])
+patternOfList :: (a -> Parser Pattern) -> ([a] -> Parser Pattern)
 patternOfList m xs = case xs of
-  [] -> return []
-  y:ys -> m y <+> patternOfList m ys
+  [] -> return . Patts $ []
+  y:ys -> (<>) <$> m y <*> patternOfList m ys
 
-patternOfAtomicId :: AtomicId -> Parser [Patt]
-patternOfAtomicId atomicid@(AtomicId txt) = return . pure . Wd . pure $ txt
+patternOfAtomicId :: AtomicId -> Parser Pattern
+patternOfAtomicId atomicid@(AtomicId txt) = return . Patts . pure . Wd . pure $ txt
 
-patternOfHierId :: HierId -> Parser [Patt]
+patternOfHierId :: HierId -> Parser Pattern
 patternOfHierId hierid@(HierId aids mvn) =
-  return . pure . Wd . pure $ join $ intersperse "." (map (\(AtomicId txt) -> txt) aids)
+  return . Patts . pure . Wd . pure $ join $ intersperse "." (map (\(AtomicId txt) -> txt) aids)
 
-patternOfVar :: Var -> Parser [Patt]
-patternOfVar v = return [Vr]
+patternOfVar :: Var -> Parser Pattern
+patternOfVar v = return . Patts $ [Vr]
 
-patternOfSymbol :: Symbol -> Parser [Patt]
-patternOfSymbol (Symbol txt) = return . pure . Sm $ txt
+patternOfSymbol :: Symbol -> Parser Pattern
+patternOfSymbol (Symbol txt) = return . Patts . pure . Sm $ txt
 
-patternOfControlSequence :: ControlSequence -> ([Patt] -> Parser [Patt])
-patternOfControlSequence (ControlSequence txt) args = return . pure $ CSeq txt args
-
+patternOfControlSequence :: ControlSequence -> (Pattern -> Parser Pattern)
+patternOfControlSequence (ControlSequence txt) args = return . Patts . pure $ CSeq txt (args^.patts :: [Patt])

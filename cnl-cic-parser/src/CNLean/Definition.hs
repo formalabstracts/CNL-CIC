@@ -215,7 +215,7 @@ parsePredicateDef = with_any_result parse_predicate_def_main side_effects
           registerPrimPropositionalOpControlSeq
                        ]
 
-patternOfPredicateDef :: PredicateDef -> Parser [Patt]
+patternOfPredicateDef :: PredicateDef -> Parser Pattern
 patternOfPredicateDef fd = case fd of
   PredicateDef predicatehead iffjunction statement -> case predicatehead of
     PredicateHeadPredicateTokenPattern (predtkpatt) -> patternOfPredicateTokenPattern predtkpatt
@@ -261,7 +261,7 @@ parsePredicateTokenPattern =
   PredicateTokenPatternVerbPattern <$> parseVerbPattern <||>
   PredicateTokenPatternVerbMultiSubjectPattern <$> parseVerbMultiSubjectPattern
 
-patternOfPredicateTokenPattern :: PredicateTokenPattern -> Parser [Patt]
+patternOfPredicateTokenPattern :: PredicateTokenPattern -> Parser Pattern
 patternOfPredicateTokenPattern ptkpatt = case ptkpatt of
   (PredicateTokenPatternAdjectivePattern adjpatt) -> patternOfAdjectivePattern adjpatt
   (PredicateTokenPatternAdjectiveMultiSubjectPattern adjmspatt) -> patternOfAdjectiveMultiSubjectPattern adjmspatt
@@ -275,14 +275,14 @@ parseAdjectivePattern :: Parser AdjectivePattern
 parseAdjectivePattern =
   AdjectivePattern <$> parseTVar <*> (parseLit "is" *> (option $ parseLit "called") *> parseTokenPattern)
 
-patternOfAdjectivePattern :: AdjectivePattern -> Parser [Patt]
+patternOfAdjectivePattern :: AdjectivePattern -> Parser Pattern
 patternOfAdjectivePattern (AdjectivePattern tv tkpatt) =
-  (<>) <$> patternOfTVar tv <*> patternOfTokenPattern tkpatt
+  (<>) <$> patternOfTVar tv <*> (patternOfTokenPattern tkpatt)
 
 data AdjectiveMultiSubjectPattern = AdjectiveMultiSubjectPattern VarMultiSubject TokenPattern
   deriving (Show, Eq)
 
-patternOfAdjectiveMultiSubjectPattern :: AdjectiveMultiSubjectPattern -> Parser [Patt]
+patternOfAdjectiveMultiSubjectPattern :: AdjectiveMultiSubjectPattern -> Parser Pattern
 patternOfAdjectiveMultiSubjectPattern (AdjectiveMultiSubjectPattern varms tkpatt) =
   (<>) <$> patternOfVarMultiSubject varms <*> patternOfTokenPattern tkpatt
 
@@ -292,7 +292,7 @@ parseAdjectiveMultiSubjectPattern = AdjectiveMultiSubjectPattern <$> parseVarMul
 data VerbPattern = VerbPattern TVar TokenPattern
   deriving (Show, Eq)
 
-patternOfVerbPattern :: VerbPattern -> Parser [Patt]
+patternOfVerbPattern :: VerbPattern -> Parser Pattern
 patternOfVerbPattern (VerbPattern tv tkpatt) =
   (<>) <$> patternOfTVar tv <*> patternOfTokenPattern tkpatt
 
@@ -302,7 +302,7 @@ parseVerbPattern = VerbPattern <$> parseTVar <*> parseTokenPattern
 data VerbMultiSubjectPattern = VerbMultiSubjectPattern VarMultiSubject TokenPattern
   deriving (Show, Eq)
 
-patternOfVerbMultiSubjectPattern :: VerbMultiSubjectPattern -> Parser [Patt]
+patternOfVerbMultiSubjectPattern :: VerbMultiSubjectPattern -> Parser Pattern
 patternOfVerbMultiSubjectPattern (VerbMultiSubjectPattern vms tkpatt) =
   (<>) <$> patternOfVarMultiSubject vms <*> patternOfTokenPattern tkpatt
 
@@ -314,7 +314,7 @@ data VarMultiSubject =
   | VarMultiSubjectParen Var Var ColonType
   deriving (Show, Eq)
 
-patternOfVarMultiSubject :: VarMultiSubject -> Parser [Patt]
+patternOfVarMultiSubject :: VarMultiSubject -> Parser Pattern
 patternOfVarMultiSubject x = case x of
   (VarMultiSubjectTVar tv1 tv2) -> (<>) <$> patternOfTVar tv1 <*> patternOfTVar tv2
   (VarMultiSubjectParen v1 v2 ct) -> (<>) <$> patternOfVar v1 <*> patternOfVar v2
@@ -348,7 +348,7 @@ parseMutualInductiveDef = MutualInductiveDef <$> (parseOptDefine *> parseMutualI
 data FunctionDef = FunctionDef FunctionHead Copula PlainTerm
   deriving (Show, Eq)
 
-patternOfFunctionDef :: FunctionDef -> Parser [Patt]
+patternOfFunctionDef :: FunctionDef -> Parser Pattern
 patternOfFunctionDef fd = case fd of
   FunctionDef functionhead copula plainterm -> case functionhead of
     FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt) -> patternOfTokenPattern tkpatt
@@ -488,7 +488,7 @@ isCSBrace slc = case slc of
 isSymbol :: SymbolLowercase -> Bool
 isSymbol = not . isCSBrace
 
-patternOfSymbolLowercase :: SymbolLowercase -> Parser [Patt]
+patternOfSymbolLowercase :: SymbolLowercase -> Parser Pattern
 patternOfSymbolLowercase x = case x of
   SymbolLowercaseSymbol symb -> patternOfSymbol symb
   SymbolLowercaseCSBrace (CSBrace cs tvars) -> (patternOfList patternOfTVar tvars) >>= patternOfControlSequence cs  
@@ -510,7 +510,7 @@ isBinaryControlSeqSymbolPattern :: SymbolPattern -> Bool
 isBinaryControlSeqSymbolPattern (SymbolPattern mtv1 slc vs mtv2) =
   (not $ isNothing mtv1) && (isCSBrace slc) && (vs == []) && (not $ isNothing mtv2)
 
-patternOfSymbolPattern :: SymbolPattern -> Parser [Patt]
+patternOfSymbolPattern :: SymbolPattern -> Parser Pattern
 patternOfSymbolPattern (SymbolPattern mtvar symbs tvarsymbs mtvar') =
   (patternOfOption patternOfTVar mtvar) <+>
   (patternOfSymbolLowercase symbs) <+>
@@ -525,7 +525,7 @@ parseSymbolPattern = SymbolPattern <$> (option parseTVar) <*> parseSymbolLowerca
 data TypeDef = TypeDef TypeHead Copula GeneralType
   deriving (Show, Eq)
 
-patternOfTypeDef :: TypeDef -> Parser [Patt]
+patternOfTypeDef :: TypeDef -> Parser Pattern
 patternOfTypeDef (TypeDef th cpla gtp) = patternOfTypeHead th
 
 registerPrimIdentifierType :: TypeDef -> Parser () --  (* from type_def *) all identifiers that are types
@@ -577,7 +577,7 @@ data TypeHead =
   | TypeHeadBinaryControlSeqPattern BinaryControlSeqPattern
   deriving (Show, Eq)
 
-patternOfTypeHead :: TypeHead -> Parser [Patt]
+patternOfTypeHead :: TypeHead -> Parser Pattern
 patternOfTypeHead th = case th of
   (TypeHeadTypeTokenPattern (TypeTokenPattern tkpatt)) -> patternOfTokenPattern tkpatt
   (TypeHeadIdentifierPattern idpatt) -> patternOfIdentifierPattern idpatt
@@ -629,12 +629,12 @@ parseTokenPattern = TokenPattern <$> parseTokens <*>
 
 -- test parseTokenPattern "foo bar baz a foo b bar c baz"                                     
 
-patternOfTokenPattern :: TokenPattern -> Parser [Patt]
-patternOfTokenPattern tkPatt@(TokenPattern (Tokens tks) tvstkss mtvar) =
-  (<>) <$> ( do strsyms <- concat <$> use (allStates strSyms)
-                return $ (map (Wd . tokenToText'_aux strsyms) tks) <>
+patternOfTokenPattern :: TokenPattern -> Parser Pattern
+patternOfTokenPattern tkPatt@(TokenPattern (Tokens tks) tvstkss mtvar) = Patts <$>
+  ((<>) <$> ( do strsyms <- concat <$> use (allStates strSyms)
+                 return $ (map (Wd . tokenToText'_aux strsyms) tks) <>
                      concat (map (\(tv,tks) -> Vr : map (Wd . pure . tokenToText) (tokensToTokens tks)) tvstkss) )
-            <*> ((unoption $ return mtvar) *> return [Vr] <||> return [])
+            <*> ((unoption $ return mtvar) *> return [Vr] <||> return []))
 
 data Copula =
     CopulaIsDefinedAs
@@ -658,7 +658,7 @@ parseIdentifierPattern =
   IdentifierPattern <$> parseIdentifier <*> parseArgs <*> (option parseColonType) <||>
   IdentifierPatternBlank <$> parseArgs <*> (option parseColonType)
 
-patternOfIdentifierPattern :: IdentifierPattern -> Parser [Patt]
+patternOfIdentifierPattern :: IdentifierPattern -> Parser Pattern
 patternOfIdentifierPattern idpatt =
   case idpatt of
     IdentifierPattern ident args mct -> (patternOfIdent ident) <+> (patternOfArgs args)
@@ -670,7 +670,7 @@ patternOfIdentifierPattern idpatt =
 data ControlSeqPattern = ControlSeqPattern ControlSequence [TVar]
   deriving (Show, Eq)
 
-patternOfControlSeqPattern :: ControlSeqPattern -> Parser [Patt]
+patternOfControlSeqPattern :: ControlSeqPattern -> Parser Pattern
 patternOfControlSeqPattern (ControlSeqPattern cs tvs) =
   (patternOfList patternOfTVar tvs) >>= patternOfControlSequence cs
 
@@ -680,7 +680,7 @@ parseControlSeqPattern = ControlSeqPattern <$> parseControlSequence <*> (many' $
 data BinaryControlSeqPattern = BinaryControlSeqPattern TVar ControlSeqPattern TVar
   deriving (Show, Eq)
 
-patternOfBinaryControlSeqPattern :: BinaryControlSeqPattern -> Parser [Patt]
+patternOfBinaryControlSeqPattern :: BinaryControlSeqPattern -> Parser Pattern
 patternOfBinaryControlSeqPattern (BinaryControlSeqPattern tv1 cspatt tv2) =
   patternOfTVar tv1 <+> patternOfControlSeqPattern cspatt <+> patternOfTVar tv2
 
@@ -759,4 +759,3 @@ parseClassifierDef =
 -- test parseClassifierDef "let scheme, schemes, stacks be classifiers"
 -- test (parseClassifierDef *> (use $ top.clsList)) "let scheme, schemes, stacks, derived stacks be classifiers"
 -- test parseClassifierDef "let lattice be a classifier"
-

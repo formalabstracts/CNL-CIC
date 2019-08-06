@@ -158,7 +158,7 @@ data TVar =
   | TVarAnnotatedVar AnnotatedVar
   deriving (Show, Eq)
 
-patternOfTVar :: TVar -> Parser [Patt]
+patternOfTVar :: TVar -> Parser Pattern
 patternOfTVar (TVarVar v) = patternOfVar v
 patternOfTVar (TVarAnnotatedVar av) =  patternOfAnnotatedVar av
 
@@ -422,7 +422,7 @@ data VarOrAtomic =
   | VarOrAtomicAtomic AtomicId
   deriving (Show, Eq)
 
-patternOfVarOrAtomic :: VarOrAtomic -> Parser [Patt]
+patternOfVarOrAtomic :: VarOrAtomic -> Parser Pattern
 patternOfVarOrAtomic voa = case voa of
   VarOrAtomicVar v -> patternOfVar v
   VarOrAtomicAtomic aid -> patternOfAtomicId aid
@@ -451,7 +451,7 @@ parseDependentVars =
 newtype OptArgs = OptArgs [(VarOrAtomic, Maybe ColonType)]
   deriving (Show, Eq)
 
-patternOfOptArgs :: OptArgs -> Parser [Patt]
+patternOfOptArgs :: OptArgs -> Parser Pattern
 patternOfOptArgs optarg@(OptArgs vacts) = patternOfList m vacts
   where m (x,y) = patternOfVarOrAtomic x -- drop type ascription from generated pattern
 
@@ -588,7 +588,7 @@ data Identifier =
   | IdentifierHierId HierId
   deriving (Show, Eq)
 
-patternOfIdent :: Identifier -> Parser [Patt]
+patternOfIdent :: Identifier -> Parser Pattern
 patternOfIdent ident = case ident of
   IdentifierAtomicId atomicid -> patternOfAtomicId atomicid
   IdentifierHierId hierid -> patternOfHierId hierid
@@ -994,7 +994,7 @@ data Args = Args (Maybe OptArgs) [RequiredArg] -- i think requiredargs are white
 parseArgs :: Parser Args
 parseArgs = Args <$> (option $ parseLit "at" *> parseOptArgs) <*> (many' parseRequiredArg)
 
-patternOfArgs :: Args -> Parser [Patt]
+patternOfArgs :: Args -> Parser Pattern
 patternOfArgs args@(Args moa reqargs) = (patternOfOption patternOfOptArgs moa) <+> (patternOfList patternOfRequiredArg reqargs)
 
 data RequiredArg =
@@ -1002,7 +1002,7 @@ data RequiredArg =
   | RequiredArgVarOrAtomic VarOrAtomic
   deriving (Show, Eq)
 
-patternOfRequiredArg :: RequiredArg -> Parser [Patt]
+patternOfRequiredArg :: RequiredArg -> Parser Pattern
 patternOfRequiredArg reqarg = case reqarg of
   RequiredArgAnnotated voas mct -> (patternOfList patternOfVarOrAtomic voas)
   RequiredArgVarOrAtomic voa -> patternOfVarOrAtomic voa
@@ -1091,7 +1091,7 @@ parseLetAnnotation = LetAnnotation <$> (parseLit "let" *> comma_nonempty_list pa
 data AnnotatedVar = AnnotatedVar VarModifier Var (Maybe ColonType)
   deriving (Show, Eq)
 
-patternOfAnnotatedVar :: AnnotatedVar -> Parser [Patt]
+patternOfAnnotatedVar :: AnnotatedVar -> Parser Pattern
 patternOfAnnotatedVar (AnnotatedVar varmodifier var mct) = patternOfVar var
 
 parseAnnotatedVar :: Parser AnnotatedVar
@@ -1184,25 +1184,26 @@ parsePatt ptt = case ptt of
              return $ ParsedSymbol s             
   Vr   -> ParsedVar <$> parseTerm
   CSeq cseq vs -> ParsedCSeqBrace <$> (ControlSequence <$> str cseq <* sc) <*> parse_list vs (\_ -> brace $ parseTerm)
+  
   -- a control sequence with k variables is parsed as a control sequence followed by k brace-enclosed terms
 
-parsePatts :: [Patt] -> Parser [ParsedPatt]
-parsePatts ptts = parse_list ptts parsePatt
+parsePattern :: Pattern -> Parser [ParsedPatt]
+parsePattern pttn = parse_list (pttn^.patts) parsePatt
 
-parse_any_Patts :: [[Patt]] -> Parser [ParsedPatt]
-parse_any_Patts = parse_any $ rp . parsePatt
+parse_any_Patts :: [Pattern] -> Parser [ParsedPatt]
+parse_any_Patts = parse_any_of . map parsePattern
 -- note: this is equivalent to parse_any_of . map parsePatts
 
-examplePatts :: [Patt]
-examplePatts = [Wd ["foo"], Wd ["bar"], Vr]
+examplePatts :: Pattern
+examplePatts = Patts [Wd ["foo"], Wd ["bar"], Vr]
 
-examplePatts2 :: [Patt]
-examplePatts2 = [Wd["subsets", "subset"], Nm, Wd["of"], Vr]
+examplePatts2 :: Pattern
+examplePatts2 = Patts [Wd["subsets", "subset"], Nm, Wd["of"], Vr]
 -- note, prefixes must appear later in the list because they will succeed first
 
--- test (parsePatts examplePatts) "foo bar a1"
--- test (parsePatts examplePatts2) "subset a of x0"
--- test (parsePatts examplePatts2) "subsets a,b of x0"
+-- test (parsePattern examplePatts) "foo bar a1"
+-- test (parsePattern examplePatts2) "subset a of x0"
+-- test (parsePattern examplePatts2) "subsets a,b of x0"
 
 -------------
 -- PRIMITIVES

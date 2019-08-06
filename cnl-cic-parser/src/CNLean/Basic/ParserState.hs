@@ -60,7 +60,7 @@ updateAtLevel k f = do
             then updateLocal f
             else (rest . element k %= f)    
 
-updateGlobalPrimPrecTable :: [Patt] -> Int -> AssociativeParity -> Parser ()
+updateGlobalPrimPrecTable :: Pattern -> Int -> AssociativeParity -> Parser ()
 updateGlobalPrimPrecTable ptts level parity = updateGlobal $ primPrecTable %~ M.insert ptts (level, parity)
 
 updateGlobalClsList :: [Text] -> Parser ()
@@ -101,331 +101,331 @@ updateStrSyms b args =
     Locally -> updateLocalStrSyms args
     AtLevel k -> updateAtLevelStrSyms k args
 
-updateGlobalPrimDefiniteNoun :: [Patt] -> Parser ()
+updateGlobalPrimDefiniteNoun :: Pattern -> Parser ()
 updateGlobalPrimDefiniteNoun txts = updateGlobal $ primDefiniteNoun %~ (:) txts
 
-updateGlobalPrimDefiniteNoun2 :: [[Patt]] -> Parser ()
+updateGlobalPrimDefiniteNoun2 :: [Pattern] -> Parser ()
 updateGlobalPrimDefiniteNoun2 txtss = updateGlobal $ primDefiniteNoun %~ (<>) txtss
 
-updateLocalPrimDefiniteNoun :: [Patt] -> Parser ()
+updateLocalPrimDefiniteNoun :: Pattern -> Parser ()
 updateLocalPrimDefiniteNoun txts = updateLocal $ primDefiniteNoun %~ (:) txts
 
-updateAtLevelPrimDefiniteNoun :: Int -> [Patt] -> Parser ()
+updateAtLevelPrimDefiniteNoun :: Int -> Pattern -> Parser ()
 updateAtLevelPrimDefiniteNoun k txts = updateAtLevel k $ primDefiniteNoun %~ (:) txts
 
-updatePrimDefiniteNoun :: LocalGlobalFlag -> [Patt] -> Parser ()
+updatePrimDefiniteNoun :: LocalGlobalFlag -> Pattern -> Parser ()
 updatePrimDefiniteNoun b args =
   case b of
     Globally -> updateGlobalPrimDefiniteNoun args
     Locally -> updateLocalPrimDefiniteNoun args
     AtLevel k -> updateAtLevelPrimDefiniteNoun k args
 
-updateGlobalPrimIdentifierTerm :: [Patt] -> Parser ()
+updateGlobalPrimIdentifierTerm :: Pattern -> Parser ()
 updateGlobalPrimIdentifierTerm txts = updateGlobal $ primIdentifierTerm %~ (:) txts
 
-updateGlobalPrimIdentifierTerm2 :: [[Patt]] -> Parser ()
+updateGlobalPrimIdentifierTerm2 :: [Pattern] -> Parser ()
 updateGlobalPrimIdentifierTerm2 txtss = updateGlobal $ primIdentifierTerm %~ (<>) txtss
 
-updateLocalPrimIdentifierTerm :: [Patt] -> Parser ()
+updateLocalPrimIdentifierTerm :: Pattern -> Parser ()
 updateLocalPrimIdentifierTerm txts = updateLocal $ primIdentifierTerm %~ (:) txts
 
-updateAtLevelPrimIdentifierTerm :: Int -> [Patt] -> Parser ()
+updateAtLevelPrimIdentifierTerm :: Int -> Pattern -> Parser ()
 updateAtLevelPrimIdentifierTerm k txts = updateAtLevel k $ primIdentifierTerm %~ (:) txts
 
-updatePrimIdentifierTerm :: LocalGlobalFlag -> [Patt] -> Parser ()
+updatePrimIdentifierTerm :: LocalGlobalFlag -> Pattern -> Parser ()
 updatePrimIdentifierTerm b args =
   case b of
     Globally -> updateGlobalPrimIdentifierTerm args
     Locally -> updateLocalPrimIdentifierTerm args
     AtLevel k -> updateAtLevelPrimIdentifierTerm k args
 
-updateGlobalPrimTermControlSeq :: [Patt] -> Parser ()
+updateGlobalPrimTermControlSeq :: Pattern -> Parser ()
 updateGlobalPrimTermControlSeq txts = updateGlobal $ primTermControlSeq %~ (:) txts
 
-updateGlobalPrimTermControlSeq2 :: [[Patt]] -> Parser ()
+updateGlobalPrimTermControlSeq2 :: [Pattern] -> Parser ()
 updateGlobalPrimTermControlSeq2 txtss = updateGlobal $ primTermControlSeq %~ (<>) txtss
 
-updateLocalPrimTermControlSeq :: [Patt] -> Parser ()
+updateLocalPrimTermControlSeq :: Pattern -> Parser ()
 updateLocalPrimTermControlSeq txts = updateLocal $ primTermControlSeq %~ (:) txts
 
-updateAtLevelPrimTermControlSeq :: Int -> [Patt] -> Parser ()
+updateAtLevelPrimTermControlSeq :: Int -> Pattern -> Parser ()
 updateAtLevelPrimTermControlSeq k txts = updateAtLevel k $ primTermControlSeq %~ (:) txts
 
-updatePrimTermControlSeq :: LocalGlobalFlag -> [Patt] -> Parser ()
+updatePrimTermControlSeq :: LocalGlobalFlag -> Pattern -> Parser ()
 updatePrimTermControlSeq b args =
   case b of
     Globally -> updateGlobalPrimTermControlSeq args
     Locally -> updateLocalPrimTermControlSeq args
     AtLevel k -> updateAtLevelPrimTermControlSeq k args
 
-updateGlobalPrimTermOpControlSeq :: [Patt] -> Parser ()
+updateGlobalPrimTermOpControlSeq :: Pattern -> Parser ()
 updateGlobalPrimTermOpControlSeq txts = updateGlobal $ primTermOpControlSeq %~ (:) txts
 
-updateGlobalPrimTermOpControlSeq2 :: [[Patt]] -> Parser ()
+updateGlobalPrimTermOpControlSeq2 :: [Pattern] -> Parser ()
 updateGlobalPrimTermOpControlSeq2 txtss = updateGlobal $ primTermOpControlSeq %~ (<>) txtss
 
-updateLocalPrimTermOpControlSeq :: [Patt] -> Parser ()
+updateLocalPrimTermOpControlSeq :: Pattern -> Parser ()
 updateLocalPrimTermOpControlSeq txts = updateLocal $ primTermOpControlSeq %~ (:) txts
 
-updateAtLevelPrimTermOpControlSeq :: Int -> [Patt] -> Parser ()
+updateAtLevelPrimTermOpControlSeq :: Int -> Pattern -> Parser ()
 updateAtLevelPrimTermOpControlSeq k txts = updateAtLevel k $ primTermOpControlSeq %~ (:) txts
 
-updatePrimTermOpControlSeq :: LocalGlobalFlag -> [Patt] -> Parser ()
+updatePrimTermOpControlSeq :: LocalGlobalFlag -> Pattern -> Parser ()
 updatePrimTermOpControlSeq b args =
   case b of
     Globally -> updateGlobalPrimTermOpControlSeq args
     Locally -> updateLocalPrimTermOpControlSeq args
     AtLevel k -> updateAtLevelPrimTermOpControlSeq k args
 
--- updateGlobalPrimPrefixFunction :: [Patt] -> Parser ()
+-- updateGlobalPrimPrefixFunction :: Pattern -> Parser ()
 -- updGlobalatePrimPrefixFunction txts = updateLocal $ primPrefixFunction %= (:) txts
--- updateGlobalPrimPrefixFunction2 :: [[Patt]] -> Parser ()
+-- updateGlobalPrimPrefixFunction2 :: [Pattern] -> Parser ()
 -- updGlobalatePrimPrefixFunction2 txtss = updateGlobal $ primPrefixFunction %= (<>) txtss
 
--- updateLocalPrimPrefixFunction :: [Patt] -> Parser ()
+-- updateLocalPrimPrefixFunction :: Pattern -> Parser ()
 -- updateLocalPrimPrefixFunction txts = updateLocal $ primPrefixFunction %~ (:) txts
 
-updateGlobalPrimAdjective :: [Patt] -> Parser ()
+updateGlobalPrimAdjective :: Pattern -> Parser ()
 updateGlobalPrimAdjective txts = updateGlobal $ primAdjective %~ (:) txts
 
-updateGlobalPrimAdjective2 :: [[Patt]] -> Parser ()
+updateGlobalPrimAdjective2 :: [Pattern] -> Parser ()
 updateGlobalPrimAdjective2 txtss = updateGlobal $ primAdjective %~ (<>) txtss
 
-updateLocalPrimAdjective :: [Patt] -> Parser ()
+updateLocalPrimAdjective :: Pattern -> Parser ()
 updateLocalPrimAdjective txts = updateLocal $ primAdjective %~ (:) txts
 
-updateAtLevelPrimAdjective :: Int -> [Patt] -> Parser ()
+updateAtLevelPrimAdjective :: Int -> Pattern -> Parser ()
 updateAtLevelPrimAdjective k txts = updateAtLevel k $ primAdjective %~ (:) txts
 
-updatePrimAdjective :: LocalGlobalFlag -> [Patt] -> Parser ()
+updatePrimAdjective :: LocalGlobalFlag -> Pattern -> Parser ()
 updatePrimAdjective b args =
   case b of
     Globally -> updateGlobalPrimAdjective args
     Locally -> updateLocalPrimAdjective args
     AtLevel k -> updateAtLevelPrimAdjective k args
 
-updateGlobalPrimAdjectiveMultiSubject :: [Patt] -> Parser ()
+updateGlobalPrimAdjectiveMultiSubject :: Pattern -> Parser ()
 updateGlobalPrimAdjectiveMultiSubject txts = updateGlobal $ primAdjectiveMultiSubject %~ (:) txts
 
-updateGlobalPrimAdjectiveMultiSubject2 :: [[Patt]] -> Parser ()
+updateGlobalPrimAdjectiveMultiSubject2 :: [Pattern] -> Parser ()
 updateGlobalPrimAdjectiveMultiSubject2 txtss = updateGlobal $ primAdjectiveMultiSubject %~ (<>) txtss
 
-updateLocalPrimAdjectiveMultiSubject :: [Patt] -> Parser ()
+updateLocalPrimAdjectiveMultiSubject :: Pattern -> Parser ()
 updateLocalPrimAdjectiveMultiSubject txts = updateLocal $ primAdjectiveMultiSubject %~ (:) txts
 
-updateAtLevelPrimAdjectiveMultiSubject :: Int -> [Patt] -> Parser ()
+updateAtLevelPrimAdjectiveMultiSubject :: Int -> Pattern -> Parser ()
 updateAtLevelPrimAdjectiveMultiSubject k txts = updateAtLevel k $ primAdjectiveMultiSubject %~ (:) txts
 
-updatePrimAdjectiveMultiSubject :: LocalGlobalFlag -> [Patt] -> Parser ()
+updatePrimAdjectiveMultiSubject :: LocalGlobalFlag -> Pattern -> Parser ()
 updatePrimAdjectiveMultiSubject b args =
   case b of
     Globally -> updateGlobalPrimAdjectiveMultiSubject args
     Locally -> updateLocalPrimAdjectiveMultiSubject args
     AtLevel k -> updateAtLevelPrimAdjectiveMultiSubject k args
 
-updateGlobalPrimVerb :: [Patt] -> Parser ()
+updateGlobalPrimVerb :: Pattern -> Parser ()
 updateGlobalPrimVerb txts = updateGlobal $ primVerb %~ (:) txts
 
-updateGlobalPrimVerb2 :: [[Patt]] -> Parser ()
+updateGlobalPrimVerb2 :: [Pattern] -> Parser ()
 updateGlobalPrimVerb2 txtss = updateGlobal $ primVerb %~ (<>) txtss
 
-updateLocalPrimVerb :: [Patt] -> Parser ()
+updateLocalPrimVerb :: Pattern -> Parser ()
 updateLocalPrimVerb txts = updateLocal $ primVerb %~ (:) txts
 
-updateAtLevelPrimVerb :: Int -> [Patt] -> Parser ()
+updateAtLevelPrimVerb :: Int -> Pattern -> Parser ()
 updateAtLevelPrimVerb k txts = updateAtLevel k $ primVerb %~ (:) txts
 
-updatePrimVerb :: LocalGlobalFlag -> [Patt] -> Parser ()
+updatePrimVerb :: LocalGlobalFlag -> Pattern -> Parser ()
 updatePrimVerb b args =
   case b of
     Globally -> updateGlobalPrimVerb args
     Locally -> updateLocalPrimVerb args
     AtLevel k -> updateAtLevelPrimVerb k args
 
-updateGlobalPrimVerbMultiSubject :: [Patt] -> Parser ()
+updateGlobalPrimVerbMultiSubject :: Pattern -> Parser ()
 updateGlobalPrimVerbMultiSubject txts = updateGlobal $ primVerbMultiSubject %~ (:) txts
 
-updateGlobalPrimVerbMultiSubject2 :: [[Patt]] -> Parser ()
+updateGlobalPrimVerbMultiSubject2 :: [Pattern] -> Parser ()
 updateGlobalPrimVerbMultiSubject2 txtss = updateGlobal $ primVerbMultiSubject %~ (<>) txtss
 
-updateLocalPrimVerbMultiSubject :: [Patt] -> Parser ()
+updateLocalPrimVerbMultiSubject :: Pattern -> Parser ()
 updateLocalPrimVerbMultiSubject txts = updateLocal $ primVerbMultiSubject %~ (:) txts
 
-updateAtLevelPrimVerbMultiSubject :: Int -> [Patt] -> Parser ()
+updateAtLevelPrimVerbMultiSubject :: Int -> Pattern -> Parser ()
 updateAtLevelPrimVerbMultiSubject k txts = updateAtLevel k $ primVerbMultiSubject %~ (:) txts
 
-updatePrimVerbMultiSubject :: LocalGlobalFlag -> [Patt] -> Parser ()
+updatePrimVerbMultiSubject :: LocalGlobalFlag -> Pattern -> Parser ()
 updatePrimVerbMultiSubject b args =
   case b of
     Globally -> updateGlobalPrimVerbMultiSubject args
     Locally -> updateLocalPrimVerbMultiSubject args
     AtLevel k -> updateAtLevelPrimVerbMultiSubject k args
 
-updateGlobalPrimRelation :: [Patt] -> Parser ()
+updateGlobalPrimRelation :: Pattern -> Parser ()
 updateGlobalPrimRelation txts = updateGlobal $ primRelation %~ (:) txts
 
-updateGlobalPrimRelation2 :: [[Patt]] -> Parser ()
+updateGlobalPrimRelation2 :: [Pattern] -> Parser ()
 updateGlobalPrimRelation2 txtss = updateGlobal $ primRelation %~ (<>) txtss
 
-updateLocalPrimRelation :: [Patt] -> Parser ()
+updateLocalPrimRelation :: Pattern -> Parser ()
 updateLocalPrimRelation txts = updateLocal $ primRelation %~ (:) txts
 
-updateAtLevelPrimRelation :: Int -> [Patt] -> Parser ()
+updateAtLevelPrimRelation :: Int -> Pattern -> Parser ()
 updateAtLevelPrimRelation k txts = updateAtLevel k $ primRelation %~ (:) txts
 
-updatePrimRelation :: LocalGlobalFlag -> [Patt] -> Parser ()
+updatePrimRelation :: LocalGlobalFlag -> Pattern -> Parser ()
 updatePrimRelation b args =
   case b of
     Globally -> updateGlobalPrimRelation args
     Locally -> updateLocalPrimRelation args
     AtLevel k -> updateAtLevelPrimRelation k args
 
-updateGlobalPrimPropositionalOp :: [Patt] -> Parser ()
+updateGlobalPrimPropositionalOp :: Pattern -> Parser ()
 updateGlobalPrimPropositionalOp txts = updateGlobal $ primPropositionalOp %~ (:) txts
 
-updateGlobalPrimPropositionalOp2 :: [[Patt]] -> Parser ()
+updateGlobalPrimPropositionalOp2 :: [Pattern] -> Parser ()
 updateGlobalPrimPropositionalOp2 txtss = updateGlobal $ primPropositionalOp %~ (<>) txtss
 
-updateLocalPrimPropositionalOp :: [Patt] -> Parser ()
+updateLocalPrimPropositionalOp :: Pattern -> Parser ()
 updateLocalPrimPropositionalOp txts = updateLocal $ primPropositionalOp %~ (:) txts
 
-updateAtLevelPrimPropositionalOp :: Int -> [Patt] -> Parser ()
+updateAtLevelPrimPropositionalOp :: Int -> Pattern -> Parser ()
 updateAtLevelPrimPropositionalOp k txts = updateAtLevel k $ primPropositionalOp %~ (:) txts
 
-updatePrimPropositionalOp :: LocalGlobalFlag -> [Patt] -> Parser ()
+updatePrimPropositionalOp :: LocalGlobalFlag -> Pattern -> Parser ()
 updatePrimPropositionalOp b args =
   case b of
     Globally -> updateGlobalPrimPropositionalOp args
     Locally -> updateLocalPrimPropositionalOp args
     AtLevel k -> updateAtLevelPrimPropositionalOp k args
 
-updateGlobalPrimBinaryRelationOp :: [Patt] -> Parser ()
+updateGlobalPrimBinaryRelationOp :: Pattern -> Parser ()
 updateGlobalPrimBinaryRelationOp txts = updateGlobal $ primBinaryRelationOp %~ (:) txts
 
-updateGlobalPrimBinaryRelationOp2 :: [[Patt]] -> Parser ()
+updateGlobalPrimBinaryRelationOp2 :: [Pattern] -> Parser ()
 updateGlobalPrimBinaryRelationOp2 txtss = updateGlobal $ primBinaryRelationOp %~ (<>) txtss
 
-updateLocalPrimBinaryRelationOp :: [Patt] -> Parser ()
+updateLocalPrimBinaryRelationOp :: Pattern -> Parser ()
 updateLocalPrimBinaryRelationOp txts = updateLocal $ primBinaryRelationOp %~ (:) txts
 
-updateAtLevelPrimBinaryRelationOp :: Int -> [Patt] -> Parser ()
+updateAtLevelPrimBinaryRelationOp :: Int -> Pattern -> Parser ()
 updateAtLevelPrimBinaryRelationOp k txts = updateAtLevel k $ primBinaryRelationOp %~ (:) txts
 
-updatePrimBinaryRelationOp :: LocalGlobalFlag -> [Patt] -> Parser ()
+updatePrimBinaryRelationOp :: LocalGlobalFlag -> Pattern -> Parser ()
 updatePrimBinaryRelationOp b args =
   case b of
     Globally -> updateGlobalPrimBinaryRelationOp args
     Locally -> updateLocalPrimBinaryRelationOp args
     AtLevel k -> updateAtLevelPrimBinaryRelationOp k args
 
-updateGlobalPrimBinaryRelationControlSeq :: [Patt] -> Parser ()
+updateGlobalPrimBinaryRelationControlSeq :: Pattern -> Parser ()
 updateGlobalPrimBinaryRelationControlSeq txts = updateGlobal $ primBinaryRelationControlSeq %~ (:) txts
 
-updateGlobalPrimBinaryRelationControlSeq2 :: [[Patt]] -> Parser ()
+updateGlobalPrimBinaryRelationControlSeq2 :: [Pattern] -> Parser ()
 updateGlobalPrimBinaryRelationControlSeq2 txtss = updateGlobal $ primBinaryRelationControlSeq %~ (<>) txtss
 
-updateLocalPrimBinaryRelationControlSeq :: [Patt] -> Parser ()
+updateLocalPrimBinaryRelationControlSeq :: Pattern -> Parser ()
 updateLocalPrimBinaryRelationControlSeq txts = updateLocal $ primBinaryRelationControlSeq %~ (:) txts
 
-updateAtLevelPrimBinaryRelationControlSeq :: Int -> [Patt] -> Parser ()
+updateAtLevelPrimBinaryRelationControlSeq :: Int -> Pattern -> Parser ()
 updateAtLevelPrimBinaryRelationControlSeq k txts = updateAtLevel k $ primBinaryRelationControlSeq %~ (:) txts
 
-updatePrimBinaryRelationControlSeq :: LocalGlobalFlag -> [Patt] -> Parser ()
+updatePrimBinaryRelationControlSeq :: LocalGlobalFlag -> Pattern -> Parser ()
 updatePrimBinaryRelationControlSeq b args =
   case b of
     Globally -> updateGlobalPrimBinaryRelationControlSeq args
     Locally -> updateLocalPrimBinaryRelationControlSeq args
     AtLevel k -> updateAtLevelPrimBinaryRelationControlSeq k args
 
-updateGlobalPrimPropositionalOpControlSeq :: [Patt] -> Parser ()
+updateGlobalPrimPropositionalOpControlSeq :: Pattern -> Parser ()
 updateGlobalPrimPropositionalOpControlSeq txts = updateGlobal $ primPropositionalOpControlSeq %~ (:) txts
 
-updateGlobalPrimPropositionalOpControlSeq2 :: [[Patt]] -> Parser ()
+updateGlobalPrimPropositionalOpControlSeq2 :: [Pattern] -> Parser ()
 updateGlobalPrimPropositionalOpControlSeq2 txtss = updateGlobal $ primPropositionalOpControlSeq %~ (<>) txtss
 
-updateLocalPrimPropositionalOpControlSeq :: [Patt] -> Parser ()
+updateLocalPrimPropositionalOpControlSeq :: Pattern -> Parser ()
 updateLocalPrimPropositionalOpControlSeq txts = updateLocal $ primPropositionalOpControlSeq %~ (:) txts
 
-updateAtLevelPrimPropositionalOpControlSeq :: Int -> [Patt] -> Parser ()
+updateAtLevelPrimPropositionalOpControlSeq :: Int -> Pattern -> Parser ()
 updateAtLevelPrimPropositionalOpControlSeq k txts = updateAtLevel k $ primPropositionalOpControlSeq %~ (:) txts
 
-updatePrimPropositionalOpControlSeq :: LocalGlobalFlag -> [Patt] -> Parser ()
+updatePrimPropositionalOpControlSeq :: LocalGlobalFlag -> Pattern -> Parser ()
 updatePrimPropositionalOpControlSeq b args =
   case b of
     Globally -> updateGlobalPrimPropositionalOpControlSeq args
     Locally -> updateLocalPrimPropositionalOpControlSeq args
     AtLevel k -> updateAtLevelPrimPropositionalOpControlSeq k args
 
-updateGlobalPrimIdentifierType :: [Patt] -> Parser ()
+updateGlobalPrimIdentifierType :: Pattern -> Parser ()
 updateGlobalPrimIdentifierType txts = updateGlobal $ primPropositionalOpControlSeq %~ (:) txts
 
-updateGlobalPrimIdentifierType2 :: [[Patt]] -> Parser ()
+updateGlobalPrimIdentifierType2 :: [Pattern] -> Parser ()
 updateGlobalPrimIdentifierType2 txtss = updateGlobal $ primPropositionalOpControlSeq %~ (<>) txtss
 
-updateLocalPrimIdentifierType :: [Patt] -> Parser ()
+updateLocalPrimIdentifierType :: Pattern -> Parser ()
 updateLocalPrimIdentifierType txts = updateLocal $ primPropositionalOpControlSeq %~ (:) txts
 
-updateAtLevelPrimIdentifierType :: Int -> [Patt] -> Parser ()
+updateAtLevelPrimIdentifierType :: Int -> Pattern -> Parser ()
 updateAtLevelPrimIdentifierType k txts = updateAtLevel k $ primIdentifierType %~ (:) txts
 
-updatePrimIdentifierType :: LocalGlobalFlag -> [Patt] -> Parser ()
+updatePrimIdentifierType :: LocalGlobalFlag -> Pattern -> Parser ()
 updatePrimIdentifierType b args =
   case b of
     Globally -> updateGlobalPrimIdentifierType args
     Locally -> updateLocalPrimIdentifierType args
     AtLevel k -> updateAtLevelPrimIdentifierType k args
 
-updateGlobalPrimTypeOp :: [Patt] -> Parser ()
+updateGlobalPrimTypeOp :: Pattern -> Parser ()
 updateGlobalPrimTypeOp txts = updateGlobal $ primPropositionalOpControlSeq %~ (:) txts
 
-updateGlobalPrimTypeOp2 :: [[Patt]] -> Parser ()
+updateGlobalPrimTypeOp2 :: [Pattern] -> Parser ()
 updateGlobalPrimTypeOp2 txtss = updateGlobal $ primPropositionalOpControlSeq %~ (<>) txtss
 
-updateLocalPrimTypeOp :: [Patt] -> Parser ()
+updateLocalPrimTypeOp :: Pattern -> Parser ()
 updateLocalPrimTypeOp txts = updateLocal $ primPropositionalOpControlSeq %~ (:) txts
 
-updateAtLevelPrimTypeOp :: Int -> [Patt] -> Parser ()
+updateAtLevelPrimTypeOp :: Int -> Pattern -> Parser ()
 updateAtLevelPrimTypeOp k txts = updateAtLevel k $ primTypeOp %~ (:) txts
 
-updatePrimTypeOp :: LocalGlobalFlag -> [Patt] -> Parser ()
+updatePrimTypeOp :: LocalGlobalFlag -> Pattern -> Parser ()
 updatePrimTypeOp b args =
   case b of
     Globally -> updateGlobalPrimTypeOp args
     Locally -> updateLocalPrimTypeOp args
     AtLevel k -> updateAtLevelPrimTypeOp k args
 
-updateGlobalPrimTypeOpControlSeq :: [Patt] -> Parser ()
+updateGlobalPrimTypeOpControlSeq :: Pattern -> Parser ()
 updateGlobalPrimTypeOpControlSeq txts = updateGlobal $ primPropositionalOpControlSeq %~ (:) txts
 
-updateGlobalPrimTypeOpControlSeq2 :: [[Patt]] -> Parser ()
+updateGlobalPrimTypeOpControlSeq2 :: [Pattern] -> Parser ()
 updateGlobalPrimTypeOpControlSeq2 txtss = updateGlobal $ primPropositionalOpControlSeq %~ (<>) txtss
 
-updateLocalPrimTypeOpControlSeq :: [Patt] -> Parser ()
+updateLocalPrimTypeOpControlSeq :: Pattern -> Parser ()
 updateLocalPrimTypeOpControlSeq txts = updateLocal $ primPropositionalOpControlSeq %~ (:) txts
 
-updateAtLevelPrimTypeOpControlSeq :: Int -> [Patt] -> Parser ()
+updateAtLevelPrimTypeOpControlSeq :: Int -> Pattern -> Parser ()
 updateAtLevelPrimTypeOpControlSeq k txts = updateAtLevel k $ primTypeOpControlSeq %~ (:) txts
 
-updatePrimTypeOpControlSeq :: LocalGlobalFlag -> [Patt] -> Parser ()
+updatePrimTypeOpControlSeq :: LocalGlobalFlag -> Pattern -> Parser ()
 updatePrimTypeOpControlSeq b args =
   case b of
     Globally -> updateGlobalPrimTypeOpControlSeq args
     Locally -> updateLocalPrimTypeOpControlSeq args
     AtLevel k -> updateAtLevelPrimTypeOpControlSeq k args
 
-updateGlobalPrimTypeControlSeq :: [Patt] -> Parser ()
+updateGlobalPrimTypeControlSeq :: Pattern -> Parser ()
 updateGlobalPrimTypeControlSeq txts = updateGlobal $ primPropositionalOpControlSeq %~ (:) txts
 
-updateGlobalPrimTypeControlSeq2 :: [[Patt]] -> Parser ()
+updateGlobalPrimTypeControlSeq2 :: [Pattern] -> Parser ()
 updateGlobalPrimTypeControlSeq2 txtss = updateGlobal $ primPropositionalOpControlSeq %~ (<>) txtss
 
-updateLocalPrimTypeControlSeq :: [Patt] -> Parser ()
+updateLocalPrimTypeControlSeq :: Pattern -> Parser ()
 updateLocalPrimTypeControlSeq txts = updateLocal $ primPropositionalOpControlSeq %~ (:) txts
 
-updateAtLevelPrimTypeControlSeq :: Int -> [Patt] -> Parser ()
+updateAtLevelPrimTypeControlSeq :: Int -> Pattern -> Parser ()
 updateAtLevelPrimTypeControlSeq k txts = updateAtLevel k $ primTypeControlSeq %~ (:) txts
 
-updatePrimTypeControlSeq :: LocalGlobalFlag -> [Patt] -> Parser ()
+updatePrimTypeControlSeq :: LocalGlobalFlag -> Pattern -> Parser ()
 updatePrimTypeControlSeq b args =
   case b of
     Globally -> updateGlobalPrimTypeControlSeq args

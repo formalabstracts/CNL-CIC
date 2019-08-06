@@ -42,7 +42,6 @@ parseMacro = do
       case mis of
         Nothing -> parseMacro_aux (Just (InSection 0)) asms mbs -- if no level is given, then automatically modify global state
         (Just (InSection k)) -> registerMacroBodies asms mbs (AtLevel k) -- TODO(jesse): finish this
-      
 
 newtype InSection = InSection Int
   deriving (Show, Eq)
@@ -58,6 +57,9 @@ parseAssuming = Assuming <$> (parseLit "assuming" *> (option $ parseLit "that") 
 
 data MacroBodies = MacroBodies MacroBody [MacroBody]
   deriving (Show, Eq)
+
+registerMacroBodies :: [Assuming] -> MacroBodies -> LocalGlobalFlag -> Parser ()
+registerMacroBodies asms mbs lgflag = empty -- TODO(jesse): fix this
 
 parseMacroBodies :: Parser MacroBodies
 parseMacroBodies =

@@ -8,6 +8,8 @@ Parser state.
 
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+
 module CNLean.Basic.State where
 
 import Prelude
@@ -22,8 +24,21 @@ import Control.Monad (guard)
 import qualified Data.Char as C
 import qualified Text.Megaparsec.Char.Lexer as L
 
+import Control.Lens
+import Control.Lens.TH
+
 data Patt = Wd [Text] | Sm Text | Vr | Nm | CSeq Text [Patt]
             deriving (Eq, Show, Ord)
+
+data Pattern =
+    Patts {_patts :: [Patt]}
+  | MacroPatts {_patts :: [Patt]}
+  deriving (Show, Eq, Ord)
+
+$(makeLenses ''Pattern)
+
+instance Semigroup Pattern where
+  (<>) patt1 patt2 = Patts $ patt1^.patts <> patt2^.patts
 
 -- wrapper datatype for parsing phrase lists (and extending the parser in general)
 -- J stands for "Just", Q stands for question mark (as in postfix question mark)
@@ -50,24 +65,24 @@ defaultAssociativeParity = AssociatesLeft
 -- - change underlying state of Parser from FState to a "state stack" [FState].
 -- - additionally parametrize all fields by an extra natural number for scope. insert checks when parsing patterns to ignore patterns outside of scope. When entering new scopes, sanitize state fields of items with a forbidden scope.
 data FState = FState { 
-  _primAdjective,        _primAdjectiveMultiSubject,   _primSimpleAdjective, _primSimpleAdjectiveMultiSubject :: [[Patt]],
-  _primDefiniteNoun,     _primPossessedNoun :: [[Patt]],
-  _primVerb,             _primVerbMultiSubject :: [[Patt]],
-  _primTermOp,           _primTermOpControlSeq,        _primTermControlSeq :: [[Patt]],
-  _primTypeOp,           _primTypeOpControlSeq,        _primTypeControlSeq :: [[Patt]],
-  _primLambdaBinder,     _primPiBinder,                _primBinderProp :: [[Patt]],
-  _primBinaryRelationOp, _primBinaryRelationControlSeq :: [[Patt]],
-  _primPropositionalOp,  _primPropositionalOpControlSeq :: [[Patt]],
-  _primRelation :: [[Patt]],
-  -- _primPrefixFunction :: [[Patt]],
-  _primIdentifierTerm :: [[Patt]],
-  _primIdentifierType :: [[Patt]],
-  _primTypedName :: [[Patt]],
-  _primFreePredicate :: [[Patt]],
+  _primAdjective,        _primAdjectiveMultiSubject,   _primSimpleAdjective, _primSimpleAdjectiveMultiSubject :: [Pattern],
+  _primDefiniteNoun,     _primPossessedNoun :: [Pattern],
+  _primVerb,             _primVerbMultiSubject :: [Pattern],
+  _primTermOp,           _primTermOpControlSeq,        _primTermControlSeq :: [Pattern],
+  _primTypeOp,           _primTypeOpControlSeq,        _primTypeControlSeq :: [Pattern],
+  _primLambdaBinder,     _primPiBinder,                _primBinderProp :: [Pattern],
+  _primBinaryRelationOp, _primBinaryRelationControlSeq :: [Pattern],
+  _primPropositionalOp,  _primPropositionalOpControlSeq :: [Pattern],
+  _primRelation :: [Pattern],
+  -- _primPrefixFunction :: [Pattern],
+  _primIdentifierTerm :: [Pattern],
+  _primIdentifierType :: [Pattern],
+  _primTypedName :: [Pattern],
+  _primFreePredicate :: [Pattern],
   _primPhraseListFiller :: [[ParserMarkUp Text]],
   _primPhraseListProofStatement :: [[ParserMarkUp Text]],
   _primPhraseListTransition :: [[ParserMarkUp Text]],
-  _primPrecTable :: M.Map [Patt] (Int, AssociativeParity),
+  _primPrecTable :: M.Map Pattern (Int, AssociativeParity),
   -- tvrExpr :: [TVar] -- TODO(jesse) integrate this later
   _strSyms :: [[Text]], _varDecl :: [Text], _clsList :: [[Text]],
   _idCount :: Int, _hiddenCount :: Int, _serialCounter :: Int}
@@ -166,8 +181,8 @@ initialFState = FState
   [] [] clsL0
   0 0 0
   where
-  primAdjective0 = [[Wd ["positive"]]]
-  primDefiniteNoun0 = [[Wd ["zero"]], [Wd ["one"]]]
+  primAdjective0 = [Patts [Wd ["positive"]]]
+  primDefiniteNoun0 = [Patts [Wd ["zero"]], Patts [Wd ["one"]]]
   -- adjE0 []    ntnE0 sntE0
   -- cfnE0 rfnE0 []    []
   -- []    []    []    iprE0
