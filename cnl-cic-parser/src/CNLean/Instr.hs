@@ -65,26 +65,12 @@ parseInstructSynonym = with_result (parse_synonym_main) m
         parseToken >>= rest . pure
           where
             rest :: [Token] -> Parser [Token]
-            rest syms = case (last syms) of -- note from Simon: maybe use let instead of case
+            rest syms = case (last syms) of
               Token txt ->
                 (parseInstructSepPlural *> (rest $ syms <> [Token $ txt <> "s"])) <||>
                 (parseInstructSep *> parseToken >>= \x -> (rest $ syms <> [x])) <||>
                 return syms
     m = updateGlobalStrSyms . (\(InstructSynonym y) -> (map tokenToText y))
-
--- test parseInstructSynonym "[synonym set/-s/basket/-s/ensemble/ensembles]"
-
--- parseInstructSynonym :: Parser InstructSynonym
--- parseInstructSynonym = with_result (parse_synonym_main) $
---   updateStrSyms . (\x -> case x of InstructSynonym y -> (map tokenToText y))
---   where
---     parse_synonym_main = InstructSynonym <$>
---       ((bracket $ (parseLit "synonyms" <||> parseLit "synonym") *> do
---           tk@(Token txt) <- parseToken <* parseInstructSepPlural
---           return [tk, Token (txt <> "s")]) <||>
---       (bracket $ (parseLit "synonyms" <||> parseLit "synonym") *> (sepby1 parseToken parseInstructSep)))
-
--- test parseInstructSynonym "[synonym set/-s]"
 
 -- TODO(jesse): allow parsing of arbitrary postfixes after parsing a "/-"
 data InstructSepPlural = InstructSepPlural

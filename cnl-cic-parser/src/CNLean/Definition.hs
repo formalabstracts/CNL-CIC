@@ -126,35 +126,35 @@ registerPrimAdjective :: PredicateDef -> Parser () -- (* from adjective_pattern 
 registerPrimAdjective pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadPredicateTokenPattern (PredicateTokenPatternAdjectivePattern adjpatt))
-      -> patternOfPredicateDef pd >>= updatePrimAdjective
+      -> patternOfPredicateDef pd >>= updatePrimAdjective Globally
     _ -> empty
 
 registerPrimAdjectiveMultiSubject :: PredicateDef -> Parser () --  (* from adjective_multisubject_pattern *)
 registerPrimAdjectiveMultiSubject pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadPredicateTokenPattern (PredicateTokenPatternAdjectiveMultiSubjectPattern adjpatt))
-      -> patternOfPredicateDef pd >>= updatePrimAdjectiveMultiSubject
+      -> patternOfPredicateDef pd >>= updatePrimAdjectiveMultiSubject Globally
     _ -> empty
 
 registerPrimVerb :: PredicateDef -> Parser () --  (* from verb_pattern *)
 registerPrimVerb pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadPredicateTokenPattern (PredicateTokenPatternVerbPattern adjpatt))
-      -> patternOfPredicateDef pd >>= updatePrimVerb
+      -> patternOfPredicateDef pd >>= updatePrimVerb Globally
     _ -> empty
 
 registerPrimVerbMultiSubject :: PredicateDef -> Parser () --  (* from verb_multiset_pattern *)
 registerPrimVerbMultiSubject pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadPredicateTokenPattern (PredicateTokenPatternVerbMultiSubjectPattern adjpatt))
-      -> patternOfPredicateDef pd >>= updatePrimVerbMultiSubject
+      -> patternOfPredicateDef pd >>= updatePrimVerbMultiSubject Globally
     _ -> empty
 
 registerPrimRelation :: PredicateDef -> Parser () --  (* from predicate_def.identifier_pattern *)
 registerPrimRelation pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadIdentifierPattern idpatt)
-      -> patternOfPredicateDef pd >>= updatePrimRelation
+      -> patternOfPredicateDef pd >>= updatePrimRelation Globally
     _ -> empty
 
 registerPrimPropositionalOp :: PredicateDef -> Parser () --  (* from predicate_def.symbol_pattern, with prec < 0 *)
@@ -162,7 +162,7 @@ registerPrimPropositionalOp pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadSymbolPattern (SymbolPattern mtv1 slc vs mtv2) mpl)
       -> do b <- isNegativePrecedence mpl
-            if b then patternOfPredicateDef pd >>= updatePrimPropositionalOp
+            if b then patternOfPredicateDef pd >>= updatePrimPropositionalOp Globally
                  else empty
     _ -> empty
 
@@ -171,7 +171,7 @@ registerPrimBinaryRelationOp pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl)
       -> do b <- (|| isNothing mpl) <$> (isZeroPrecedence mpl)
-            if b && (isBinarySymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimBinaryRelationOp
+            if b && (isBinarySymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimBinaryRelationOp Globally
                  else empty
     _ -> empty
     
@@ -181,7 +181,7 @@ registerPrimBinaryRelationControlSeq pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl)
       -> do b <- (|| isNothing mpl) <$> (isZeroPrecedence mpl)
-            if b && (isBinaryControlSeqSymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimBinaryRelationControlSeq
+            if b && (isBinaryControlSeqSymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimBinaryRelationControlSeq Globally
                  else empty
     _ -> empty
 
@@ -190,7 +190,7 @@ registerPrimPropositionalOpControlSeq pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl)
       -> do b <- (isNegativePrecedence mpl)
-            if b && (isBinaryControlSeqSymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimPropositionalOpControlSeq
+            if b && (isBinaryControlSeqSymbolPattern sympatt) then patternOfPredicateDef pd >>= updatePrimPropositionalOpControlSeq Globally
                  else empty
     _ -> empty
 
@@ -373,13 +373,13 @@ registerPrimDefiniteNoun :: FunctionDef -> Parser ()
 registerPrimDefiniteNoun fd@(FunctionDef fh c pt) =
   case fh of
     (FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt)) ->
-      patternOfTokenPattern tkpatt >>= updatePrimDefiniteNoun
+      patternOfTokenPattern tkpatt >>= updatePrimDefiniteNoun Globally
     _ -> empty
 
 registerPrimIdentifierTerm :: FunctionDef -> Parser ()
 registerPrimIdentifierTerm fd@(FunctionDef fh c pt) =
   case fh of
-    (FunctionHeadIdentifierPattern idpatt) -> patternOfIdentifierPattern idpatt >>= updatePrimIdentifierTerm
+    (FunctionHeadIdentifierPattern idpatt) -> patternOfIdentifierPattern idpatt >>= updatePrimIdentifierTerm Globally
     _ -> empty
 
 -- registerPrimPrefixFunction :: FunctionDef -> Parser ()
@@ -388,7 +388,7 @@ registerPrimIdentifierTerm fd@(FunctionDef fh c pt) =
 --     (FunctionHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl) ->
 --       case mtv1 of
 --         Nothing -> if (isCSBrace slc) || (vs /= []) || (isNothing mtv2) then empty
---           else patternOfSymbolPattern sympatt >>= updatePrimPrefixFunction
+--           else patternOfSymbolPattern sympatt >>= updatePrimPrefixFunction Globally
 --         _ -> empty
 --     _ -> empty
               
@@ -399,7 +399,7 @@ registerPrimTermOpControlSeq fd@(FunctionDef fh c pt) =
     (FunctionHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl) ->
       if (isBinaryControlSeqSymbolPattern sympatt)
          then do {b <- isPositivePrecedence mpl;
-                  if b then patternOfSymbolPattern sympatt >>= updatePrimTermOpControlSeq else empty}
+                  if b then patternOfSymbolPattern sympatt >>= updatePrimTermOpControlSeq Globally else empty} 
          else empty
     _ -> empty
     
@@ -410,7 +410,7 @@ registerPrimTermControlSeq fd@(FunctionDef fh c pt) =
     (FunctionHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl) ->
       if (isCSBrace slc)
          then case mpl of
-                Nothing -> patternOfSymbolPattern sympatt >>= updatePrimTermControlSeq
+                Nothing -> patternOfSymbolPattern sympatt >>= updatePrimTermControlSeq Globally
                 _ -> empty
          else empty
     _ -> empty
@@ -436,12 +436,12 @@ parseFunctionDef = with_any_result parse_function_def_main side_effects
   --  do
   -- functiondef@(FunctionDef functionhead _ _) <- parse_function_def_main
   -- case functionhead of
-  --   FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt) -> (patternOfFunctionDef functiondef >>= updatePrimDefiniteNoun) *> return functiondef
-  --   FunctionHeadIdentifierPattern idpatt -> (patternOfFunctionDef functiondef >>= updatePrimIdentifierTerm) *> return functiondef
+  --   FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt) -> (patternOfFunctionDef functiondef >>= updatePrimDefiniteNoun) *> return functiondef Globally
+  --   FunctionHeadIdentifierPattern idpatt -> (patternOfFunctionDef functiondef >>= updatePrimIdentifierTerm) *> return functiondef Globally
   --   FunctionHeadSymbolPattern sympatt mpl ->
   --     (do ptt <- patternOfFunctionDef functiondef
-  --         updatePrimTermControlSeq ptt
-  --         (precOfFunctionDef functiondef >>= (uncurry $ updatePrimPrecTable ptt))) *>
+  --         updatePrimTermControlSeq ptt Globally
+  --         (precOfFunctionDef functiondef >>= (uncurry $ updatePrimPrecTable ptt))) *> Globally
   --         return functiondef
   -- where
   --   parse_function_def_main = FunctionDef <$> (parseOptDefine *> parseFunctionHead) <*>
@@ -531,7 +531,7 @@ patternOfTypeDef (TypeDef th cpla gtp) = patternOfTypeHead th
 registerPrimIdentifierType :: TypeDef -> Parser () --  (* from type_def *) all identifiers that are types
 registerPrimIdentifierType td@(TypeDef th cpla gtp) =
   case th of
-    (TypeHeadIdentifierPattern idpatt) -> patternOfTypeDef td >>= updatePrimIdentifierType
+    (TypeHeadIdentifierPattern idpatt) -> patternOfTypeDef td >>= updatePrimIdentifierType Globally
     _ -> empty
 
 registerPrimTypeOp :: TypeDef -> Parser () --  (* from type_def, when infix with precedence (from tokenpattern)*)
@@ -539,20 +539,20 @@ registerPrimTypeOp td@(TypeDef th cpla gtp) =
   case th of
     (TypeHeadTypeTokenPattern (TypeTokenPattern tkpatt)) ->
       if isBinaryTokenPattern tkpatt
-        then patternOfTypeDef td >>= updatePrimTypeOp
+        then patternOfTypeDef td >>= updatePrimTypeOp Globally
         else empty
     _ -> empty
 
 registerPrimTypeOpControlSeq :: TypeDef -> Parser ()
 registerPrimTypeOpControlSeq pd@(TypeDef th cpla gtp) =
   case th of
-    (TypeHeadControlSeqPattern cseqpatt) -> patternOfControlSeqPattern cseqpatt >>= updatePrimTypeOpControlSeq
+    (TypeHeadControlSeqPattern cseqpatt) -> patternOfControlSeqPattern cseqpatt >>= updatePrimTypeOpControlSeq Globally
     _ -> empty
 
 registerPrimTypeControlSeq :: TypeDef -> Parser ()
 registerPrimTypeControlSeq pd@(TypeDef th cpla gtp) =
   case th of
-    (TypeHeadBinaryControlSeqPattern bcseqpatt) -> patternOfBinaryControlSeqPattern bcseqpatt >>= updatePrimTypeControlSeq
+    (TypeHeadBinaryControlSeqPattern bcseqpatt) -> patternOfBinaryControlSeqPattern bcseqpatt >>= updatePrimTypeControlSeq Globally
     _ -> empty
 
 parseTypeDef :: Parser TypeDef
@@ -753,9 +753,10 @@ parseClassTokens = ClassTokens <$> sepby1 (many1' ((notFollowedBy (parseLitIs <*
 parseClassifierDef =
   ClassifierDef <$>
   (do ctkss@(ClassTokens tkss) <- (parseLit "let" *>  parseClassTokens <* parseLitIs <* option parseLitA <* parseLitClassifier)
-      updateClsList2 (map (liftM tokenToText) tkss)
+      updateGlobalClsList2 (map (liftM tokenToText) tkss)
       return $ ctkss)
 
 -- test parseClassifierDef "let scheme, schemes, stacks be classifiers"
 -- test (parseClassifierDef *> (use $ top.clsList)) "let scheme, schemes, stacks, derived stacks be classifiers"
 -- test parseClassifierDef "let lattice be a classifier"
+

@@ -46,6 +46,9 @@ parseSectionPreamble =
 newtype SectionTag = SectionTag [Text]
   deriving (Show, Eq)
 
+parseSectionTag :: Parser SectionTag
+parseSectionTag = SectionTag <$> parseLitDocument
+
 parseSectionTag_aux :: Parser (SectionTag, Int)
 parseSectionTag_aux =
   (_1 %~ SectionTag) <$> parseLitDocument_aux
