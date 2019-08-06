@@ -1007,10 +1007,22 @@ patternOfRequiredArg reqarg = case reqarg of
   RequiredArgAnnotated voas mct -> (patternOfList patternOfVarOrAtomic voas)
   RequiredArgVarOrAtomic voa -> patternOfVarOrAtomic voa
 
+data Copula =
+    CopulaIsDefinedAs
+  | CopulaAssign
+  | CopulaDenote
+  deriving (Show, Eq)
+
+parseCopula :: Parser Copula
+parseCopula =
+  parseLitIs *> (option parseLitDefinedAs) *> return CopulaIsDefinedAs <||>
+  parseAssign *> return CopulaAssign <||>
+  parseLitDenote *> return CopulaDenote
+  
 parseRequiredArg :: Parser RequiredArg
 parseRequiredArg =
-  (paren $ RequiredArgAnnotated <$> (many1' parseVarOrAtomic) <*> option parseColonType )<||>
-  RequiredArgVarOrAtomic <$> parseVarOrAtomic
+  (paren $ RequiredArgAnnotated <$> (many1' (fail_iff_succeeds (lookAhead' parseCopula) *> parseVarOrAtomic)) <*> option parseColonType )<||>
+  RequiredArgVarOrAtomic <$> (fail_iff_succeeds (lookAhead' parseCopula) *> parseVarOrAtomic)
   
 data CSBrace a = CSBrace a [TVar]
   deriving (Show, Eq)

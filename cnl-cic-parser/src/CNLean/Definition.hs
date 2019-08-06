@@ -46,7 +46,7 @@ parseDefinition :: Parser Definition
 parseDefinition =
   with_any_result parse_definition_main side_effects
   where
-    parse_definition_main = Definition <$> parseDefinitionPreamble <*> (many' parseAssumption) <*> parseDefinitionAffirm
+    parse_definition_main = Definition <$> parseDefinitionPreamble <*> (many' parseAssumption) <*> parseDefinitionAffirm -- no period in Definition production rule
 
     side_effects = [registerDefinition]
 
@@ -620,8 +620,8 @@ data FunctionHead =
 
 parseFunctionHead :: Parser FunctionHead
 parseFunctionHead =
-  FunctionHeadIdentifierPattern <$> parseIdentifierPattern <||>
   FunctionHeadFunctionTokenPattern <$> parseFunctionTokenPattern <||>
+  FunctionHeadIdentifierPattern <$> parseIdentifierPattern <||>
   FunctionHeadSymbolPattern <$> parseSymbolPattern <*> (option parseParenPrecedenceLevel)
   --  <||>
   -- FunctionHeadControlSeqPattern <$> parseControlSeqPattern <||>
@@ -830,18 +830,6 @@ patternOfTokenPattern tkPatt@(TokenPattern (Tokens tks) tvstkss mtvar) = Patts <
                  return $ (map (Wd . tokenToText'_aux strsyms) tks) <>
                      concat (map (\(tv,tks) -> Vr : map (Wd . pure . tokenToText) (tokensToTokens tks)) tvstkss) )
             <*> ((unoption $ return mtvar) *> return [Vr] <||> return []))
-
-data Copula =
-    CopulaIsDefinedAs
-  | CopulaAssign
-  | CopulaDenote
-  deriving (Show, Eq)
-
-parseCopula :: Parser Copula
-parseCopula =
-  parseLitIs *> (option parseLitDefinedAs) *> return CopulaIsDefinedAs <||>
-  parseAssign *> return CopulaAssign <||>
-  parseLitDenote *> return CopulaDenote
 
 data IdentifierPattern =
     IdentifierPattern Identifier Args (Maybe ColonType)

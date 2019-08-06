@@ -26,10 +26,17 @@ import Control.Lens
 
 import CNLean.Basic.Basic
 import CNLean.Core
+import CNLean.Type
+import CNLean.Definition
+import CNLean.Axiom
+import CNLean.Theorem
+import CNLean.Macro
 
 -- note: the state, and all stateful side-effects, backtracks if the nearest parser fails in the orelse combinator:
 -- test ((updateStrSyms Globally ["foo"] *> (use $ top . strSyms) *> empty) <||> (updateStrSyms Globally ["bar"] *> (use $ top . strSyms))) "foo"
 
 -- test (use (allStates idCount)) "foo"
 
--- TODO(jesse): reimplement tests
+-- test parseDefinition "Definition The_Riemann_zeta_function. The riemann zeta function of x is zero. This exists and is well-defined."
+
+-- test parseAxiom "Axiom The_riemann_hypothesis. Zero is not positive."
