@@ -17,12 +17,14 @@ type token =
    | Natural of int
    | Numeric of string
    | Eol
+   | Par 
+   | Comment
    | Input of string
    | ControlSeq of string
    | BeginSeq of string
    | EndSeq of string
    | BeginCnl
-   | EndCnl 
+   | EndCnl
    | Arg of int
    | LParen
    | RParen
@@ -32,16 +34,20 @@ type token =
    | RBrace
    | LDisplay
    | RDisplay
-   | Display 
+   | Display
    | Dollar
    | Sub
    | Comma
    | Semi
    | FormatEol 
    | FormatCol 
+   | Label of string
    | Tok of string
    | Symbol of string
+   | Error of string
+   | Warn of string 
    | Eof
+   | Ignore
    | NotImplemented;;
 
 
@@ -71,6 +77,7 @@ let token_to_string = function
   | Tok s -> s
   | Symbol s -> s
   | Eof -> "EOF"
+  | Eol -> "EOL"
   | NotImplemented -> "NotImplemented"
   | _ -> "";;
 
@@ -142,12 +149,6 @@ let sub = [%sedlex.regexp? '_']
 
 let symbol = [%sedlex.regexp? punct | '|' | '<' | '>' | '^' | '+' | '-' | '=' | '/' | '*']
 
-(* this is to allow mathfonts to create new variables \mathcal{C}, etc. *)
-(* Deprecated.
-   let mathfont_id = [%sedlex.regexp? "\\math", Star(alphabet), 
-                   lbrace, alphabet, Star(alphanum), rbrace, Star(alphanum) ]
- *)
-
 let accent_char = [%sedlex.regexp? '\'' | '`' | '^' | '"' | '~' | '=' | '.']
 
 let accent_letter = [%sedlex.regexp? 'c' | 'v' | 'u' | 'H']
@@ -207,7 +208,7 @@ let test = strip_to_brace "begin { hello } ";;
 let rec lex_token buf = 
  match%sedlex buf with 
  | Plus(white) -> (lex_token buf)
- | comment -> (lex_token buf)
+ | comment -> Comment 
   | natural_number -> Natural(int_of_string(string_lexeme buf)) 
     | numeric -> Numeric(string_lexeme buf)
     | eol -> Eol
@@ -240,15 +241,26 @@ let rec lex_token buf =
     | any -> NotImplemented
     | _ -> failwith (string_lexeme buf)
 
+let rec lex_tokens acc buf = 
+  let t = lex_token buf in 
+  if (t = Eof) then List.rev (Eol :: acc) 
+  else lex_tokens (t:: acc) buf
 
+let lex_string s : token list = 
+  let buf = Sedlexing.Latin1.from_string s in 
+  lex_tokens [] buf;;
+
+List.map print_endline (List.map token_to_string (lex_string "A B C hello\\alpha33[1]there !ready! \\begin{ cnl } Riemann-Hilbert Poincar\\\'e {\\ae} { \\ae} (xx) \\input{file} \\mathfrak{C}33 [$] {yy} %comment \n more #4 # 5  $ ))))))))"));;
               
 (* testing stuff *)
 
+(*
 let buf_example1 = Sedlexing.Latin1.from_string
                "hello\\alpha33[1]there !ready! \\begin{ cnl } Riemann-Hilbert Poincar\\\'e {\\ae} { \\ae} (xx) \\input{file} \\mathfrak{C}33 [$] {yy} %comment \n more #4 # 5  $ ))))))))"
 
 let ff = fun () -> print_endline(token_to_string(lex_token buf_example1));;
 
 BatList.map ff (BatList.init 30 (fun _ -> ()));;
+*)
 
 

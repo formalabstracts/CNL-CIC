@@ -1,52 +1,5 @@
-(* issues *)
-
- (*
-   - \input implementation 
-   - make a record for I/O, when a new file is opened push the stack. 
-     filename, tokenized-input, input-buffer, output-buffer, 
-     file handles. flush command, open/close commands. 
-
-   - process_document 
-   - process_environment
-   - \begin{cnl} \end{cnl}, seek_cnl (no matching)
-  *)
-
 (* types *)
-type token = 
-   | Natural of int
-   | Numeric of string
-   | Eol
-   | Par 
-   | Input of string
-   | ControlSeq of string
-   | BeginSeq of string
-   | EndSeq of string
-   | BeginCnl
-   | EndCnl
-   | Arg of int
-   | LParen
-   | RParen
-   | LBrack
-   | RBrack
-   | LBrace
-   | RBrace
-   | LDisplay
-   | RDisplay
-   | Display
-   | Dollar
-   | Sub
-   | Comma
-   | Semi
-   | FormatEol 
-   | FormatCol 
-   | Label of string
-   | Tok of string
-   | Symbol of string
-   | Error of string
-   | Warn of string 
-   | Eof
-   | Ignore
-   | NotImplemented;;
+
 
 (* string operations *)
 let token_to_string = function
@@ -54,6 +7,7 @@ let token_to_string = function
   | Numeric s -> s
   | Eol -> "\n"
   | Par -> ""
+  | Comment -> ""
   | Input s -> "\\input{"^s ^"}"
   | ControlSeq s -> "\\"^s
   | BeginSeq s -> "\\begin{"^s^"}"
@@ -149,14 +103,6 @@ let id_fun x = x;;
 (* I/O output *)
 
 
-type io_channels = 
-  {
-    infile : string;
-    outfile : string;
-    mutable intoks : token list ;
-    outc : out_channel;
-  };;
-
 let mk_outfile s = 
   (Filename.remove_extension s)^".cnl";;
 
@@ -174,11 +120,7 @@ let read_lines name : string list =
     | None -> close_in ic; List.rev acc in
   loop [];;
 
-(*
-let read_tokens f s = (* XX assume f terminates each token list with a Eol *)
- *)
-
-let mk_iochannels f s =
+let mk_iochannels f s = (* f should terminate lines with Eol *)
 let infile = mk_infile s in
 let outfile = mk_outfile s in
 let rs = read_lines infile in 
@@ -189,33 +131,12 @@ let toks = List.map f rs in
     outc = open_out outfile;
     intoks = List.flatten toks;
   };;
-  
-
- (*
-let output_token outc tok =
-  output_string outc (token_to_string_output tok);;
- *)
-
 
 let output_token ios tok = 
   output_string (ios.outc) (token_to_string_output tok);;
 
 let output_token_list ios toks = 
   ignore(List.map (output_token ios) toks);;
-
-(*
-let outstream = ref [];;
-
-let write_output a =
- let _ = outstream := a :: (!outstream) in print_string (token_to_string a);;
-
-let write_output_list ls = 
-let _ = outstream := ls @ !outstream in 
-ignore(List.map print_string (List.map token_to_string ls));;
-
-let write_error_message s = (* this takes the form of a CNL string instruction *)
-  write_output_list [LBrack;Tok "error";Symbol "\"";Tok s;Symbol "\"";RBrack];;
- *)
 
 let (output_error,get_error_count) =
   let error_limit = 20 in
@@ -234,7 +155,7 @@ let (output_error,get_error_count) =
 let output_warning ios s = 
   output_token ios (Warn s);;
 
-(* I/O source stream input, peek, and return *)
+(* I/O input, peek, and return *)
 
 (* let stream = ref [];; *)
 
@@ -246,22 +167,23 @@ let output_warning ios s =
 
 
 let input_ios = 
-  let input_1 ios respect_par =
+  let input_1 ios regard_par =
     if ios.intoks = [] then Eof else 
       let tok = List.hd ios.intoks in
       let _ = ios.intoks <- List.tl ios.intoks in
-      let tok' = if respect_par && (tok = Eol) && not(ios.intoks =[]) && (Eol = List.hd ios.intoks)
+      let tok' = if regard_par && (tok = Eol) && not(ios.intoks =[]) && (Eol = List.hd ios.intoks)
                then Par 
                else tok in
       tok' in
-  let rec input_rec ios acc k respect_par = 
+  let rec input_rec ios acc k regard_par = 
     if (k=0) then List.rev acc
     else 
-      match input_1 ios respect_par with 
-      | Eol -> (output_token ios Eol; input_rec ios acc k respect_par)
-      | Par -> (output_token ios Eol; input_rec ios (Eol::acc) (k-1) respect_par)
-      | _ as t -> input_rec ios (t::acc) (k-1) respect_par in
-  fun ios respect_par k -> input_rec ios [] k respect_par;;
+      match input_1 ios regard_par with 
+      | Comment -> (input_rec ios acc k regard_par) (* no paragraph *)
+      | Eol -> (output_token ios Eol; input_rec ios acc k regard_par)
+      | Par -> (output_token ios Eol; input_rec ios (Par::acc) (k-1) regard_par)
+      | _ as t -> input_rec ios (t::acc) (k-1) regard_par in
+  fun ios regard_par k -> input_rec ios [] k regard_par;;
 
 let input ios b = List.hd(input_ios ios b 1);;
 
@@ -477,22 +399,8 @@ let process_controlseq ios cs_string =
       let i = input_brack_num ios true in
       let cs = input_cs ios true in
       let toks = input_to_right_wo_par ios RBrace in setmacro (get_csname cs,(i,toks)); []
-(*
-  | "input" -> 
-      let toks = input_to_right_wo_par ios RBrace in
-      (match toks with
-      | [Tok s] -> 
-          let ls = [LBrack;Tok "read";Symbol "\"";Tok s;Symbol "\"";RBrack] in
-          let _ = p_document s in
-          ls
-      | _ -> [Error "\\input filename missing"])
- *)
   | "noexpand" -> 
       let cs = input_cs ios true in [cs]
-(*
-  | "begin" ->
-      let toks = input_to_right_wo_par ios RBrace in p_environ(toks)
- *)
   | "var" -> [mk_var (input_to_right_wo_par ios RBrace)]
   | "id" -> [mk_id (input_to_right_wo_par ios RBrace)]
   | "list" ->
@@ -542,17 +450,6 @@ let transcribe_token ios ifexpand outputif tr tok =
   | Eof -> raise End_of_file
   | _ -> p tok;;
 
-type environ_item =
-{
-  name : string;
-  begin_token : token;
-  tr_token : (token*token) list;
-  end_token : token;
-  drop_toks : token list;
-  is_delete : bool;
-  respect_par : bool;
-};;
-
 let null_env  = 
   {
     name = "NULL";
@@ -561,7 +458,7 @@ let null_env  =
     tr_token = [];
     drop_toks = [];
     is_delete = false;
-    respect_par = false;
+    regard_par = false;
   };;
 
 let mk_drop_env s drop is_delete = 
@@ -572,7 +469,7 @@ let mk_drop_env s drop is_delete =
     tr_token = [];
     drop_toks = drop;
     is_delete = is_delete;
-    respect_par = false;
+    regard_par = false;
   };;
 
 let mk_delete_env s = 
@@ -583,7 +480,7 @@ let mk_delete_env s =
     tr_token = [];
     drop_toks = [];
     is_delete = true;
-    respect_par = false;
+    regard_par = false;
   };;
 
 let mk_eqn_env s is_delete = 
@@ -594,7 +491,7 @@ let mk_eqn_env s is_delete =
     tr_token = if is_delete then [] else [(FormatEol,Symbol "); (")];
     drop_toks = [FormatCol];
     is_delete = is_delete;
-    respect_par = true;
+    regard_par = true;
   };;
 
 let mk_matrix_env s is_delete = 
@@ -606,7 +503,7 @@ let mk_matrix_env s is_delete =
                else [(FormatEol,Symbol ")]; [(");(FormatCol,Symbol "); (")]);
     drop_toks = [];
     is_delete = is_delete;
-    respect_par = true;
+    regard_par = true;
   };;
 
 let mk_e_item s e =
@@ -676,7 +573,7 @@ let output_prologue ios s =
 
 let rec process_environ ios e_stack = 
   let par_filter e = 
-    let nrp = not(e.respect_par) in
+    let nrp = not(e.regard_par) in
     let _ = nrp || (output_error ios 
                       ("inserting end "^e.name); true) in
     nrp in
@@ -688,7 +585,7 @@ let rec process_environ ios e_stack =
   if (e_stack=[]) 
   then (output_error ios "unexpected empty environment. ending cnl envir"; EndCnl) else 
     let e = List.hd e_stack in
-    let tok = input ios (e.respect_par) in 
+    let tok = input ios (e.regard_par) in 
     match tok with
     | Par -> (output_error ios "paragraph ended before envir end."; 
               let ignore_par_stack = 
@@ -712,9 +609,6 @@ let rec process_environ ios e_stack =
            (transcribe_token ios ifexpand outputif tr tok;
             process_environ ios e_stack)
 ;;
-
-(* restart *)
-
 
 let rec seek_cnl_block ios = 
   match (input ios false) with
@@ -745,81 +639,6 @@ let rec process_ios convert_toks io_stack =
   
 let process_doc convert_toks filename = 
   process_ios convert_toks [mk_iochannels convert_toks filename];;
-
-
-
-(*
-let End_cnl = 0;;
-let process_document = 0;;
-let process_cnl_block = 0;;
-let transcribe1 = 0;; 
-
-let delete_option = 0;;
-let output_declaration_preamble = 0;;
-let output_declaration_preamble ios s label = 
-  let _ = output_token ios (Tok s) in
-  let _ = match label with | None -> () | Some t -> output_token ios t in
-  output_token ios (Symbol ".");;
- *)
-
-
-(*
-let transcribe_decl_environ = 0;;
-let cleanup_environ = 0;;
-let cleanup_environ ios b env_name = 
-  let t = input_cs ios b in
-  let _ = (t = ControlSeq "end") || (output_error ios ("end "^env_name^" expected"); true) in
-  let s = tokens_to_clean_string(input_to_right_wo_par ios RBrace) in
-  let _ = (s = env_name) || (output_error ios ("end "^env_name^" expected; "^s^" found"); true) in
-  ();;
- *)
-
-(*
- let _ = output_declaration_preamble ios s label in 
- let _ = transcribe_until ios false p_environ (fun _ -> true) ((=) (ControlSeq "end")) in
- cleanup_environ ios false env_name;;
- *)
-
-
-
-
-(*
-let rec transcribe_until ios b p_environ p_document outputif endif =
-  let tok = input ios b in
-  if (endif tok) then (return_input ios [tok])
-  else 
-    let () = transcribe_token ios outputif tok in
-    transcribe_until ios b p_environ p_document outputif endif;;
-
-
-let delete_environ ios b p_environ env_name =  (* \begin{env_name} already read *)
-  let _ = transcribe_until ios b p_environ (fun _ -> false) ((=) (ControlSeq "end")) in
-  cleanup_environ ios b env_name;;
-
-let ignore_in_environ ios b p_environ env_name ignored_chars = 
-  let _ = transcribe_until ios b p_environ (fun tok -> not(List.mem tok ignored_chars))
-            ((=) (ControlSeq "end")) in
-  cleanup_environ ios b env_name;;
-
- *)
-
-
-(* let process_environment toks = toks;; (* toks = name of environment *) *)
-
-(*
-let seek_and_destroy = 
-let rec seek_and_destroy_rec ios restart toks = (* doesn't handle overlap in matches. *)
-  if toks = [] then () else 
-    let tok = input ios false in 
-    if (tok = List.hd toks) then seek_and_destroy_rec ios restart (List.tl toks) else
-      seek_and_destroy_rec ios restart restart in
-fun ios toks -> seek_and_destroy_rec ios toks toks;;
-
-
-let seek_and_destroy = 0;;
- *)
-
-
 
 
 (* fin *)
