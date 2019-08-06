@@ -37,6 +37,11 @@ data Pattern =
 
 $(makeLenses ''Pattern)
 
+toMacroPatts :: Pattern -> Pattern
+toMacroPatts pttn = case pttn of
+  (Patts ptts) -> MacroPatts ptts
+  pttn         -> pttn
+
 instance Semigroup Pattern where
   (<>) patt1 patt2 = Patts $ patt1^.patts <> patt2^.patts
 
