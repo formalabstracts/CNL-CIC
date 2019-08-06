@@ -382,15 +382,15 @@ registerPrimIdentifierTerm fd@(FunctionDef fh c pt) =
     (FunctionHeadIdentifierPattern idpatt) -> patternOfIdentifierPattern idpatt >>= updatePrimIdentifierTerm
     _ -> empty
 
-registerPrimPrefixFunction :: FunctionDef -> Parser ()
-registerPrimPrefixFunction fd@(FunctionDef fh c pt) =
-  case fh of
-    (FunctionHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl) ->
-      case mtv1 of
-        Nothing -> if (isCSBrace slc) || (vs /= []) || (isNothing mtv2) then empty
-          else patternOfSymbolPattern sympatt >>= updatePrimPrefixFunction
-        _ -> empty
-    _ -> empty
+-- registerPrimPrefixFunction :: FunctionDef -> Parser ()
+-- registerPrimPrefixFunction fd@(FunctionDef fh c pt) =
+--   case fh of -- TODO(jesse): change this to an identifier which only accepts one argument
+--     (FunctionHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl) ->
+--       case mtv1 of
+--         Nothing -> if (isCSBrace slc) || (vs /= []) || (isNothing mtv2) then empty
+--           else patternOfSymbolPattern sympatt >>= updatePrimPrefixFunction
+--         _ -> empty
+--     _ -> empty
               
 --  (* from function_def.binary_controlseq_pattern, prec > 0 )*
 registerPrimTermOpControlSeq :: FunctionDef -> Parser ()
@@ -427,7 +427,7 @@ parseFunctionDef = with_any_result parse_function_def_main side_effects
     side_effects = [
       registerPrimDefiniteNoun,
       registerPrimIdentifierTerm,
-      registerPrimPrefixFunction,
+      -- registerPrimPrefixFunction,
       registerPrimTermOpControlSeq,
       registerPrimTermControlSeq
                    ]
@@ -534,16 +534,26 @@ registerPrimIdentifierType td@(TypeDef th cpla gtp) =
     (TypeHeadIdentifierPattern idpatt) -> patternOfTypeDef td >>= updatePrimIdentifierType
     _ -> empty
 
-registerPrimTypeOp :: TypeDef -> Parser () --  (* from type_def, when infix with precedence *)
-registerPrimTypeOp pd@(TypeDef th cpla gtp) = empty -- TODO(jesse): finish implementing this after clarifying production rules
+registerPrimTypeOp :: TypeDef -> Parser () --  (* from type_def, when infix with precedence (from tokenpattern)*)
+registerPrimTypeOp td@(TypeDef th cpla gtp) =
+  case th of
+    (TypeHeadTypeTokenPattern (TypeTokenPattern tkpatt)) ->
+      if isBinaryTokenPattern tkpatt
+        then patternOfTypeDef td >>= updatePrimTypeOp
+        else empty
+    _ -> empty
 
 registerPrimTypeOpControlSeq :: TypeDef -> Parser ()
 registerPrimTypeOpControlSeq pd@(TypeDef th cpla gtp) =
-  case th of _ -> empty -- TODO(jesse): finish implementing this after clarifying production rules
+  case th of
+    (TypeHeadControlSeqPattern cseqpatt) -> patternOfControlSeqPattern cseqpatt >>= updatePrimTypeOpControlSeq
+    _ -> empty
 
 registerPrimTypeControlSeq :: TypeDef -> Parser ()
 registerPrimTypeControlSeq pd@(TypeDef th cpla gtp) =
-  case th of _ -> empty -- TODO(jesse): finish implementing this after clarifying production rules
+  case th of
+    (TypeHeadBinaryControlSeqPattern bcseqpatt) -> patternOfBinaryControlSeqPattern bcseqpatt >>= updatePrimTypeControlSeq
+    _ -> empty
 
 parseTypeDef :: Parser TypeDef
 parseTypeDef = with_any_result parse_type_def_main side_effects
@@ -607,6 +617,10 @@ tokensToTokens tks0@(Tokens tks) = tks
 
 data TokenPattern = TokenPattern Tokens [(TVar, Tokens)] (Maybe TVar)
   deriving (Show, Eq)
+
+isBinaryTokenPattern :: TokenPattern -> Bool
+isBinaryTokenPattern tkpatt@(TokenPattern tks tvtks mtv) =
+  tks == (Tokens []) && (length tvtks == 1) && isSomething mtv
 
 parseTokenPattern :: Parser TokenPattern
 parseTokenPattern = TokenPattern <$> parseTokens <*>

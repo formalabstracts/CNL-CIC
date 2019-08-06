@@ -276,3 +276,6 @@ isNothing :: Maybe a -> Bool
 isNothing m = case m of
   Nothing -> True
   _ -> False
+
+isSomething :: Maybe a -> Bool 
+isSomething = not . isNothing

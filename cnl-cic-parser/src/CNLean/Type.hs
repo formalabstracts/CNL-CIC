@@ -838,7 +838,7 @@ data TightestPrefix =
   | TightestPrefixBlank Blank
   | TightestPrefixVar Var
   | TightestPrefixPrimIdentifierTerm PrimIdentifierTerm
-  | TightestPrefixPrimPrefixFunction PrimPrefixFunction
+  -- | TightestPrefixPrimPrefixFunction PrimPrefixFunction
   | TightestPrefixControlSeqTerm ControlSeqTerm
   | TightestPrefixDelimitedTerm DelimitedTerm
   | TightestPrefixAltTerm AltTerm
@@ -853,7 +853,7 @@ parseTightestPrefix =
   TightestPrefixAltTerm <$> parseAltTerm <||>
   TightestPrefixVar <$> parseVar <||>
   TightestPrefixPrimIdentifierTerm <$> parsePrimIdentifierTerm <||>
-  TightestPrefixPrimPrefixFunction <$> parsePrimPrefixFunction <||>
+  -- TightestPrefixPrimPrefixFunction <$> parsePrimPrefixFunction <||>
   TightestPrefixControlSeqTerm <$> parseControlSeqTerm <||>
   TightestPrefixDelimitedTerm <$> parseDelimitedTerm
   
@@ -1380,14 +1380,14 @@ parsePrimIdentifierType :: Parser PrimIdentifierType
 parsePrimIdentifierType =
   PrimIdentifierType <$> (concat <$> (use $ allStates primIdentifierType) >>= parse_any_Patts)
 
---  (* from function_def *)
--- prim_prefix_function : PA14 {} (* symbolic functions like sin,cos,exp *)
-newtype PrimPrefixFunction = PrimPrefixFunction ([ParsedPatt]) 
-  deriving (Show, Eq)
+-- --  (* from function_def *)
+-- -- prim_prefix_function : PA14 {} (* symbolic functions like sin,cos,exp *)
+-- newtype PrimPrefixFunction = PrimPrefixFunction ([ParsedPatt]) 
+--   deriving (Show, Eq)
 
-parsePrimPrefixFunction :: Parser PrimPrefixFunction
-parsePrimPrefixFunction =
-  PrimPrefixFunction <$> (concat <$> (use $ allStates primPrefixFunction) >>= parse_any_Patts)
+-- parsePrimPrefixFunction :: Parser PrimPrefixFunction
+-- parsePrimPrefixFunction =
+--   PrimPrefixFunction <$> (concat <$> (use $ allStates primPrefixFunction) >>= parse_any_Patts)
 
 --  (* derived as in Forthel *)
 -- prim_possessed_noun : PA15 {}

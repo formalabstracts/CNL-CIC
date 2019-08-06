@@ -59,7 +59,7 @@ data FState = FState {
   _primBinaryRelationOp, _primBinaryRelationControlSeq :: [[Patt]],
   _primPropositionalOp,  _primPropositionalOpControlSeq :: [[Patt]],
   _primRelation :: [[Patt]],
-  _primPrefixFunction :: [[Patt]],
+  -- _primPrefixFunction :: [[Patt]],
   _primIdentifierTerm :: [[Patt]],
   _primIdentifierType :: [[Patt]],
   _primTypedName :: [[Patt]],
@@ -139,7 +139,6 @@ emptyFState = FState
   []
   []
   []
-  []
   M.empty
   [] [] []
   0 0 0
@@ -155,7 +154,6 @@ initialFState = FState
   [] [] []
   [] []
   [] []
-  []
   []
   []
   []
