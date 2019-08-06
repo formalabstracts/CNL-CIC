@@ -92,6 +92,9 @@ fail_iff_succeeds p = do
   b <- fails p
   if b then return () else empty
 
+skip :: Parser ()
+skip = return ()
+
 item :: Parser Text
 item = satisfy (\_ -> True) >>= return . pack . pure
 
@@ -220,6 +223,11 @@ parse_list :: [a] -> (a -> Parser b) -> Parser [b]
 parse_list as m = case as of
   [] -> return []
   x:xs -> (rp $ m x) <+> parse_list xs m
+
+run_all :: [Parser a] -> Parser ()
+run_all ps = case ps of
+  [] -> skip
+  (q:qs) -> q *> run_all qs
 
 with_result :: Parser a -> (a -> Parser b) -> Parser a
 with_result p m = do
