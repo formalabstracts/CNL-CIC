@@ -151,7 +151,14 @@ lit_document :
 | LIT_ARTICLE
 | LIT_SECTION
 | LIT_SUBSECTION
-| LIT_SUBSUBSECTION {}
+| LIT_SUBSUBSECTION 
+| LIT_SUBDIVISION {}
+lit_enddocument :
+| LIT_ENDSECTION
+| LIT_ENDSUBSECTION
+| LIT_ENDSUBSUBSECTION
+| LIT_ENDSUBDIVISION
+{}
 lit_def : LIT_DEF | LIT_DEFINITION {}
 lit_axiom : LIT_AXIOM | LIT_CONJECTURE | LIT_HYPOTHESIS | LIT_EQUATION | LIT_FORMULA {}
 lit_theorem :
@@ -166,8 +173,6 @@ lit_location :
 | lit_def {}
 lit_sort : LIT_TYPE | LIT_PROP {}
 lit_classifier : LIT_CLASSIFIER | LIT_CLASSIFIERS {}
-lit_varmod : LIT_FIXED | LIT_IMPLICIT | LIT_RESOLVED | LIT_REMOVE {}
-
 
 label : ATOMIC_IDENTIFIER {}
 
@@ -253,9 +258,6 @@ prim_identifier_term : PA13 {} (* all identifiers that are terms *)
  (* from type_def *)
 prim_identifier_type : PA7 {} (* all identifiers that are terms *)
 
- (* from function_def *)
-prim_prefix_function : PA14 {} (* symbolic identifiers like sin,cos,exp *)
-
  (* derived as in Forthel *)
 prim_possessed_noun : PA15 {} 
 
@@ -293,7 +295,9 @@ prim_relation : PA22 {} (* prop-valued *)
 (* sections test:Sections *)
 
 section_preamble : section_tag option(label) PERIOD {}
-  section_tag : lit_document {}
+  section_tag : 
+  | lit_document
+  | lit_enddocument {}
 
 (* namespaces  *)
 
@@ -327,20 +331,28 @@ instruction :
 
 (* variables *)
 
- (* Variables can be given modifiers. 
+ (* Variables can be given the modifier LIT_INFERRED
+ This is a blanket term for Lean style parameters, [type class inference],
+ implicit arguments, etc.  
 
-  LIT_FIXED means that the variable is a Lean-style section parameter. 
-  Such a variable can appear on the right-hand side of macros and definitions 
-  without appearing on the left-hand side. 
+ When a variable is inferred, it can appear on the right-hand side of
+ macros and definitions without appearing explicitly on the left-hand side. 
 
-  LIT_RESOLVED (NOT_IMPLEMENTED) stub for Lean type class resolution. 
+ For example, we can write
+ We say that X is finite iff ... where (inferred alpha : Type) (X : set over alpha).
+ Then the alpha is not required to appear to the left of the iff.
 
-  LIT_IMPLICIT (NOT_IMPLEMENTED) stub for Lean implicit function parameters. 
+ For example, 
+ Let x in X stand for C.notation_in x X where (inferred C : has_in).
 
+ If a section introduces an inferred variable into the context, then 
+ the "CNL elaborator" inserts the corresponding where clause into every
+ macro and definition that contains that variable on the right-hand side
+ but not the left. 
 
   *)
 
-var_modifier : option(lit_varmod) {}
+var_modifier : option(LIT_INFERRED) {}
 annotated_var : paren(var_modifier VAR opt_colon_type {}) {}
 annotated_vars : paren(var_modifier nonempty_list(VAR) opt_colon_type {}) {}
 
@@ -350,12 +362,19 @@ record_assign_term :
   brace_semi(var_or_atomic opt_colon_type ASSIGN expr {})  {}
 
 app_args :  (* can be empty *)
-  option(AT record_assign_term {}) list(tightest_expr) {}
+  option( record_assign_term {}) list(tightest_expr) {}
 
 
 (* function and binder parameters. *)
 
-args : option(AT opt_args {}) required_args {}
+args : option( opt_args {}) required_args {}
+
+         (* A brace_semi as the first argument to a function is
+            ambiguious: it could be either a opt_args or a required
+            arg that takes the form of a make_term.  The convention is
+            that the principal interpretation is opt_args.  But if it
+            contains a field name that is not an optional argument,
+            then it is interpreted as a make_term. *)
 
   opt_args : 
     brace_semi(var_or_atomics opt_colon_type {}) {}
@@ -498,7 +517,7 @@ binop_type :
   | binder_type
   | dependent_vars {} (* for Agda style dependent typing *)
 
-  dependent_vars : option(AT opt_args {})
+  dependent_vars : option( opt_args {})
     nonempty_list(annotated_vars) {}
 
 opentail_type :
@@ -587,7 +606,6 @@ tightest_term :
   | BLANK 
   | VAR
   | prim_identifier_term
-  | prim_prefix_function
   | controlseq_term
   | delimited_term
   | alt_term
@@ -1018,7 +1036,6 @@ definition_statement :
 | type_def
 | function_def
 | predicate_def
-(* | structure_def | inductive_def| mutual_inductive_def, subsumed by type_def *)
 {}
 
   copula : lit_is option(lit_defined_as) | ASSIGN | lit_denote {}
@@ -1044,6 +1061,11 @@ definition_statement :
   function_def : opt_define function_head
     copula option(lit_equal) option(LIT_THE) plain_term {}
 
+ (* 
+    There is an ambiguity between identifier_pattern and
+    function_token_pattern, when the identifier is also a token.
+    If ambiguous, we give priority to the interpretation as an identifier. 
+  *)
     function_head :
     | function_token_pattern
     | symbol_pattern option(paren_precedence_level)
@@ -1101,19 +1123,19 @@ definition_statement :
 
 (* macro *)
 
-macro : option(insection) sep_list(assuming) macro_bodies {}
-
-  assuming : LIT_ASSUMING option(LIT_THAT) statement {}
+macro : option(insection) macro_bodies {}
 
   insection : LIT_IN LIT_THIS section_tag {}
 
   macro_bodies : macro_body list(SEMI option(LIT_AND) macro_body {}) PERIOD {}
 
+  macro_where : LIT_WHERE nonempty_list(annotated_vars) {}                   
+
   macro_body : 
-  | classifier_def  
+  | classifier_def 
   | type_def 
-  | function_def 
-  | predicate_def 
+  | function_def option(macro_where) 
+  | predicate_def option(macro_where) 
   | let_annotation 
   | we_record_def
   {}
