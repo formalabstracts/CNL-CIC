@@ -153,13 +153,11 @@ parseLitQED = (rp $ parseLit "end") <||> (rp $ parseLit "QED") <||> (rp $ parseL
 
 parseLitDocument_aux :: Parser ([Text], Int)
 parseLitDocument_aux =
-  parse_any_of_with_index $ map (rp . parseLit)
-                ["document",
-                  "article",
-                  "section",
-                  "subsection",
-                  "subsubsection"
-                ]
+  parse_any_of_with_index $
+    (:) (pure <$> (parseLit "document" <||> parseLit "article")) rest
+  where
+    rest :: [Parser [Text]]
+    rest = map (rp . parseLit) ["section", "subsection", "subsubsection"]
 
 parseLitDocument :: Parser [Text]
 parseLitDocument = fst <$> parseLitDocument_aux

@@ -32,6 +32,8 @@ import CNLean.Pattern
 data Definition = Definition DefinitionPreamble [Assumption] DefinitionAffirm
   deriving (Show, Eq)
 
+-- TODO(jesse): refactor "register" functions to accept a LocalGlobalFlag and an (isMacro :: Bool) argument
+
 registerDefinition :: Definition -> Parser ()
 registerDefinition def@(Definition dp asms (DefinitionAffirm ds _)) =
   case ds of
