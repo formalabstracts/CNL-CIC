@@ -43,9 +43,10 @@ data LocalGlobalFlag =
   deriving (Show, Eq)
 
 updateGlobal :: (FState -> FState) -> Parser ()
-updateGlobal f =
-  (rest %= \fs -> (fs & _last %~ f)) <||> -- if the first branch fails, then rest is empty, so modify top instead
-  (top %= f)
+updateGlobal f = do
+  (Stack t r) <- get
+  if r == [] then (top %= f) else
+    (rest %= \fs -> (fs & _last %~ f))
 
 updateLocal :: (FState -> FState) -> Parser ()
 updateLocal f =
@@ -58,7 +59,7 @@ updateAtLevel k f = do
     then fail "stack index out of bounds"
     else if k == d
             then updateLocal f
-            else (rest . element k %= f)    
+            else (rest . element (d - k - 1) %= f)
 
 updateGlobalPrimPrecTable :: Pattern -> Int -> AssociativeParity -> Parser ()
 updateGlobalPrimPrecTable ptts level parity = updateGlobal $ primPrecTable %~ M.insert ptts (level, parity)
@@ -706,4 +707,3 @@ tokenToText'_aux strsyms tk = case tk of
 -- tokenToText' extracts the underlying Text of a token and adds all available synonyms from the state.
 tokenToText' :: Token -> Parser [Text]
 tokenToText' tk = tokenToText'_aux <$> (concat <$> (use (allStates strSyms))) <*> return tk
-

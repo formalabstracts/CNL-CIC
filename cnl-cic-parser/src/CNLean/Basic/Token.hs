@@ -531,7 +531,7 @@ controlsequence = do
   return $ bs <> (join as)
 
 parseControlSequence :: Parser ControlSequence
-parseControlSequence = (controlsequence >>= return . ControlSequence) <* sc
+parseControlSequence = ControlSequence <$> controlsequence <* sc
 
 paren :: Parser a -> Parser a
 paren = between parseLParen parseRParen

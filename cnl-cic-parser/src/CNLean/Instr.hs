@@ -21,6 +21,8 @@ import qualified Data.Text.IO as TIO
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 import Control.Monad.Trans.State.Lazy (modify, gets)
 
+import Control.Lens
+
 import CNLean.Basic.Basic
 
 data Instr =
@@ -39,7 +41,9 @@ parseInstr =
   InstrInstructBool <$> parseInstructBool <||>
   InstrInstructInt <$> parseInstructInt
 
--- test (parseInstr *> gets strSyms) "[synonym foo/bar/baz]"
+-- test (parseInstr *> use (allStates strSyms)) "[synonym foo/bar/baz]"
+
+-- test parseInstr "[synonym foo/bar/baz]"
 
 data InstructCommand = InstructCommand InstructKeywordCommand
   deriving (Show, Eq)
@@ -84,7 +88,6 @@ data InstructSep = InstructSep
 
 parseInstructSep :: Parser InstructSep
 parseInstructSep = parseSlash *> return InstructSep
-
   
 data InstructString = InstructString InstructKeywordString TkString
   deriving (Show, Eq)
