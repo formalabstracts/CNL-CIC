@@ -71,11 +71,17 @@ parseMacroBodies =
 data MacroBody =
     MacroBodyClassifierDef ClassifierDef
   | MacroBodyTypeDef TypeDef
-  | MacroBodyFunctionDef FunctionDef
-  | MacroBodyPredicateDef PredicateDef
+  | MacroBodyFunctionDef FunctionDef (Maybe MacroWhere)
+  | MacroBodyPredicateDef PredicateDef (Maybe MacroWhere)
   | MacroBodyLetAnnotation LetAnnotation
   | MacroBodyWeRecordDef WeRecordDef
   deriving (Show, Eq)
+
+newtype MacroWhere = MacroWhere [AnnotatedVars]
+  deriving (Show, Eq)
+
+parseMacroWhere :: Parser MacroWhere
+parseMacroWhere = MacroWhere <$> ((parseLit "where") *> many1' (parseAnnotatedVars))
 
 registerMacroBody :: LocalGlobalFlag -> MacroBody -> Parser ()
 registerMacroBody lgflag mb =
@@ -85,8 +91,8 @@ registerMacroBody lgflag mb =
     AtLevel k -> case mb of
       (MacroBodyClassifierDef c) -> registerClassifierDef (AtLevel k) c -- TODO(jesse): fix this
       (MacroBodyTypeDef x) -> registerTypeDefMacro (AtLevel k) x
-      (MacroBodyFunctionDef x) -> registerFunctionDefMacro (AtLevel k)  x
-      (MacroBodyPredicateDef x) -> registerPredicateDefMacro (AtLevel k) x
+      (MacroBodyFunctionDef x w) -> registerFunctionDefMacro (AtLevel k)  x
+      (MacroBodyPredicateDef x w) -> registerPredicateDefMacro (AtLevel k) x
       (MacroBodyLetAnnotation x) -> empty -- currently not supported in the state
       (MacroBodyWeRecordDef x) -> empty -- currently not supported in the state
 
@@ -94,8 +100,8 @@ parseMacroBody :: Parser MacroBody
 parseMacroBody =
   MacroBodyClassifierDef <$> parseClassifierDef <||>
   MacroBodyTypeDef <$> parseTypeDef <||>
-  MacroBodyFunctionDef <$> parseFunctionDef <||>
-  MacroBodyPredicateDef <$> parsePredicateDef <||>
+  MacroBodyFunctionDef <$> parseFunctionDef <*> option parseMacroWhere <||>
+  MacroBodyPredicateDef <$> parsePredicateDef <*> option parseMacroWhere <||>
   MacroBodyLetAnnotation <$> parseLetAnnotation <||>
   MacroBodyWeRecordDef <$> parseWeRecordDef
 

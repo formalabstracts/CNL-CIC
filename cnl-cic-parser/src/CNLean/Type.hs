@@ -1188,8 +1188,10 @@ parsePatt ptt = case ptt of
   
   -- a control sequence with k variables is parsed as a control sequence followed by k brace-enclosed terms
 
-parsePattern :: Pattern -> Parser [ParsedPatt]
-parsePattern pttn = parse_list (pttn^.patts) parsePatt
+parsePattern :: Pattern -> Parser [ParsedPatt] -- never parse macros
+parsePattern pttn = case pttn of
+  pttn@(Patts ptts) ->  parse_list (pttn^.patts) parsePatt
+  (MacroPatts ptts) -> empty
 
 parse_any_Patts :: [Pattern] -> Parser [ParsedPatt]
 parse_any_Patts = parse_any_of . map parsePattern
