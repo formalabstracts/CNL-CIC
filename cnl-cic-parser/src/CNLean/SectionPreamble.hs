@@ -32,23 +32,83 @@ import Control.Lens
 data SectionPreamble = SectionPreamble SectionTag (Maybe Label)
   deriving (Show, Eq)
 
+maybeLabelOfSectionPreamble :: SectionPreamble -> (Maybe Label)
+maybeLabelOfSectionPreamble (SectionPreamble _ ml) = ml
+
+sectionTypeOfSectionPreamble :: SectionPreamble -> Text
+sectionTypeOfSectionPreamble (SectionPreamble (SectionTagDocument txts) _) = (head txts)
+sectionTypeOfSectionPreamble (SectionPreamble (SectionTagSubdivision txts) _) = (head txts)
+
 parseSectionPreamble_aux :: Parser (SectionPreamble, Int)
 parseSectionPreamble_aux = do
   (sec_tag, level) <- parseSectionTag_aux
   (,) <$> (SectionPreamble sec_tag <$> (option parseLabel <* parsePeriod)) <*> return level
   
-parseSectionPreamble :: Parser SectionPreamble
+parseSectionPreamble :: Parser SectionPreamble -- TODO(jesse): test this
 parseSectionPreamble =
-  fst <$> (with_result parseSectionPreamble_aux (updateStack . snd))
+  with_result parse_section_preamble_main modify_section_id
   where
-    updateStack k = modify $ sectionHandler initialFState emptyFState k
+    parse_section_preamble_main :: Parser SectionPreamble
+    parse_section_preamble_main =
+      fst <$> (with_result parseSectionPreamble_aux (updateStack . snd))
+      where
+        updateStack k = modify $ sectionHandler initialFState emptyFState k
 
-newtype SectionTag = SectionTag [Text]
+    -- when the side effect is called, the new state has already been initialized on the stack
+    modify_section_id :: SectionPreamble -> Parser ()
+    modify_section_id sp = do
+      updateSectionId Locally $ textOfLabel <$> maybeLabelOfSectionPreamble sp
+      updateSectionType Locally $ sectionTypeOfSectionPreamble sp
+
+data SectionTag =
+    SectionTagDocument [Text]
+  | SectionTagSubdivision [Text]
   deriving (Show, Eq)
 
 parseSectionTag :: Parser SectionTag
-parseSectionTag = SectionTag <$> parseLitDocument
+parseSectionTag =
+  SectionTagDocument <$> parseLitDocument <||>
+  SectionTagSubdivision <$> parseLitSubdivision
 
 parseSectionTag_aux :: Parser (SectionTag, Int)
 parseSectionTag_aux =
-  (_1 %~ SectionTag) <$> parseLitDocument_aux
+  ((_1 %~ SectionTagDocument) <$> parseLitDocument_aux) <||> ((_1 %~ SectionTagSubdivision) <$> parseSubdivision_aux)
+
+data SectionPostamble = SectionPostamble SectionTag (Maybe Label)
+  deriving (Show, Eq)
+
+maybeLabelOfSectionPostamble :: SectionPostamble -> (Maybe Label)
+maybeLabelOfSectionPostamble (SectionPostamble _ ml) = ml
+
+parseSectionPostamble_aux :: Parser (SectionPostamble, Int)
+parseSectionPostamble_aux = do
+  (sec_tag, level) <- parseLit "end" *> parseSectionTag_aux
+  (,) <$> (SectionPostamble sec_tag <$> (option parseLabel <* parsePeriod)) <*> return level
+  
+parseSectionPostamble :: Parser SectionPostamble -- TODO(jesse): test this
+parseSectionPostamble =
+  fst <$> (with_result parseSectionPostamble_aux (postUpdateStack))
+  where
+    postUpdateStack :: (SectionPostamble, Int) -> Parser ()
+    postUpdateStack ((SectionPostamble tag ml), k) =
+      case tag of
+        (SectionTagDocument txts) -> do
+            let endTag = (head txts)
+            empty
+            startTag <- (use $ top . sectionType)
+            let endLabel = textOfLabel <$> ml
+            startLabel <- (use $ top . sectionId)
+            if (startTag == endTag && startLabel == endLabel)
+              then modify $ sectionHandler initialFState emptyFState k
+              else empty
+        (SectionTagSubdivision txts) -> do
+            let endTag = (head txts)
+            empty
+            startTag <- (use $ top . sectionType)
+            let endLabel = textOfLabel <$> ml
+            startLabel <- (use $ top . sectionId)
+            if (startTag == endTag && startLabel == endLabel)
+              then modify $ sectionHandler initialFState emptyFState (k - 2)
+              else empty
+-- note: parseSubdivision_aux always adds 1 to the stack depth
+

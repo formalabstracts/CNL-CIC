@@ -19,8 +19,13 @@ import qualified Data.Char as C
 import Data.Text (Text, pack, unpack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
+import Control.Monad.Trans.State
+import Control.Lens hiding (At)
+
 
 import CNLean.Basic.Core
+import CNLean.Basic.State
+import CNLean.Basic.ParserState
 
 -- literal tokens
 
@@ -166,6 +171,12 @@ parseLitSection =  (rp $ parseLit "section")
               <||> (rp $ parseLit "subsection")
               <||> (rp $ parseLit "subsubsection")
 
+parseSubdivision_aux :: Parser ([Text], Int)
+parseSubdivision_aux = (,) <$> parseLitSubdivision <*> ((+1) <$> depthStack <$> get)
+
+parseLitSubdivision :: Parser [Text]
+parseLitSubdivision = rp $ parseLit "subdivision"
+
 parseLitDef = (rp $ parseLit "definition") <||> (rp $ parseLit "def")
 
 parseLitAxiom =
@@ -292,6 +303,10 @@ newtype TkString = TkString Text
   deriving (Show, Eq)
 newtype AtomicId = AtomicId Text
   deriving (Show, Eq)
+
+textOfAtomicId :: AtomicId -> Text
+textOfAtomicId (AtomicId txt) = txt
+
 data VarOrNumber =
     OfNumber Number
   | OfVar Var
@@ -560,8 +575,21 @@ comma_nonempty_list p = sepby1 p (parseComma)
 newtype Label = Label AtomicId
   deriving (Show, Eq)
 
+textOfLabel :: Label -> Text
+textOfLabel (Label aid) = textOfAtomicId aid
+
 parseLabel :: Parser Label
 parseLabel = Label <$> parseAtomicId
 
 parseBool :: Parser Bool
 parseBool = parseLitTrue *> return True <||> parseLitFalse *> return False
+
+tokenToText'_aux :: [[Text]] -> Token -> [Text]
+tokenToText'_aux strsyms tk = case tk of
+  Token txt -> case (filter (elem txt) strsyms) of
+    [] -> [txt]
+    (x:xs) -> ((<>) x $ concat xs)
+
+-- tokenToText' extracts the underlying Text of a token and adds all available synonyms from the state.
+tokenToText' :: Token -> Parser [Text]
+tokenToText' tk = tokenToText'_aux <$> (concat <$> (use (allStates strSyms))) <*> return tk

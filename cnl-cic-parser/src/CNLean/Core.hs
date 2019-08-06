@@ -30,6 +30,7 @@ import CNLean.Instr
 data TextItem =
     TextItemNamespace Namespace
   | TextItemSectionPreamble SectionPreamble
+  | TextItemSectionPostamble SectionPostamble
   | TextItemDeclaration Declaration
   | TextItemMacro Macro
   | TextItemInstr Instr
@@ -39,6 +40,7 @@ parseTextItem :: Parser TextItem
 parseTextItem =
   (TextItemNamespace <$> parseNamespace) <||>
   (TextItemSectionPreamble <$> parseSectionPreamble) <||>
+  (TextItemSectionPostamble <$> parseSectionPostamble) <||>
   (TextItemDeclaration <$> parseDeclaration)  <||>
   (TextItemMacro <$> parseMacro) <||>
   (TextItemInstr <$> parseInstr)

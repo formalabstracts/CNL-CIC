@@ -30,7 +30,7 @@ import Language.Haskell.TH
 
 import CNLean.Basic.Core
 import CNLean.Basic.State
-import CNLean.Basic.Token
+
 
 $(makeLenses ''FState)
 
@@ -686,7 +686,39 @@ updatePrimTypeControlSeq2 b argss =
   case b of
     Globally -> updateGlobalPrimTypeControlSeq2 argss
     Locally -> updateLocalPrimTypeControlSeq2 argss
-    AtLevel k -> updateAtLevelPrimTypeControlSeq2 k argss  
+    AtLevel k -> updateAtLevelPrimTypeControlSeq2 k argss
+
+updateGlobalSectionId :: (Maybe Text) -> Parser ()
+updateGlobalSectionId txts = updateGlobal $ sectionId %~ const txts
+
+updateLocalSectionId :: (Maybe Text) -> Parser ()
+updateLocalSectionId txts = updateLocal $ sectionId %~ const txts
+
+updateAtLevelSectionId :: Int -> (Maybe Text) -> Parser ()
+updateAtLevelSectionId k txts = updateAtLevel k $ sectionId %~ const txts
+
+updateSectionId :: LocalGlobalFlag -> (Maybe Text) -> Parser ()
+updateSectionId b args =
+  case b of
+    Globally -> updateGlobalSectionId args
+    Locally -> updateLocalSectionId args
+    AtLevel k -> updateAtLevelSectionId k args
+
+updateGlobalSectionType :: Text -> Parser ()
+updateGlobalSectionType txts = updateGlobal $ sectionType %~ const txts
+
+updateLocalSectionType :: Text -> Parser ()
+updateLocalSectionType txts = updateLocal $ sectionType %~ const txts
+
+updateAtLevelSectionType :: Int -> Text -> Parser ()
+updateAtLevelSectionType k txts = updateAtLevel k $ sectionType %~ const txts
+
+updateSectionType :: LocalGlobalFlag -> Text -> Parser ()
+updateSectionType b args =
+  case b of
+    Globally -> updateGlobalSectionType args
+    Locally -> updateLocalSectionType args
+    AtLevel k -> updateAtLevelSectionType k args
 
 updateGlobalIdCount :: Int -> Parser ()
 updateGlobalIdCount k = updateGlobal $ idCount %~ (const k)
@@ -698,12 +730,3 @@ allStates g = to $ \stk -> stk^..(top . g) <> (stk^..(rest . traverse . g))
 parserDocumentLevel :: Parser Int
 parserDocumentLevel = depthStack <$> get
 
-tokenToText'_aux :: [[Text]] -> Token -> [Text]
-tokenToText'_aux strsyms tk = case tk of
-  Token txt -> case (filter (elem txt) strsyms) of
-    [] -> [txt]
-    (x:xs) -> ((<>) x $ concat xs)
-
--- tokenToText' extracts the underlying Text of a token and adds all available synonyms from the state.
-tokenToText' :: Token -> Parser [Text]
-tokenToText' tk = tokenToText'_aux <$> (concat <$> (use (allStates strSyms))) <*> return tk

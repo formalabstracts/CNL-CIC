@@ -87,7 +87,10 @@ data FState = FState {
   _primPrecTable :: M.Map Pattern (Int, AssociativeParity),
   -- tvrExpr :: [TVar] -- TODO(jesse) integrate this later
   _strSyms :: [[Text]], _varDecl :: [Text], _clsList :: [[Text]],
-  _idCount :: Int, _hiddenCount :: Int, _serialCounter :: Int}
+  _idCount :: Int, _hiddenCount :: Int, _serialCounter :: Int,
+  _sectionId :: Maybe Text,
+  _sectionType :: Text
+  }
   deriving (Show, Eq)
 
 -- a stack is a nonempty list of states
@@ -120,7 +123,7 @@ pushStack :: a -> Int -> Stack a -> Stack a
 pushStack default_value 0 stk = stk
 pushStack default_value n stk = consStack default_value $ pushStack default_value (n-1) stk
 
----- refreshes the top of the stack with the underlying value
+---- refreshes the top of the stack with the given value
 refreshStack :: a -> Stack a -> Stack a
 refreshStack default_value stk = stk {_top = default_value}
 
@@ -134,6 +137,7 @@ sectionHandler default_value1 default_value2 n stk =
     else if (n == depthStack stk)
            then refreshStack default_value2 stk
            else pushStack default_value2 (n - depthStack stk) stk
+-- in sectionHandler, both popStack and pushStack are never called on a negative value
 
 initialFStack :: Stack FState
 initialFStack = Stack initialFState []
@@ -159,7 +163,8 @@ emptyFState = FState
   M.empty
   [] [] []
   0 0 0
-
+  Nothing
+  "document"
 
 initialFState :: FState --TODO(jesse): move the rest of phrase_list.txt into the state and define corresponding parsers
 initialFState = FState
@@ -182,6 +187,8 @@ initialFState = FState
   M.empty
   [] [] clsL0
   0 0 0
+  Nothing
+  "document"
   where
   primAdjective0 = [Patts [Wd ["positive"]]]
   primDefiniteNoun0 = [Patts [Wd ["zero"]], Patts [Wd ["one"]]]
