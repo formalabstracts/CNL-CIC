@@ -110,7 +110,7 @@ data ProofPreamble =
 parseProofPreamble :: Parser ProofPreamble
 parseProofPreamble =
   ProofPreambleByMethod <$> (parseLit "proof" *> parseByMethod) <* parsePeriod <||>
-  parseLit "indeed" *> return ProofPreambleIndeed
+  parseLit "indeed" *> (option parseComma) *> return ProofPreambleIndeed
 
 data ProofBody =
     ProofBodyProofTail ProofTail

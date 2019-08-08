@@ -41,10 +41,6 @@ parseInstr =
   InstrInstructBool <$> parseInstructBool <||>
   InstrInstructInt <$> parseInstructInt
 
--- test (parseInstr *> use (allStates strSyms)) "[synonym foo/bar/baz]"
-
--- test parseInstr "[synonym foo/bar/baz]"
-
 data InstructCommand = InstructCommand InstructKeywordCommand
   deriving (Show, Eq)
 

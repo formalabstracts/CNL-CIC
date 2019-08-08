@@ -701,9 +701,6 @@ data VarType =
   
 parseVarType = VarTypeAnnotated <$> (paren $ parseVar <* parseColon <* parseLit "Type") <||> VarTypeVar <$> parseVar
 
--- test parseVarType "(x : Type)"
--- test parseVarType "x"
-
 data Subtype = Subtype Term HoldingVar Statement
   deriving (Show, Eq)
   
@@ -1208,17 +1205,6 @@ parsePattern pttn = case pttn of
 parse_any_Patts :: [Pattern] -> Parser [ParsedPatt]
 parse_any_Patts = parse_any_of . map parsePattern
 -- note: this is equivalent to parse_any_of . map parsePatts
-
-examplePatts :: Pattern
-examplePatts = Patts [Wd ["foo"], Wd ["bar"], Vr]
-
-examplePatts2 :: Pattern
-examplePatts2 = Patts [Wd["subsets", "subset"], Nm, Wd["of"], Vr]
--- note, prefixes must appear later in the list because they will succeed first
-
--- test (parsePattern examplePatts) "foo bar a1"
--- test (parsePattern examplePatts2) "subset a of x0"
--- test (parsePattern examplePatts2) "subsets a,b of x0"
 
 -------------
 -- PRIMITIVES

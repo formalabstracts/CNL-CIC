@@ -7,7 +7,23 @@ Tests, for preliminary debugging. This will eventually be merged into the test s
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module CNLean.Tests where
+module CNLean.Tests
+
+(
+    module CNLean.Definition
+  , module CNLean.Core
+  , module CNLean.Instr
+  , module CNLean.Axiom
+  , module CNLean.Theorem
+  , module CNLean.SectionPreamble
+  , module CNLean.Macro
+  , module CNLean.Type
+  , module CNLean.Basic.Basic
+  , module CNLean.Assumption
+  , module CNLean.Tests
+)
+
+where
 
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
@@ -31,12 +47,71 @@ import CNLean.Definition
 import CNLean.Axiom
 import CNLean.Theorem
 import CNLean.Macro
+import CNLean.Instr
+import CNLean.SectionPreamble
+import CNLean.Assumption
 
--- note: the state, and all stateful side-effects, backtracks if the nearest parser fails in the orelse combinator:
--- test ((updateStrSyms Globally ["foo"] *> (use $ top . strSyms) *> empty) <||> (updateStrSyms Globally ["bar"] *> (use $ top . strSyms))) "foo"
+testMacro :: IO ()
+testMacro = return ()
 
--- test (use (allStates idCount)) "foo"
+testTheorem :: IO ()
+testTheorem = return ()
 
--- test parseDefinition "Definition The_Riemann_zeta_function. The riemann zeta function of x is zero. This exists and is well-defined."
+testAxiom :: IO ()
+testAxiom = do
+  test parseAxiom "Axiom The_riemann_hypothesis. Zero is not positive."
+  test parseAxiomPreamble "Axiom riemann_hypothesis."
+  test parseThenPrefix "therefore"
+  test parseAxiom "Axiom The_Riemann_Hypothesis. One is positive."
+  test parseAxiom "Axiom The_Riemann_Hypothesis. The zero is not positive."
 
--- test parseAxiom "Axiom The_riemann_hypothesis. Zero is not positive."
+testCore :: IO ()
+testCore = return ()
+
+examplePatts :: Pattern
+examplePatts = Patts [Wd ["foo"], Wd ["bar"], Vr]
+
+examplePatts2 :: Pattern
+examplePatts2 = Patts [Wd["subsets", "subset"], Nm, Wd["of"], Vr]
+-- note, prefixes must appear later in the list because they will succeed first
+
+testType :: IO ()
+testType = do
+  test parseVarType "(x : Type)"
+  test parseVarType "x"
+  test (parsePattern examplePatts) "foo bar a1"
+  test (parsePattern examplePatts2) "subset a of x0"
+  test (parsePattern examplePatts2) "subsets a,b of x0"
+
+testDefinition :: IO ()
+testDefinition = do
+  test parseDefinition "Definition The_Riemann_zeta_function. The riemann zeta function of x is zero. This exists and is well-defined."
+  test parseDefinitionPreamble "DEFINITION foo."
+  test parseDefinitionPreamble "DEF."
+  test parseThisExists "this exists and is well defined and is canonical"
+  test parseThisDirectiveAdjective "well-defined"
+  test parseTokenPattern "foo bar baz a foo b bar c baz"
+  test parseClassifierDef "let scheme, schemes, stacks be classifiers"
+  test (parseClassifierDef *> (use $ top.clsList)) "let scheme, schemes, stacks, derived stacks be classifiers"
+  test parseClassifierDef "let lattice be a classifier"
+
+testInstr :: IO ()
+testInstr = do
+  test (parseInstr *> use (allStates strSyms)) "[synonym foo/bar/baz]"
+  test parseInstr "[synonym foo/bar/baz]"
+
+testState :: IO ()
+testState = do
+  test ((updateStrSyms Globally ["foo"] *> (use $ top . strSyms) *> empty) <||> (updateStrSyms Globally ["bar"] *> (use $ top . strSyms))) "foo"
+  test (use (allStates idCount)) "foo"
+
+testTests :: IO ()
+testTests = do
+  testAxiom
+  testDefinition
+  testTheorem
+  testType
+  testMacro
+  testInstr
+  testCore
+  testState

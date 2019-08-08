@@ -56,10 +56,6 @@ newtype DefinitionPreamble = DefinitionPreamble (Maybe Label)
 parseDefinitionPreamble :: Parser DefinitionPreamble
 parseDefinitionPreamble = DefinitionPreamble <$> (parseLitDef *> option parseLabel <* parsePeriod)
 
--- test parseDefinitionPreamble "DEFINITION foo."
-
--- test parseDefinitionPreamble "DEF."
-
 data DefinitionAffirm = DefinitionAffirm DefinitionStatement (Maybe ThisExists)
   deriving (Show, Eq)
 
@@ -71,8 +67,6 @@ newtype ThisExists = ThisExists [ThisDirectivePred]
 
 parseThisExists :: Parser ThisExists
 parseThisExists = parseLit "this" *> (ThisExists <$> sep_list(parseThisDirectivePred))
-
--- test parseThisExists "this exists and is well defined and is canonical"
 
 data ThisDirectivePred =
     ThisDirectivePredAdjective [[Text]]
@@ -100,8 +94,6 @@ parseThisDirectiveAdjective =
         ["well", "propped"],
         ["exhaustive"]
       ]
-
--- test parseThisDirectiveAdjective "well-defined"
 
 newtype ThisDirectiveVerb = ThisDirectiveVerbExists (Maybe ThisDirectiveRightAttr)
   deriving (Show, Eq)
@@ -842,8 +834,6 @@ parseTokenPattern = TokenPattern <$> parseTokens <*>
                                      (many' $ (,) <$> parseTVar <*> parseTokens) <*>
                                      (option parseTVar)
 
--- test parseTokenPattern "foo bar baz a foo b bar c baz"                                     
-
 patternOfTokenPattern :: TokenPattern -> Parser Pattern
 patternOfTokenPattern tkPatt@(TokenPattern (Tokens tks) tvstkss mtvar) = Patts <$>
   ((<>) <$> ( do strsyms <- concat <$> use (allStates strSyms)
@@ -960,6 +950,3 @@ registerClassifierDef :: LocalGlobalFlag -> ClassifierDef -> Parser ()
 registerClassifierDef lgflag clsdef@(ClassifierDef (ClassTokens tkss)) =
   updateClsList2 lgflag (map (liftM tokenToText) tkss)
 
--- test parseClassifierDef "let scheme, schemes, stacks be classifiers"
--- test (parseClassifierDef *> (use $ top.clsList)) "let scheme, schemes, stacks, derived stacks be classifiers"
--- test parseClassifierDef "let lattice be a classifier"
