@@ -1,0 +1,128 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: b26cb801c72af372fa80bc52c958ca1ef8b626e90fe53181ed0421c3a49b5235
+
+name:           colada-parser
+version:        0.1.0.0
+description:    <https://github.com/formalabstracts/CNL-CIC>
+homepage:       https://github.com/githubuser/colada-parser#readme
+bug-reports:    https://github.com/githubuser/colada-parser/issues
+author:         Jesse Michael Han
+copyright:      2019 Jesse Michael Han
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/colada-parser
+
+library
+  exposed-modules:
+      CNLean.Assumption
+      CNLean.Axiom
+      CNLean.Basic.Basic
+      CNLean.Basic.Core
+      CNLean.Basic.ParserState
+      CNLean.Basic.State
+      CNLean.Basic.Token
+      CNLean.Core
+      CNLean.Declaration
+      CNLean.Definition
+      CNLean.Instr
+      CNLean.Macro
+      CNLean.Namespace
+      CNLean.Pattern
+      CNLean.PhraseList
+      CNLean.SectionPreamble
+      CNLean.Term
+      CNLean.Tests
+      CNLean.Theorem
+      CNLean.Type
+  other-modules:
+      Paths_colada_parser
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , containers
+    , lens
+    , megaparsec >=7
+    , mtl
+    , network
+    , parser-combinators
+    , process
+    , split
+    , template-haskell
+    , text
+    , threads
+    , time
+    , transformers
+    , utf8-string
+    , uuid
+  default-language: Haskell2010
+
+executable colada
+  main-is: Main.hs
+  other-modules:
+      Paths_colada_parser
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , colada-parser
+    , containers
+    , lens
+    , megaparsec >=7
+    , mtl
+    , network
+    , parser-combinators
+    , process
+    , split
+    , template-haskell
+    , text
+    , threads
+    , time
+    , transformers
+    , utf8-string
+    , uuid
+  default-language: Haskell2010
+
+test-suite colada-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_colada_parser
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , colada-parser
+    , containers
+    , lens
+    , megaparsec >=7
+    , mtl
+    , network
+    , parser-combinators
+    , process
+    , split
+    , template-haskell
+    , text
+    , threads
+    , time
+    , transformers
+    , utf8-string
+    , uuid
+  default-language: Haskell2010
