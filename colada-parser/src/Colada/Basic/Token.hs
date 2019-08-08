@@ -7,7 +7,7 @@ Tokenization of input.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module CNLean.Basic.Token where
+module Colada.Basic.Token where
 
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
@@ -23,9 +23,9 @@ import Control.Monad.Trans.State
 import Control.Lens hiding (At)
 
 
-import CNLean.Basic.Core
-import CNLean.Basic.State
-import CNLean.Basic.ParserState
+import Colada.Basic.Core
+import Colada.Basic.State
+import Colada.Basic.ParserState
 
 -- literal tokens
 

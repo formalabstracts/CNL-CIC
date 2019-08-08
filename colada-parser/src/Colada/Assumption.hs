@@ -7,7 +7,7 @@ Parsing assumptions.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module CNLean.Assumption where
+module Colada.Assumption where
 
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
@@ -20,8 +20,8 @@ import Data.Text (Text, pack, unpack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
-import CNLean.Basic.Basic
-import CNLean.Type
+import Colada.Basic.Basic
+import Colada.Type
 
 data Assumption = -- note: parsing a list of assumptions means using (many1 parseAssumption)
     Assumption AssumptionPrefix Statement -- parsed with period at end

@@ -35,6 +35,7 @@ dependencies:
 - parser-combinators
 - lens
 - template-haskell
+- directory
 
 library:
   source-dirs: src

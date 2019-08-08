@@ -8,7 +8,7 @@ Parsing phrase lists
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module CNLean.PhraseList where
+module Colada.PhraseList where
 
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
@@ -23,7 +23,7 @@ import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 import Control.Lens
 
-import CNLean.Basic.Basic
+import Colada.Basic.Basic
 
 -- TODO(jesse) write a parser which parses configuration files like phrase_lists.txt and outputs a parser
 -- for now, we hard-code the phrase lists as specific parsers. It will be easy to refactor this to a more general setup.

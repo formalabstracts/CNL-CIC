@@ -7,7 +7,7 @@ Macros.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module CNLean.Macro where
+module Colada.Macro where
 
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
@@ -24,10 +24,10 @@ import Control.Monad.Trans.State.Lazy (modify, gets)
 
 import Control.Lens
 
-import CNLean.Basic.Basic
-import CNLean.Definition
-import CNLean.Type
-import CNLean.SectionPreamble
+import Colada.Basic.Basic
+import Colada.Definition
+import Colada.Type
+import Colada.SectionPreamble
 
 data Macro = Macro (Maybe InSection) MacroBodies
   deriving (Show, Eq)

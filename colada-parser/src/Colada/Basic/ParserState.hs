@@ -9,7 +9,7 @@ Managing the parser state.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module CNLean.Basic.ParserState where
+module Colada.Basic.ParserState where
 
 import Prelude
 import Control.Monad.Trans.State
@@ -28,8 +28,8 @@ import Control.Lens.TH
 
 import Language.Haskell.TH
 
-import CNLean.Basic.Core
-import CNLean.Basic.State
+import Colada.Basic.Core
+import Colada.Basic.State
 
 
 $(makeLenses ''FState)

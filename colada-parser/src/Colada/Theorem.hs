@@ -7,7 +7,7 @@ Parsing theorems.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module CNLean.Theorem where
+module Colada.Theorem where
 
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
@@ -22,10 +22,10 @@ import Data.Text (Text, pack, unpack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
-import CNLean.Basic.Basic
-import CNLean.Assumption
-import CNLean.Type
-import CNLean.PhraseList
+import Colada.Basic.Basic
+import Colada.Assumption
+import Colada.Type
+import Colada.PhraseList
 
 data Theorem = Theorem TheoremPreamble [Assumption] AffirmProof
   deriving (Show, Eq)

@@ -7,7 +7,7 @@ High-level parsing.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module CNLean.Core where
+module Colada.Core where
 
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
@@ -20,12 +20,12 @@ import Data.Text (Text, pack, unpack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
-import CNLean.Basic.Basic
-import CNLean.Namespace
-import CNLean.SectionPreamble
-import CNLean.Declaration
-import CNLean.Macro
-import CNLean.Instr
+import Colada.Basic.Basic
+import Colada.Namespace
+import Colada.SectionPreamble
+import Colada.Declaration
+import Colada.Macro
+import Colada.Instr
 
 data TextItem =
     TextItemNamespace Namespace

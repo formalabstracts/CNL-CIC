@@ -7,7 +7,7 @@ Parsing definitions.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module CNLean.Definition where
+module Colada.Definition where
 
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
@@ -24,10 +24,10 @@ import Control.Monad.Trans.State.Lazy (modify, gets)
 
 import Control.Lens
 
-import CNLean.Basic.Basic
-import CNLean.Type
-import CNLean.Assumption
-import CNLean.Pattern
+import Colada.Basic.Basic
+import Colada.Type
+import Colada.Assumption
+import Colada.Pattern
 
 data Definition = Definition DefinitionPreamble [Assumption] DefinitionAffirm
   deriving (Show, Eq)

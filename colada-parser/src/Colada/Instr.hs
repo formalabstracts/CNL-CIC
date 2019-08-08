@@ -5,7 +5,7 @@ Parsing instructions.
 -}
 
 {-# LANGUAGE OverloadedStrings #-}
-module CNLean.Instr where
+module Colada.Instr where
 
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
@@ -23,7 +23,7 @@ import Control.Monad.Trans.State.Lazy (modify, gets)
 
 import Control.Lens
 
-import CNLean.Basic.Basic
+import Colada.Basic.Basic
 
 data Instr =
     InstrInstructCommand InstructCommand

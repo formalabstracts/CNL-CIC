@@ -7,20 +7,20 @@ Tests, for preliminary debugging. This will eventually be merged into the test s
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module CNLean.Tests
+module Colada.Tests
 
 (
-    module CNLean.Definition
-  , module CNLean.Core
-  , module CNLean.Instr
-  , module CNLean.Axiom
-  , module CNLean.Theorem
-  , module CNLean.SectionPreamble
-  , module CNLean.Macro
-  , module CNLean.Type
-  , module CNLean.Basic.Basic
-  , module CNLean.Assumption
-  , module CNLean.Tests
+    module Colada.Definition
+  , module Colada.Core
+  , module Colada.Instr
+  , module Colada.Axiom
+  , module Colada.Theorem
+  , module Colada.SectionPreamble
+  , module Colada.Macro
+  , module Colada.Type
+  , module Colada.Basic.Basic
+  , module Colada.Assumption
+  , module Colada.Tests
 )
 
 where
@@ -40,16 +40,16 @@ import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
 import Control.Lens
 
-import CNLean.Basic.Basic
-import CNLean.Core
-import CNLean.Type
-import CNLean.Definition
-import CNLean.Axiom
-import CNLean.Theorem
-import CNLean.Macro
-import CNLean.Instr
-import CNLean.SectionPreamble
-import CNLean.Assumption
+import Colada.Basic.Basic
+import Colada.Core
+import Colada.Type
+import Colada.Definition
+import Colada.Axiom
+import Colada.Theorem
+import Colada.Macro
+import Colada.Instr
+import Colada.SectionPreamble
+import Colada.Assumption
 
 testMacro :: IO ()
 testMacro = return ()

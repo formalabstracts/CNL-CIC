@@ -7,7 +7,7 @@ Parsing declarations.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module CNLean.Declaration where
+module Colada.Declaration where
 
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
@@ -20,10 +20,10 @@ import Data.Text (Text, pack, unpack)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 
-import CNLean.Basic.Basic
-import CNLean.Axiom
-import CNLean.Definition
-import CNLean.Theorem
+import Colada.Basic.Basic
+import Colada.Axiom
+import Colada.Definition
+import Colada.Theorem
 
 data Declaration =
     DeclarationAxiom Axiom

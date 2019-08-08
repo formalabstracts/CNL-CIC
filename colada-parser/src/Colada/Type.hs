@@ -9,7 +9,7 @@ Parsing types and type ascriptions.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module CNLean.Type where
+module Colada.Type where
 
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
@@ -25,9 +25,9 @@ import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 import Control.Lens
 
-import CNLean.Basic.Basic
-import CNLean.PhraseList
-import CNLean.Pattern
+import Colada.Basic.Basic
+import Colada.PhraseList
+import Colada.Pattern
 
 data Statement =
     HeadStatement HeadStatement

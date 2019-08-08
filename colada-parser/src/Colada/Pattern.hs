@@ -7,7 +7,7 @@ Utilities for parsing patterns
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module CNLean.Pattern where
+module Colada.Pattern where
 
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude
@@ -24,7 +24,7 @@ import Control.Monad.Trans.State.Lazy (modify, gets)
 
 import Control.Lens
 
-import CNLean.Basic.Basic
+import Colada.Basic.Basic
 
 patternOfOption :: (a -> Parser Pattern) -> (Maybe a -> Parser Pattern)
 patternOfOption p mx =

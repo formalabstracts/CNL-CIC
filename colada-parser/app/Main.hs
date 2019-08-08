@@ -5,8 +5,8 @@ Author(s): Jesse Michael Han (2019)
 
 module Main where
 
-import CNLean.Basic.Basic
-import CNLean.Core
+import Colada.Basic.Basic
+import Colada.Core
 import qualified Data.Text.IO as TIO
 import System.Environment
 import System.Directory

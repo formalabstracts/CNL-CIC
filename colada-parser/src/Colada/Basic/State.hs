@@ -10,7 +10,7 @@ Parser state.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module CNLean.Basic.State where
+module Colada.Basic.State where
 
 import Prelude
 import Control.Monad.Trans.State

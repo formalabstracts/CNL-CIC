@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b26cb801c72af372fa80bc52c958ca1ef8b626e90fe53181ed0421c3a49b5235
+-- hash: a9560733a44c6406143b4f72d33193bcad0033f81e2b26558ec56fda06285dc1
 
 name:           colada-parser
 version:        0.1.0.0
@@ -26,26 +26,26 @@ source-repository head
 
 library
   exposed-modules:
-      CNLean.Assumption
-      CNLean.Axiom
-      CNLean.Basic.Basic
-      CNLean.Basic.Core
-      CNLean.Basic.ParserState
-      CNLean.Basic.State
-      CNLean.Basic.Token
-      CNLean.Core
-      CNLean.Declaration
-      CNLean.Definition
-      CNLean.Instr
-      CNLean.Macro
-      CNLean.Namespace
-      CNLean.Pattern
-      CNLean.PhraseList
-      CNLean.SectionPreamble
-      CNLean.Term
-      CNLean.Tests
-      CNLean.Theorem
-      CNLean.Type
+      Colada.Assumption
+      Colada.Axiom
+      Colada.Basic.Basic
+      Colada.Basic.Core
+      Colada.Basic.ParserState
+      Colada.Basic.State
+      Colada.Basic.Token
+      Colada.Core
+      Colada.Declaration
+      Colada.Definition
+      Colada.Instr
+      Colada.Macro
+      Colada.Namespace
+      Colada.Pattern
+      Colada.PhraseList
+      Colada.SectionPreamble
+      Colada.Term
+      Colada.Tests
+      Colada.Theorem
+      Colada.Type
   other-modules:
       Paths_colada_parser
   hs-source-dirs:

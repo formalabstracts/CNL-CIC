@@ -1,4 +1,4 @@
-import CNLean.Tests
+import Colada.Tests
 
 main :: IO ()
 main = testTests

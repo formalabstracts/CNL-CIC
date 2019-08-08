@@ -6,7 +6,7 @@ Core combinators and utility functions.
 
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverloadedStrings #-}
-module CNLean.Basic.Core where
+module Colada.Basic.Core where
 
 import Prelude
 import Control.Monad.Trans.State.Lazy
@@ -19,7 +19,7 @@ import Control.Monad (guard)
 import qualified Data.Char as C
 import qualified Text.Megaparsec.Char.Lexer as L
 
-import CNLean.Basic.State
+import Colada.Basic.State
 
 type Parser0 = Parsec Void Text
 
