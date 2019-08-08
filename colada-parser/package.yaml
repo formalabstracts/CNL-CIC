@@ -1,6 +1,6 @@
-name:                cnl-cic-parser
+name:                colada-parser
 version:             0.1.0.0
-github:              "githubuser/cnl-cic-parser"
+github:              "githubuser/colada-parser"
 license:             MIT
 author:              "Jesse Michael Han"
 maintainer:          ""
@@ -48,7 +48,7 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - cnl-cic-parser
+    - colada-parser
 
 tests:
   colada-test:
@@ -59,4 +59,4 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - cnl-cic-parser
+    - colada-parser
