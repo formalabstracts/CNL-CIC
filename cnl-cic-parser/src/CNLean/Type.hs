@@ -1023,7 +1023,7 @@ parseRequiredArg :: Parser RequiredArg
 parseRequiredArg =
   (paren $ RequiredArgAnnotated <$> (many1' (fail_iff_succeeds (lookAhead' parseCopula) *> parseVarOrAtomic)) <*> option parseColonType )<||>
   RequiredArgVarOrAtomic <$> (fail_iff_succeeds (lookAhead' parseCopula) *> parseVarOrAtomic)
-  
+
 data CSBrace a = CSBrace a [TVar]
   deriving (Show, Eq)
 
