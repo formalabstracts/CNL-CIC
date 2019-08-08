@@ -137,32 +137,52 @@ parseDefinitionStatement =
 data PredicateDef = PredicateDef PredicateHead IffJunction Statement
   deriving (Show, Eq)
 
+generatePrimSimpleAdjective :: Pattern -> Parser Pattern
+generatePrimSimpleAdjective pttn@(Patts ptts) =
+  if (not $ elem Vr ptts) then return pttn else empty
+generatePrimSimpleAdjective pttn@(MacroPatts ptts) =
+  if (not $ elem Vr ptts) then return pttn else empty
+ 
+generatePrimSimpleAdjectiveMultiSubject :: Pattern -> Parser Pattern
+generatePrimSimpleAdjectiveMultiSubject pttn@(Patts ptts) =
+  if (not $ elem Vr ptts) then return pttn else empty
+generatePrimSimpleAdjectiveMultiSubject pttn@(MacroPatts ptts) =
+  if (not $ elem Vr ptts) then return pttn else empty   
+
 registerPrimAdjective :: LocalGlobalFlag ->  PredicateDef -> Parser () -- (* from adjective_pattern *)
 registerPrimAdjective lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadPredicateTokenPattern (PredicateTokenPatternAdjectivePattern adjpatt))
-      -> patternOfPredicateDef pd >>= updatePrimAdjective lgflag
+      -> do pttn <- patternOfPredicateDef pd
+            updatePrimAdjective lgflag pttn
+            try (generatePrimSimpleAdjective pttn >>= updatePrimSimpleAdjective lgflag)
     _ -> empty
 
 registerPrimAdjectiveMacro :: LocalGlobalFlag ->  PredicateDef -> Parser () -- (* from adjective_pattern *)
 registerPrimAdjectiveMacro lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadPredicateTokenPattern (PredicateTokenPatternAdjectivePattern adjpatt))
-      -> patternOfPredicateDef pd >>= updatePrimAdjective lgflag . toMacroPatts
+      -> do pttn <- patternOfPredicateDef pd
+            updatePrimAdjective lgflag (toMacroPatts pttn)
+            try (generatePrimSimpleAdjective (toMacroPatts pttn) >>= updatePrimSimpleAdjective lgflag)
     _ -> empty
 
 registerPrimAdjectiveMultiSubject :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from adjective_multisubject_pattern *)
 registerPrimAdjectiveMultiSubject lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadPredicateTokenPattern (PredicateTokenPatternAdjectiveMultiSubjectPattern adjpatt))
-      -> patternOfPredicateDef pd >>= updatePrimAdjectiveMultiSubject lgflag
+      -> do pttn <- patternOfPredicateDef pd
+            updatePrimAdjectiveMultiSubject lgflag pttn
+            try (generatePrimSimpleAdjectiveMultiSubject pttn >>= updatePrimSimpleAdjectiveMultiSubject lgflag)
     _ -> empty
 
 registerPrimAdjectiveMultiSubjectMacro :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from adjective_multisubject_pattern *)
 registerPrimAdjectiveMultiSubjectMacro lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
     (PredicateHeadPredicateTokenPattern (PredicateTokenPatternAdjectiveMultiSubjectPattern adjpatt))
-      -> patternOfPredicateDef pd >>= updatePrimAdjectiveMultiSubject lgflag . toMacroPatts
+      -> do pttn <- patternOfPredicateDef pd
+            updatePrimAdjectiveMultiSubject lgflag (toMacroPatts pttn)
+            try (generatePrimSimpleAdjectiveMultiSubject (toMacroPatts pttn) >>= updatePrimSimpleAdjectiveMultiSubject lgflag)
     _ -> empty
 
 registerPrimVerb :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from verb_pattern *)

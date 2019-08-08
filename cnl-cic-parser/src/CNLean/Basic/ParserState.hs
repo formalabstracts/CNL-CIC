@@ -302,7 +302,39 @@ updatePrimAdjective2 b argss =
   case b of
     Globally -> updateGlobalPrimAdjective2 argss
     Locally -> updateLocalPrimAdjective2 argss
-    AtLevel k -> updateAtLevelPrimAdjective2 k argss  
+    AtLevel k -> updateAtLevelPrimAdjective2 k argss
+
+updateGlobalPrimSimpleAdjective :: Pattern -> Parser ()
+updateGlobalPrimSimpleAdjective txts = updateGlobal $ primSimpleAdjective %~ (:) txts
+
+updateGlobalPrimSimpleAdjective2 :: [Pattern] -> Parser ()
+updateGlobalPrimSimpleAdjective2 txtss = updateGlobal $ primSimpleAdjective %~ (<>) txtss
+
+updateLocalPrimSimpleAdjective :: Pattern -> Parser ()
+updateLocalPrimSimpleAdjective txts = updateLocal $ primSimpleAdjective %~ (:) txts
+
+updateAtLevelPrimSimpleAdjective :: Int -> Pattern -> Parser ()
+updateAtLevelPrimSimpleAdjective k txts = updateAtLevel k $ primSimpleAdjective %~ (:) txts
+
+updateLocalPrimSimpleAdjective2 :: [Pattern] -> Parser ()
+updateLocalPrimSimpleAdjective2 txts = updateLocal $ primSimpleAdjective %~ (<>) txts
+
+updateAtLevelPrimSimpleAdjective2 :: Int -> [Pattern] -> Parser ()
+updateAtLevelPrimSimpleAdjective2 k txts = updateAtLevel k $ primSimpleAdjective %~ (<>) txts
+
+updatePrimSimpleAdjective :: LocalGlobalFlag -> Pattern -> Parser ()
+updatePrimSimpleAdjective b args =
+  case b of
+    Globally -> updateGlobalPrimSimpleAdjective args
+    Locally -> updateLocalPrimSimpleAdjective args
+    AtLevel k -> updateAtLevelPrimSimpleAdjective k args
+
+updatePrimSimpleAdjective2 :: LocalGlobalFlag -> [Pattern] -> Parser ()
+updatePrimSimpleAdjective2 b argss =
+  case b of
+    Globally -> updateGlobalPrimSimpleAdjective2 argss
+    Locally -> updateLocalPrimSimpleAdjective2 argss
+    AtLevel k -> updateAtLevelPrimSimpleAdjective2 k argss  
 
 updateGlobalPrimAdjectiveMultiSubject :: Pattern -> Parser ()
 updateGlobalPrimAdjectiveMultiSubject txts = updateGlobal $ primAdjectiveMultiSubject %~ (:) txts
@@ -335,6 +367,38 @@ updatePrimAdjectiveMultiSubject2 b argss =
     Globally -> updateGlobalPrimAdjectiveMultiSubject2 argss
     Locally -> updateLocalPrimAdjectiveMultiSubject2 argss
     AtLevel k -> updateAtLevelPrimAdjectiveMultiSubject2 k argss  
+
+updateGlobalPrimSimpleAdjectiveMultiSubject :: Pattern -> Parser ()
+updateGlobalPrimSimpleAdjectiveMultiSubject txts = updateGlobal $ primSimpleAdjectiveMultiSubject %~ (:) txts
+
+updateGlobalPrimSimpleAdjectiveMultiSubject2 :: [Pattern] -> Parser ()
+updateGlobalPrimSimpleAdjectiveMultiSubject2 txtss = updateGlobal $ primSimpleAdjectiveMultiSubject %~ (<>) txtss
+
+updateLocalPrimSimpleAdjectiveMultiSubject :: Pattern -> Parser ()
+updateLocalPrimSimpleAdjectiveMultiSubject txts = updateLocal $ primSimpleAdjectiveMultiSubject %~ (:) txts
+
+updateAtLevelPrimSimpleAdjectiveMultiSubject :: Int -> Pattern -> Parser ()
+updateAtLevelPrimSimpleAdjectiveMultiSubject k txts = updateAtLevel k $ primSimpleAdjectiveMultiSubject %~ (:) txts
+
+updateLocalPrimSimpleAdjectiveMultiSubject2 :: [Pattern] -> Parser ()
+updateLocalPrimSimpleAdjectiveMultiSubject2 txts = updateLocal $ primSimpleAdjectiveMultiSubject %~ (<>) txts
+
+updateAtLevelPrimSimpleAdjectiveMultiSubject2 :: Int -> [Pattern] -> Parser ()
+updateAtLevelPrimSimpleAdjectiveMultiSubject2 k txts = updateAtLevel k $ primSimpleAdjectiveMultiSubject %~ (<>) txts
+
+updatePrimSimpleAdjectiveMultiSubject :: LocalGlobalFlag -> Pattern -> Parser ()
+updatePrimSimpleAdjectiveMultiSubject b args =
+  case b of
+    Globally -> updateGlobalPrimSimpleAdjectiveMultiSubject args
+    Locally -> updateLocalPrimSimpleAdjectiveMultiSubject args
+    AtLevel k -> updateAtLevelPrimSimpleAdjectiveMultiSubject k args
+
+updatePrimSimpleAdjectiveMultiSubject2 :: LocalGlobalFlag -> [Pattern] -> Parser ()
+updatePrimSimpleAdjectiveMultiSubject2 b argss =
+  case b of
+    Globally -> updateGlobalPrimSimpleAdjectiveMultiSubject2 argss
+    Locally -> updateLocalPrimSimpleAdjectiveMultiSubject2 argss
+    AtLevel k -> updateAtLevelPrimSimpleAdjectiveMultiSubject2 k argss  
 
 updateGlobalPrimVerb :: Pattern -> Parser ()
 updateGlobalPrimVerb txts = updateGlobal $ primVerb %~ (:) txts
