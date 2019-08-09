@@ -1,0 +1,14 @@
+#+TITLE: colada-parser
+
+** About
+
+~colada-parser~ is a parser for [[https://github.com/formalabstracts/CNL-CIC][Colada]], a controlled natural language (CNL) for the Calculus of Inductive Constructions (CIC). It is still experimental and under heavy development.
+
+This work was carried out as part of the [[https://formalabstracts.github.io][Formal Abstracts]] project.
+
+** Build instructions
+
+To build ~colada-parser~, you must have the Haskell tool ~stack~ installed (see [[https://docs.haskellstack.org/en/stable/README/][here]]). Navigate to the project directory and run ~stack build~. After building the parser, you can test it on a CNL-compliant text file with ~stack exec colada my_file~.
+
+** Author(s)
+ - [[https://github.com/jesse-michael-han][Jesse Michael Han]]
