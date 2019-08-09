@@ -6,9 +6,14 @@
 
 This work was carried out as part of the [[https://formalabstracts.github.io][Formal Abstracts]] project.
 
+** Project organization
+The project is contained inside ~src/Colada~. ~src/Colada/Basic/~ (so modules in the ~Colada.Basic~ namespace) contains low-level parser combinators (~Core.hs~), utilities for managing the parser state (~State.hs~ and ~ParserState.hs~), and low-level parsers for the basic terminals of the grammar (literals, tokens, punctuation, delimiters) (~Token.hs~). These are all re-exported by ~Colada.Basic.Basic~.
+
+The topmost level in the project is ~Colada.Tests~. This file imports and re-exports every other file in the project, and so should be loaded in a REPL when interactively developing the parser. The highest-level non-testing file is ~Colada.ProgramText~. This imports all other parts of the grammar. The basic unit of a Colada document is a ~TextItem~. The entire document must be parsed as a ~ProgramText~, which wraps a list of ~TextItem~ s.
+
 ** Build instructions
 
-To build ~colada-parser~, you must have the Haskell tool ~stack~ installed (see [[https://docs.haskellstack.org/en/stable/README/][here]]). Navigate to the project directory and run ~stack build~. After building the parser, you can test it on a CNL-compliant text file with ~stack exec colada my_file~.
+To build ~colada-parser~, you must have the Haskell tool ~stack~ installed (see [[https://docs.haskellstack.org/en/stable/README/][here]]). Navigate to the project directory and run ~stack build~. After building the parser, you can test it on a CNL-compliant text file with ~stack exec colada my_file~. If the parse is successful, the parse tree will be written to ~my_file.parsed~ in the same directory as ~my_file~.
 
 ** Author(s)
  - [[https://github.com/jesse-michael-han][Jesse Michael Han]]
