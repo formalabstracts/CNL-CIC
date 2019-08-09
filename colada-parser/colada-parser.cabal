@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a9560733a44c6406143b4f72d33193bcad0033f81e2b26558ec56fda06285dc1
+-- hash: 4909cb1e947214ddf5878ba16534f9aca01717ea3d0a0e533181cf159daff57a
 
 name:           colada-parser
 version:        0.1.0.0
@@ -54,6 +54,7 @@ library
       base >=4.7 && <5
     , bytestring
     , containers
+    , directory
     , lens
     , megaparsec >=7
     , mtl
@@ -82,6 +83,7 @@ executable colada
     , bytestring
     , colada-parser
     , containers
+    , directory
     , lens
     , megaparsec >=7
     , mtl
@@ -111,6 +113,7 @@ test-suite colada-test
     , bytestring
     , colada-parser
     , containers
+    , directory
     , lens
     , megaparsec >=7
     , mtl

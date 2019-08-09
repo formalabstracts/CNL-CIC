@@ -34,7 +34,7 @@ import Colada.Basic.State
 
 $(makeLenses ''FState)
 
-$(makeLenses ''Stack)
+$(makeLenses ''StateVec)
 
 data LocalGlobalFlag =
     Globally
@@ -44,7 +44,7 @@ data LocalGlobalFlag =
 
 updateGlobal :: (FState -> FState) -> Parser ()
 updateGlobal f = do
-  (Stack t r) <- get
+  (StateVec t r) <- get
   if r == [] then (top %= f) else
     (rest %= \fs -> (fs & _last %~ f))
 
@@ -54,7 +54,7 @@ updateLocal f =
 
 updateAtLevel :: Int -> (FState -> FState) -> Parser ()
 updateAtLevel k f = do
-  d <- depthStack <$> get -- stack always contains d + 1 states
+  d <- depthStateVec <$> get -- stack always contains d + 1 states
   if k > d
     then fail "stack index out of bounds"
     else if k == d
@@ -787,10 +787,10 @@ updateSectionType b args =
 updateGlobalIdCount :: Int -> Parser ()
 updateGlobalIdCount k = updateGlobal $ idCount %~ (const k)
 
-allStates :: Getter FState a -> Getter (Stack FState) [a]
+allStates :: Getter FState a -> Getter (StateVec FState) [a]
 allStates g = to $ \stk -> stk^..(top . g) <> (stk^..(rest . traverse . g))
 
 ---- returns the current document level of the parser
 parserDocumentLevel :: Parser Int
-parserDocumentLevel = depthStack <$> get
+parserDocumentLevel = depthStateVec <$> get
 

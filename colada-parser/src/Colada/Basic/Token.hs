@@ -16,7 +16,7 @@ import Text.Megaparsec hiding (Token, Label, option, Tokens)
 import Control.Monad (guard)
 import Text.Megaparsec.Char
 import qualified Data.Char as C
-import Data.Text (Text, pack, unpack)
+import Data.Text (Text, pack, unpack, intercalate)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 import Control.Monad.Trans.State
@@ -172,7 +172,7 @@ parseLitSection =  (rp $ parseLit "section")
               <||> (rp $ parseLit "subsubsection")
 
 parseSubdivision_aux :: Parser ([Text], Int)
-parseSubdivision_aux = (,) <$> parseLitSubdivision <*> ((+1) <$> depthStack <$> get)
+parseSubdivision_aux = (,) <$> parseLitSubdivision <*> ((+1) <$> depthStateVec <$> get)
 
 parseLitSubdivision :: Parser [Text]
 parseLitSubdivision = rp $ parseLit "subdivision"
@@ -464,6 +464,15 @@ parseToken = do
   as <- many1 alpha <* sc
   notFollowedBy (char '.' >> (alpha <||> digit))
   return $ Token . join $ a:as
+
+parseToken1 :: Parser Token
+parseToken1 = do
+  Token <$> intercalate (pack " ") <$>
+    (many1' (do a <- alpha
+                as <- many1 alpha <* sc
+                notFollowedBy (char '.' >> (alpha <||> digit))
+                return $ join $ a :as))
+
 
 parseTokenOfLit :: Text -> Parser Token -- TODO(jesse): insert guard to ensure that `arg` is Token-compliant
 parseTokenOfLit arg = parseLit arg >>= return . Token

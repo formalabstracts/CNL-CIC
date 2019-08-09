@@ -44,7 +44,7 @@ registerDefinition def@(Definition dp asms (DefinitionAffirm ds _)) =
 
 parseDefinition :: Parser Definition
 parseDefinition =
-  with_any_result parse_definition_main side_effects
+  (with_any_result parse_definition_main side_effects) <* sc
   where
     parse_definition_main = Definition <$> parseDefinitionPreamble <*> (many' parseAssumption) <*> parseDefinitionAffirm -- no period in Definition production rule
 

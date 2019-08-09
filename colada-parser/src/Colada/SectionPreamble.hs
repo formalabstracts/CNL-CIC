@@ -50,9 +50,9 @@ parseSectionPreamble =
   where
     parse_section_preamble_main :: Parser SectionPreamble
     parse_section_preamble_main =
-      fst <$> (with_result parseSectionPreamble_aux (preUpdateStack . snd))
+      fst <$> (with_result parseSectionPreamble_aux (preUpdateStateVec . snd))
       where
-        preUpdateStack k = modify $ sectionHandler initialFState emptyFState k
+        preUpdateStateVec k = modify $ sectionHandler initialFState emptyFState k
 
     -- when the side effect is called, the new state has already been initialized on the stack
     modify_section_id :: SectionPreamble -> Parser ()
@@ -83,32 +83,29 @@ maybeLabelOfSectionPostamble (SectionPostamble _ ml) = ml
 parseSectionPostamble_aux :: Parser (SectionPostamble, Int)
 parseSectionPostamble_aux = do
   (sec_tag, level) <- parseLit "end" *> parseSectionTag_aux
-  (,) <$> (SectionPostamble sec_tag <$> (option parseLabel <* parsePeriod)) <*> return level
+  (,) <$> (SectionPostamble sec_tag <$> ((option parseLabel) <* parsePeriod)) <*> return level
   
 parseSectionPostamble :: Parser SectionPostamble -- TODO(jesse): test this and ensure only 1 state is popped when leaving a subdivision
 parseSectionPostamble =
-  fst <$> (with_result parseSectionPostamble_aux (postUpdateStack))
+  fst <$> (with_result parseSectionPostamble_aux (postUpdateStateVec))
   where
-    postUpdateStack :: (SectionPostamble, Int) -> Parser ()
-    postUpdateStack ((SectionPostamble tag ml), k) =
+    postUpdateStateVec :: (SectionPostamble, Int) -> Parser ()
+    postUpdateStateVec ((SectionPostamble tag ml), k) =
       case tag of
         (SectionTagDocument txts) -> do
             let endTag = (head txts)
-            empty
             startTag <- (use $ top . sectionType)
             let endLabel = textOfLabel <$> ml
             startLabel <- (use $ top . sectionId)
-            if (startTag == endTag && startLabel == endLabel)
+            if (lower_eq startTag endTag && startLabel == endLabel)
               then modify $ sectionHandler initialFState emptyFState k
               else empty
         (SectionTagSubdivision txts) -> do
             let endTag = (head txts)
-            empty
             startTag <- (use $ top . sectionType)
             let endLabel = textOfLabel <$> ml
             startLabel <- (use $ top . sectionId)
-            if (startTag == endTag && startLabel == endLabel)
+            if (lower_eq startTag endTag && startLabel == endLabel)
               then modify $ sectionHandler initialFState emptyFState (k - 2)
               else empty
 -- note: parseSubdivision_aux always adds 1 to the stack depth
-

@@ -93,54 +93,54 @@ data FState = FState {
   }
   deriving (Show, Eq)
 
--- a stack is a nonempty list of states
-data Stack a = Stack {_top :: a, _rest :: [a]}
+-- a stack is a nonempty list of states -- TODO(jesse): rename this to something else
+data StateVec a = StateVec {_top :: a, _rest :: [a]}
   deriving (Show, Eq)
 
-instance Functor Stack where
-  fmap g (Stack t fs) = Stack (g t) (map g fs)
+instance Functor StateVec where
+  fmap g (StateVec t fs) = StateVec (g t) (map g fs)
 
-states :: Stack a -> [a]
-states (Stack a as) = a:as
+states :: StateVec a -> [a]
+states (StateVec a as) = a:as
 
-depthStack :: Stack a -> Int
-depthStack (Stack x xs) = (length xs)
+depthStateVec :: StateVec a -> Int
+depthStateVec (StateVec x xs) = (length xs)
 
-mkStack :: [a] -> Maybe (Stack a)
-mkStack xs = case xs of
+mkStateVec :: [a] -> Maybe (StateVec a)
+mkStateVec xs = case xs of
   [] -> Nothing
-  x:xs -> Just $ Stack x xs
+  x:xs -> Just $ StateVec x xs
 
-consStack :: a -> Stack a -> Stack a
-consStack x (Stack t fs) = Stack x (t:fs)
+consStateVec :: a -> StateVec a -> StateVec a
+consStateVec x (StateVec t fs) = StateVec x (t:fs)
 
-popStack :: Int -> Stack a -> Stack a
-popStack 0 stk = stk
-popStack n (Stack t []) = (Stack t [])
-popStack n (Stack t (f:fs)) = popStack (n-1) $ Stack f fs
+popStateVec :: Int -> StateVec a -> StateVec a
+popStateVec 0 stk = stk
+popStateVec n (StateVec t []) = (StateVec t [])
+popStateVec n (StateVec t (f:fs)) = popStateVec (n-1) $ StateVec f fs
 
-pushStack :: a -> Int -> Stack a -> Stack a
-pushStack default_value 0 stk = stk
-pushStack default_value n stk = consStack default_value $ pushStack default_value (n-1) stk
+pushStateVec :: a -> Int -> StateVec a -> StateVec a
+pushStateVec default_value 0 stk = stk
+pushStateVec default_value n stk = consStateVec default_value $ pushStateVec default_value (n-1) stk
 
 ---- refreshes the top of the stack with the given value
-refreshStack :: a -> Stack a -> Stack a
-refreshStack default_value stk = stk {_top = default_value}
+refreshStateVec :: a -> StateVec a -> StateVec a
+refreshStateVec default_value stk = stk {_top = default_value}
 
 ---- helper function for handling section-local states
-sectionHandler :: a -> a -> Int -> Stack a -> Stack a
+sectionHandler :: a -> a -> Int -> StateVec a -> StateVec a
 sectionHandler default_value1 default_value2 0 stk =
-  Stack default_value1 []
+  StateVec default_value1 []
 sectionHandler default_value1 default_value2 n stk =
-  if (n < depthStack stk)
-    then refreshStack default_value2 $ popStack (depthStack stk - n) stk
-    else if (n == depthStack stk)
-           then refreshStack default_value2 stk
-           else pushStack default_value2 (n - depthStack stk) stk
--- in sectionHandler, both popStack and pushStack are never called on a negative value
+  if (n < depthStateVec stk)
+    then refreshStateVec default_value2 $ popStateVec (depthStateVec stk - n) stk
+    else if (n == depthStateVec stk)
+           then refreshStateVec default_value2 stk
+           else pushStateVec default_value2 (n - depthStateVec stk) stk
+-- in sectionHandler, both popStateVec and pushStateVec are never called on a negative value
 
-initialFStack :: Stack FState
-initialFStack = Stack initialFState []
+initialFStateVec :: StateVec FState
+initialFStateVec = StateVec initialFState []
 
 emptyFState :: FState
 emptyFState = FState

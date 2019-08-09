@@ -105,6 +105,11 @@ testState = do
   test ((updateStrSyms Globally ["foo"] *> (use $ top . strSyms) *> empty) <||> (updateStrSyms Globally ["bar"] *> (use $ top . strSyms))) "foo"
   test (use (allStates idCount)) "foo"
 
+testCustom :: IO ()
+testCustom = do
+  txt <- TIO.readFile "/home/pv/org/projects/jmh-CNL-CIC/colada-parser/test/test_script2.txt"
+  test parseProgram txt
+
 testTests :: IO ()
 testTests = do
   testAxiom

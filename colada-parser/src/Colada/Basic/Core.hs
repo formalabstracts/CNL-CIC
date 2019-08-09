@@ -25,10 +25,10 @@ type Parser0 = Parsec Void Text
 
 type ParserSt s = StateT s (Parser0)
 
-type Parser = ParserSt (Stack FState)
+type Parser = ParserSt (StateVec FState)
 
-runtest0 :: Parser a -> Parser0 (a, Stack FState)
-runtest0 p = (runStateT p) initialFStack
+runtest0 :: Parser a -> Parser0 (a, StateVec FState)
+runtest0 p = (runStateT p) initialFStateVec
 
 test_all :: Show a => Parser a -> Text -> IO ()
 test_all p arg = parseTest (runtest0 p) arg
@@ -287,3 +287,6 @@ isNothing m = case m of
 
 isSomething :: Maybe a -> Bool 
 isSomething = not . isNothing
+
+lower_eq :: Text -> Text -> Bool
+lower_eq t1 t2 = (toLower t1) == (toLower t2)

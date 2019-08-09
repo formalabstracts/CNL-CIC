@@ -87,7 +87,7 @@ registerMacroBody :: LocalGlobalFlag -> MacroBody -> Parser ()
 registerMacroBody lgflag mb =
   case lgflag of
     Globally -> registerMacroBody (AtLevel 0) mb
-    Locally -> do {d <- depthStack <$> get; registerMacroBody (AtLevel d) mb}
+    Locally -> do {d <- depthStateVec <$> get; registerMacroBody (AtLevel d) mb}
     AtLevel k -> case mb of
       (MacroBodyClassifierDef c) -> registerClassifierDef (AtLevel k) c -- TODO(jesse): fix this
       (MacroBodyTypeDef x) -> registerTypeDefMacro (AtLevel k) x

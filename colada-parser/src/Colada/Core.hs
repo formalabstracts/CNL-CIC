@@ -3,7 +3,7 @@ Author(s): Jesse Michael Han (2019)
 
 High-level parsing.
 -}
-
+-- TODO(jesse): rename this to ProgramText.hs
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
@@ -45,11 +45,11 @@ parseTextItem =
   (TextItemMacro <$> parseMacro) <||>
   (TextItemInstr <$> parseInstr)
 
-newtype ProgramText = TextItems [TextItem]
+newtype ProgramText = ProgramText [TextItem]
   deriving (Show, Eq)
 
 parseProgramText :: Parser ProgramText
-parseProgramText = (many1' parseTextItem) >>= return . TextItems
+parseProgramText = ProgramText <$> (many1' (parseTextItem <* sc))
 
 parseProgram :: Parser ProgramText
 parseProgram = parseProgramText <* eof
