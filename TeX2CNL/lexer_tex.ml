@@ -100,7 +100,7 @@ let white =
 
 let alphabet = [%sedlex.regexp? 'a'..'z' | 'A'..'Z']
 
-let alphanum = [%sedlex.regexp? alphabet | numeral10 | '_' | "'" | "-" ] (* - for hyphen *)
+let alphanum = [%sedlex.regexp? alphabet | numeral10 | '_' | "'" | "-" | "~" ] (* - for hyphen, ~ for connected space *)
              
 let controlseq = [%sedlex.regexp? '\\', Plus(alphabet)]
 
@@ -149,6 +149,7 @@ let sub = [%sedlex.regexp? '_']
 
 let symbol = [%sedlex.regexp? punct | '|' | '<' | '>' | '^' | '+' | '-' | '=' | '/' | '*']
 
+(* handle foreign accents in words *)
 let accent_char = [%sedlex.regexp? '\'' | '`' | '^' | '"' | '~' | '=' | '.']
 
 let accent_letter = [%sedlex.regexp? 'c' | 'v' | 'u' | 'H']
@@ -185,13 +186,12 @@ let trim_bang s = String.sub s 1 (String.length s - 2);;
 
 let drop s k = String.sub s k (String.length s - k);;
 
-let convert_hyphen = String.map (function | '-' -> '_' | c -> c);;
+let convert_hyphen = String.map (function | '-' -> '_' | '~' -> '_' | c -> c);;
 
 let strip_nonalpha s = 
  let s' = String.map (function | 'a'..'z' as c -> c | 'A'..'Z' as c -> c | _ -> ',') s in
  let ls = String.split_on_char ',' s' in
   String.concat "" ls;;
-
 
 let test = strip_nonalpha "abcd 234 efg\\={h}";;
 let test = strip_nonalpha "\\\'etale";;

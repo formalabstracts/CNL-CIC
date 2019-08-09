@@ -18,105 +18,10 @@
 
 % What about \hbox{}? We might want two variants,
 
-%% Style guidelines
-% Each lemma starts with optional name [], then \label, then optional
-% \preamble{}, then statement.
 
-% two blank lines before a \begin starting a new paragraph.  Otherwise one.
-% two blank lines before new (sub)section
+\input{cnl-style}
 
 \begin{cnl}
-
-%% We start with some that will eventually be moved to a standard library.
-\def\parenI#1{#1}
-\CnlCustom[1]\parenI{ (#1) }
-\def\*{}
-\CnlCustom\*{*}
-\def\concat#1#2{#2}
-% CNL behavior of concat is built in (concat tokens).
-
-% Prohibited control sequences. 
-% That is, they should remain outside the cnl environment.
-% We should list many TeX primitive control sequences here.
-
-\CnlError\if
-\CnlError\else
-\CnlError\fi
-\CnlError\let
-\CnlError\futurelet
-\CnlError\expandafter
-\CnlError\afterassignment
-\CnlError\usepackage
-% etc. 
-
-%
-\CnlDelete[1]\phantom
-\CnlNoExpand[1]\section
-
-% math modes and space
-\CnlDelete\ensuremath
-\CnlDelete\text
-\CnlDelete\thinmuskip
-\CnlDelete\medmuskip
-\CnlDelete\thickmuskip
-\CnlDelete\quad
-\CnlDelete\qquad
-\CnlDelete\,
-\CnlDelete\:
-\CnlDelete\;
-\CnlDelete\!
-\CnlDelete\ %space
-\CnlDelete\enspace
-\CnlDelete[1]\hspace
-\CnlDelete\hfil
-\CnlDelete\hfill
-\CnlDelete\thinspace
-\CnlDelete\left
-\CnlDelete\right
-\CnlDelete\big
-\CnlDelete\Big
-\CnlDelete\bigg
-\CnlDelete\Bigg
-\CnlDelete\allowdisplaybreaks
-
-
-%other  spacing
-\CnlDelete\noindent
-\CnlDelete\indent
-\CnlDelete[1]\vspace
-\CnlDelete\null
-\CnlDelete\break
-\CnlDelete\newline
-\CnlDelete\newpage
-\CnlDelete\vfil
-\CnlDelete\vfill
-\CnlDelete\smallskip
-\CnlDelete\medskip
-\CnlDelete\bigskip
-\CnlDelete[2]\rule
-
-% Environments
-\CnlEnvirDelete{remark}
-\CnlEnvirDelete{tikzpicture}
-
-% Accents- Use these versions to fuse with variable name in CNL image.
-% \mathcheck{c} --> c__mathcheck
-% \check{c} --> \check{c} (function application)
-\def\mathhat{\hat}
-\def\mathwidehat{\widehat}
-\def\mathcheck{\check}
-\def\mathtilde{\tilde}
-\def\mathwidetilde{\widetilde}
-\def\mathacute{\acute}
-\def\mathgrave{\grave}
-\def\mathdot{\dot}
-\def\mathddot{\ddot}
-\def\mathbreve{\breve}
-\def\mathbar{\bar}
-\def\mathvec{\vec}
-
-
-
 
 
 %% Customize for this file.
@@ -196,12 +101,6 @@
 \def\fordots#1#2#3{#1=#2,\ldots,#3}
 \CnlCustom[3]\fordots{#1\in ((#2) .. (#3))}
 
-
-%% ENVIRONMENTS
-\CnlEnvirDelete{remark}
-\CnlEnvirDelete{summary}
-\CnlEnvirDelete{tikzpicture}
-\CnlEnvirDelete{fancyvrb}
 
 
 %% BEGIN TEXT

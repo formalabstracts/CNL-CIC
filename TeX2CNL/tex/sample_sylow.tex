@@ -1,0 +1,1084 @@
+
+\documentclass[12pt]{article}
+
+
+% PACKAGES
+\usepackage{url}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{currfile}
+\usepackage{fancyvrb}
+
+% for underscores https://texfaq.org/FAQ-underscore
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+\usepackage{lineno}
+
+\usepackage[
+bookmarksopen,
+bookmarksdepth=2,
+%breaklinks=true
+colorlinks=true,
+urlcolor=blue]{hyperref}
+
+% GLOBAL FORMATTING
+%\linenumbers
+\parindent=0pt
+\parskip=0.5\baselineskip
+\raggedbottom
+
+% TITLE AUTHOR DATE
+\title{Sample Controlled Natural Language text, including Sylows theorems}
+
+\date{August 8, 2019}                         
+\author{Thomas Hales}
+
+% THEOREMS 
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}[definition]{Theorem}
+\newtheorem{lemma}[definition]{Lemma}
+\newtheorem{specification}[definition]{Specification}
+
+
+% DOCUMENT
+
+\begin{document}
+\maketitle
+
+\input{cnl-style}
+\begin{cnl}
+
+\begin{remark}
+This is a preliminary text.  It
+writes some mathematical statements according to a 
+controlled natural language for mathematics.  
+\end{remark}
+  
+
+\section{Generalities}
+  
+\begin{remark}
+This article is an experiment in writing mathematics in a computer
+readable format.  It is a preliminary step in the creation of a
+controlled natural language based on English with semantics based on
+the Calculus of Inductive Constructions (CiC).  We have in mind the
+dialect of CiC described in Carneiro's CMU master's thesis, and
+implemented in the Lean theorem prover.
+
+The controlled natural language is inspired by earlier CNLs such as
+Mizar, Evidence Algorithm (EA), Forthel (formula theory language), SAD
+(system of automated deduction), Naproche (natural language proof
+checking), etc.
+
+The mathematical content here is not important.  What matters is the
+language and the stages of transformation from English to CiC.
+
+Text placed in remarks (such as this text) are not part of the
+controlled natural language and are ignored by the translation engine.
+\end{remark}
+  
+
+Let $x \ne y$ stand for $\neg(x = y)$.
+
+\begin{remark}
+Structures (inductive types with a single constructor) are the basic
+building block for all mathematical structures.  Whenever a
+mathematician defines a mathematical structure as an $n$-tuple
+satisfying a list of axioms, we define the corresponding
+structure in CiC.  The difference is that the components of an
+$n$-tuple are distinguished by the ordering of the components, but the
+components (that is fields) of a structure are distinguished by naming
+each component.
+
+In a structure declaration, a field marked as {\it over} can float out
+of the structure and become an unbundled parameter to the structure.
+We are relying here on an extension to CiC designed by the author last
+year (called Cabarete mode), which facilitates the transformations
+between bundled and unbundled structures.
+
+A field marked as {\it type} means that when a value $X$ of that
+structure appears in syntax reserved for a type (for example $x : X$
+or $f:X \to \alpha$), the value $X$ is coerced to the type field.
+
+A field marked as {\it map} means that when a value $f$ appears in
+function application syntax (say $f\ x$), the function $f$ is coerced
+to the map field.
+\end{remark}
+
+\newpage
+\section{Set membership}
+
+In this section, let $\alpha,\beta$ denote types.
+
+\deflabel{set over}
+Let \df{set over}\ $\alpha$ be the type $\alpha \to\Prop$.
+\end{definition}
+
+\def\assign{\mathrel{:=}}
+
+\deflabel{universe over}
+Let \df{universe over} $\alpha$ equal the function 
+\[
+\fun\ (\blank : \alpha) \assign
+\h{true}.
+\]
+\end{definition}
+
+\deflabel{empty set}
+Let $\emptyset$ equal 
+\[
+\fun\ (\blank\ : \alpha) \assign \h{false},
+\]
+inferring $\alpha$.
+\end{definition}
+
+Let empty set stand for $\emptyset$.
+
+\begin{remark} 
+A set $X$ over $\alpha$ is a subset of the universe over $\alpha$.  We
+follow our general convention of using the preposition {\it over} with
+parameters to a type.
+
+Subsets are identified with their characteristic functions, taking
+values in \Prop.  Thus, the universe over $\alpha$ is the constant
+function from $\alpha$ to \Prop\ taking value true for each input.
+
+The empty set over $\alpha$ is the other extreme.  It is the constant
+function taking value false for each input.
+
+In type theory, there is a universe and an empty set for each type:
+the universe over the natural numbers, the empty set over the real
+numbers, etc.
+
+In the following, we remark that \h{notation-subset} is a type isomorphic with
+\h{binary-relation}.
+\end{remark}
+
+\begin{remark}
+Notational structures are transient structure that assist in parsing,
+but that are not passed through to the kernel for type checking.
+Non-transient structure implement notations through field synonyms.
+
+Field labels that are variables are anonymous and unify with any field
+of the same type.
+
+A field is labeled {\it over} when it may be dislodged into the
+position of a structure parameter.
+
+A field is labeled {\it type} when there is a coercion
+from values of the structure to that field (which should be a type).
+\end{remark}
+
+\deflabel{notation in}
+A \h{notation-in} is a notational structure with
+\begin{itemize}
+\item (over) $\beta$ % carrier first, to allow dependency.
+\item (over) $\alpha$
+\item \h{notation-in} : $\alpha\to\beta\to \Prop$
+\end{itemize}
+\end{definition}
+
+\deflabel{in}
+Let $x \in X$ denote $C.\h{notation-in}\ x\ X$, inferring (C :
+\h{notation-in}).
+\end{definition}
+
+\deflabel{notin}
+Let $x\notin X$ denote $\h{not}(x\in X)$.
+\end{definition}
+
+\deflabel{notation-subset}
+A \h{notation-subset} is a notational structure with
+\begin{itemize}
+\item (over, type) $\alpha$
+\item \h{notation-subseteq} : $\alpha \to \alpha \to \Prop$
+%\item subset $X\ (Y : \alpha)\ \dequiv X \subseteq Y$ and $X\ne Y$
+\end{itemize}
+\end{definition}
+
+\deflabel{subset notation}
+Let $X\subset Y$ denote
+$C\fld\h{notation-subset}\ X\ Y$,
+inferring $(C : \h{notation-subset})$.
+\end{definition}
+
+\begin{remark}
+When one definition builds on another that has an implicit variable,
+it is not necessary to mention the implicit variable again in the new
+definition.
+\end{remark}
+
+
+Let $X\subseteq Y$ denote $X\subset Y$ or $(X=Y)$.
+
+ 
+Let $X$ is a \df{subset of} $Y$ stand for $X\subseteq Y$.  
+
+Let $x$ is a \df{member of} $X$ stand for $x\in X$.
+
+
+
+\begin{remark}
+In the following extension, we pull out the variables $\alpha$ and
+$\beta$ for purposes of naming.  The resulting extension is equivalent
+to what would be obtained by working with fully bundled structures.
+
+A structure is {\it embedded} (following the terminology of golang) if
+all the fields of that structure are inserted into the structure being
+declared. The insertion is flat.  That is the fields appear at the top
+level (rather than nested) in the structure being declared.
+\end{remark}
+%\forall
+
+We record a lift $\{\alpha; \beta\}\ (\h{notation-in}\ \h{over}\ \beta,\alpha) : (\h{notation-subset}\ \h{over}\ \beta) \assign$
+a structure with
+\begin{itemize}
+\item a \h{notation-subset} over $\beta$
+satisfying 
+\item for all  $(X\ Y : \beta), \h{we have}\ (X \subseteq Y\ \iff 
+\h{for all } x,\ x \in X \rightarrow x \in Y)$.
+\end{itemize}
+This exists and is unique.
+
+
+\newpage
+\section{Finiteness}
+
+In this section, let $\alpha$ stand for a type.
+
+
+
+\begin{remark}
+This section relies on results about lists.  We assume a library for
+lists and multisets.  In particular, we assume the library contains a
+length function for multisets.
+
+Every list is constructed by a finite process of added elements to the
+head of a list.  This finite process can be used to say what it means
+for other types to be finite.
+
+A value of type \h{duplicate~free~multiset} over $\alpha$ represents an enumerated
+finite subset of the type $\alpha$.
+
+A multiset (list with multiplicities, up to permutation) is used to
+enumerate all the elements included from the type $\alpha$.  The
+multiset is required to be multiplicity free.  This multiset is the
+certificate of finiteness.
+
+Note that a multiset satisfies \h{notation-in}, and the following definition
+uses that previously established notation.
+\end{remark}
+
+[synonym size/length]
+
+[synonym element/point/carrier]
+
+\deflabel{nodup multiset}
+A \h{duplicate~free~multiset} is a structure with 
+\begin{itemize}
+\item (over) element : \Type
+\item support : multiset over element 
+\item length\ $\dequiv$ the length of the support,
+    satisfying
+    \item noduplicate : nodup support %- a proof that the support set is duplicate free.
+  \end{itemize}
+  \end{definition}
+
+\begin{remark}
+We can specify a bijection from \h{duplicate~free~multiset} to finite sets.
+
+The function takes a simple form, thanks to our notation $\in$ for
+multisets, and curly bracket notation for sets.
+
+Once we have a bijection, there are two ways to interpret $\in$ for
+\h{duplicate~free~multisets}.  We need compatibility. %XX
+\end{remark}
+
+
+\deflabel{set of nodup multiset}
+We record a lift
+\begin{align*}
+\h{set-of-duplicate~free~multiset}
+\ \{\alpha\}\ &(X :
+\h{duplicate~free~multiset}\ 
+\h{over}\ \alpha) : \h{set over}\ \alpha \\:= \{ x \mid
+x \in \h{support of}\ X \}.
+\end{align*}
+\end{definition}
+
+Let the value of $f$ at $x$ stand for $f(x)$.
+
+%[ (X : set over \alpha) ].
+\deflabel{finite}
+Assume that $(X : \h{set over}\ \alpha)$.  We say that $X$ is
+\df{finite} iff $X$ is a member of the image of
+\h{set-of-duplicate~free~multiset}.
+\end{definition}
+
+Let an \df{equivalence} $f:\alpha\to\beta$ stand for a bijection $f$.
+
+\begin{remark} 
+We give infrastructure support for bijective functions that have been
+registered in the form of coercions in both directions between the
+two.
+
+The function \h{set-of-duplicate~free~multiset} is an equivalence.  By
+registering it as an equivalence, definitions involving
+\h{duplicate~free~multiset} automatically extend to finite sets.
+\end{remark}
+
+We register the range restriction of \h{set-of-duplicate~free~multiset} to
+finite set over $\alpha$ as an equivalence.
+
+\begin{remark} 
+Because of the equivalence, size and support are now defined on finite
+sets.
+\end{remark}
+
+\subsection{finite types}
+
+\begin{remark}
+We extend the preceding notions from sets to types by using the
+universe of a type.  We do not state these definitions formally over
+concerns that the parser might have difficulty with the ambiguities
+these definitions would create.
+
+We say that $\alpha$ is a \df{finite} type iff the universe over $\alpha$ is finite.
+
+Assume that $\alpha$ is a finite type.  The \df{size} of $\alpha$ is
+the size of the universe over $\alpha$.  This exists and is unique.
+
+Assume that $\alpha$ is a finite type.  The \df{support} of $\alpha$
+is the support of the universe over $\alpha$.  This exists and is
+unique.
+
+\end{remark}
+
+
+\newpage
+\section{Order}
+
+\begin{definition}[binary~relation]
+A \df{binary~relation} is a structure with
+\begin{itemize}
+\item a over type element : \Type
+\item a $relation : element \to element \to \Prop$
+  \end{itemize}
+\end{definition}
+    
+In this section, fix a binary relation $R$.
+
+In this section, let $(s,\ x,\ y,\ z : R\fld{element})$.
+
+In this section, let $x \le y$ stand for $R\fld{relation}\ x\ y$.
+
+\deflabel{reflexive}
+We say $R$ is \df{reflexive} iff
+for all\ $x,\ x \le x$.
+\end{definition}
+
+\deflabel{transitive}
+We say $R$ is \df{transitive} iff
+for all\ $x\ y\ z,\ x \le y \land y \le z \to x \le z$.
+\end{definition}
+
+\deflabel{symmetric}
+We say $R$ is \df{symmetric} iff
+for all\ $x\ y,\ x \le y \to y \le x$.
+\end{definition}
+
+\deflabel{preorder}
+We say $R$ is a \df{preorder} iff $R$ is symmetric and transitive.
+\end{definition}
+
+\deflabel{equivalence relation}
+We say $R$ is an \df{equivalence relation} iff $R$ is reflexive, symmetric and transitive.
+\end{definition}
+
+\deflabel{antisymmetric}
+We say $R$ is \df{antisymmetric} iff
+for all\ $x\ y,\ x \le y\ \h{and}\ y \le x\ \h{imply}\ x = y$.
+\end{definition}
+
+\deflabel{total}
+Assume that $R$ is a preorder.
+We say that $R$ is \df{total} iff
+for all\ $x,\ y,\ x \le y \ \h{or}\ y \le x$.
+\end{definition}
+
+\deflabel{poset}
+We say that $R$ is a \df{poset} iff
+$R$ is an antisymmetric preorder.
+\end{definition}
+
+Let \df{partially ordered set} stand for poset.
+
+\deflabel{linear order}
+We say that $R$ is a \df{linear order} iff
+$R$ is a total poset.
+\end{definition}
+
+Let \df{total order} denote linear order.
+
+[synonym greatest/maximum/top]
+
+\deflabel{greatest element}
+We say that $y$ is a \df{greatest element in} $R$ iff
+for all\ $x,\ x \le y$.
+\end{definition}
+
+[synonym least/minimum/bottom]
+
+\deflabel{least element}
+We say that $y$ is a \df{least element} in $R$ iff
+for all\ $x, y \le x$.
+\end{definition}
+
+Let $x < y$ stand for $x \le y$ and $x \ne y$.
+
+\deflabel{maximal element}
+We say that $y$ is a \df{maximal element} in $R$ iff
+there exists no $x$ such that $y < x$.
+\end{definition}
+
+\deflabel{minimal element}
+We say that $y$ is a \df{minimal element} in $R$ iff
+there exists no $x$ such that $x < y$.
+\end{definition}
+
+\deflabel{irreflexive}
+We say that $R$ is \df{irreflexive} iff
+there exists no $x$ such that $x < x$.
+\end{definition}
+
+\deflabel{asymmetric}
+We say that $R$ is \df{asymmetric} iff
+for all\ $x\ y,\ x < y\ \h{implies that not}\ y < x$.
+\end{definition}
+
+\begin{definition}[strict~partial~order]
+We say that $R$ is a \df{strict~partial~order} iff $R$ is irreflexive, transitive, and asymmetric.
+\end{definition}
+
+Let $S$ denote a set over $R$.
+
+\deflabel{upper bound}
+We say $x$ is an \df{upper bound} of $S$ in $R$ iff $s \le x\ \h{for all}\ s \in S$.
+\end{definition}
+
+\deflabel{lower bound}
+We say $x$ is a \df{lower bound} of $S$ in $R$ iff $x \le s$ for all $s \in S$.
+\end{definition}
+
+\deflabel{wellfounded}
+We say that $R$ is \df{wellfounded} iff 
+for every $S$ such that $S\ne \emptyset$ there exists a lower bound $s$ of $S$
+such that $s\in S$.
+\end{definition}
+
+[synonym least upper bound/join/supremum]
+
+[synonym greatest lower bound/meet/infimum]
+
+\deflabel{least upper bound}
+We say $x$ is a \df{least upper bound} of $S$ in $R$ iff
+$x$ is an upper bound of $S$ such that for every upper bound $y$ of $S$ we have $x \le y$.
+\end{definition}
+
+\deflabel{greatest lower bound}
+We say $x$ is a \df{greatest lower bound} of $S$ in $R$ iff
+$x$ is a lower bound of $S$ such that for every lower bound $y$ of $S$ we have $y \le x$.
+\end{definition}
+
+\deflabel{join semilattice}
+We say $R$ is a \df{join semilattice} iff
+for every $x,y$ there exists a least upper bound of $\{x,y\}$ in $R$.
+\end{definition}
+
+\deflabel{meet semilattice}
+We say $R$ is a \df{meet semilattice} iff
+for every $x, y$ there exists a greatest lower bound of $\{x,y\}$ in $R$.
+\end{definition}
+
+\deflabel{join}
+Assume $R$ is a join semilattice.
+Let $\h{\df{join}}\ x\ y$ be the least upper bound of $\{x,y\}$ in $R$.
+This exists and is unique.
+\end{definition}
+
+\deflabel{meet}
+Assume $R$ is a meet semilattice.
+Let $\h{\df{meet}}\ x\ y$ be the greatest lower bound of $\{x,y\}$ in $R$.
+This exists and is unique.
+\end{definition}
+
+\deflabel{lattice}
+$R$ is a \df{lattice} iff $R$ is a join semilattice and a meet semilattice.
+\end{definition}
+
+\newpage
+\section{Order Notation}
+
+\deflabel{notation le}
+A \h{notation-le} is a notational structure with
+\begin{itemize}
+\item a type $\alpha : \Type$
+\item \h{notation-le} : $\alpha \to \alpha \to \Prop$
+%\item lt $x\ (y : D)\ \dequiv x \le y$ and $x\ne y$
+%\item ge $x\ (y : D)\ \dequiv y \le x$
+%\item gt $x\ (y : D)\ \dequiv y < x$
+%where $D = $\h{element-le}.
+\end{itemize}
+\end{definition}
+
+Let $x \le y$ denote $C\fld\h{notation-le}\ x\ y$, inferring
+$(C:\h{notation-le})$.
+
+Let $x < y$ stand for $x \le y$ and $x\ne y$.
+
+Let $x \ge y$ stand for $y \le x$.
+
+Let $x > y$ stand for $y < x$.
+
+Let $m$ is \df{at~most} $n$ stand for $m \le n$.
+
+Let $n$ is \df{at~least} $m$ stand for $n \ge m$.
+
+Let $m$ is \df{less~than} $n$ stand for $m < n$.
+
+Let $n$ is \df{greater~than} $m$ stand for $n > m$.
+
+\newpage
+\section{Natural Numbers}
+
+In this section, let $m,\ n,\ d,\ p,\ r$ denote natural numbers.
+
+\deflabel{nat le}
+  We say that $\h{nat-le}\ m \ n$ iff there exists $d$ such that $m + d = n$.
+\end{definition}
+
+\begin{definition}
+There is an extension with
+\begin{itemize}
+\item a root \Nat\ 
+\item a wellfounded total order with unique specification
+\item relation\ $\dequiv \h{nat-le}$
+\item notation \h{notation-le} :=relation
+\end{itemize}
+This exists and is unique.
+\end{definition}
+
+\deflabel{notation zero}
+A \h{notation-zero} is a notational structure with
+\begin{itemize}
+\item $\alpha : \Type$
+\item $\h{notation-zero} : \alpha$.
+\end{itemize}
+\end{definition}
+
+
+\deflabel{notation one}
+A \h{notation-one} is a notational structure with 
+\begin{itemize}
+\item $\alpha : \Type$
+\item \h{notation-one} $ : \alpha$.
+\end{itemize}
+\end{definition}
+
+Let $1$ stand for $C\fld\h{notation-one}$, inferring
+$(C:\h{notation-one})$.
+
+\begin{remark}
+As in Lean, we should implement infrastructure for number.  The
+numbers $0,1,2,3,4,\ldots$ can be interpreted in any structure that
+satisfies \h{notation-succ}, \h{notation-zero}, \h{notation-one}.  The numbers
+$0,\pm1,\pm2,\ldots$ can be interpreted in any structure that
+additionally satisfies \h{notation-neg}.
+\end{remark}
+
+[synonym number/-s]
+
+Let \df{natural number} stand for \Nat.
+
+\deflabel{divides}
+We say that $d$ \df{divides} $m$ iff $d\ne 0$ and there exists $r$
+such that $d*r = m$.
+\end{definition}
+
+\def\natdiv#1#2{{#1}\mathrel{|}{#2}}
+Let $\natdiv{d}{m}$ stand for $d$ divides $m$.
+
+Let $d$ is a \df{divisor of} $m$ stand for $d$ divides $m$.
+
+\def\natpow#1#2{{#1}^{#2}}
+
+\deflabel{natpow}
+Assume that $b,n$ are natural numbers.  We define 
+$\natpow{b}{n}:=\match\ n$ with
+\begin{itemize}
+\item $0 := 1$
+\item $m+1 := b * \natpow{b}{m}$.
+\end{itemize}
+This exists by recursion.
+\end{definition}
+
+\deflabel{prime}
+Assume that $p$ is a natural number greater than $1$.  We say that $p$
+is a \df{prime} iff each divisor of $p$ is equal to $1$ or is equal to
+$p$.
+\end{definition}
+
+\deflabel{multiplicity}
+The \df{multiplicity} of $p$ in $n$ is the natural number $m$ such that
+\[
+\natpow{p}{m}\ \h{divides}\ n\quad \h{and}\ \natpow{p}{\h{suc}\ m}\ 
+\h{does not divide}\ n.
+\]
+This exists and is unique.
+\end{definition}
+
+\newpage
+\section{Group theory}
+
+
+\deflabel{notation mul}
+A \h{notation-mul} is a notational structure with
+\begin{itemize}
+\item $\alpha : \Type$
+\item \h{notation-mul} $ : \alpha\to\alpha\to\alpha$.
+\end{itemize}
+\end{definition}
+
+
+\deflabel{notation mul}
+let $x * y$ stand for $C\fld\h{notation-mul}\ x\ y$ with precedence
+$70$ and left associativity, inferring $(C:\h{notation-mul})$.
+\end{definition}
+
+
+\deflabel{magma}
+A \h{magma} is a structure with
+\begin{itemize}
+\item a type over element : \Type
+\item an $\h{op} : \h{element} \to \h{element} \to \h{element}$
+\item notation \h{notation-mul} := op
+\end{itemize}
+\end{definition}
+
+
+\begin{remark}
+The following definition has problems.  The \h{notation-in} is a
+dependent type, where the order of the arguments is switched.
+
+There is (\blank : \h{notation-in}) with
+\begin{itemize}
+\item $\h{notation-le} : (G:\h{group}) \to (G\fld\h{element}) \to \Prop 
+\assign  \h{true}$
+\end{itemize}
+\end{remark}
+
+\deflabel{abelian}
+Assume that $(M : magma)$.
+M is \df{abelian} iff for all $(x\ y : M)$, $x * y = y * x$.
+\end{definition}
+
+\deflabel{semigroup}
+A \df{semigroup} is a structure with
+\begin{itemize}
+\item a magma
+satisfying
+\item associativity : for all $(x,\ y,\ z : \h{element}),\ x * y * z = (x * y) * z$.
+\end{itemize}
+\end{definition}
+
+% for all $(x, y, z : element), x * y * z = (x * y) * z$.
+% for all $x$, $y$ and  $z$, $x * y * z = (x * y) * z$.
+% for all $(x,\ y,\ z : \h{element}),\ x * y * z = (x * y) * z$.
+% for all $x$, $y$ and  $z$, $x * y * z = (x * y) * z$.
+
+\deflabel{monoid}
+ A \df{monoid} is a structure with
+\begin{itemize}
+\item a semigroup
+\item a unit: element
+\item notation \h{notation-one} := unit
+satisfying
+\item for all\ $x,\ x * 1 = 1 * x = x$.
+  \end{itemize}
+\end{definition}
+
+\deflabel{notation inverse}
+A \h{notation-inverse} is a notational structure with
+\begin{itemize}
+\item a over $\alpha : \Type$
+\item \h{notation-inverse} : $\alpha\to\alpha$
+\end{itemize}
+\end{definition}
+
+\def\inv#1{{#1}^{-1}}
+Let $\inv{x}$ stand for $C\fld{\h{notation-inverse}}\ x$, inferring
+$(C:\h{notation-inverse})$,
+
+\deflabel{group}
+A \df{group} is a structure with
+\begin{itemize}
+\item a monoid
+\item an inv : $C \to C$ satisfying
+\item notation \h{notation-inverse} := inv
+\item $\forall (x : C),\  x * \inv{x} = \inv{x} * x = 1$
+where C = element.
+\end{itemize}
+\end{definition}
+
+\newpage
+\section{Ring and modules}
+
+\begin{remark}
+An additive group is just a group in which the surface notation has
+been altered.  Additive group and group satisfy each other (but the notational
+fields drop out).
+%The convention is that 'xxx extensions keep field names distinct,
+%but satisfaction ignores 'xxx extensions, but gives priority to fewer ''.
+
+XX Write the notational structures \h{notation-plus}, \h{notation-neg} and their symbols.
+\end{remark}
+
+\deflabel{additive group}
+  An \df{additive group} is a structure with
+  \begin{itemize}
+
+\item 
+  a group without notation
+\item notation \h{notation-zero} := unit
+\item notation \h{notation-plus} := op
+\item notation \h{notation-neg} := inv
+   %removing tokens oneelement, one, mulelement, mul,
+   %renaming op to op'add, unit to unit'zero,
+   %unit axiom to unit axiom'zero, inv to inv'neg, \h{inverse-axiom} to \h{inverse-axiom'neg},
+   %associativity to associativity'additive.
+   \end{itemize}
+\end{definition}
+
+\deflabel{ring}
+  A \df{ring} is a structure with
+  \begin{itemize}
+\item a abelian additive group
+\item an $\h{op'}  : C \to C \to C$
+\item a $\h{unit'} : C$
+    \item notation \h{notation-mul} := op'
+    \item \h{notation-one} := unit'
+satisfying
+\item \h{unit-axiom'} : $\forall\ x : C,\ 1*x = x*1 = x$
+\item \h{mul-associativity} : $\forall\ x\ y\ z : C,\ x*y*z = x*(y*z)$
+\item \h{right-distributivity} : $\forall\ x\ y\ z\ : C,\ (x + y)*z = x*z + y*z$
+\item \h{left-distributivity}: $\forall\ x\ y\ z : C$, $z*(x+y) = z*x + z*y$
+where C = element.
+  \end{itemize}
+\end{definition}
+
+\begin{remark} By construction, a ring satisfies a group (with additive structure).
+There is a separate map from ring to monoid (with multiplicative structure),
+which is achieved with an explicit function call.
+\end{remark}
+
+\deflabel{monoid of ring}
+\h{monoid-of-ring}\ ($R$ : ring) : monoid := 
+make 
+\begin{itemize}
+\item element := R\fld{element}
+\item unit := R\fld{unit}'
+\item op := R\fld{op}'
+\item \ldots %XX
+\end{itemize}
+\end{definition}
+
+\deflabel{commutative}
+Assume that $R$ is a ring.
+We say that $R$ is \df{commutative} iff for every $x,\ y : R,\ x*y = y*x$.
+\end{definition}
+
+\deflabel{nontrivial}
+Assume that $R$ is a ring.
+We say that $R$ is \df{nontrivial} iff $(0 : R) \ne (1 : R)$.
+\end{definition}
+
+\deflabel{unit}
+Assume that $R$ is a commutative ring.
+Assume that $(x : R)$.
+We say that $x$ is a \df{unit} in $R$ iff there exists $(y : R)$ such that $x * y = y * x = 1$.
+\end{definition}
+
+\deflabel{notation dot}
+A \h{notation-dot} is a notational structure with
+\begin{itemize}
+\item over type $\alpha, \beta : \Type$
+\item \h{notation-dot} : $\alpha \to \beta \to \beta$
+\end{itemize}
+\end{definition}
+
+Let $r \cdot x$ stand for $C\fld\h{notation-dot}\ r\ x$ with precedence
+$50$ and left associativity, inferring $(C:\h{notation-dot})$.
+
+\deflabel{left module}
+A \df{left module} is a structure with
+\begin{itemize}
+\item a over $R$ : ring
+\item an  additive group
+\item a \h{scalar-multiplication} : $R$\fld {element} $\to$ element $\to$ element
+\item notation \h{notation-dot} := \h{scalar-multiplication}
+satisfying
+\item \h{left-linear} : for all $r,x,y, r \cdot (x + y) = r \cdot x + r \cdot y$
+\item \h{right-linear} : for all $r,s,x, (r + s) \cdot x = r \cdot x + s \cdot x$
+\item multiplicative : for all $r,s,x, (r*s) \cdot x = r \cdot (s \cdot x)$
+\item unital : for all $x, 1 \cdot x = x$.
+  \end{itemize}
+\end{definition}
+
+\newpage
+\section{The field of real numbers}
+
+\deflabel{field}
+A \df{field} $R$ is a nontrivial commutative ring such that for all $x\ne 0$,  $x$ is a unit in $R$.
+\end{definition}
+
+\deflabel{vector space}
+  A \df{vector space} is a structure with
+  \begin{itemize}
+\item a left module
+\item a over $R$ : field.
+  \end{itemize}
+\end{definition}
+
+
+\deflabel{ordered ring}
+  An \df{ordered ring} is a structure with
+  \begin{itemize}
+\item a ring
+\item a linear order satisfying
+  \item notation \h{notation-le} := relation
+\item for all $x,\ y,\ z,$ if $x \le y$ then $x + z \le y + z$.
+\item for all $x,\ y,$ if $0\le a$ and $0\le b$, then $0\le a*b$.
+\end{itemize}
+\end{definition}
+
+\begin{remark}
+See \url{https://en.wikipedia.org/wiki/Ordered-ring}
+\end{remark}
+
+\deflabel{ordered field}
+An \df{ordered field} is a a structure with
+\begin{itemize}
+\item an  ordered ring
+\item a field
+\end{itemize}
+\end{definition}
+
+%\begin{definition}
+%There is an extension
+%\begin{itemize}
+%\item a root ordered field
+%\item a linear order
+%with unique specification
+%\item for all $x,\ y$, $x \le y \iff (y - x \in P\ \h{or}\ x = y)$
+%where $P = \h{positive},\ C = \h{element}$.
+%  \end{itemize}
+%This exists and is unique.
+%\end{definition}
+
+\deflabel{complete}
+Assume that $F$ is an ordered field.
+We say that $F$ is \df{complete} iff
+for every subset $S$ of the universe of $F$,
+  if $S \ne \emptyset$ and $S$ has an upper bound in $F$ then $S$ has a least upper bound in $F$.
+\end{definition}
+
+\begin{specification}[ordered field]
+There is an extension
+\begin{itemize}
+\item root ordered field
+\item \h{absolute-value}\ $: C \to C$
+with unique specification
+\item for all $x$,\\
+  $A\ x = x$ where $0 \le x$ and\\
+  $A\ x = -x$ where $x < 0$\\
+  where C = element, A = \h{absolute-value}.
+  \end{itemize}
+This exists and is unique and total.
+\end{specification}
+
+
+\begin{definition}
+XX Give the definition of an isomorphism \h{Iso} of complete ordered field.
+\end{definition}
+
+\deflabel{cof canonical}
+Let \h{cof-canonical} \parenthetical{short for complete ordered field} be the \h{canonical-isomorphism} such that
+\begin{itemize}
+\item $A := \h{complete ordered field}$
+\item $B\ F_1\ F_2 := \h{Iso}\ F_1\ F_2$
+\item $\h{arrow}\ F_1\ F_2 :=$ the unique element of $\h{Iso}\ F_1\ F_2$.
+\end{itemize}
+This exists and is unique.
+\end{definition}
+
+We register \h{cof-canonical} as  a canonical cast.
+
+\deflabel{real}
+Let \Real\ be the complete ordered field.
+This is canonical.  
+\end{definition}
+
+\subsection{norms}
+
+Let $|(x:\Real)|$ denote \h{absolute-value}\ $x$.
+
+\deflabel{normed commutative ring}
+  A \df{normed commutative ring} is a structure with
+  \begin{itemize}
+\item a commutative ring
+\item an \h{absolute-value} : element $\to \Real$
+satisfying
+\item \h{non-negativity} : for all $x$, $A\ x = 0 \iff x = 0$
+\item \h{triangle-inequality} : for all $x\ y,\ A (x + y) \le A\ x + A\ y$
+\item submultiplicative : for all $x\ y, A\ (x * y) \le A\ x * A\ y$\\
+where A = \h{absolute-value}
+  % See https://ncatlab.org/nlab/show/normed+ring
+  \end{itemize}
+\end{definition}
+
+\deflabel{normed field}
+  A \df{normed field} is a structure with
+  \begin{itemize}
+\item a normed commutative ring
+\item a field.
+  \end{itemize}
+\end{definition}
+
+
+\subsection{meet semilattice of subgroups}
+
+\begin{remark}
+We introduce the semilattice of subgroups explicitly.  Each subgroup
+is characterized by its set of elements.  A subgroup is not literally
+a group.  It would take a coercion to make it so.
+
+Because of the way parameters work, we say that $H$ is a subgroup {\it
+  over} $G$.
+\end{remark}
+
+\deflabel{subgroup}
+  A \df{subgroup}  is a structure with
+  \begin{itemize}
+\item a over \h{container-group} : group
+\item a type support $: \h{set over} \h{container-group}$ 
+satisfying
+\item nonempty : $1 \in support$ and
+\item closure : for all $x,y \in \h{support}, x * \inv{y} \in \h{support}$.
+  \end{itemize}
+\end{definition}
+
+
+\deflabel{subgroup semilattice}
+Let the subgroup~semilattice be the function\\
+$f: \h{group}\ \to\ \h{meet~semilattice}$\\
+such that
+the element of $f(G)$ is the type (subgroup over $G$) and\\
+$f (G)\fld\h{relation}\ C1\ C2 = (\h{for all}\ x,\ x \in C1 \to x \in C2)$.
+This exists and is unique.
+\end{definition}
+
+\begin{remark} At this point, we could introduce notation
+$\subseteq$, $\cap$, $\cup$, etc. for subgroups of a given group.
+\end{remark}
+
+Assume that $G$ is a finite group, let
+the \df{order} of $G$ stand for the size of $G$.
+
+\deflabel{subgroup order}
+Assume that $H$ is a subgroup of a finite group $G$.
+The \prefix{subgroup~} order of $H$ is the size of the support of $H$.
+This exists and is well subtyped \parenthetical{that is, $H$ is finite}.
+\end{definition}
+
+\newpage
+\section{Sylows Theorems}
+
+In this section, let $G$ denote a fixed finite group.
+
+\deflabel{conjugate}
+Assume that $(g : G)$.  Assume that $H$ is a subgroup of $G$.  The
+\df{conjugate} of $H$ by $g$ in $G$ is the subgroup $H'$ of $G$ such
+that for all $x$, we have $x \in H' \iff g * x * \inv{g} \in H$.  This
+exists and is unique.
+\end{definition}
+
+\deflabel{normalizer}
+Assume that $H$ is a subgroup of $G$.  The \df{normalizer of} $H$
+\df{in} $G$ is the subgroup $N$ of $G$ such that for all $x$, $x \in N
+\iff \h{for all}\ h\ \in H$ we have $\inv{x} * h * x \in H$.  This
+exists and is unique.
+\end{definition}
+
+
+Let $|G|$ denote the order of $G$.
+
+In this section, let $p$ denote a fixed prime number.
+
+Let $m$ denote the multiplicity of $p$ in $|G|$.
+
+
+\begin{definition}[Sylow]
+A \df{Sylow $p$ subgroup of} $G$ is a subgroup $P$ of $G$ such that
+the \prefix{subgroup~} order of $P$ is $\natpow{p}{m}$.
+\end{definition}
+
+
+\def\Syl#1#2{\operatorname{Syl}_{#1}(#2)}
+
+\begin{definition}
+Let $\Syl{p}{G} = \{ P \mid (P\ \h{is a Sylow}\ p\ \h{subgroup
+  of}\ G) \}$.
+\end{definition}
+
+\def\SylN#1#2{n_{#1}(#2)}
+
+Let $\SylN{p}{G}$ denote the size of $\Syl{p}{G}$.
+This is well subtyped \parenthetical{that is, it is finite}.
+
+\def\Nz#1#2{|N(#1,#2)|}
+
+\begin{definition}
+let $\Nz{p}{G}$ be equal to
+the size of the normalizer of each and every Sylow $p$ subgroup in $G$.
+This exists, is unique, and is well-defined.
+\end{definition}
+
+\begin{theorem}[Sylow1]
+ There exists a Sylow $p$ subgroup of $G$.
+\end{theorem}
+
+\begin{theorem}[Sylow 2]
+If $P, P'$ are Sylow $p$ subgroups of $G$ then there exists $(g : G)$
+such that $P'$ is the conjugate of $P$ by $g$ in $G$.
+\end{theorem}
+
+\begin{theorem}[Sylow 3a]
+Assume that $|G| = p'*\natpow{p}{m}$.
+We have $\SylN{p}{G}$ divides $p'$.
+\end{theorem}
+
+\begin{theorem}[Sylow 3b]
+We have $p$ divides $(\SylN{p}{G} - 1)$.
+\end{theorem}
+
+\begin{theorem}[Sylow 3c]
+We have $\SylN{p}{G}\*\Nz{p}{G} = |G|$.
+\end{theorem}
+
+\end{cnl}
+
+
+\end{document}

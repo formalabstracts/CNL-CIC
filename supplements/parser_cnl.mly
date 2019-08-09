@@ -135,16 +135,17 @@ lit_any : (* can extend: finitely many, almost all, etc. *)
 | LIT_NO {}
 lit_exist : LIT_EXIST | LIT_EXISTS {}
 lit_lets : LIT_LET option(LIT_US) | LIT_WE option(LIT_CAN) {}
+lit_fix : LIT_FIX | LIT_LET {}
 lit_assume : LIT_ASSUME | LIT_SUPPOSE {}
 lit_then : LIT_THEN | LIT_THEREFORE | LIT_HENCE {}
 lit_choose : LIT_TAKE | LIT_CHOOSE {}
 lit_prove : LIT_PROVE | LIT_SHOW {}
 lit_we_say : LIT_WE LIT_SAY option(LIT_THAT) {}
 lit_left : LIT_LEFT | LIT_RIGHT | LIT_NO {}
-lit_field_key : LIT_EMBEDDED
-| LIT_PARAMETRIC
-| LIT_TYPEABLE
-| LIT_APPLICABLE {}
+lit_field_key : 
+| LIT_OVER
+| LIT_TYPE
+| LIT_MAP {}
 lit_qed : LIT_END | LIT_QED | LIT_OBVIOUS | LIT_TRIVIAL {}
 lit_document :
 | LIT_DOCUMENT
@@ -524,6 +525,7 @@ opentail_type :
 | binop_type
 | quotient_type
 | coercion_type
+| overstructure_type
 {}
 
  (* agda_pi_type : nonempty_list(annotated_vars) ARROW opentail_type {} *)
@@ -533,6 +535,13 @@ quotient_type : LIT_QUOTIENT option(LIT_OF) general_type LIT_BY term {}
 coercion_type : 
 | COERCION term (* explicit coercion *)
 {}
+
+overstructure_type :
+| prim_structure LIT_OVER over_args {}
+
+  over_args :
+  | brace_semi(var_or_atomic ASSIGN term {})
+  | comma_nonempty_list(tightest_expr) {}
 
 
 general_type : opentail_type {}
@@ -573,8 +582,15 @@ structure : option(LIT_NOTATIONAL) LIT_STRUCTURE
 
   lit_param : LIT_WITH LIT_PARAMETERS {}
 
+  (* If the field identifier is a var, satisfaction ignores its name.
+   If the field identifier is a prim_structure, it becomes embedded. 
+   *)
+
   field : field_prefix field_identifier option(field_suffix) {}
-  field_identifier : var_or_atomic opt_colon_type {}
+  field_identifier : 
+  | prim_structure
+  | var_or_atomic opt_colon_type {}
+
   field_prefix : ALT list(lit_field_key) {}
   field_suffix : LIT_WITHOUT LIT_NOTATION | field_assign {}
   field_assign : ASSIGN expr {}
@@ -628,8 +644,12 @@ delimited_term :
 
 annotated_term : paren(term colon_type {}) {}
 
-make_term : brace_semi(var_or_atomic 
-  option(ASSIGN term {}) option(SEMI BLANK {}) {}) {}
+make_term : brace_semi(var_or_atomic_or_blank
+  option(ASSIGN term {}) {}) {}
+
+  var_or_atomic_or_blank : 
+  | var_or_atomic
+  | BLANK {}
 
 list_term : bracket(separated_list(SEMI,term) {}) {}
 
@@ -699,7 +719,7 @@ definite_term :
 | paren(option(LIT_THE) prim_definite_noun {}) {}
 
  (* where (Haskell style) *)
-  where_suffix : brace_semi(tvar opt_colon_type ASSIGN term {}) {}
+  where_suffix : LIT_WHERE brace_semi(tvar opt_colon_type ASSIGN term {}) {}
 
 term : 
 | definite_term 
@@ -1061,11 +1081,6 @@ definition_statement :
   function_def : opt_define function_head
     copula option(lit_equal) option(LIT_THE) plain_term {}
 
- (* 
-    There is an ambiguity between identifier_pattern and
-    function_token_pattern, when the identifier is also a token.
-    If ambiguous, we give priority to the interpretation as an identifier. 
-  *)
     function_head :
     | function_token_pattern
     | symbol_pattern option(paren_precedence_level)
@@ -1140,7 +1155,17 @@ macro : option(insection) macro_bodies {}
   | we_record_def
   {}
 
-  let_annotation : LIT_LET comma_nonempty_list(annotated_vars) {}
+  (* if LIT_FIX is used in let_annotation, it plays the role of a Lean
+     parameter, so that it inserted as an implicit parameter in every
+     macro where the variable appears on the right-hand side but not
+     the left.
+
+     If LIT_LET is used, the type information is associated with the
+     variable wherever it is used, but there is no automatic insertion. 
+
+  *)
+
+  let_annotation : lit_fix comma_nonempty_list(annotated_vars) {}
 
   we_record_def : lit_we_record comma_nonempty_list(plain_term) {}
 
