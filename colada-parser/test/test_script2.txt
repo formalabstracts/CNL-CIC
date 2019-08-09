@@ -1,0 +1,27 @@
+Subsection test_synonym.
+[synonym set/-s]
+
+% Synonyms should be recognized in any context
+% where tokens are expected.
+
+[synonym set/-s]
+[ synonym number /- s ]
+[ synonym element / elements /elemental ]
+[synonym almost everywhere / ae ]
+[ synonym almost all/all but finitely many]
+
+end subsection test_synonym.
+
+Subsection test_string_instruction.
+
+[read "algebra.cnl"]
+[ library "analysis" ]
+[ Read "topology.cnl" ]
+
+end subsection test_string_instruction.
+
+subdivision test_definition.
+
+alksdjhalshdqiuwhdjwnd kasdh 21ue 12 87
+
+end subdivision test_definition.
