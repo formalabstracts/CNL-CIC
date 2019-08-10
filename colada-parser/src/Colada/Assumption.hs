@@ -33,17 +33,17 @@ parseAssumption =
   (AssumptionLetAnnotation <$> (parseLetAnnotation <* parsePeriod)) <||>
   (Assumption <$> parseAssumptionPrefix <*> parseStatement <* parsePeriod)
   
-data AssumptionPrefix = AssumptionPrefix (Maybe [Text]) -- make consumption inspectable for debugging
+newtype AssumptionPrefix = AssumptionPrefix [Text]
   deriving (Show, Eq)
 
-parseAssumptionPrefix = AssumptionPrefix <$> (do -- TODO(jesse): clean this up
-  lt1 <- parseLitLets
-  lt2 <- parseLitAssume
-  mlt3 <- option (rp $ parseLit "that")
-  case mlt3 of
-    Nothing -> return $ Just $ lt1 <> lt2
-    Just lt3 -> return $ Just $ lt1 <> lt2 <> lt3) <||>
-  (AssumptionPrefix . Just) <$> (rp $ parseLit "let")
+parseAssumptionPrefix =
+  AssumptionPrefix
+    <$> concat
+      <$> delete_nothings
+        <$>
+          (pure . pure <$> parseLitLets) <+>
+          (pure . pure <$> parseLitAssume) <+>
+          (pure <$> option (rp $ parseLit "that"))
 
 data ThenPrefix = ThenPrefix (Maybe [Text])
   deriving (Show, Eq)
