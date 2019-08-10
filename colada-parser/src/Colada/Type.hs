@@ -180,7 +180,7 @@ newtype WhereSuffix  = WhereSuffix [TVarAssignment] -- to be parsed using a brac
 
 parseWhereSuffix :: Parser WhereSuffix
 parseWhereSuffix =
-  WhereSuffix <$> brace_semi parseTVarAssignment
+  WhereSuffix <$> (parseLit "where" *> brace_semi parseTVarAssignment)
 
 data ColonType = ColonType GeneralType
   deriving (Show, Eq)
@@ -198,6 +198,7 @@ data OpenTailType =
     OpenTailTypeBinOpType BinOpType
   | OpenTailTypeQuotientType QuotientType
   | OpenTailTypeCoercionType CoercionType
+  | OpenTailTypeOverStructureType OverStructureType
   deriving (Show, Eq)
 
 parseOpenTailType :: Parser OpenTailType
@@ -205,6 +206,22 @@ parseOpenTailType =
   OpenTailTypeBinOpType <$> parseBinOpType <||>
   OpenTailTypeQuotientType <$> parseQuotientType <||>
   OpenTailTypeCoercionType <$> parseCoercionType
+
+data OverStructureType = OverStructureType PrimStructure OverArgs
+  deriving (Show, Eq)
+
+parseOverStructureType :: Parser OverStructureType
+parseOverStructureType = OverStructureType <$> parsePrimStructure <* parseLit "over" <*> parseOverArgs
+
+data OverArgs =
+    OverArgsAssignments [(VarOrAtomic, Term)]
+  | OverArgsTightestExprs [TightestExpr]
+  deriving (Show, Eq)
+
+parseOverArgs :: Parser OverArgs
+parseOverArgs =
+  OverArgsAssignments <$> (brace_semi $ ((,) <$> parseVarOrAtomic <* parseAssign <*> parseTerm)) <||>
+  OverArgsTightestExprs <$> comma_nonempty_list parseTightestExpr
   
 data CoercionType =
     CoercionTypeTerm Term 
@@ -421,6 +438,16 @@ data VarOrAtomic =
     VarOrAtomicVar Var
   | VarOrAtomicAtomic AtomicId
   deriving (Show, Eq)
+
+data VarOrAtomicOrBlank =
+    VarOrAtomicOrBlankVarOrAtomic VarOrAtomic
+  | VarOrAtomicOrBlankBlank
+  deriving (Show, Eq)
+
+parseVarOrAtomicOrBlank :: Parser VarOrAtomicOrBlank
+parseVarOrAtomicOrBlank =
+  VarOrAtomicOrBlankVarOrAtomic <$> parseVarOrAtomic <||>
+  parseBlank *> return VarOrAtomicOrBlankBlank
 
 patternOfVarOrAtomic :: VarOrAtomic -> Parser Pattern
 patternOfVarOrAtomic voa = case voa of
@@ -767,10 +794,14 @@ newtype FieldPrefix = FieldPrefix [[Text]]
 parseFieldPrefix = parseAlt *> (many1' parseLitFieldKey) >>= return . FieldPrefix
 
 
-data FieldIdentifier = FieldIdentifier VarOrAtomic (Maybe ColonType)
+data FieldIdentifier =
+    FieldIdentifierPrimStructure PrimStructure
+  | FieldIdentifierVarOrAtomic VarOrAtomic (Maybe ColonType)
   deriving (Show, Eq)
 
-parseFieldIdentifier = FieldIdentifier <$> parseVarOrAtomic <*> option parseColonType
+parseFieldIdentifier =
+  FieldIdentifierPrimStructure <$> parsePrimStructure <||>
+  FieldIdentifierVarOrAtomic <$> parseVarOrAtomic <*> option parseColonType
 
 data FieldSuffix =
     WithoutNotation
@@ -900,11 +931,12 @@ data AnnotatedTerm = AnnotatedTerm Term ColonType
 parseAnnotatedTerm :: Parser AnnotatedTerm
 parseAnnotatedTerm = paren $ AnnotatedTerm <$> parseTerm <*> parseColonType
 
-data MakeTerm = MakeTerm [(VarOrAtomic, Maybe Term)]
+data MakeTerm = MakeTerm [(VarOrAtomicOrBlank, Maybe Term)]
   deriving (Show, Eq)
 
 parseMakeTerm :: Parser MakeTerm
-parseMakeTerm = MakeTerm <$> (brace_semi $ (,) <$> parseVarOrAtomic <*> option (parseAssign *> parseTerm) <* option (parseSemicolon *> parseBlank))
+parseMakeTerm =
+  MakeTerm <$> (brace_semi $ (,) <$> parseVarOrAtomicOrBlank <*> option (parseAssign *> parseTerm))
 
 newtype ListTerm = ListTerm [Term]
   deriving (Show, Eq)
