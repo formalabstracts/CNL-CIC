@@ -27,7 +27,29 @@ import Colada.Basic.Core
 import Colada.Basic.State
 import Colada.Basic.ParserState
 
--- literal tokens
+{-
+
+   Parsers for basic terminals of the Colada grammar.
+
+ - parseLit str will case-insensitively parse the exact string str, and consume trailing whitespace.
+
+ - Any specialized non-alphanumeric token is given its own parser, named parseCamelCasedVersionOfName.
+
+ - Parser for the period punctuation symbol requires it to be followed by whitespace or EOF.
+
+ - For convenience, parser combinators for the common separated-list-type production rule combinators
+   are provided with verbatim names:
+
+    paren
+    bracket
+    brace
+    opt_paren
+    brace_semi
+    sep_list
+    sep_list1
+    comma_nonempty_list
+
+-}
 
 ---- `parseLit arg` case-insensitively parses `arg`, and then consumes whitespace to the right.
 parseLit :: Text -> Parser Text
@@ -149,10 +171,9 @@ parseLitLeft =
   <||> (rp $ parseLit "no")
 
 parseLitFieldKey =
-  (rp $ parseLit "embedded")   <||>
-  (rp $ parseLit "parametric") <||>
-  (rp $ parseLit "typeable")   <||>
-  (rp $ parseLit "applicable")
+  (rp $ parseLit "over")   <||>
+  (rp $ parseLit "type") <||>
+  (rp $ parseLit "map")
 
 parseLitQED = (rp $ parseLit "end") <||> (rp $ parseLit "QED") <||> (rp $ parseLit "obvious") <||> (rp $ parseLit "trivial")
 

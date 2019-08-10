@@ -40,8 +40,7 @@ test_all :: Show a => Parser a -> Text -> IO ()
 test_all p arg = parseTest (runtest0 p) arg
 
 toParsec :: Parser a -> Parsec SimpleError Text a
-toParsec p = do (a,b) <- runtest0 p
-                return a
+toParsec p = fst <$> runtest0 p
 
 ---- `test p arg` runs `p` on `arg`, suppressing information about the FState
 test :: Show a => Parser a -> Text -> IO ()
