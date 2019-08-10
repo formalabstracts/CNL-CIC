@@ -29,7 +29,7 @@ parseOfParserMarkUp x =
   case x of
     J txt -> (Just <$> parseLit txt)
     Q txt -> (option $ parseLit txt)
-    A ps -> parse_any_of (map parseOfParserMarkUp ps)
+    A ps -> parse_any_of (parseOfParserMarkUp <$> ps)
 
 parsePhraseList :: [[ParserMarkUp Text]] -> Parser ([Maybe Text])
 parsePhraseList mtxts = parse_any_of (map parseOfParserMarkUps mtxts)
@@ -41,8 +41,6 @@ parsePhraseList mtxts = parse_any_of (map parseOfParserMarkUps mtxts)
 parsePhraseListFiller_aux :: Parser [Text] -- note: maybe make this [Maybe Text] for easier debugging?
 parsePhraseListFiller_aux =
   delete_nothings <$> ((use $ allStates primPhraseListFiller) >>= parsePhraseList . concat)
-
-  -- (use (top . primPhraseListFiller) >>= parsePhraseList) -- TODO fix this, use top . isn't right
 
 parsePhraseListTransition_aux :: Parser [Text]
 parsePhraseListTransition_aux =
@@ -75,32 +73,29 @@ newtype PhraseListProofStatement = PhraseListProofStatement [Text]
 parsePhraseListProofStatement :: Parser PhraseListProofStatement
 parsePhraseListProofStatement = PhraseListProofStatement <$> parsePhraseListProofStatement_aux
 
--- test parsePhraseListFiller_aux "we have" -> Just ["we", "have"]
--- test parsePhraseListFiller_aux "put" -> Just ["put"]
--- test parsePhraseListFiller_aux "ramalamadingdong" -> fails
--- test parsePhraseListTransition_aux "without loss of generality"
--- test parsePhraseListProofStatement_aux "the theorem now follows."
--- test parsePhraseListProofStatement_aux "the theorem follows."
-
 ocamlsc :: Parser ()
 ocamlsc = L.space space1 empty (L.skipBlockComment "(*" "*)")
 
+phraseListCharConsumer :: Parser Text
+phraseListCharConsumer = notFollowedByAny [pack <$> pure <$> spaceChar, ch '(', ch ')', ch '|' ] *> item
+
+-- this generates parser mark-up. can combine this with either text read from a file (e.g. phrase_lists.txt)
+-- or text read from user input (e.g. via a new kind of instruction) to dynamically extend the parser
 preprocessPhraseList :: Text -> Parser [[ParserMarkUp Text]]
-                         -- TODO : add support for parsing alternation lists
-                         -- TODO : integrate this into the state for on-the-fly extension of the phrase lists
 preprocessPhraseList txt =
   case (runParser (toParsec parsePhraseListFile) "" txt) of
-           Left _ -> fail "adios"
+           Left _ -> fail "parsePhraseListFile failed"
            Right s -> return s
   where
   parsePhraseListFile :: Parser [[ParserMarkUp Text]]
   parsePhraseListFile = many1' $ many1' (foo <* ocamlsc)
     where
       foo :: Parser (ParserMarkUp Text)
-      foo = do chnk <- (many1 not_whitespace_aux)
-               let b = (last chnk)
-               if (b == "?") then return (Q . join . init $ chnk)
-                             else return (J . join $ chnk)
-                        
--- processPhraseList :: Text -> Parser (Maybe [Text])
--- processPhraseList txt = preprocessPhraseList txt >>= parsePhraseList_aux
+      foo = parseA <||> parseJorQ
+        where
+          parseA = paren $ A <$> sepby1 foo (parseLit "|")
+          
+          parseJorQ = do chnk <- (many1' phraseListCharConsumer)
+                         let b = (last chnk)
+                         if (b == "?") then return (Q . join . init $ chnk)
+                                 else return (J . join $ chnk)

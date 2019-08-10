@@ -98,9 +98,12 @@ skip = return ()
 item :: Parser Text
 item = satisfy (\_ -> True) >>= return . pack . pure
 
+notFollowedByAny :: [Parser a] -> Parser ()
+notFollowedByAny xs = notFollowedBy (fold xs)
+
 not_whitespace_aux :: Parser Text
 not_whitespace_aux = do
-  b <- succeeds $ lookAhead spaceChar
+  b <- succeeds $ lookAhead' spaceChar
   if b then fail "whitespace character ahead, failing"
        else item
 
@@ -108,7 +111,7 @@ fold :: [Parser a] -> Parser a
 fold ps = foldr (<||>) empty ps
 
 not_whitespace :: Parser Text
-not_whitespace = (many1 not_whitespace_aux) >>= return . join
+not_whitespace = (many1' not_whitespace_aux) >>= return . join
 
 word :: Parser Text
 word = not_whitespace <* sc

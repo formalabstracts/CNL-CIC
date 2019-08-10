@@ -21,6 +21,8 @@ module Colada.Tests
   , module Colada.Basic.Basic
   , module Colada.Assumption
   , module Colada.Tests
+  , module Colada.PhraseList
+  
 )
 
 where
@@ -50,6 +52,7 @@ import Colada.Macro
 import Colada.Instr
 import Colada.SectionPreamble
 import Colada.Assumption
+import Colada.PhraseList
 
 testMacro :: IO ()
 testMacro = return ()
@@ -105,10 +108,19 @@ testState = do
   test ((updateStrSyms Globally ["foo"] *> (use $ top . strSyms) *> empty) <||> (updateStrSyms Globally ["bar"] *> (use $ top . strSyms))) "foo"
   test (use (allStates idCount)) "foo"
 
-testCustom :: IO ()
-testCustom = do
-  txt <- TIO.readFile "/home/pv/org/projects/jmh-CNL-CIC/colada-parser/test/test_script2.txt"
-  test parseProgram txt
+testPhraseList :: IO ()
+testPhraseList = do
+  test parsePhraseListFiller_aux "we have"
+  test parsePhraseListFiller_aux "put"
+  test (fail_iff_succeeds parsePhraseListFiller_aux) "ramalamadingdong"
+  test parsePhraseListTransition_aux "without loss of generality"
+  test parsePhraseListProofStatement_aux "the theorem now follows."
+  test parsePhraseListProofStatement_aux "the theorem follows."
+
+-- testCustom :: IO ()
+-- testCustom = do
+--   txt <- TIO.readFile "/home/pv/org/projects/jmh-CNL-CIC/colada-parser/test/test_script2.txt"
+--   test parseProgram txt
 
 testTests :: IO ()
 testTests = do
@@ -118,5 +130,6 @@ testTests = do
   testType
   testMacro
   testInstr
+  testPhraseList
   testProgramText
   testState

@@ -11,6 +11,8 @@ The project is contained inside ~src/Colada~. ~src/Colada/Basic/~ (so modules in
 
 The topmost file in the project is ~Colada.Tests~. This file imports and re-exports every other file in the project, and so should be loaded in a REPL when interactively developing the parser. The highest-level non-testing file is ~Colada.ProgramText~. This imports all other parts of the grammar. The basic unit of a Colada document is a ~TextItem~. The entire document must be parsed as a ~ProgramText~, which wraps a list of ~TextItem~ s.
 
+~Colada.PhraseList~ contains utilities for dynamically extending the ~colada-parser~ using a simple markup language (tokens postfixed with a question mark can be optionally parsed, and ~(tk1 | tk2 | ... | tkn)~ will parse any of the ~|~-separated tokens ). Marked-up input is parsed into the ~ParserMarkUp~ datatype, from which ~colada-parser~ generates a parser for later use in the text. The parser which handles the conversion to ~ParserMarkUp~ ignores OCaml-style line and block comments.
+
 ** Build instructions
 
 To build ~colada-parser~, you must have the Haskell tool ~stack~ installed (see [[https://docs.haskellstack.org/en/stable/README/][here]]). Navigate to the project directory and run ~stack build~. After building the parser, you can test it on a CNL-compliant text file with ~stack exec colada my_file~. If the parse is successful, the parse tree will be written to ~my_file.parsed~ in the same directory as ~my_file~.
