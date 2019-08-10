@@ -20,7 +20,7 @@ main = do
   file <- (head <$> getArgs)
   txt <- makeAbsolute file >>= TIO.readFile 
   case (runParser (toParsec parseProgram) "" txt) of
-    Left err -> fail $ show err
+    Left err -> fail $ errorBundlePretty err
     Right a -> do
       let output = show a
       putStrLn output
