@@ -65,8 +65,8 @@ testAxiom = do
   test parseAxiom "Axiom The_Riemann_Hypothesis. One is positive."
   test parseAxiom "Axiom The_Riemann_Hypothesis. The zero is not positive."
 
-testCore :: IO ()
-testCore = return ()
+testProgramText :: IO ()
+testProgramText = return ()
 
 examplePatts :: Pattern
 examplePatts = Patts [Wd ["foo"], Wd ["bar"], Vr]
@@ -118,5 +118,5 @@ testTests = do
   testType
   testMacro
   testInstr
-  testCore
+  testProgramText
   testState

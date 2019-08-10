@@ -7,7 +7,7 @@ maintainer:          ""
 copyright:           "2019 Jesse Michael Han"
 
 extra-source-files:
-- README.md
+- README.org
 - ChangeLog.md
 
 description:           <https://github.com/formalabstracts/CNL-CIC>
