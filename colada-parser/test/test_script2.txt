@@ -22,6 +22,4 @@ end subsection test_string_instruction.
 
 subdivision test_definition.
 
-alksdjhalshdqiuwhdjwnd kasdh 21ue 12 87
-
 end subdivision test_definition.

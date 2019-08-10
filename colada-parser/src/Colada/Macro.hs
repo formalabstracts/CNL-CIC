@@ -89,7 +89,7 @@ registerMacroBody lgflag mb =
     Globally -> registerMacroBody (AtLevel 0) mb
     Locally -> do {d <- depthStateVec <$> get; registerMacroBody (AtLevel d) mb}
     AtLevel k -> case mb of
-      (MacroBodyClassifierDef c) -> registerClassifierDef (AtLevel k) c -- TODO(jesse): fix this
+      (MacroBodyClassifierDef c) -> registerClassifierDef (AtLevel k) c
       (MacroBodyTypeDef x) -> registerTypeDefMacro (AtLevel k) x
       (MacroBodyFunctionDef x w) -> registerFunctionDefMacro (AtLevel k)  x
       (MacroBodyPredicateDef x w) -> registerPredicateDefMacro (AtLevel k) x

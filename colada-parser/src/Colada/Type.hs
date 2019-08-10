@@ -213,7 +213,7 @@ data CoercionType =
 
 parseCoercionType :: Parser CoercionType
 parseCoercionType =
-  CoercionTypeTerm <$> parseTerm <||> -- TODO(jesse): check that this implicit coercion is implemented correctly
+  CoercionTypeTerm <$> parseTerm <||> -- TODO: check that this implicit coercion is implemented correctly
   ImplicitCoercion <$> (parseCoercion *> parseTerm)
   
 data PrimStructure = PrimStructure  -- this is a stub for Cabarete-style structure, and is not supported yet
@@ -973,7 +973,7 @@ parseProofExpr =
   ProofExprQED <$> parseSymbolQED <||>
   ProofExprParen <$> paren parseProofExpr
   
-data SortExpr = SortExpr (Maybe Args) LitSort -- Args should be nonempty TODO(jesse): clarify what this means wrt Args parsing
+data SortExpr = SortExpr (Maybe Args) LitSort -- Args should be nonempty TODO: clarify what this means wrt Args parsing
   deriving (Show, Eq)
 
 parseSortExpr :: Parser SortExpr
@@ -1027,7 +1027,6 @@ data CSBrace a = CSBrace a [TVar]
 -- note: the control sequence is the generic type variable 'a'
 -- but CSBrace will work for any type 'a'
 
--- TODO(jesse): ensure that backslashes are parsed correctly
 parseCSBrace :: Parser a -> Parser (CSBrace a)
 parseCSBrace p = CSBrace <$> p <*> (many' $ brace parseTVar)
   

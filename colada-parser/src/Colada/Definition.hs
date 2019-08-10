@@ -32,8 +32,6 @@ import Colada.Pattern
 data Definition = Definition DefinitionPreamble [Assumption] DefinitionAffirm
   deriving (Show, Eq)
 
--- TODO(jesse): refactor "register" functions to accept a LocalGlobalFlag and an (isMacro :: Bool) argument
-
 registerDefinition :: Definition -> Parser ()
 registerDefinition def@(Definition dp asms (DefinitionAffirm ds _)) =
   case ds of
@@ -334,10 +332,6 @@ patternOfPredicateDef fd = case fd of
     PredicateHeadIdentifierPattern idpatt -> patternOfIdentifierPattern idpatt
     PredicateHeadSymbolPattern sympatt mpl -> patternOfSymbolPattern sympatt
 
---TODO(jesse): add side effects for predicate definitions
--- identifier pattern becomes primRelation
--- Symbolpattern becomes... binary?
-
 data IffJunction = IffJunction
   deriving (Show, Eq)
 
@@ -509,7 +503,7 @@ registerPrimIdentifierTermMacro lgflag fd@(FunctionDef fh c pt) =
 
 -- registerPrimPrefixFunction :: LocalGlobalFlag ->  FunctionDef -> Parser ()
 -- registerPrimPrefixFunction lgflag fd@(FunctionDef fh c pt) =
---   case fh of -- TODO(jesse): change this to an identifier which only accepts one argument
+--   case fh of -- TODO: change this to an identifier which only accepts one argument
 --     (FunctionHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl) ->
 --       case mtv1 of
 --         Nothing -> if (isCSBrace slc) || (vs /= []) || (isNothing mtv2) then empty
@@ -519,7 +513,7 @@ registerPrimIdentifierTermMacro lgflag fd@(FunctionDef fh c pt) =
 
 -- registerPrimPrefixFunctionMacro :: LocalGlobalFlag ->  FunctionDef -> Parser ()
 -- registerPrimPrefixFunctionMacro lgflag fd@(FunctionDef fh c pt) =
---   case fh of -- TODO(jesse): change this to an identifier which only accepts one argument
+--   case fh of -- TODO: change this to an identifier which only accepts one argument
 --     (FunctionHeadSymbolPattern sympatt@(SymbolPattern mtv1 slc vs mtv2) mpl) ->
 --       case mtv1 of
 --         Nothing -> if (isCSBrace slc) || (vs /= []) || (isNothing mtv2) then empty
@@ -809,7 +803,7 @@ parseTypeTokenPattern = TypeTokenPattern <$> (parseLitA *> parseTokenPattern)
  --    cannot start with "the"  *)
 
 parsePatternToken :: Parser Token
-parsePatternToken = fail_iff_succeeds (lookAhead' parseCopula) *> -- note(jesse): added to ensure copula literals are not consumed by token pattern parsing
+parsePatternToken = fail_iff_succeeds (lookAhead' parseCopula) *> -- note: added to ensure copula literals are not consumed by token pattern parsing
   (guard_result "forbidden token parsed, failing" parseToken $
                       \x -> not $ elem (tokenToText x) ["the", "to be", "called", "iff", "a", "stand", "denote"])
 

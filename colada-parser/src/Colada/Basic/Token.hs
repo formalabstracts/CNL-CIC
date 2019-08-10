@@ -456,7 +456,7 @@ parseVar = (do
   -- (lookAhead' spaceChar) <||> lookAhead' (char '.') <||> lookAhead' (parseEOF)
   return $ Var $ x) <* sc
 
--- TODO(jesse) later, make sure to implement check against being substring of an identifier
+-- TODO later, make sure to implement check against being substring of an identifier
 -- A token is a string of alpha characters which is not followed by a period and another alpha character
 parseToken :: Parser Token
 parseToken = do
@@ -474,7 +474,7 @@ parseToken1 = do
                 return $ join $ a :as))
 
 
-parseTokenOfLit :: Text -> Parser Token -- TODO(jesse): insert guard to ensure that `arg` is Token-compliant
+parseTokenOfLit :: Text -> Parser Token -- TODO: insert guard to ensure that `arg` is Token-compliant
 parseTokenOfLit arg = parseLit arg >>= return . Token
 
 parseTokenOfToken :: Token -> Parser Token

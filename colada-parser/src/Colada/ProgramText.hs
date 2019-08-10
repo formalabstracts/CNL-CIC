@@ -3,7 +3,7 @@ Author(s): Jesse Michael Han (2019)
 
 High-level parsing.
 -}
--- TODO(jesse): rename this to ProgramText.hs
+
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 

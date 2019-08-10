@@ -25,40 +25,6 @@ import Control.Lens
 
 import Colada.Basic.Basic
 
--- TODO(jesse) write a parser which parses configuration files like phrase_lists.txt and outputs a parser
--- for now, we hard-code the phrase lists as specific parsers. It will be easy to refactor this to a more general setup.
-
--- phraseListFiller :: [[ParserMarkUp Text]]
--- phraseListFiller = [
---                      [J "we", J "have", Q "that"],
---                      [J "we", J "know", Q "that"],
---                      [Q "we", J "put"],
---                      [J "we", J "write"],
---                      [Q "we", J "write"]
---                    ]
-
--- note: if (aux x) fails, its place in the list is filled by `Nothing`.
--- The output of a phrase list parser generated in this way will have to be sanitized
--- but doing that should be easy.
-
--- maybe'ToParser :: (a -> Parser b) -> ParserMarkUp a -> Parser (Maybe b)
--- maybe'ToParser aux m = case m of
---   J x -> aux x >>= return . Just
---   Q x -> option (aux x)
-
--- maybe'Lit :: ParserMarkUp Text -> Parser (Maybe [Text])
--- maybe'Lit = maybe'ToParser (rp . parseLit)
-
--- parsePhraseList_aux0 :: [ParserMarkUp Text] -> Parser (Maybe [Text])
--- parsePhraseList_aux0 ph = case ph of
---   [] -> return Nothing
---   x:xs -> (maybe'Lit x) <+> (parsePhraseList_aux0 xs)
-
--- parsePhraseList_aux :: [[ParserMarkUp Text]] -> Parser (Maybe [Text])
--- parsePhraseList_aux phs = case phs of
---   [] -> empty
---   x:xs -> (parsePhraseList_aux0 x) <||> (parsePhraseList_aux xs)
-
 parseOfParserMarkUp x =
   case x of
     J txt -> (Just <$> parseLit txt)
@@ -72,11 +38,11 @@ parsePhraseList mtxts = parse_any_of (map parseOfParserMarkUps mtxts)
           [] -> return []
           x:xs -> (pure <$> parseOfParserMarkUp x) <+> parseOfParserMarkUps xs
   
-parsePhraseListFiller_aux :: Parser [Text] -- note(jesse): maybe make this [Maybe Text] for easier debugging?
+parsePhraseListFiller_aux :: Parser [Text] -- note: maybe make this [Maybe Text] for easier debugging?
 parsePhraseListFiller_aux =
   delete_nothings <$> ((use $ allStates primPhraseListFiller) >>= parsePhraseList . concat)
 
-  -- (use (top . primPhraseListFiller) >>= parsePhraseList) -- TODO(jesse) fix this, use top . isn't right
+  -- (use (top . primPhraseListFiller) >>= parsePhraseList) -- TODO fix this, use top . isn't right
 
 parsePhraseListTransition_aux :: Parser [Text]
 parsePhraseListTransition_aux =
@@ -120,8 +86,8 @@ ocamlsc :: Parser ()
 ocamlsc = L.space space1 empty (L.skipBlockComment "(*" "*)")
 
 preprocessPhraseList :: Text -> Parser [[ParserMarkUp Text]]
-                         -- TODO (jesse): add support for parsing alternation lists
-                         -- TODO (jesse): integrate this into the state for on-the-fly extension of the phrase lists
+                         -- TODO : add support for parsing alternation lists
+                         -- TODO : integrate this into the state for on-the-fly extension of the phrase lists
 preprocessPhraseList txt =
   case (runParser (toParsec parsePhraseListFile) "" txt) of
            Left _ -> fail "adios"

@@ -44,7 +44,7 @@ parseSectionPreamble_aux = do
   (sec_tag, level) <- parseSectionTag_aux
   (,) <$> (SectionPreamble sec_tag <$> (option parseLabel <* parsePeriod)) <*> return level
   
-parseSectionPreamble :: Parser SectionPreamble -- TODO(jesse): test this
+parseSectionPreamble :: Parser SectionPreamble -- TODO: test this
 parseSectionPreamble =
   with_result parse_section_preamble_main modify_section_id
   where
@@ -85,7 +85,7 @@ parseSectionPostamble_aux = do
   (sec_tag, level) <- parseLit "end" *> parseSectionTag_aux
   (,) <$> (SectionPostamble sec_tag <$> ((option parseLabel) <* parsePeriod)) <*> return level
   
-parseSectionPostamble :: Parser SectionPostamble -- TODO(jesse): test this and ensure only 1 state is popped when leaving a subdivision
+parseSectionPostamble :: Parser SectionPostamble -- TODO: test this and ensure only 1 state is popped when leaving a subdivision
 parseSectionPostamble =
   fst <$> (with_result parseSectionPostamble_aux (postUpdateStateVec))
   where

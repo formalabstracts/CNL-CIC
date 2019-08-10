@@ -72,7 +72,7 @@ parseInstructSynonym = with_result (parse_synonym_main) m
                 return syms
     m = updateGlobalStrSyms . (\(InstructSynonym y) -> (map tokenToText y))
 
--- TODO(jesse): allow parsing of arbitrary postfixes after parsing a "/-"
+-- TODO: allow parsing of arbitrary postfixes after parsing a "/-"
 data InstructSepPlural = InstructSepPlural
   deriving (Show, Eq)
 

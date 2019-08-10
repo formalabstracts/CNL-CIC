@@ -168,7 +168,7 @@ guard_result err p pred = do
 
 fail_if_empty :: (Eq a) => Parser [a] -> Parser [a]
 fail_if_empty p = guard_result "parsed empty list, failing" p (/= [])
---TODO(jesse) debug error message not displaying in favor of 'guard failed'
+--TODO debug error message not displaying in favor of 'guard failed'
 
 sepby1 :: (Eq a) => Parser a -> Parser b -> Parser [a]
 sepby1 p sep = fail_if_empty $ sepby p sep

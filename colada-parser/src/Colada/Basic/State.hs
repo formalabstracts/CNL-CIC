@@ -85,7 +85,7 @@ data FState = FState {
   _primPhraseListProofStatement :: [[ParserMarkUp Text]],
   _primPhraseListTransition :: [[ParserMarkUp Text]],
   _primPrecTable :: M.Map Pattern (Int, AssociativeParity),
-  -- tvrExpr :: [TVar] -- TODO(jesse) integrate this later
+  -- tvrExpr :: [TVar] -- TODO integrate this later
   _strSyms :: [[Text]], _varDecl :: [Text], _clsList :: [[Text]],
   _idCount :: Int, _hiddenCount :: Int, _serialCounter :: Int,
   _sectionId :: Maybe Text,
@@ -93,7 +93,7 @@ data FState = FState {
   }
   deriving (Show, Eq)
 
--- a stack is a nonempty list of states -- TODO(jesse): rename this to something else
+-- a StateVec is a nonempty list of states
 data StateVec a = StateVec {_top :: a, _rest :: [a]}
   deriving (Show, Eq)
 
@@ -166,7 +166,7 @@ emptyFState = FState
   Nothing
   "document"
 
-initialFState :: FState --TODO(jesse): move the rest of phrase_list.txt into the state and define corresponding parsers
+initialFState :: FState --TODO: move the rest of phrase_list.txt into the state and define corresponding parsers
 initialFState = FState
   primAdjective0 [] [] []
   primDefiniteNoun0 []
