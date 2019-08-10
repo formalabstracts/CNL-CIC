@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0b8688d268d98a9f1ace799e5b8def689c8f9dd614bcfb07de56b96bbb85d600
+-- hash: 0b1458adeeb17e837bd206a109863119cae5efc373a5e4d3b83f074d6899a7f7
 
 name:           colada-parser
 version:        0.1.0.0
@@ -17,7 +17,7 @@ license:        MIT
 license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
-    README.md
+    README.org
     ChangeLog.md
 
 source-repository head
