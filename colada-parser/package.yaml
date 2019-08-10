@@ -36,6 +36,7 @@ dependencies:
 - lens
 - template-haskell
 - directory
+- filepath
 
 library:
   source-dirs: src
