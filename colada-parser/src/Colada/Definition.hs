@@ -17,7 +17,7 @@ import Control.Monad (guard, liftM)
 import Text.Megaparsec.Char
 import qualified Data.Char as C
 import Data.Text (Text, pack, unpack)
-import Data.List (intersperse)
+import Data.List (intersperse, elemIndex)
 import Data.Void
 import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 import Control.Monad.Trans.State.Lazy (modify, gets)
@@ -478,16 +478,67 @@ precOfFunctionDef fd = case fd of
 registerPrimDefiniteNoun :: LocalGlobalFlag ->  FunctionDef -> Parser ()
 registerPrimDefiniteNoun lgflag fd@(FunctionDef fh c pt) =
   case fh of
-    (FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt)) ->
-      patternOfTokenPattern tkpatt >>= updatePrimDefiniteNoun lgflag
+    (FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt)) -> do
+      pttn <- patternOfTokenPattern tkpatt
+      updatePrimDefiniteNoun lgflag pttn
+      try (generatePrimPossessedNoun pttn >>= updatePrimPossessedNoun lgflag)
     _ -> empty
 
 registerPrimDefiniteNounMacro :: LocalGlobalFlag ->  FunctionDef -> Parser ()
 registerPrimDefiniteNounMacro lgflag fd@(FunctionDef fh c pt) =
   case fh of
-    (FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt)) ->
-      patternOfTokenPattern tkpatt >>= updatePrimDefiniteNoun lgflag . toMacroPatts
+    (FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt)) -> do
+      pttn <- patternOfTokenPattern tkpatt
+      updatePrimDefiniteNoun lgflag (toMacroPatts pttn)
+      try (generatePrimPossessedNoun (toMacroPatts pttn) >>= updatePrimPossessedNoun lgflag)
     _ -> empty
+
+-- as in Forthel, if a noun primitive has at least one argument preceded by "of" and not succeeded by "and",
+-- then we produce a new possessed noun primitive by removing the first argument place together with the
+-- preceding "of" and adding the optional [names] if needed.
+generatePrimPossessedNoun :: Pattern -> Parser Pattern -- TODO(jesse): write tests
+generatePrimPossessedNoun pttn@(Patts ptts) =
+  if (head ptts) == Vr then empty else
+    case (elemIndex Vr ptts) of
+      Nothing -> empty
+      (Just k) ->
+        if ptts!!(k-1) == Wd ["of"]
+        then if (length ptts) == (k+1)
+             then pttmod k ptts False
+             else if ptts!!(k+1) /= Wd ["and"]
+                  then pttmod k ptts True
+                  else empty
+        else empty
+  where pttmod :: Int -> [Patt] -> Bool -> Parser Pattern
+        pttmod k ptts b =
+          case b of
+            False -> return $ Patts $ removeIndex (k-1) (removeIndex (k-1) ptts)
+            True ->
+              if ptts!!(k+1) == Nm
+              then return $ Patts $ removeIndex (k-1) (removeIndex (k-1) ptts)
+              else return $ Patts $ removeIndex (k-1) (ptts & element k .~ Nm)
+generatePrimPossessedNoun pttn@(MacroPatts ptts) =
+  if (head ptts) == Vr then empty else
+    case (elemIndex Vr ptts) of
+      Nothing -> empty
+      (Just k) ->
+        if ptts!!(k-1) == Wd ["of"]
+        then if (length ptts) == (k+1)
+             then pttmod k ptts False
+             else if ptts!!(k+1) /= Wd ["and"]
+                  then pttmod k ptts True
+                  else empty
+        else empty
+  where pttmod :: Int -> [Patt] -> Bool -> Parser Pattern
+        pttmod k ptts b =
+          case b of
+            False -> return $ MacroPatts $ removeIndex (k-1) (removeIndex (k-1) ptts)
+            True ->
+              if ptts!!(k+1) == Nm
+              then return $ MacroPatts $ removeIndex (k-1) (removeIndex (k-1) ptts)
+              else return $ MacroPatts $ removeIndex (k-1) (ptts & element k .~ Nm)              
+
+-- TODO add MacroPatts case.
 
 registerPrimIdentifierTerm :: LocalGlobalFlag ->  FunctionDef -> Parser ()
 registerPrimIdentifierTerm lgflag fd@(FunctionDef fh c pt) =

@@ -290,3 +290,7 @@ isSomething = not . isNothing
 
 lower_eq :: Text -> Text -> Bool
 lower_eq t1 t2 = (toLower t1) == (toLower t2)
+
+removeIndex :: Int -> [a] -> [a]
+removeIndex k as = case (splitAt k as) of
+  (hd, a:as) -> hd <> as

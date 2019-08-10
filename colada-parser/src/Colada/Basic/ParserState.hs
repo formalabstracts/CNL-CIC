@@ -153,6 +153,31 @@ updatePrimDefiniteNoun b args =
     Locally -> updateLocalPrimDefiniteNoun args
     AtLevel k -> updateAtLevelPrimDefiniteNoun k args
 
+updateGlobalPrimPossessedNoun :: Pattern -> Parser ()
+updateGlobalPrimPossessedNoun txts = updateGlobal $ primPossessedNoun %~ (:) txts
+
+updateGlobalPrimPossessedNoun2 :: [Pattern] -> Parser ()
+updateGlobalPrimPossessedNoun2 txtss = updateGlobal $ primPossessedNoun %~ (<>) txtss
+
+updateLocalPrimPossessedNoun :: Pattern -> Parser ()
+updateLocalPrimPossessedNoun txts = updateLocal $ primPossessedNoun %~ (:) txts
+
+updateAtLevelPrimPossessedNoun :: Int -> Pattern -> Parser ()
+updateAtLevelPrimPossessedNoun k txts = updateAtLevel k $ primPossessedNoun %~ (:) txts
+
+updateLocalPrimPossessedNoun2 :: [Pattern] -> Parser ()
+updateLocalPrimPossessedNoun2 txts = updateLocal $ primPossessedNoun %~ (<>) txts
+
+updateAtLevelPrimPossessedNoun2 :: Int -> [Pattern] -> Parser ()
+updateAtLevelPrimPossessedNoun2 k txts = updateAtLevel k $ primPossessedNoun %~ (<>) txts
+
+updatePrimPossessedNoun :: LocalGlobalFlag -> Pattern -> Parser ()
+updatePrimPossessedNoun b args =
+  case b of
+    Globally -> updateGlobalPrimPossessedNoun args
+    Locally -> updateLocalPrimPossessedNoun args
+    AtLevel k -> updateAtLevelPrimPossessedNoun k args
+
 updatePrimDefiniteNoun2 :: LocalGlobalFlag -> [Pattern] -> Parser ()
 updatePrimDefiniteNoun2 b argss =
   case b of
