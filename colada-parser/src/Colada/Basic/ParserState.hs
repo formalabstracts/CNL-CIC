@@ -31,10 +31,24 @@ import Language.Haskell.TH
 import Colada.Basic.Core
 import Colada.Basic.State
 
-
 $(makeLenses ''FState)
 
 $(makeLenses ''StateVec)
+
+{-
+
+   Boilerplate code for managing the parser state. TODO: automate boilerplate generation using Template Haskell.
+
+   For any field _Foo :: [a] in the state, this file provides a function
+
+   updateFoo :: LocalGlobalFlag -> a -> Parser ()
+
+   which accepts a LocalGlobalFlag, which can be any of Globally, Locally, or AtLevel (k :: Int).
+
+   updateFoo will put a into the list of a's currently in the FState at the bottom, top, or at level k in the
+   current StateVec.
+
+-}
 
 data LocalGlobalFlag =
     Globally
