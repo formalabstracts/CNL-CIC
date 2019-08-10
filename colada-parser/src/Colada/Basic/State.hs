@@ -47,7 +47,7 @@ instance Semigroup Pattern where
 
 -- wrapper datatype for parsing phrase lists (and extending the parser in general)
 -- J stands for "Just", Q stands for question mark (as in postfix question mark)
--- A stands for alternation, i.e. for any of the [a]
+-- A stands for alternation, i.e. parse any marked up word in the list.
 data ParserMarkUp a =
     J a
   | Q a
@@ -128,6 +128,11 @@ refreshStateVec :: a -> StateVec a -> StateVec a
 refreshStateVec default_value stk = stk {_top = default_value}
 
 ---- helper function for handling section-local states
+-- upon encounting a section postamble or section preamble, the new document depth is calculated
+-- and given to sectionHandler, along with an initial FState and an empty FState. The initial FState is reserved
+-- for the bottom of the state stack, while the empty FState is what is pushed onto the stack.
+-- sectionHandler produces a new state stack at the new document level, pushing as many empty FStates
+-- or popping as many FStates off the stack as required
 sectionHandler :: a -> a -> Int -> StateVec a -> StateVec a
 sectionHandler default_value1 default_value2 0 stk =
   StateVec default_value1 []
@@ -166,7 +171,7 @@ emptyFState = FState
   Nothing
   "document"
 
-initialFState :: FState --TODO: move the rest of phrase_list.txt into the state and define corresponding parsers
+initialFState :: FState
 initialFState = FState
   primAdjective0 [] [] []
   primDefiniteNoun0 []
