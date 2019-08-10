@@ -58,7 +58,7 @@ data DefinitionAffirm = DefinitionAffirm DefinitionStatement (Maybe ThisExists)
   deriving (Show, Eq)
 
 parseDefinitionAffirm :: Parser DefinitionAffirm
-parseDefinitionAffirm = DefinitionAffirm <$> parseDefinitionStatement <* parsePeriod <*> option (parseThisExists)
+parseDefinitionAffirm = DefinitionAffirm <$> parseDefinitionStatement <* parsePeriod <*> option (parseThisExists <* parsePeriod)
   
 newtype ThisExists = ThisExists [ThisDirectivePred]
   deriving (Show, Eq)

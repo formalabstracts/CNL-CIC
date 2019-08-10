@@ -21,11 +21,17 @@ import qualified Text.Megaparsec.Char.Lexer as L
 
 import Colada.Basic.State
 
-type Parser0 = Parsec Void Text
+type Parser0 = Parsec SimpleError Text
 
 type ParserSt s = StateT s (Parser0)
 
 type Parser = ParserSt (StateVec FState)
+
+data SimpleError = SimpleError String
+  deriving (Eq, Ord, Read, Show)
+
+instance ShowErrorComponent SimpleError where
+  showErrorComponent (SimpleError str) = "error: " <> str
 
 runtest0 :: Parser a -> Parser0 (a, StateVec FState)
 runtest0 p = (runStateT p) initialFStateVec
@@ -33,7 +39,7 @@ runtest0 p = (runStateT p) initialFStateVec
 test_all :: Show a => Parser a -> Text -> IO ()
 test_all p arg = parseTest (runtest0 p) arg
 
-toParsec :: Parser a -> Parsec Void Text a
+toParsec :: Parser a -> Parsec SimpleError Text a
 toParsec p = do (a,b) <- runtest0 p
                 return a
 

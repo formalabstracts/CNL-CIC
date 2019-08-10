@@ -36,8 +36,24 @@ data TextItem =
   | TextItemInstr Instr
   deriving (Show, Eq)
 
-parseTextItem :: Parser TextItem
-parseTextItem =
+-- possibly allowing errors for textitems
+-- so that parsing can recover from errors
+-- this assumes that every textitem is preceded by a newline
+type RawResults s e t = [RawResult s e t]
+type RawResult s e t = Either (ParseError s e) t
+
+parseTreeOfRawResult :: RawResult s e t -> Maybe t
+parseTreeOfRawResult rslt = case rslt of
+  (Left err) -> Nothing
+  (Right tr) -> Just tr
+
+errorOfRawResult :: RawResult s e t -> Maybe (ParseError s e)
+errorOfRawResult rslt = case rslt of
+  (Left err) -> Just err
+  (Right tr) -> Nothing
+
+parseTextItem_main :: Parser TextItem
+parseTextItem_main =
   (TextItemNamespace <$> parseNamespace) <||>
   (TextItemSectionPreamble <$> parseSectionPreamble) <||>
   (TextItemSectionPostamble <$> parseSectionPostamble) <||>
@@ -45,11 +61,23 @@ parseTextItem =
   (TextItemMacro <$> parseMacro) <||>
   (TextItemInstr <$> parseInstr)
 
+parseRawTextItem :: Parser (RawResult Text SimpleError TextItem)
+parseRawTextItem = withRecovery recover (Right <$> parseTextItem_main)
+  where recover err = Left err <$ manyTill item eol
+
+parseTextItem :: Parser TextItem
+parseTextItem = unoption $ parseTreeOfRawResult <$> parseRawTextItem
+
 newtype ProgramText = ProgramText [TextItem]
   deriving (Show, Eq)
 
-parseProgramText :: Parser ProgramText
-parseProgramText = ProgramText <$> (many1' (parseTextItem <* sc))
+parseRawTextItems :: Parser (RawResults Text SimpleError TextItem)
+parseRawTextItems = many1' (parseRawTextItem <* sc)
 
-parseProgram :: Parser ProgramText
+parseTextItems :: Parser [TextItem]
+parseTextItems = delete_nothings <$> (map parseTreeOfRawResult <$> parseRawTextItems)
+
+parseProgramText :: Parser ProgramText
+parseProgramText = ProgramText <$> parseTextItems
+
 parseProgram = parseProgramText <* eof

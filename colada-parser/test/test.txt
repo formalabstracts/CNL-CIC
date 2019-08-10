@@ -22,4 +22,6 @@ end subsection test_string_instruction.
 
 subdivision test_definition.
 
+Definition The_Riemann_zeta_function. The riemann zeta function of x is zero. This exists and is well-defined.
+
 end subdivision test_definition.
