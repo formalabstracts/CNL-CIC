@@ -7,7 +7,7 @@ High-level parsing.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module Colada.Core where
+module Colada.ProgramText where
 
 import Prelude -- hiding (Int, Bool, String, drop)
 import qualified Prelude

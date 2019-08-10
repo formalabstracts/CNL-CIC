@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4909cb1e947214ddf5878ba16534f9aca01717ea3d0a0e533181cf159daff57a
+-- hash: 0b8688d268d98a9f1ace799e5b8def689c8f9dd614bcfb07de56b96bbb85d600
 
 name:           colada-parser
 version:        0.1.0.0
@@ -33,7 +33,6 @@ library
       Colada.Basic.ParserState
       Colada.Basic.State
       Colada.Basic.Token
-      Colada.Core
       Colada.Declaration
       Colada.Definition
       Colada.Instr
@@ -41,6 +40,7 @@ library
       Colada.Namespace
       Colada.Pattern
       Colada.PhraseList
+      Colada.ProgramText
       Colada.SectionPreamble
       Colada.Term
       Colada.Tests

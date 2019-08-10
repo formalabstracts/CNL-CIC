@@ -11,7 +11,7 @@ module Colada.Tests
 
 (
     module Colada.Definition
-  , module Colada.Core
+  , module Colada.ProgramText
   , module Colada.Instr
   , module Colada.Axiom
   , module Colada.Theorem
@@ -41,7 +41,7 @@ import qualified Text.Megaparsec.Char.Lexer as L hiding (symbol, symbol')
 import Control.Lens
 
 import Colada.Basic.Basic
-import Colada.Core
+import Colada.ProgramText
 import Colada.Type
 import Colada.Definition
 import Colada.Axiom
