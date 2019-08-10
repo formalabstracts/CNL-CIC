@@ -36,7 +36,7 @@ data TextItem =
   | TextItemInstr Instr
   deriving (Show, Eq)
 
--- possibly allowing errors for textitems
+-- type synonym possibly allowing errors for textitems
 -- so that parsing can recover from errors
 -- this assumes that every textitem is preceded by a newline
 type RawResults s e t = [RawResult s e t]
@@ -71,6 +71,7 @@ parseTextItem = unoption $ parseTreeOfRawResult <$> parseRawTextItem
 newtype ProgramText = ProgramText [TextItem]
   deriving (Show, Eq)
 
+-- a CNL-compliant document must contain at least one text_item
 parseRawTextItems :: Parser (RawResults Text SimpleError TextItem)
 parseRawTextItems = many1' (parseRawTextItem <* sc)
 

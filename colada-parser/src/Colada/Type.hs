@@ -505,7 +505,7 @@ parseFreePredicate :: Parser FreePredicate
 parseFreePredicate = FreePredicate <$> parseAttribute parseFreePredicateWithoutAttribute
   
 data FreePredicateWithoutAttribute =
-    FreePredicateProp Prop HoldingVar -- note, this 
+    FreePredicateProp Prop HoldingVar
   | FreePredicateVars2 Vars2 BinaryRelationOp TdopTerm
   deriving (Show, Eq)
 
@@ -740,12 +740,6 @@ data MutualInductiveType = MutualInductiveType [Identifier] Args [(AtomicId, Arg
 parseMutualInductiveType :: Parser MutualInductiveType
 parseMutualInductiveType = (MutualInductiveType <$> (parseLit "inductive" *> comma_nonempty_list parseIdentifier) <*> parseArgs <*> many' (parseLit "with" *> ((,,,) <$> parseAtomicId <*> parseArgs <*> parseColonType <*> many parseAltConstructor))) <* parseLit "end"
 
-{-
-structure : option(LIT_NOTATIONAL) LIT_STRUCTURE 
-     option(lit_param) args
-     option(LIT_WITH) option(brace_semi(field))
-     option(LIT_SATISFYING satisfying_preds {}) {}
--}
 data Structure = Structure Args (Maybe [Field]) (Maybe SatisfyingPreds) -- [Field] is parsed by brace_semi
   deriving (Show, Eq)
 
@@ -754,11 +748,6 @@ parseStructure = Structure <$>
   (option (parseLit "notational") *> parseLit "structure" *> option (parseLitParam) *> parseArgs) <*>
   ((option $ parseLit "with") *> option (brace_semi parseField)) <*>
   (option $ parseLit "satisfying" *> parseSatisfyingPreds)
--- parseStructure = do
---   args <- option(parseLit "notational") *> parseLit "structure" *> option (parseLitParam) parseArgs
---   mfs <- option(parseLit "with") *> option(brace_semi parseField)
---   msps <- option (option (parseLit "satisfying") *> parseSatisfyingPreds)
---   return $ Structure args mfs msps
 
 data Field = Field FieldPrefix FieldIdentifier (Maybe FieldSuffix)
   deriving (Show, Eq)

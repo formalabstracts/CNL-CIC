@@ -29,6 +29,22 @@ import Colada.Type
 import Colada.Assumption
 import Colada.Pattern
 
+{-
+
+Naming convention:
+
+registerFoo means that data which can be derived from Foo is being used to modify the parser state
+
+generateFoo means that patterns are being derived (in the Forthel sense) from others. this has no side effects,
+and generateFoo will only be called by a registerFoo'.
+
+parseFoo means that the parse tree for Foo is being produced. if a parseFoo produces a side effect on the state,
+those side effects will be implemented using the with_result or with_any_result combinator.
+
+patternOfFoo means that a Pattern is being generated from a parse tree. these are the data which are added to the state by the side effects of the form registerFoo'.
+
+-}
+
 data Definition = Definition DefinitionPreamble [Assumption] DefinitionAffirm
   deriving (Show, Eq)
 
