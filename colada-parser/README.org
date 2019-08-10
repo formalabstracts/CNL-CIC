@@ -15,7 +15,7 @@ The topmost file in the project is ~Colada.Tests~. This file imports and re-expo
 
 ** Build instructions
 
-To build ~colada-parser~, you must have the Haskell tool ~stack~ installed (see [[https://docs.haskellstack.org/en/stable/README/][here]]). Navigate to the project directory and run ~stack build~. After building the parser, you can test it on a CNL-compliant text file with ~stack exec colada my_file~. If the parse is successful, the parse tree will be written to ~my_file.parsed~ in the same directory as ~my_file~.
+To build ~colada-parser~, you must have the Haskell tool ~stack~ installed (see [[https://docs.haskellstack.org/en/stable/README/][here]]). Navigate to the project directory and run ~stack build~. After building the parser, you can test it on a CNL-compliant text file with ~stack exec colada path_to/my_file~. If the parse is successful, the parse tree will be written to ~my_file.parsed~ in the same directory as ~my_file~.
 
 For example, ~stack exec colada test/test.txt~ should succeed.
 

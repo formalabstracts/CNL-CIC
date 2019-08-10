@@ -23,7 +23,7 @@ main = do
   case (runParser (toParsec parseRawTextItems) "" txt) of
     Left err -> fail $ errorBundlePretty err
     Right a -> do
-      let output = intercalate "\n\n" (map (pack . showHandler) a)
+      let output = intercalate "\n\n" (pack . showHandler <$> a)
       TIO.putStrLn output
       TIO.writeFile (replaceExtension file "parsed") output
 
