@@ -62,8 +62,8 @@ parseTextItem_main =
   (TextItemInstr <$> parseInstr)
 
 parseRawTextItem :: Parser (RawResult Text SimpleError TextItem)
-parseRawTextItem = withRecovery recover (Right <$> parseTextItem_main)
-  where recover err = Left err <$ manyTill item eol
+parseRawTextItem = (withRecovery recover (Right <$> parseTextItem_main)) <* sc
+  where recover err = Left err <$ manyTill item parsePeriod
 
 parseTextItem :: Parser TextItem
 parseTextItem = unoption $ parseTreeOfRawResult <$> parseRawTextItem

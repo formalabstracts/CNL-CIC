@@ -8,11 +8,24 @@ TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["subsubsection"]) 
 
 TextItemDeclaration (DeclarationDefinition (Definition (DefinitionPreamble (Just (Label (AtomicId "The_Riemann_zeta_function")))) [] (DefinitionAffirm (DefinitionStatementFunctionDef (FunctionDef (FunctionHeadFunctionTokenPattern (FunctionTokenPattern (TokenPattern (Tokens [Token "riemann",Token "zeta",Token "function",Token "of"]) [] (Just (TVarVar (Var "x")))))) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermNoun (PrimDefiniteNoun [ParsedWd (Token "zero")])))))) (Just (ThisExists [ThisDirectivePredVerb (ThisDirectiveVerbExists Nothing),ThisDirectivePredAdjective [["well-defined"]]])))))
 
-TextItemSectionPreamble (SectionPreamble (SectionTagSubdivision ["subdivision"]) Nothing)
+ERROR: offset=299:
+unexpected "FOO BAR"
+expecting "section"
 
-TextItemInstr (InstrInstructTraceSection (InstructTraceSectionStack [(Just "subdivision",Nothing),(Just "subsubsection",Just "failing_parse"),(Nothing,Nothing),(Just "Section",Just "test_error"),(Just "document",Nothing)]))
 
-TextItemSectionPostamble (SectionPostamble (SectionTagSubdivision ["subdivision"]) Nothing)
+TextItemInstr (InstrInstructTraceSection (InstructTraceSectionStack [(Just "subsubsection",Just "failing_parse"),(Nothing,Nothing),(Just "Section",Just "test_error"),(Just "document",Nothing)]))
+
+TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "end")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicVar (Var "s")),RequiredArgVarOrAtomic (VarOrAtomicVar (Var "u")),RequiredArgVarOrAtomic (VarOrAtomicVar (Var "b")),RequiredArgVarOrAtomic (VarOrAtomicVar (Var "d")),RequiredArgVarOrAtomic (VarOrAtomicVar (Var "i")),RequiredArgVarOrAtomic (VarOrAtomicVar (Var "v"))]) Nothing)) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "o"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "n")))])))) Nothing))))) Nothing) []))
+
+ERROR: offset=427:
+unexpected ".<newline><newline>end"
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", '(', ':', '_', digit, lowercase letter, or uppercase letter
+
+
+ERROR: offset=427:
+unexpected ".<newline><newline>end"
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', '_', digit, lowercase letter, or uppercase letter
+
 
 TextItemSectionPostamble (SectionPostamble (SectionTagDocument ["subSUBsection"]) (Just (Label (AtomicId "failing_parse"))))
 

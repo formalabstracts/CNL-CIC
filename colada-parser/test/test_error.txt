@@ -8,13 +8,15 @@ subsubsection failing_parse.
 
 Definition The_Riemann_zeta_function. The riemann zeta function of x is zero. This exists and is well-defined.
 
+[trace FOO BAR]
+
 subdivision.
 
 [trace section stack]
 
 end subdivision.
 
-% Definition the_riemann_zeta_function. AHUERGASDRAMALAMADINGDONG.
+Definition the_riemann_zeta_function. AHUERGASDRAMALAMADINGDONG.
 
 end subSUBsection failing_parse.
 

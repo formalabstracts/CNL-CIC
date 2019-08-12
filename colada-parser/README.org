@@ -19,5 +19,7 @@ To build ~colada-parser~, you must have the Haskell tool ~stack~ installed (see 
 
 For example, ~stack exec colada test/test.txt~ should succeed.
 
+Note: in the output, error messages may appear twice in a row with the same offset.
+
 ** Author(s)
  - [[https://github.com/jesse-michael-han][Jesse Michael Han]]
