@@ -451,11 +451,11 @@ parseVarOrAtomicOrBlank =
 
 patternOfVarOrAtomic :: VarOrAtomic -> Parser Pattern
 patternOfVarOrAtomic voa = case voa of
-  VarOrAtomicVar v -> patternOfVar v
   VarOrAtomicAtomic aid -> patternOfAtomicId aid
+  VarOrAtomicVar v -> patternOfVar v
 
 parseVarOrAtomic :: Parser VarOrAtomic
-parseVarOrAtomic = (VarOrAtomicVar <$> parseVar) <||> (VarOrAtomicAtomic <$> parseAtomicId)
+parseVarOrAtomic = (VarOrAtomicAtomic <$> parseAtomicId) <||> (VarOrAtomicVar <$> parseVar) 
   
 data GeneralizedArg =
     GeneralizedArg TightestTerm

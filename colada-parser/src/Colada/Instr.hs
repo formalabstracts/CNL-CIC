@@ -42,9 +42,9 @@ data InstructTraceSection =
 parseInstructTraceSection :: Parser InstructTraceSection
 parseInstructTraceSection = 
   InstructTraceSection <$> (bracket $ (parseLit "trace" *> parseLit "section" *>
-    ((,) <$> (use $ top . sectionTag) <*> (use $ top . sectionId) ))) <||>
+    ((,) <$> (use $ top . sectionTag) <*> (use $ top . sectionId) <* sc))) <||>
   InstructTraceSectionStack <$> (bracket $ (parseLit "trace" *> parseLit "section" *> parseLit "stack") *>
-    (zip <$> (use $ allStates sectionTag) <*> (use $ allStates sectionId) ))
+    (zip <$> (use $ allStates sectionTag) <*> (use $ allStates sectionId) <* sc))
 
 parseInstr :: Parser Instr
 parseInstr =
