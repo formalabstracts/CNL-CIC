@@ -299,6 +299,15 @@ isSomething = not . isNothing
 lower_eq :: Text -> Text -> Bool
 lower_eq t1 t2 = (toLower t1) == (toLower t2)
 
+maybe_lower_eq :: Maybe Text -> Maybe Text -> Bool
+maybe_lower_eq mt1 mt2 =
+  case mt1 of
+    Nothing -> mt2 == mt2
+    (Just t1) ->
+      case mt2 of
+        Nothing -> False
+        (Just t2) -> lower_eq t1 t2
+
 removeIndex :: Int -> [a] -> [a]
 removeIndex k as = case (splitAt k as) of
   (hd, a:as) -> hd <> as

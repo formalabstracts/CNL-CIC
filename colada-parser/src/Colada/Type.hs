@@ -1230,6 +1230,14 @@ parse_any_Patts = parse_any_of . map parsePattern
 -- PRIMITIVES
 -------------
 
+{-
+
+  By default, primitive parsing uses patterns stored in all scopes, hence the (use $ allStates Foo) in each of the parsers.
+
+  A parsed primitive is (besides classifiers) a wrapper around a list of ParsedPatts. All primitive parsing is handled by parse_any_Patts.
+
+-}
+
 ----A primitive classifier phrase is a list [Text], where each item must be parsed verbatim, but during parsing the items may be separated by arbitrary whitespace
 newtype PrimClassifier = PrimClassifier [Text] 
   deriving (Show, Eq)

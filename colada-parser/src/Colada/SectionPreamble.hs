@@ -35,9 +35,9 @@ data SectionPreamble = SectionPreamble SectionTag (Maybe Label)
 maybeLabelOfSectionPreamble :: SectionPreamble -> (Maybe Label)
 maybeLabelOfSectionPreamble (SectionPreamble _ ml) = ml
 
-sectionTypeOfSectionPreamble :: SectionPreamble -> Text
-sectionTypeOfSectionPreamble (SectionPreamble (SectionTagDocument txts) _) = (head txts)
-sectionTypeOfSectionPreamble (SectionPreamble (SectionTagSubdivision txts) _) = (head txts)
+sectionTagOfSectionPreamble :: SectionPreamble -> Text
+sectionTagOfSectionPreamble (SectionPreamble (SectionTagDocument txts) _) = (head txts)
+sectionTagOfSectionPreamble (SectionPreamble (SectionTagSubdivision txts) _) = (head txts)
 
 parseSectionPreamble_aux :: Parser (SectionPreamble, Int)
 parseSectionPreamble_aux = do
@@ -46,19 +46,19 @@ parseSectionPreamble_aux = do
   
 parseSectionPreamble :: Parser SectionPreamble -- TODO: test this
 parseSectionPreamble =
-  with_result parse_section_preamble_main modify_section_id
+  (with_result parse_section_preamble_main (modify_section_id_and_tag)) <* sc
   where
     parse_section_preamble_main :: Parser SectionPreamble
     parse_section_preamble_main =
       fst <$> (with_result parseSectionPreamble_aux (preUpdateStateVec . snd))
       where
-        preUpdateStateVec k = modify $ sectionHandler initialFState emptyFState k
+        preUpdateStateVec k = modify $ sectionPreambleHandler initialFState emptyFState k
 
     -- when the side effect is called, the new state has already been initialized on the stack
-    modify_section_id :: SectionPreamble -> Parser ()
-    modify_section_id sp = do
+    modify_section_id_and_tag :: SectionPreamble -> Parser ()
+    modify_section_id_and_tag sp = do
       updateSectionId Locally $ textOfLabel <$> maybeLabelOfSectionPreamble sp
-      updateSectionType Locally $ sectionTypeOfSectionPreamble sp
+      updateSectionTag Locally $ (pure $ sectionTagOfSectionPreamble (sp))
 
 data SectionTag =
     SectionTagDocument [Text]
@@ -90,22 +90,22 @@ parseSectionPostamble =
   fst <$> (with_result parseSectionPostamble_aux (postUpdateStateVec))
   where
     postUpdateStateVec :: (SectionPostamble, Int) -> Parser ()
-    postUpdateStateVec ((SectionPostamble tag ml), k) =
+    postUpdateStateVec ((SectionPostamble tag ml), k) = 
       case tag of
-        (SectionTagDocument txts) -> do
-            let endTag = (head txts)
-            startTag <- (use $ top . sectionType)
-            let endLabel = textOfLabel <$> ml
-            startLabel <- (use $ top . sectionId)
-            if (lower_eq startTag endTag && startLabel == endLabel)
-              then modify $ sectionHandler initialFState emptyFState k
-              else empty
+        (SectionTagDocument txts) -> do -- txts is of the form ["section"], ["subsection"], etc
+            let endTag = (head txts) -- extract the literal section tag
+            startTag <- (use $ top . sectionTag) -- extract the section tag of the local scope
+            let endLabel = textOfLabel <$> ml -- get literal section label
+            startLabel <- (use $ top . sectionId) -- extract the section label of the local scope
+            if (maybe_lower_eq startTag (pure endTag) && startLabel == endLabel)
+              then modify $ popNothingSectionTags . (popStateVec 1) -- the statevec pops 1 FState, then pops all dummy FStates which were inserted if going from e.g. a section to a subsubsection
+              else fail "section postamble parse failed: section tags or section labels are unequal"
         (SectionTagSubdivision txts) -> do
             let endTag = (head txts)
-            startTag <- (use $ top . sectionType)
+            startTag <- (use $ top . sectionTag)
             let endLabel = textOfLabel <$> ml
             startLabel <- (use $ top . sectionId)
-            if (lower_eq startTag endTag && startLabel == endLabel)
-              then modify $ sectionHandler initialFState emptyFState (k - 2)
+            if (maybe_lower_eq startTag (pure endTag) && startLabel == endLabel)
+              then modify $ popNothingSectionTags . (popStateVec 1)
               else empty
 -- note: parseSubdivision_aux always adds 1 to the stack depth

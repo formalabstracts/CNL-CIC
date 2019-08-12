@@ -807,21 +807,21 @@ updateSectionId b args =
     Locally -> updateLocalSectionId args
     AtLevel k -> updateAtLevelSectionId k args
 
-updateGlobalSectionType :: Text -> Parser ()
-updateGlobalSectionType txts = updateGlobal $ sectionType %~ const txts
+updateGlobalSectionTag :: Maybe Text -> Parser ()
+updateGlobalSectionTag txts = updateGlobal $ sectionTag %~ const txts
 
-updateLocalSectionType :: Text -> Parser ()
-updateLocalSectionType txts = updateLocal $ sectionType %~ const txts
+updateLocalSectionTag :: Maybe Text -> Parser ()
+updateLocalSectionTag txts = updateLocal $ sectionTag %~ const txts
 
-updateAtLevelSectionType :: Int -> Text -> Parser ()
-updateAtLevelSectionType k txts = updateAtLevel k $ sectionType %~ const txts
+updateAtLevelSectionTag :: Int -> Maybe Text -> Parser ()
+updateAtLevelSectionTag k txts = updateAtLevel k $ sectionTag %~ const txts
 
-updateSectionType :: LocalGlobalFlag -> Text -> Parser ()
-updateSectionType b args =
+updateSectionTag :: LocalGlobalFlag -> Maybe Text -> Parser ()
+updateSectionTag b args =
   case b of
-    Globally -> updateGlobalSectionType args
-    Locally -> updateLocalSectionType args
-    AtLevel k -> updateAtLevelSectionType k args
+    Globally -> updateGlobalSectionTag args
+    Locally -> updateLocalSectionTag args
+    AtLevel k -> updateAtLevelSectionTag k args
 
 updateGlobalIdCount :: Int -> Parser ()
 updateGlobalIdCount k = updateGlobal $ idCount %~ (const k)
@@ -833,3 +833,56 @@ allStates g = to $ \stk -> stk^..(top . g) <> (stk^..(rest . traverse . g))
 parserDocumentLevel :: Parser Int
 parserDocumentLevel = depthStateVec <$> get
 
+{- section scope handling -}
+
+popStateVec :: Int -> StateVec a -> StateVec a
+popStateVec 0 stk = stk
+popStateVec n (StateVec t []) = (StateVec t [])
+popStateVec n (StateVec t (f:fs)) = popStateVec (n-1) $ StateVec f fs
+
+pushStateVec :: a -> Int -> StateVec a -> StateVec a
+pushStateVec default_value 0 stk = stk
+pushStateVec default_value n stk = consStateVec default_value $ pushStateVec default_value (n-1) stk
+
+---- refreshes the top of the stack with the given value
+refreshStateVec :: a -> StateVec a -> StateVec a
+refreshStateVec default_value stk = stk {_top = default_value}
+
+popNothingSectionTags :: StateVec FState -> StateVec FState
+popNothingSectionTags stk =
+  case (stk^.top.sectionTag) of
+    Nothing -> popNothingSectionTags (popStateVec 1 stk)
+    (Just _) -> stk
+
+---- helper function for handling section-local states
+-- upon encounting a section preamble, the new document depth is calculated
+-- and given to sectionPreambleHandler, along with an initial FState and an empty FState. The initial FState is reserved
+-- for the bottom of the state stack, while the empty FState is what is pushed onto the stack.
+-- sectionPreambleHandler produces a new state stack at the new document level, pushing as many empty FStates
+-- or popping as many FStates off the stack (and then refreshing the top) as required
+sectionPreambleHandler :: a -> a -> Int -> StateVec a -> StateVec a
+sectionPreambleHandler default_value1 default_value2 0 stk =
+  StateVec default_value1 []
+sectionPreambleHandler default_value1 default_value2 n stk =
+  if (n < 0) then sectionPreambleHandler default_value1 default_value2 0 stk else
+  if (n < depthStateVec stk)
+    then refreshStateVec default_value2 $ popStateVec (depthStateVec stk - n) stk
+    else if (n == depthStateVec stk)
+           then refreshStateVec default_value2 stk
+           else pushStateVec default_value2 (n - depthStateVec stk) stk
+-- in sectionPreambleHandler, both popStateVec and pushStateVec are never called on a negative value
+
+-- validating behavior of SectionHandler
+testSectionPreambleHandler :: IO ()
+testSectionPreambleHandler =
+  if results == True then return () else fail "testSectionPreambleHandler failed"
+  where results :: Bool
+        results = foldr (&&) True
+          [
+            sectionPreambleHandler ("foo" :: String) ("bar") 1 (StateVec "foo" []) == (StateVec "bar" ["foo"]),
+            sectionPreambleHandler ("foo" :: String) ("bar") 2 (StateVec "foo" []) == (StateVec "bar" ["bar", "foo"]),
+            sectionPreambleHandler ("foo" :: String) ("bar") 3 (StateVec "foo" []) == (StateVec "bar" ["bar", "bar", "foo"]),
+            sectionPreambleHandler ("foo" :: String) ("bar") 0 (StateVec "bar" ["bar", "bar", "bar", "baz"]) == (StateVec "foo" []),
+            sectionPreambleHandler ("foo" :: String) ("bar") 1 (StateVec "bar" ["bar", "bar", "bar", "baz"]) == (StateVec "bar" ["baz"]),
+            sectionPreambleHandler ("foo" :: String) ("bar") (-1) (StateVec "bar" ["bar", "bar", "bar", "baz"]) == (StateVec "foo" [])
+          ]

@@ -119,7 +119,7 @@ testPhraseList = do
 
 -- testCustom :: IO ()
 -- testCustom = do
---   txt <- TIO.readFile "/home/pv/org/projects/jmh-CNL-CIC/colada-parser/test/test_script2.txt"
+--   txt <- TIO.readFile "/home/pv/org/projects/jmh-CNL-CIC/colada-parser/test/test_script2.txt" -- TODO remove absolute path
 --   test parseProgram txt
 
 testTests :: IO ()
@@ -133,3 +133,5 @@ testTests = do
   testPhraseList
   testProgramText
   testState
+  testSectionPreambleHandler
+  putStrLn "all tests passed"

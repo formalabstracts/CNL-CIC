@@ -29,5 +29,5 @@ main = do
 
   where showHandler :: RawResult Text SimpleError TextItem -> String
         showHandler raw = case raw of
-          Left (err) -> parseErrorPretty err
+          Left (err) -> "ERROR: " <> (parseErrorPretty err)
           Right x    -> show x

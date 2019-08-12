@@ -89,7 +89,7 @@ data FState = FState {
   _strSyms :: [[Text]], _varDecl :: [Text], _clsList :: [[Text]],
   _idCount :: Int, _hiddenCount :: Int, _serialCounter :: Int,
   _sectionId :: Maybe Text,
-  _sectionType :: Text
+  _sectionTag :: Maybe Text
   }
   deriving (Show, Eq)
 
@@ -113,36 +113,6 @@ mkStateVec xs = case xs of
 
 consStateVec :: a -> StateVec a -> StateVec a
 consStateVec x (StateVec t fs) = StateVec x (t:fs)
-
-popStateVec :: Int -> StateVec a -> StateVec a
-popStateVec 0 stk = stk
-popStateVec n (StateVec t []) = (StateVec t [])
-popStateVec n (StateVec t (f:fs)) = popStateVec (n-1) $ StateVec f fs
-
-pushStateVec :: a -> Int -> StateVec a -> StateVec a
-pushStateVec default_value 0 stk = stk
-pushStateVec default_value n stk = consStateVec default_value $ pushStateVec default_value (n-1) stk
-
----- refreshes the top of the stack with the given value
-refreshStateVec :: a -> StateVec a -> StateVec a
-refreshStateVec default_value stk = stk {_top = default_value}
-
----- helper function for handling section-local states
--- upon encounting a section postamble or section preamble, the new document depth is calculated
--- and given to sectionHandler, along with an initial FState and an empty FState. The initial FState is reserved
--- for the bottom of the state stack, while the empty FState is what is pushed onto the stack.
--- sectionHandler produces a new state stack at the new document level, pushing as many empty FStates
--- or popping as many FStates off the stack as required
-sectionHandler :: a -> a -> Int -> StateVec a -> StateVec a
-sectionHandler default_value1 default_value2 0 stk =
-  StateVec default_value1 []
-sectionHandler default_value1 default_value2 n stk =
-  if (n < depthStateVec stk)
-    then refreshStateVec default_value2 $ popStateVec (depthStateVec stk - n) stk
-    else if (n == depthStateVec stk)
-           then refreshStateVec default_value2 stk
-           else pushStateVec default_value2 (n - depthStateVec stk) stk
--- in sectionHandler, both popStateVec and pushStateVec are never called on a negative value
 
 initialFStateVec :: StateVec FState
 initialFStateVec = StateVec initialFState []
@@ -169,7 +139,7 @@ emptyFState = FState
   [] [] []
   0 0 0
   Nothing
-  "document"
+  Nothing
 
 initialFState :: FState
 initialFState = FState
@@ -193,7 +163,7 @@ initialFState = FState
   [] [] clsL0
   0 0 0
   Nothing
-  "document"
+  (Just "document")
   where
   primAdjective0 = [Patts [Wd ["positive"]]]
   primDefiniteNoun0 = [Patts [Wd ["zero"]], Patts [Wd ["one"]]]
