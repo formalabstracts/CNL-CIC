@@ -15,6 +15,21 @@ import Control.Monad.Trans.State
 import Control.Monad.Trans.State.Lazy
 import Text.Megaparsec
 import System.FilePath
+import Data.List.NonEmpty (fromList)
+
+initialState :: Text -> PosState Text
+initialState txt = PosState
+              { pstateInput = txt
+              , pstateOffset = 0
+              , pstateSourcePos = initialPos ""
+              , pstateTabWidth = defaultTabWidth
+              , pstateLinePrefix = ""
+              }
+
+errorBundleOfParseError :: Text -> (ParseError Text e) -> ParseErrorBundle Text e
+errorBundleOfParseError txt pe =
+  ParseErrorBundle { bundleErrors = fromList [pe],
+                     bundlePosState = initialState txt }
 
 main :: IO ()
 main = do
@@ -23,11 +38,11 @@ main = do
   case (runParser (toParsec parseRawTextItems) "" txt) of
     Left err -> fail $ errorBundlePretty err
     Right a -> do
-      let output = intercalate "\n\n" (pack . showHandler <$> a)
+      let output = intercalate "\n\n" (pack . (showHandler txt) <$> a)
       TIO.putStrLn output
       TIO.writeFile (replaceExtension file "parsed") output
 
-  where showHandler :: RawResult Text SimpleError TextItem -> String
-        showHandler raw = case raw of
-          Left (err) -> "ERROR: " <> (parseErrorPretty err)
+  where showHandler :: Text -> RawResult Text SimpleError TextItem -> String
+        showHandler txt raw = case raw of
+          Left (err) -> "ERROR: " <> (errorBundlePretty $ errorBundleOfParseError txt err)
           Right x    -> show x
