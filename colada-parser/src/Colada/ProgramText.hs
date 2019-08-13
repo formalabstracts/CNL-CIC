@@ -38,7 +38,7 @@ data TextItem =
 
 -- type synonym possibly allowing errors for textitems
 -- so that parsing can recover from errors
--- this assumes that every textitem is preceded by a newline
+-- this assumes that every text_item is terminated by either a newline or a RBrack
 type RawResults s e t = [RawResult s e t]
 type RawResult s e t = Either (ParseError s e) t
 
@@ -63,7 +63,7 @@ parseTextItem_main =
 
 parseRawTextItem :: Parser (RawResult Text SimpleError TextItem)
 parseRawTextItem = (withRecovery recover (Right <$> parseTextItem_main)) <* sc
-  where recover err = Left err <$ manyTill item parsePeriod
+  where recover err = Left err <$ manyTill item (parsePeriod *> skip <||> parseRBrack *> skip)
 
 parseTextItem :: Parser TextItem
 parseTextItem = unoption $ parseTreeOfRawResult <$> parseRawTextItem
