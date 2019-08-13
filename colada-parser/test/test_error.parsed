@@ -1,0 +1,31 @@
+TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["Section"]) (Just (Label (AtomicId "test_error"))))
+
+TextItemInstr (InstrInstructTraceSection (InstructTraceSection (Just "Section",Just "test_error")))
+
+TextItemDeclaration (DeclarationDefinition (Definition (DefinitionPreamble (Just (Label (AtomicId "The_Riemann_zeta_function")))) [] (DefinitionAffirm (DefinitionStatementFunctionDef (FunctionDef (FunctionHeadFunctionTokenPattern (FunctionTokenPattern (TokenPattern (Tokens [Token "riemann",Token "zeta",Token "function",Token "of"]) [] (Just (TVarVar (Var "x")))))) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermNoun (PrimDefiniteNoun [ParsedWd (Token "zero")])))))) (Just (ThisExists [ThisDirectivePredVerb (ThisDirectiveVerbExists Nothing),ThisDirectivePredAdjective [["well-defined"]]])))))
+
+TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["subsubsection"]) (Just (Label (AtomicId "failing_parse"))))
+
+TextItemDeclaration (DeclarationDefinition (Definition (DefinitionPreamble (Just (Label (AtomicId "The_Riemann_zeta_function")))) [] (DefinitionAffirm (DefinitionStatementFunctionDef (FunctionDef (FunctionHeadFunctionTokenPattern (FunctionTokenPattern (TokenPattern (Tokens [Token "riemann",Token "zeta",Token "function",Token "of"]) [] (Just (TVarVar (Var "x")))))) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermNoun (PrimDefiniteNoun [ParsedWd (Token "zero")])))))) (Just (ThisExists [ThisDirectivePredVerb (ThisDirectiveVerbExists Nothing),ThisDirectivePredAdjective [["well-defined"]]])))))
+
+TextItemSectionPreamble (SectionPreamble (SectionTagSubdivision ["subdivision"]) Nothing)
+
+TextItemInstr (InstrInstructTraceSection (InstructTraceSectionStack [(Just "subdivision",Nothing),(Just "subsubsection",Just "failing_parse"),(Nothing,Nothing),(Just "Section",Just "test_error"),(Just "document",Nothing)]))
+
+TextItemSectionPostamble (SectionPostamble (SectionTagSubdivision ["subdivision"]) Nothing)
+
+ERROR: offset=429:
+unexpected ".<newline><newline>end"
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", '(', ':', '_', digit, lowercase letter, or uppercase letter
+
+
+ERROR: offset=429:
+unexpected ".<newline><newline>end"
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', '_', digit, lowercase letter, or uppercase letter
+
+
+TextItemSectionPostamble (SectionPostamble (SectionTagDocument ["subSUBsection"]) (Just (Label (AtomicId "failing_parse"))))
+
+TextItemInstr (InstrInstructTraceSection (InstructTraceSectionStack [(Just "Section",Just "test_error"),(Just "document",Nothing)]))
+
+TextItemSectionPostamble (SectionPostamble (SectionTagDocument ["section"]) (Just (Label (AtomicId "test_error"))))

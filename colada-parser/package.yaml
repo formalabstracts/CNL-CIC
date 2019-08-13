@@ -1,0 +1,64 @@
+name:                colada-parser
+version:             0.1.0.0
+github:              "githubuser/colada-parser"
+license:             MIT
+author:              "Jesse Michael Han"
+maintainer:          ""
+copyright:           "2019 Jesse Michael Han"
+
+extra-source-files:
+- README.org
+- ChangeLog.md
+
+description:           <https://github.com/formalabstracts/CNL-CIC>
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+
+dependencies:
+- base >= 4.7 && < 5
+- megaparsec >= 7
+- text
+- containers
+- process
+- time
+- mtl
+- transformers
+- bytestring
+- utf8-string
+- network
+- split
+- uuid
+- threads
+- parser-combinators
+- lens
+- template-haskell
+- directory
+- filepath
+
+library:
+  source-dirs: src
+
+executables:
+  colada:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - colada-parser
+
+tests:
+  colada-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - colada-parser

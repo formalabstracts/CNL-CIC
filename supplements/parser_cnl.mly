@@ -1023,7 +1023,6 @@ proof_script : proof_preamble option(list(canned_prefix proof_body {})
   by_ref : option(paren(LIT_BY ref_item {})) {}
   ref_item : sep_list(option(lit_location) label {}) {}
 
-
 (** This exists and is well-defined. *)
 this_exists : LIT_THIS
   sep_list(this_directive_pred) PERIOD {}
@@ -1043,7 +1042,7 @@ this_exists : LIT_THIS
   this_directive_right_attr : LIT_BY LIT_RECURSION {}
   this_directive_verb : LIT_EXISTS option(this_directive_right_attr){}
 
-(** definition *)
+(* definition *)
 definition : definition_preamble list(assumption) 
   definition_affirm {}
 
@@ -1216,7 +1215,6 @@ predicate_token_pattern :
   | tvar COMMA tvar
   | paren(VAR COMMA VAR colon_type {}) {}
 
-
 identifier_pattern :
 | identifier args opt_colon_type {}
 | BLANK args opt_colon_type {} (* instance can be anonymous *)
@@ -1243,5 +1241,4 @@ paren_precedence_level :
 program_text : text | stub_nonterminal { "done" }
 
 program : program_text EOF {}
-
 
