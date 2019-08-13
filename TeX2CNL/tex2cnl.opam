@@ -1,0 +1,33 @@
+opam-version: "1.2"
+name: "tex2cnl"
+version: "0.01"
+synopsis: "conversion of TeX files to controlled natural language"
+description: """
+TeX2Cnl converts LaTeX files to the controlled natural language (CNL) Colada,
+by stripping away formatting, translating macros to precise semantics,
+and transforming LaTeX environments.
+"""
+maintainer: "Thomas Hales <hales@pitt.edu>"
+authors: "Thomas Hales <hales@pitt.edu>"
+license: "MIT"
+         
+homepage: ""
+bug-reports: ""
+dev-repo: ""
+          
+depends: [
+  "dune"
+  "ocaml"
+  "ocamlfind"
+  "odoc"
+  "base"
+  "stdio"
+  "sedlex" {>= "1.99.4"}
+  "ppx_deriving"
+  "ppx_enumerate"
+  "compiler-libs.common"
+]
+
+build: [ "dune" "build" "-p" name "-j" jobs]
+build-test: ["dune" "runtest" "-p" name "-j" jobs]
+install: ["dune" "install" "-p" name "-j" jobs]

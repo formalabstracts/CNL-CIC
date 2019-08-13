@@ -12,6 +12,18 @@
 
 %\DefineShortVerb[formatcom=\color{blue},fontfamily=mathtt]{\|}
 
+%\newenvironment{evMatch}%
+%               {\begin{itemize}\renewcommand\labelitemi{\normalfont|}}%
+%               {\end{itemize}}
+
+\newenvironment{envMatch}%
+               {\par\begin{tabular}{@{\quad\normalfont| }lll}}%
+               {\end{tabular}\par}
+
+
+
+%\renewcommand\labelitemi{\normalfont|}}
+
 
 %% CNL CONTROL SEQUENCES
 
@@ -82,15 +94,17 @@
 \newcommand{\app}[1]{#1}
 \newcommand{\CnlList}[1]{#1} % was list
 \newcommand{\parenI}[1]{#1}
-\renewcommand{\*}{}
+\renewcommand{\*}{\,}
 
 \renewcommand{\iff}{\leftrightarrow}
 \newcommand{\Prop}{\text{\tt Prop}}
 \newcommand{\Type}{\text{\tt Type}}
 \newcommand{\fld}{.}
 \newcommand{\dequiv}{\mathrel{:=}} %{\mathrel{:\equiv}}
+\newcommand{\assign}{\mathrel{:=}} %{\mathrel{:\equiv}}
 \newcommand{\Nat}{\ensuremath{{\mathbb N}}}
 \newcommand{\Real}{\ensuremath{{\mathbb R}}}
+\newcommand{\Bool}{\ensuremath{{\mathbb {B}}}}
 \newcommand{\df}[1]{\text{\bf #1}}
 \newcommand{\h}[1]{\text{\color{red} #1}}
 \newcommand{\join}{\lor}
@@ -100,14 +114,22 @@
 \newcommand{\ignore}[1]{}
 \newcommand{\parenthetical}[1]{(#1)}
 %\renewcommand{\_}{\textunderscore}
-\renewcommand\labelitemi{-}
+\renewcommand\labelitemi{--}
 \renewcommand{\qed}{\ensuremath{\square}}
 
 \def\deflabel#1{\begin{definition}[#1]\label{#1}}
 \def\thmlabel#1{\begin{theorem}[#1]\label{#1}}
 \def\namelabel#1{[#1]\label{#1}}
-\newcommand{\fun}{{\text{\bf{fun}}}}
-\newcommand{\match}{{\text{\bf{match}}}}
+\newcommand{\keyword}[1]{{\text{\bf{#1}}}}
+\newcommand{\fun}{\keyword{fun}}
+\newcommand{\match}{\keyword{match}}
+\newcommand{\ifcond}{\keyword{if}}
+\newcommand{\thencond}{\keyword{then}}
+\newcommand{\elsecond}{\keyword{else}}
+\newcommand{\otherwise}{\keyword{otherwise}}
+\newcommand{\function}{\keyword{function}}
+\newcommand{\quot}{\keyword{quot}}
+\newcommand{\where}{\keyword{where}}
 \newcommand{\blank}{\h{\_}}
 
 % Accents- Use these versions to fuse with variable name in CNL image.

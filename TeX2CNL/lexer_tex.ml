@@ -1,7 +1,7 @@
 (* reference, unicode math version 3.1 16-Nov-16 *)
 
 
-
+open Type;;
              (* sedlex format *)
 
 (* start interactive section *)
@@ -13,6 +13,7 @@ open BatSet.String
 open BatList 
  *)
 
+(* moved to type.ml: 
 type token = 
    | Natural of int
    | Numeric of string
@@ -49,7 +50,7 @@ type token =
    | Eof
    | Ignore
    | NotImplemented;;
-
+ *)
 
 let token_to_string = function
   | Natural i -> (string_of_int i)
@@ -177,7 +178,7 @@ let lexeme = Sedlexing.lexeme;;
 let implode l = List.fold_right (^) l "";;
 
 let string_of_ints js =
- let cs =  List.map (fun j -> Char.escaped (Char.chr j)) (Array.to_list js) in
+ let cs =  List.map (fun j -> Char.escaped (Uchar.to_char j)) (Array.to_list js) in
   implode cs;;
 
 let string_lexeme buf = string_of_ints(lexeme buf);;
@@ -193,10 +194,10 @@ let strip_nonalpha s =
  let ls = String.split_on_char ',' s' in
   String.concat "" ls;;
 
-let test = strip_nonalpha "abcd 234 efg\\={h}";;
-let test = strip_nonalpha "\\\'etale";;
-let test = strip_nonalpha "Erd\\H{o}s";;
-let test = strip_nonalpha "Poincar\\\'e";;
+let _ = strip_nonalpha "abcd 234 efg\\={h}";;
+let _ = strip_nonalpha "\\\'etale";;
+let _ = strip_nonalpha "Erd\\H{o}s";;
+let _ = strip_nonalpha "Poincar\\\'e";;
 
 let strip_to_brace s = 
   let n1 = String.index s '{' in

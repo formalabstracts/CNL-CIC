@@ -1,3 +1,5 @@
+(dirs :standard \ chaff)
+
 (rule
 (targets parser_cnl.ml)
 (deps parser_cnl.mly parser_cnl_tokens.mly)

@@ -1,0 +1,34 @@
+(dirs :standard \ chaff)
+(data_only_dirs tex)
+
+
+;(rule
+;(targets parser_cab.ml)
+;(deps parser_cab.mly)
+;(action (run menhir %{deps} --base parser_cab --explain))
+;)
+
+;deriving show (works?)
+;; generate lexer -- temporary hack, see https://gitlab.inria.fr/fpottier/menhir/issues/6
+;; https://github.com/smolkaj/ocaml-parsing/blob/master/src/dune
+;(rule
+; (targets lexer_cab.ml)
+; (deps    (:f lexer_cab.cppo.ml) parser_cab.ml)
+; (action  (run cppo %{f} -n -o %{targets})))
+
+;doesn't work:
+;(rule
+; (targets lexer_cab.mli)
+; (deps    (:f lexer_cab.ml))
+; (action  (run corebuild %{f}  > %{targets})))
+
+(library
+(name tex2cnl)
+(public_name tex2cnl)
+(wrapped true)
+;(modules (:standard \ validate))
+(libraries sedlex batteries)
+(preprocess (pps ppx_deriving.std  sedlex.ppx))
+)
+
+

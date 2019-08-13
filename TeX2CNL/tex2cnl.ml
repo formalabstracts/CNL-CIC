@@ -1,5 +1,6 @@
 (* types *)
 
+open Type;;
 
 (* string operations *)
 let token_to_string = function
@@ -51,7 +52,7 @@ let token_to_string_output = function
   | NotImplemented -> " "
   | _ as t -> (token_to_string t)^" ";;
 
-let test = token_to_string_output (Input "file");;
+let _ = token_to_string_output (Input "file");;
 
 let string_clean =
   let f c = match c with
@@ -62,7 +63,7 @@ let string_clean =
     | _ -> '_' in
   String.map f;;
 
-let test = string_clean "a;sldfkj7698769as2!&*()*&)(&:";;
+let _ = string_clean "a;sldfkj7698769as2!&*()*&)(&:";;
 
 let token_to_clean_string default = function 
   | Natural i -> (string_of_int i)
@@ -92,8 +93,8 @@ let mk_var toks =
 let mk_id toks = 
   Tok ("id_"^(tokens_to_clean_string_short toks));;
 
-let test = mk_var [ControlSeq "alpha";Sub;Natural 3];;
-let test = mk_var [ControlSeq "alpha";Sub;LBrace;Natural 33;RBrace];;
+let _ = mk_var [ControlSeq "alpha";Sub;Natural 3];;
+let _ = mk_var [ControlSeq "alpha";Sub;LBrace;Natural 33;RBrace];;
 
 let no_expand = ControlSeq "noexpand";;
 
@@ -109,7 +110,7 @@ let mk_outfile s =
 let mk_infile s = 
   (Filename.remove_extension s)^".tex";;
 
-let test = mk_outfile "myfile.txt";;
+let _ = mk_outfile "myfile.txt";;
 
 let read_lines name : string list =
   let ic = open_in name in
@@ -299,9 +300,9 @@ let rec leveled_read_until acc read state ldlims tr endif =
  *)
 
 
-let rec mate_delim read state right ldlims = 
+let mate_delim read state right ldlims = 
   let left = left_mate right in
-  let (current,toks,state') = leveled_read_until [] read state ldlims snd 
+  let (_,toks,state') = leveled_read_until [] read state ldlims snd 
    (fun (ldlims,tok) -> (ldlims = [left] && (tok = right))) in 
   (toks,state');;
 
@@ -331,21 +332,21 @@ let rec input_matched_brace_list ios acc k =
    (a,b,(c,d),e,\frac{f}{g,h}) --> [a;b;(c,d);e;\frac{f}{g,h}]
  *)
 
-let rec list_of_tuple_rec b insep outsep toks = (* outer brackets not included *)
+let list_of_tuple insep outsep toks = (* outer brackets not included *)
   let (_,toks',_) = leveled_read_until [] (fun ls -> (List.hd ls,List.tl ls)) toks []
    (fun (ds,tok) -> if (ds = [] && tok = insep) then outsep else tok)
    (fun (_,_) -> false) in (* read until List.hd gives error *)
   toks';;
 
-let list_of_noparen_tuple b toks =
-  bracket(list_of_tuple_rec b Comma Semi toks);;
+let list_of_noparen_tuple toks =
+  bracket(list_of_tuple Comma Semi toks);;
 
-let curryargs b toks = 
-  list_of_tuple_rec b Comma Ignore toks;;
+let curryargs toks = 
+  list_of_tuple Comma Ignore toks;;
 
-let test = list_of_noparen_tuple false [LParen;RParen];;
-let test = list_of_noparen_tuple false [ControlSeq "A";Comma;ControlSeq "B";Comma;ControlSeq "C"];;
-let test = curryargs false [ControlSeq "A";Comma;ControlSeq "B";Comma;ControlSeq "C"];;
+let _ = list_of_noparen_tuple [LParen;RParen];;
+let _ = list_of_noparen_tuple [ControlSeq "A";Comma;ControlSeq "B";Comma;ControlSeq "C"];;
+let _ = curryargs [ControlSeq "A";Comma;ControlSeq "B";Comma;ControlSeq "C"];;
 
 
 
@@ -375,8 +376,8 @@ let rec default_assoc ls s =
 let is_math_font cs_string = 
   (String.length cs_string > 3) && ("math" = String.sub cs_string 0 4);;
 
-let test = is_math_font "mathfrak";;
-let test = is_math_font "Bbb";;
+let _ = is_math_font "mathfrak";;
+let _ = is_math_font "Bbb";;
 
  (* Several functions take p_environ, which eventually gets instantiated with the
     function process_environment. 
@@ -405,7 +406,7 @@ let process_controlseq ios cs_string =
   | "id" -> [mk_id (input_to_right_wo_par ios RBrace)]
   | "list" ->
       let toks = input_to_right_wo_par ios RBrace in 
-      (return_input ios (list_of_noparen_tuple true toks) ; [])
+      (return_input ios (list_of_noparen_tuple toks) ; [])
   | "concat" ->
       let t1 = input_to_right_wo_par ios RBrace in
       let t2 = input_to_right_wo_par ios RBrace in

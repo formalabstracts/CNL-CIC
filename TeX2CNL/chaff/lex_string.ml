@@ -1,4 +1,3 @@
-open Parser_tex
 
 let to_string = function
   | NATURAL i -> (string_of_int i)

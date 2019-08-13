@@ -1,4 +1,4 @@
-module Type = struct
+(* module Type = struct *)
 
 type token = 
    | Natural of int
@@ -54,7 +54,7 @@ type environ_item =
   end_token : token;
   drop_toks : token list;
   is_delete : bool;
-  respect_par : bool;
+  regard_par : bool;
 };;
 
-end;;
+(* end;; *)

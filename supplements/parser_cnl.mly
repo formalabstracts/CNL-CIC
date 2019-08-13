@@ -332,7 +332,7 @@ instruction :
 
 (* variables *)
 
- (* Variables can be given the modifier LIT_INFERRED
+ (* Variables can be given the modifier LIT_INFERRING
  This is a blanket term for Lean style parameters, [type class inference],
  implicit arguments, etc.  
 
@@ -340,11 +340,11 @@ instruction :
  macros and definitions without appearing explicitly on the left-hand side. 
 
  For example, we can write
- We say that X is finite iff ... where (inferred alpha : Type) (X : set over alpha).
+ We say that (X : set over alpha) is finite iff ..., inferring (alpha : Type).
  Then the alpha is not required to appear to the left of the iff.
 
  For example, 
- Let x in X stand for C.notation_in x X where (inferred C : has_in).
+ Let x in X stand for C.notation_in x X inferring (C : has_in).
 
  If a section introduces an inferred variable into the context, then 
  the "CNL elaborator" inserts the corresponding where clause into every
@@ -353,7 +353,7 @@ instruction :
 
   *)
 
-var_modifier : option(LIT_INFERRED) {}
+var_modifier : option(LIT_INFERRING) {}
 annotated_var : paren(var_modifier VAR opt_colon_type {}) {}
 annotated_vars : paren(var_modifier nonempty_list(VAR) opt_colon_type {}) {}
 
@@ -1144,13 +1144,13 @@ macro : option(insection) macro_bodies {}
 
   macro_bodies : macro_body list(SEMI option(LIT_AND) macro_body {}) PERIOD {}
 
-  macro_where : LIT_WHERE nonempty_list(annotated_vars) {}                   
+  macro_inferring : LIT_INFERRING nonempty_list(annotated_vars) {}
 
   macro_body : 
   | classifier_def 
   | type_def 
-  | function_def option(macro_where) 
-  | predicate_def option(macro_where) 
+  | function_def option(COMMA macro_inferring {}) 
+  | predicate_def option(COMMA macro_inferring {}) 
   | let_annotation 
   | we_record_def
   {}
