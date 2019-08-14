@@ -8,18 +8,32 @@ TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["subsubsection"]) 
 
 TextItemDeclaration (DeclarationDefinition (Definition (DefinitionPreamble (Just (Label (AtomicId "The_Riemann_zeta_function")))) [] (DefinitionAffirm (DefinitionStatementFunctionDef (FunctionDef (FunctionHeadFunctionTokenPattern (FunctionTokenPattern (TokenPattern (Tokens [Token "riemann",Token "zeta",Token "function",Token "of"]) [] (Just (TVarVar (Var "x")))))) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermNoun (PrimDefiniteNoun [ParsedWd (Token "zero")])))))) (Just (ThisExists [ThisDirectivePredVerb (ThisDirectiveVerbExists Nothing),ThisDirectivePredAdjective [["well-defined"]]])))))
 
+ERROR: 11:8:
+   |
+11 | [trace FOO BAR]
+   |        ^^^^^^^
+unexpected "FOO BAR"
+expecting "section"
+
+
 TextItemSectionPreamble (SectionPreamble (SectionTagSubdivision ["subdivision"]) Nothing)
 
 TextItemInstr (InstrInstructTraceSection (InstructTraceSectionStack [(Just "subdivision",Nothing),(Just "subsubsection",Just "failing_parse"),(Nothing,Nothing),(Just "Section",Just "test_error"),(Just "document",Nothing)]))
 
 TextItemSectionPostamble (SectionPostamble (SectionTagSubdivision ["subdivision"]) Nothing)
 
-ERROR: offset=429:
+ERROR: 19:64:
+   |
+19 | Definition the_riemann_zeta_function. AHUERGASDRAMALAMADINGDONG.
+   |                                                                ^^
 unexpected ".<newline><newline>end"
 expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", '(', ':', '_', digit, lowercase letter, or uppercase letter
 
 
-ERROR: offset=429:
+ERROR: 19:64:
+   |
+19 | Definition the_riemann_zeta_function. AHUERGASDRAMALAMADINGDONG.
+   |                                                                ^^
 unexpected ".<newline><newline>end"
 expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', '_', digit, lowercase letter, or uppercase letter
 
