@@ -11,7 +11,8 @@ let token_to_string = function
   | Par -> ""
   | Comment -> ""
   | Input s -> "\\input{"^s ^"}"
-  | ControlSeq s -> "[macro:"^s^"]"
+  | Cnlenvdel s -> "\\CnlEnvDelete{"^s^"}"
+  | ControlSeq s -> "[\\"^s^"]"
   | BeginSeq s -> "\\begin{"^s^"}"
   | EndSeq s -> "\\end{"^s^"}"
   | BeginCnl -> "\\begin{cnl}"
@@ -41,6 +42,44 @@ let token_to_string = function
   | _ -> "";;
 
 
+let token_to_verbose_string = function
+  | Natural i -> "Nat"^(string_of_int i)
+  | Numeric s -> "Num"^s
+  | Eol -> "Eol"
+  | Par -> "Par"
+  | Comment -> "Comment"
+  | Input s -> "Input-"^s
+  | Cnlenvdel s -> "Cnlenvdel-"^s
+  | ControlSeq s -> "ControlSeq-"^s
+  | BeginSeq s -> "BeginSeq-"^s
+  | EndSeq s -> "EndSeq-"^s
+  | BeginCnl -> "BeginCnl"
+  | EndCnl -> "EndCnl"
+  | Arg i -> "Arg-"^(string_of_int i)
+  | LParen -> "LParen"
+  | RParen -> "RParen"
+  | LBrack -> "LBrack"
+  | RBrack -> "RBrack"
+  | LBrace -> "LBrace"
+  | RBrace -> "RBrace"
+  | LDisplay -> "LDisplay"
+  | RDisplay -> "RDisplay"
+  | Dollar -> "Dollar"
+  | Display -> "Display"
+  | Sub -> "Sub"
+  | Comma -> "Comma"
+  | Semi -> "Semi"
+  | FormatEol -> "FormatEol"
+  | FormatCol -> "FormatCol"
+  | Label s -> "Label-"^s
+  | Tok s -> "Tok-"^s
+  | Symbol s -> "Symbol-"^s
+  | Error s -> "Error-"^s
+  | Warn s -> "Warn-"^s
+  | Eof -> "Eof"
+  | Ignore -> "Ignore"
+  | NotImplemented s -> "NotImplemented-"^s;;
+
 let token_to_string_output = function
   | Dollar -> " "
   | Display -> " "
@@ -50,6 +89,7 @@ let token_to_string_output = function
   | EndCnl -> " "
   | BeginSeq _ -> " "
   | EndSeq _ -> " "
+  | Cnlenvdel _ -> " "
   | ControlSeq s -> "\\"^s
   | Input s -> "[read \"" ^(Filename.remove_extension s)^ ".cnl\"]"
   | NotImplemented _ -> "[TeX2CnlError \"not implemented\"]"
@@ -62,7 +102,6 @@ let string_clean =
     | 'a' .. 'z' -> c
     | 'A' .. 'Z' -> c
     | '0' .. '9' -> c
-    | '\'' -> c
     | _ -> '_' in
   String.map f;;
 
@@ -80,7 +119,8 @@ let token_to_clean_string default = function
 
 let tokens_to_clean_string toks = 
   let cs = List.map (token_to_clean_string "_") toks in 
-  String.concat "'" cs;;
+  let s = String.concat "" cs in 
+  String.sub s 0 (min 64 (String.length s));; (* debug truncated *)
 
 let tokens_to_string sep toks = 
   let cs = List.map token_to_string toks in
@@ -95,7 +135,7 @@ let print_debug_token tok =
   if debug then print_string ((token_to_string_output tok)^" ") else ();;
 
 let mk_label toks = 
-  let t = "L'"^(tokens_to_clean_string toks) in (* force initial letter *)
+  let t = "Label_"^(tokens_to_clean_string toks) in (* force initial letter *)
   Label t ;;
 
 let tokens_to_clean_string_short toks = 
@@ -161,7 +201,6 @@ let (output_error,get_error_count) =
   let o_error ios s = output_token ios (Error s) in
   ((fun ios s ->
         let _ = o_error ios s in
-        let _ = print_debug ("[error: "^s^"]") in
         let _ = error_count := 1 + !error_count in
         if !error_count > error_limit then 
           let _ = o_error ios "error_limit exceeded" in
@@ -211,10 +250,12 @@ let return_input ios ls =
 
 let input_filter ios b f s = 
   let t = input ios b in
-  let _ = f t || (output_error ios s ; true) in 
+  let s' = ", found "^(token_to_verbose_string t) in
+  let _ = f t || (output_error ios (s^s') ; true) in 
   t;;
 
-let input_tok ios b tok = input_filter ios b ((=) tok) ("expected "^token_to_string tok);;
+let input_tok ios b tok = input_filter ios b ((=) tok) 
+  ("expected "^token_to_verbose_string tok)
 
 let peek ios b = 
   let tok = input ios b in
@@ -225,7 +266,8 @@ let input_brack_num ios b =
   let x = input ios b in
   let y = input ios b in 
   let z = input ios b in
-  let f() = print_debug "[brack:"; print_debug_token x; print_debug_token y; print_debug_token z; print_debug "]" in
+  let f() = () in 
+(* print_debug "[brack:"; print_debug_token x; print_debug_token y; print_debug_token z; print_debug "]" in *)
   match(x,y,z) with
   | (LBrack,Natural i,RBrack) -> (f(); i)
   | _ -> (return_input ios [x;y;z]; 0);;
@@ -265,7 +307,7 @@ let left_mate =
   | RBrack -> LBrack
   | ControlSeq ")" -> ControlSeq "("
   | ControlSeq "]" -> ControlSeq "["
-  | EndSeq s -> BeginSeq s
+(*  | EndSeq s -> BeginSeq s . Macros can contain unmatched \begin \end *)
   | _ -> NotImplemented "";;
 
 let check_mate (ldlims,tok) = 
@@ -275,9 +317,9 @@ let check_mate (ldlims,tok) =
 
 let record_level (ldlims,tok) = (* ldlims = left delimiter stack  *)
   match tok with
-  | ControlSeq "(" | ControlSeq "[" | BeginSeq _ | LParen | LBrace | LBrack -> 
+  | ControlSeq "(" | ControlSeq "[" | LParen | LBrace | LBrack -> 
      (tok :: ldlims,[tok])
-  | ControlSeq ")" | ControlSeq "]" | EndSeq _ | RParen | RBrace | RBrack -> 
+  | ControlSeq ")" | ControlSeq "]" | RParen | RBrace | RBrack -> 
      let (ldlims',err) = check_mate (ldlims,tok) in (ldlims', (tok :: err))
   | Dollar -> if (match ldlims with | Dollar :: _ -> true | _ -> false) then 
                 (List.tl ldlims,[])
@@ -378,13 +420,17 @@ let rec macroexpand acc pattern args =
 
 let macrotable = ref [];;
 
-let debug_show_macro () = 
+
+let debug_macro_to_string (s,(i,toks)) = 
+ "[macro:("^s^",("^string_of_int i^","^(tokens_to_string "-" toks)^"))]";;
+
+let debug_show_macrotable () = 
   let f = List.map fst !macrotable in
   "<"^(String.concat "+" f)^">";;
 
 let setmacro f = 
   let _ = (macrotable := f :: !macrotable) in
-  let _ = debug_show_macro() in
+(*  let _ = print_debug (debug_macro_to_string f) in *)
   ();;
 
 
@@ -419,11 +465,8 @@ let nopar ios toks s =
   toks';;
 
 let process_controlseq ios cs_string =
-  let _ = print_debug ("[macro:"^cs_string^"]") in
+(*  let _ = print_debug ("[process-cs:"^cs_string^"]") in *)
   match cs_string with
-  | "CnlEnvirDelete" -> (* XX not implemented *)
-      let cs = input_cs ios true in 
-      setenv (get_csname cs); []
   | "CnlDelete" -> 
       let i = input_brack_num ios true in
       let cs = input_cs ios true in 
@@ -441,7 +484,7 @@ let process_controlseq ios cs_string =
       let i = input_brack_num ios true in
       let cs = input_cs ios true in
       let cname = get_csname cs in
-      setmacro (cname,(i,[Error cname])); []
+      setmacro (cname,(i,[Warn ("prohibited: \\"^cname)])); []
   | "noexpand" -> 
       let cs = input_cs ios true in [cs]
   | "var" -> [mk_var (input_to_right_wo_par ios RBrace)]
@@ -465,12 +508,15 @@ let process_controlseq ios cs_string =
   | _ -> let otoks = opt_assoc cs_string !macrotable in
          (match otoks with
          | Some (k,pat) -> 
-             let _ = print_debug "+" in 
+(*             let _ = if (k>0) then print_debug "[expanding macro," else () in  *)
              let args = (input_matched_brace_list ios [] k) in 
              let repl_text = macroexpand [] pat args in 
+(*             let _ = if (k>0) then 
+                       (print_debug "expanded macro:";
+                        ignore(List.map print_debug_token repl_text);
+                        print_debug "]") in  *)
              (return_input ios repl_text;[])
          | None ->
-             let _ = print_debug ("-"^debug_show_macro()) in
              if is_math_font(cs_string) then (* \mathfrak{C} -> C__mathfrak *)
                let toks = input_to_right_wo_par ios RBrace in 
                if (List.length toks != 1) then (return_input ios toks; [])
@@ -554,6 +600,7 @@ let mk_matrix_env s is_delete =
   };;
 
 let mk_e_item s e =
+  if List.mem s (!envtable) then mk_delete_env s else 
   match s with 
   | "center" -> mk_drop_env s [] (e.is_delete)
   | "flushleft" | "flushright" | "minipage" 
@@ -577,11 +624,11 @@ let delete_matching_brack ios b = (* material in [] *)
   else ();;
 
 let get_label ios = (* read \label *)
- let l = peek ios true in
+ let l = input ios true in 
  match l with
  | ControlSeq "label" -> 
      let toks = input_to_right_wo_par ios RBrace in Some(mk_label toks)
- | _ -> None;;
+ | _ -> return_input ios [l]; None;;
 
 let declaration_table = 
   [
@@ -634,6 +681,7 @@ let rec process_environ ios e_stack =
     let e = List.hd e_stack in
     let tok = input ios (e.regard_par) in 
     match tok with
+    | Cnlenvdel s -> (setenv s; process_environ ios e_stack)
     | Par -> (output_error ios "paragraph ended before envir end."; 
               let ignore_par_stack = 
                 List.filter par_filter  e_stack in 

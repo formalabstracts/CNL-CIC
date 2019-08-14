@@ -7,6 +7,7 @@ type token =
    | Par 
    | Comment
    | Input of string
+   | Cnlenvdel of string
    | ControlSeq of string
    | BeginSeq of string
    | EndSeq of string

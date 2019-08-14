@@ -1,6 +1,3 @@
-(* reference, unicode math version 3.1 16-Nov-16 *)
-
-
 open Type;;
              (* sedlex format *)
 
@@ -14,42 +11,6 @@ open BatList
  *)
 
 (* moved to type.ml: 
-type token = 
-   | Natural of int
-   | Numeric of string
-   | Eol
-   | Par 
-   | Comment
-   | Input of string
-   | ControlSeq of string
-   | BeginSeq of string
-   | EndSeq of string
-   | BeginCnl
-   | EndCnl
-   | Arg of int
-   | LParen
-   | RParen
-   | LBrack
-   | RBrack
-   | LBrace
-   | RBrace
-   | LDisplay
-   | RDisplay
-   | Display
-   | Dollar
-   | Sub
-   | Comma
-   | Semi
-   | FormatEol 
-   | FormatCol 
-   | Label of string
-   | Tok of string
-   | Symbol of string
-   | Error of string
-   | Warn of string 
-   | Eof
-   | Ignore
-   | NotImplemented;;
  *)
 
 let lex_token_to_string = function
@@ -122,20 +83,24 @@ let rdisplay = [%sedlex.regexp? '\\', ']'  ]
 let format_eol = [%sedlex.regexp? "\\\\", Opt('*') ]
 let format_col = [%sedlex.regexp? '&']
 
-let beginseq = [%sedlex.regexp? "\\begin", Star(white), "{", Star(white), 
-                Plus(alphabet), Opt("*"), Star(white), "}"] 
-
-let endseq = [%sedlex.regexp? "\\end", Star(white), "{", Star(white), 
-                Plus(alphabet), Opt("*"), Star(white), "}"] 
-
 let begincnl = [%sedlex.regexp? "\\begin", Star(white), "{", Star(white), 
                 "cnl" ,  Star(white), "}"] 
 
 let endcnl = [%sedlex.regexp? "\\end", Star(white), "{", Star(white), 
                 "cnl" ,  Star(white), "}"] 
 
+let beginseq = [%sedlex.regexp? "\\begin", Star(white), "{", Star(white), 
+                Plus(alphabet), Opt("*"), Star(white), "}"] 
+
+let endseq = [%sedlex.regexp? "\\end", Star(white), "{", Star(white), 
+                Plus(alphabet), Opt("*"), Star(white), "}"] 
+
 let inputseq = [%sedlex.regexp? "\\input", Star(white), "{", Star(white), 
                 Plus(alphanum), Star(white), "}"] 
+
+let cnlenvdel = [%sedlex.regexp? "\\CnlEnvirDelete", 
+                 Star(white), "{", Star(white), 
+                Plus(alphabet) ,  Opt("*"), Star(white), "}"] 
 
 
 let period = [%sedlex.regexp? '.']           
@@ -164,10 +129,16 @@ let accent_cluster = [%sedlex.regexp? "\\", accent_char, alphabet
 
 let word = [%sedlex.regexp? Plus(alphabet | accent_cluster) ]
 
+
+let dot_id = [%sedlex.regexp? '.', alphabet, Star(alphanum) ]
+let unmarked_id = 
+  [%sedlex.regexp? Opt('.'), alphabet, Star(alphanum), Star(dot_id)]
+let id = [%sedlex.regexp? '!', unmarked_id, '!' ]
+
+(*
 let unmarked_id_more = [%sedlex.regexp? alphanum | '.' ]
 let unmarked_id = [%sedlex.regexp? alphabet, Star(unmarked_id_more), Plus(alphanum) ]
-let id = [%sedlex.regexp? '!', unmarked_id, '!' ]
-let tok = [%sedlex.regexp?  alphabet | unmarked_id ]
+ *)
 
 
            
@@ -183,9 +154,15 @@ let string_of_ints js =
 
 let string_lexeme buf = string_of_ints(lexeme buf);;
 
-let trim_bang s = String.sub s 1 (String.length s - 2);;
+let trim_ends s = 
+  if String.length s < 2 
+  then s
+  else String.sub s 1 (String.length s - 2);;
 
-let drop s k = String.sub s k (String.length s - k);;
+let drop s k = 
+  if k > String.length s then ""
+  else String.sub s k (String.length s - k);;
+
 
 let convert_hyphen = String.map (function | '-' -> '_' | '~' -> '_' | c -> c);;
 
@@ -202,7 +179,8 @@ let _ = strip_nonalpha "Poincar\\\'e";;
 let strip_to_brace s = 
   let n1 = String.index s '{' in
   let n2 = String.index s '}' in
-  String.trim (String.sub s (n1+1) (n2-n1-1));;
+  let _ = ((n1 < n2) || raise Not_found) in
+  String.trim (String.sub s (n1+1) (n2-(n1+1)));;
 
 let test() = strip_to_brace "begin { hello } ";;
 
@@ -220,6 +198,7 @@ let rec lex_token buf =
     | dollar -> Dollar
     | beginseq -> BeginSeq(strip_to_brace(string_lexeme buf))
     | endseq -> EndSeq(strip_to_brace(string_lexeme buf))
+    | cnlenvdel -> Cnlenvdel(strip_to_brace(string_lexeme buf))
     | inputseq -> Input(strip_to_brace(string_lexeme buf))
     | controlseq -> ControlSeq(drop (string_lexeme buf) 2)
     | controlchar -> ControlSeq(drop (string_lexeme buf) 2)
@@ -232,9 +211,9 @@ let rec lex_token buf =
     | rbrace -> RBrace
     | format_eol -> FormatEol
     | format_col -> FormatCol
-    | id -> Tok(trim_bang(convert_hyphen(string_lexeme buf)))
+    | id -> Tok(trim_ends(convert_hyphen(string_lexeme buf)))
     | word -> Tok(strip_nonalpha(string_lexeme buf))
-    | tok -> Tok(convert_hyphen(string_lexeme buf))
+    | unmarked_id -> Tok(convert_hyphen(string_lexeme buf))
     | symbol -> Tok(string_lexeme buf)
     | comma -> Comma 
     | semi -> Semi

@@ -170,7 +170,7 @@ urlcolor=blue]{hyperref}
 \renewcommand{\iff}{\leftrightarrow}
 \newcommand{\Prop}{\text{\tt Prop}}
 \newcommand{\Type}{\text{\tt Type}}
-\newcommand{\fld}{.}
+%\newcommand{\fld}{.} %use \h{. }
 \newcommand{\dequiv}{\mathrel{:=}} %{\mathrel{:\equiv}}
 \newcommand{\assign}{\mathrel{:=}} %{\mathrel{:\equiv}}
 %\def\assign{\mathrel{:=}}
@@ -232,12 +232,14 @@ urlcolor=blue]{hyperref}
 
 \CnlCustom[1]\parenI{ (#1) }
 \CnlCustom\*{*}
-\CnlCustom[1]\deflabel{\begin{definition}[#1]\label{#1}}
-\CnlCustom[1]\df{#1}
+\CnlCustom[1]\deflabel{\begin{definition}\label{#1}}
+\CnlCustom[1]\df{ #1 }
+\CnlCustom[1]\h{ #1 }
 \CnlCustom\where{where}
 \CnlCustom\ifcond{if}
 \CnlCustom\elsecond{else}
 \CnlCustom\where{where}
+%\CnlCustom\assign{ := }
 
 
 % Prohibited control sequences. 
@@ -256,7 +258,7 @@ urlcolor=blue]{hyperref}
 
 %
 \CnlDelete[1]\phantom
-\CnlNoExpand[1]\section
+%\CnlNoExpand[1]\section
 
 % math modes and space
 \CnlDelete\ensuremath
@@ -283,7 +285,7 @@ urlcolor=blue]{hyperref}
 \CnlDelete\bigg
 \CnlDelete\Bigg
 \CnlDelete\allowdisplaybreaks
-\CnlDelete\h
+
 
 
 %other  spacing
@@ -300,6 +302,7 @@ urlcolor=blue]{hyperref}
 \CnlDelete\medskip
 \CnlDelete\bigskip
 \CnlDelete[2]\rule
+\CnlDelete[1]\parenthetical
 
 \CnlEnvirDelete{remark}
 \CnlEnvirDelete{summary}
@@ -439,7 +442,7 @@ A \h{notation-in} is a notational structure with
 \end{definition}
 
 \deflabel{in}
-Let $x \in X$ denote $C.\h{notation-in}\ x\ X$, inferring (C :
+Let $x \in X$ denote $C\h{.notation-in}\ x\ X$, inferring (C :
 \h{notation-in}).
 \end{definition}
 
@@ -458,7 +461,7 @@ A \h{notation-subset} is a notational structure with
 
 \deflabel{subset notation}
 Let $X\subset Y$ denote
-$C\fld\h{notation-subset}\ X\ Y$,
+$C\h{.notation-subset}\ X\ Y$,
 inferring $(C : \h{notation-subset})$.
 \end{definition}
 
@@ -532,7 +535,7 @@ A \h{notation-zero} is a notational structure with
 \end{itemize}
 \end{definition}
 
-Let $0$ stand for $C\fld\h{notation-zero}$, inferring
+Let $0$ stand for $C\h{.notation-zero}$, inferring
 $(C:\h{notation-zero})$.
 
 \deflabel{notation one}
@@ -543,7 +546,7 @@ A \h{notation-one} is a notational structure with
 \end{itemize}
 \end{definition}
 
-Let $1$ stand for $C\fld\h{notation-one}$, inferring
+Let $1$ stand for $C\h{.notation-one}$, inferring
 $(C:\h{notation-one})$.
 
 \deflabel{notation add}
@@ -555,7 +558,7 @@ A \h{notation-add} is a notational structure with
 \end{definition}
 
 \deflabel{notation add}
-let $x + y$ stand for $C\fld\h{notation-add}\ x\ y$ with precedence
+let $x + y$ stand for $C\h{.notation-add}\ x\ y$ with precedence
 $30$ and left associativity, inferring $(C:\h{notation-add})$.
 \end{definition}
 
@@ -584,7 +587,7 @@ A \h{notation-mul} is a notational structure with
 
 
 \deflabel{notation mul}
-Let $x \* y$ stand for $C\fld\h{notation-mul}\ x\ y$ with precedence
+Let $x \* y$ stand for $C\h{.notation-mul}\ x\ y$ with precedence
 $40$ and left associativity, inferring $(C:\h{notation-mul})$.
 \end{definition}
 
@@ -859,9 +862,9 @@ A \df{binary~relation} is a structure with
 
 In this section, fix a binary relation $R$.
 
-In this section, let $(s\ x\ y\ z : R\fld{element})$.
+In this section, let $(s\ x\ y\ z : R\h{.element})$.
 
-In this section, let $x \le y$ stand for $R\fld{relation}\ x\ y$.
+In this section, let $x \le y$ stand for $R\h{.relation}\ x\ y$.
 
 \deflabel{reflexive} We say $R$ is \df{reflexive} iff for all\ $x,\ x
 \le x$.
@@ -1006,7 +1009,7 @@ A \h{notation-le} is a notational structure with
 \end{itemize}
 \end{definition}
 
-Let $x \le y$ denote $C\fld\h{notation-le}\ x\ y$, inferring
+Let $x \le y$ denote $C\h{.notation-le}\ x\ y$, inferring
 $(C:\h{notation-le})$.
 
 Let $x < y$ stand for $x \le y$ and $x\ne y$.
@@ -1115,7 +1118,7 @@ dependent type, where the order of the arguments is switched.
 We record a coercion $(G : group) : \h{notation-in}\assign$
 \begin{itemize}
 \item $\beta\assign \h{group}$
-\item $\alpha\assign G.\h{element}$
+\item $\alpha\assign G\h{.element}$
 \item 
 \end{itemize}
 \end{remark}
@@ -1163,7 +1166,7 @@ A \h{notation-inverse} is a notational structure with
 \def\inv#1{{#1}^{-1}}
 \begin{cnl}
 
-Let $\inv{x}$ stand for $C\fld{\h{notation-inverse}}\ x$, inferring
+Let $\inv{x}$ stand for $C\h{.notation-inverse}\ x$, inferring
 $(C:\h{notation-inverse})$,
 
 \deflabel{group}
@@ -1197,7 +1200,7 @@ A \h{notation-neg} is a notational structure with
 \end{itemize}
 \end{definition}
 
-Let $-x$ stand for $C\fld\h{notation-neg}\ x$, inferring
+Let $-x$ stand for $C\h{.notation-neg}\ x$, inferring
 $(C:\h{notation-neg})$.
 
 
@@ -1241,9 +1244,9 @@ structure), which is achieved with an explicit function call.
 \deflabel{monoid of ring}
 We make $\h{monoid-of-ring}\ ($R$ : \h{ring}) : \h{monoid} \assign$
 \begin{itemize}
-%\item element \assign R\fld{element}
-\item unit $\assign R\fld\h{unit'}$
-\item op $\assign R\fld\h{op'}$
+%\item element \assign R\h{.element}
+\item unit $\assign R\h{.unit'}$
+\item op $\assign R\h{.op'}$
 \item \blank
 \end{itemize}
 \end{definition}
@@ -1276,7 +1279,7 @@ A \h{notation-dot} is a notational structure with
 \end{itemize}
 \end{definition}
 
-Let $r \cdot x$ stand for $C\fld\h{notation-dot}\ r\ x$ with precedence
+Let $r \cdot x$ stand for $C\h{.notation-dot}\ r\ x$ with precedence
 $50$ and left associativity, inferring $(C:\h{notation-dot})$.
 
 
@@ -1286,7 +1289,7 @@ A \df{left module} is a structure with
 \item (parameter) $R$ : ring
 \item an  additive group
 \item a \h{scalar-multiplication} : 
-$R$\fld {element} $\to$ element $\to$ element
+$R\h{.element} $\to$ element $\to$ element
 \item (notation) $\h{notation-dot} \assign \h{scalar-multiplication}$
 with properties
 \item \h{left-linear} : 
