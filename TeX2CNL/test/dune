@@ -1,0 +1,6 @@
+(test
+(name test1)
+(deps (glob_files ../tex/*.tex))
+(libraries sedlex batteries tex2cnl)
+(preprocess (pps sedlex.ppx))
+)

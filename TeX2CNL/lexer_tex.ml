@@ -52,7 +52,7 @@ type token =
    | NotImplemented;;
  *)
 
-let token_to_string = function
+let lex_token_to_string = function
   | Natural i -> (string_of_int i)
   | Numeric s -> s
   | Input s -> "\\input{"^s^"}"
@@ -79,7 +79,7 @@ let token_to_string = function
   | Symbol s -> s
   | Eof -> "EOF"
   | Eol -> "EOL"
-  | NotImplemented -> "NotImplemented"
+  | NotImplemented _ -> "NotImplemented"
   | _ -> "";;
 
 
@@ -105,7 +105,7 @@ let alphanum = [%sedlex.regexp? alphabet | numeral10 | '_' | "'" | "-" | "~" ] (
              
 let controlseq = [%sedlex.regexp? '\\', Plus(alphabet)]
 
-let controlchar = [%sedlex.regexp? '\\', Compl(alphabet)]
+let controlchar = [%sedlex.regexp? '\\', Compl(alphabet | eol)]
 
 let comment = [%sedlex.regexp? '%', Star(Compl(eol))]
 
@@ -135,7 +135,7 @@ let endcnl = [%sedlex.regexp? "\\end", Star(white), "{", Star(white),
                 "cnl" ,  Star(white), "}"] 
 
 let inputseq = [%sedlex.regexp? "\\input", Star(white), "{", Star(white), 
-                Plus(alphabet), Star(white), "}"] 
+                Plus(alphanum), Star(white), "}"] 
 
 
 let period = [%sedlex.regexp? '.']           
@@ -204,7 +204,7 @@ let strip_to_brace s =
   let n2 = String.index s '}' in
   String.trim (String.sub s (n1+1) (n2-n1-1));;
 
-let test = strip_to_brace "begin { hello } ";;
+let test() = strip_to_brace "begin { hello } ";;
 
 let rec lex_token buf = 
  match%sedlex buf with 
@@ -215,11 +215,14 @@ let rec lex_token buf =
     | eol -> Eol
     | begincnl -> BeginCnl
     | endcnl -> EndCnl
+    | ldisplay -> LDisplay
+    | rdisplay -> RDisplay
+    | dollar -> Dollar
     | beginseq -> BeginSeq(strip_to_brace(string_lexeme buf))
     | endseq -> EndSeq(strip_to_brace(string_lexeme buf))
     | inputseq -> Input(strip_to_brace(string_lexeme buf))
-    | controlseq -> ControlSeq(drop (string_lexeme buf) 1)
-    | controlchar -> ControlSeq(string_lexeme buf)
+    | controlseq -> ControlSeq(drop (string_lexeme buf) 2)
+    | controlchar -> ControlSeq(drop (string_lexeme buf) 2)
     | arg -> Arg(int_of_string(drop (string_lexeme buf) 1))
     | rparen -> RParen
     | lparen -> LParen
@@ -227,9 +230,6 @@ let rec lex_token buf =
     | rbrack -> RBrack
     | lbrace -> LBrace
     | rbrace -> RBrace
-    | ldisplay -> LDisplay
-    | rdisplay -> RDisplay
-    | dollar -> Dollar
     | format_eol -> FormatEol
     | format_col -> FormatCol
     | id -> Tok(trim_bang(convert_hyphen(string_lexeme buf)))
@@ -239,7 +239,7 @@ let rec lex_token buf =
     | comma -> Comma 
     | semi -> Semi
     | eof -> Eof
-    | any -> NotImplemented
+    | any -> NotImplemented (string_lexeme buf)
     | _ -> failwith (string_lexeme buf)
 
 let rec lex_tokens acc buf = 
@@ -251,17 +251,7 @@ let lex_string s : token list =
   let buf = Sedlexing.Latin1.from_string s in 
   lex_tokens [] buf;;
 
-List.map print_endline (List.map token_to_string (lex_string "A B C hello\\alpha33[1]there !ready! \\begin{ cnl } Riemann-Hilbert Poincar\\\'e {\\ae} { \\ae} (xx) \\input{file} \\mathfrak{C}33 [$] {yy} %comment \n more #4 # 5  $ ))))))))"));;
+let test_lex_string() = List.map print_endline (List.map lex_token_to_string (lex_string "A B C hello\\alpha33[1]there !ready! \\begin{ cnl } Riemann-Hilbert Poincar\\\'e {\\ae} { \\ae} (xx) \\input{file} \\mathfrak{C}33 [$] {yy} %comment \n more #4 # 5  $ ))))))))"));;
               
-(* testing stuff *)
-
-(*
-let buf_example1 = Sedlexing.Latin1.from_string
-               "hello\\alpha33[1]there !ready! \\begin{ cnl } Riemann-Hilbert Poincar\\\'e {\\ae} { \\ae} (xx) \\input{file} \\mathfrak{C}33 [$] {yy} %comment \n more #4 # 5  $ ))))))))"
-
-let ff = fun () -> print_endline(token_to_string(lex_token buf_example1));;
-
-BatList.map ff (BatList.init 30 (fun _ -> ()));;
-*)
 
 

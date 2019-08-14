@@ -10,6 +10,7 @@
 \usepackage{xcolor}
 \usepackage{currfile}
 \usepackage{fancyvrb}
+\usepackage{xparse} % needed for \ellipsis control sequence in cnl-style
 
 % for underscores https://texfaq.org/FAQ-underscore
 \usepackage{lmodern}
@@ -33,7 +34,7 @@ urlcolor=blue]{hyperref}
 % TITLE AUTHOR DATE
 \title{Sample Controlled Natural Language text,\\ including real numbers and Sylows theorems}
 
-\date{August 11, 2019}
+\date{August 14, 2019}
 \author{Thomas Hales}
 
 % THEOREMS
@@ -48,8 +49,264 @@ urlcolor=blue]{hyperref}
 \begin{document}
 \maketitle
 
-\input{cnl-style}
+\newenvironment{envMatch}%
+               {\par\begin{tabular}{@{\quad\normalfont| }lll}}%
+               {\end{tabular}\par}
+
+
+
+%\renewcommand\labelitemi{\normalfont|}}
+
+
+%% ELLIPSIS, 
+% based on Luis Berlioz's query
+% https://tex.stackexchange.com/questions/503731/how-to-define-a-macro-that-takes-the-definition-of-a-macro-as-an-argument
+% \usepackage{amsmath}
+% \usepackage{xparse}
+
+\ExplSyntaxOn
+\NewDocumentCommand{\ellipsis}{mmmm}
+ {% #1 = main term
+  % #2 = first index
+  % #3 = last index
+  % #4 = operation
+  \group_begin:
+  \lucas_ellipsis:nnnn { #1 } { #2 } { #3 } { #4 }
+  \group_end:
+ }
+\cs_new:Nn \lucas_ellipsis:nnnn
+ {
+  \cs_set:Nn \__lucas_ellipsis_term:n { #1 }
+  \__lucas_ellipsis_term:n { #2 }
+  #4 \dots #4
+  \__lucas_ellipsis_term:n { #3 }
+ }
+\ExplSyntaxOff
+
+%\begin{document}
+
+%$\ellipsis{x^{#1}}{0}{5}{+}$
+
+%$\ellipsis{x_{#1}}{0}{5}{+}$
+
+%$\ellipsis{(x_{#1}+y_{#1}i)}{1}{n}{}$
+
+%\end{document}
+%
+
+
+
+%% CNL CONTROL SEQUENCES
+
+\def\ignoreOptionAndCS[#1]#2{}
+
+\def\onearg#1{(onearg:#1)} % for debugging.
+
+\ignoreOptionAndCS[3]\onearg
+
+
+\def\ignoreOne#1{}
+
+%\ignoreOne\onearg C
+
+\def\ignoreOptionOrCS{%
+\futurelet\nextToken\chooseBranch}
+
+
+\def\chooseBranch{%
+\let\next=\relax
+\ifx\nextToken [%
+ \let\next=\ignoreOptionAndCS%
+\else%
+ \let\next=\ignoreOne%
+\fi%
+\next%
+}
+
+\def\ignoreOptionAndCSS[#1]#2#3{}
+\def\ignoreTwo#1#2{}
+\def\ignoreOptionOrCSS{%
+\futurelet\nextToken\chooseBranchTwo%
+}
+\def\chooseBranchTwo{%
+\let\next=\relax
+\ifx\nextToken [%
+ \let\next=\ignoreOptionAndCSS%
+\else%
+ \let\next=\ignoreTwo%
+\fi%
+\next%
+}
+
+\let\CnlExpand=\ignoreOptionOrCS
+\let\CnlNoExpand=\ignoreOptionOrCS
+\let\CnlDelete=\ignoreOptionOrCS
+\let\CnlCustom=\ignoreOptionOrCSS
+\let\CnlDef=\ignoreOptionOrCSS
+\let\CnlError=\ignoreOptionOrCS
+\def\CnlEnvirDelete#1{}
+
+
+%% ENVIRONMENTS
+
+\newenvironment{cnl}{}{}
+% \leavevmode\par is to make remark work 
+% when it is the first item in a subsection.
+
+\newenvironment{remark}%{}{} %temp debug
+{\leavevmode\par\begin{tabular}{|p{13cm}}\parskip=\baselineskip{\bf Remark.}}
+{\end{tabular}}
+
+
+
+\newcommand{\var}[1]{#1}
+\newcommand{\id}[1]{#1}
+\newcommand{\prefix}[1]{}
+\newcommand{\app}[1]{#1}
+\newcommand{\CnlList}[1]{#1} % was list
+\newcommand{\parenI}[1]{#1}
+\renewcommand{\*}{\,}
+
+\renewcommand{\iff}{\leftrightarrow}
+\newcommand{\Prop}{\text{\tt Prop}}
+\newcommand{\Type}{\text{\tt Type}}
+\newcommand{\fld}{.}
+\newcommand{\dequiv}{\mathrel{:=}} %{\mathrel{:\equiv}}
+\newcommand{\assign}{\mathrel{:=}} %{\mathrel{:\equiv}}
+%\def\assign{\mathrel{:=}}
+\newcommand{\Nat}{\ensuremath{{\mathbb N}}}
+\newcommand{\Real}{\ensuremath{{\mathbb R}}}
+\newcommand{\Bool}{\ensuremath{{\mathbb {B}}}}
+\newcommand{\df}[1]{\text{\bf #1}}
+\newcommand{\h}[1]{\text{\color{red} #1}}
+\newcommand{\join}{\lor}
+\newcommand{\Mid}{\mathrel{\|}}
+\newcommand{\comment}[1]{\%- \nobreak{#1}}
+%\renewcommand{\~}{\ }
+\newcommand{\ignore}[1]{}
+\newcommand{\parenthetical}[1]{(#1)}
+%\renewcommand{\_}{\textunderscore}
+\renewcommand\labelitemi{--}
+\renewcommand{\qed}{\ensuremath{\square}}
+
+\def\deflabel#1{\begin{definition}[#1]\label{#1}}
+\def\thmlabel#1{\begin{theorem}[#1]\label{#1}}
+\def\namelabel#1{[#1]\label{#1}}
+\newcommand{\keyword}[1]{{\text{\bf{#1}}}}
+\newcommand{\fun}{\keyword{fun}}
+\newcommand{\match}{\keyword{match}}
+\newcommand{\ifcond}{\keyword{if}}
+\newcommand{\thencond}{\keyword{then}}
+\newcommand{\elsecond}{\keyword{else}}
+\newcommand{\otherwise}{\keyword{otherwise}}
+\newcommand{\function}{\keyword{function}}
+\newcommand{\quot}{\keyword{quot}}
+\newcommand{\where}{\keyword{where}}
+\newcommand{\blank}{\h{\_}}
+
+% Accents- Use these versions to fuse with variable name in CNL image.
+% \mathcheck{c} --> V__c_mathcheck
+% \check{c} --> \check{c} (function application)
+\newcommand{\mathhat}{\hat}
+\newcommand{\mathwidehat}{\widehat}
+\newcommand{\mathcheck}{\check}
+\newcommand{\mathtilde}{\tilde}
+\newcommand{\mathwidetilde}{\widetilde}
+\newcommand{\mathacute}{\acute}
+\newcommand{\mathgrave}{\grave}
+\newcommand{\mathdot}{\dot}
+\newcommand{\mathddot}{\ddot}
+\newcommand{\mathbreve}{\breve}
+\newcommand{\mathbar}{\bar}
+\newcommand{\mathvec}{\vec}
+
+\newcommand{\setcomp}[2]{\{#1 \mid #2\}}
+\newcommand{\setenum}[1]{\{#1\}}
+\newcommand{\wherearg}[1]{\where\ $\{#1\}$}
+\newcommand{\optarg}[1]{\{#1\}}
+
 \begin{cnl}
+
+
+%% We start with some that will eventually be moved to a standard library.
+
+\CnlCustom[1]\parenI{ (#1) }
+\CnlCustom\*{*}
+\CnlCustom[1]\deflabel{\begin{definition}[#1]\label{#1}}
+\CnlCustom[1]\df{#1}
+\CnlCustom\where{where}
+\CnlCustom\ifcond{if}
+\CnlCustom\elsecond{else}
+\CnlCustom\where{where}
+
+
+% Prohibited control sequences. 
+% That is, they should remain outside the cnl environment.
+% We should list many TeX primitive control sequences here.
+
+\CnlError\if
+\CnlError\else
+\CnlError\fi
+\CnlError\let
+\CnlError\futurelet
+\CnlError\expandafter
+\CnlError\afterassignment
+\CnlError\usepackage
+% etc. 
+
+%
+\CnlDelete[1]\phantom
+\CnlNoExpand[1]\section
+
+% math modes and space
+\CnlDelete\ensuremath
+\CnlDelete\text
+\CnlDelete\thinmuskip
+\CnlDelete\medmuskip
+\CnlDelete\thickmuskip
+\CnlDelete\quad
+\CnlDelete\qquad
+\CnlDelete\,
+\CnlDelete\:
+\CnlDelete\;
+\CnlDelete\!
+\CnlDelete\ %space
+\CnlDelete\enspace
+\CnlDelete[1]\hspace
+\CnlDelete\hfil
+\CnlDelete\hfill
+\CnlDelete\thinspace
+\CnlDelete\left
+\CnlDelete\right
+\CnlDelete\big
+\CnlDelete\Big
+\CnlDelete\bigg
+\CnlDelete\Bigg
+\CnlDelete\allowdisplaybreaks
+\CnlDelete\h
+
+
+%other  spacing
+\CnlDelete\noindent
+\CnlDelete\indent
+\CnlDelete[1]\vspace
+\CnlDelete\null
+\CnlDelete\break
+\CnlDelete\newline
+\CnlDelete\newpage
+\CnlDelete\vfil
+\CnlDelete\vfill
+\CnlDelete\smallskip
+\CnlDelete\medskip
+\CnlDelete\bigskip
+\CnlDelete[2]\rule
+
+\CnlEnvirDelete{remark}
+\CnlEnvirDelete{summary}
+\CnlEnvirDelete{tikzpicture}
+\CnlEnvirDelete{fancyvrb}
+
+
 
 \begin{remark}
 This is a preliminary text.  It
@@ -117,7 +374,7 @@ In this section, let $\alpha,\beta$ denote types.
 Let \df{set over}\ $\alpha$ be the type $\alpha \to\Prop$.
 \end{definition}
 
-\def\assign{\mathrel{:=}}
+
 
 \deflabel{universe over}
 Let \df{universe over} $\alpha$ equal the function
@@ -236,7 +493,7 @@ level (rather than nested) in the structure being declared.
 
 We record a coercion 
 \[
-\{\alpha; \beta\}\ (\h{notation-in}\ \h{over}\ \beta,\alpha) : 
+\optarg{\alpha; \beta}\ (\h{notation-in}\ \h{over}\ \beta,\alpha) : 
 (\h{notation-subset}\ \h{over}\ \beta) \assign
 \]
 a structure with
@@ -386,7 +643,7 @@ introduces lists, basic operations on lists, and notation.
 In this section, let $\alpha$ denote a type.
 
 \deflabel{list}
-Let $\h{list}\ \{\alpha\}$ be the inductive type
+Let $\h{list}\ \optarg{\alpha}$ be the inductive type
 \begin{envMatch}
 $\h{null}$ &$:$& $\h{list}$\\
 $\h{cons}$ &$:$& $\alpha\to\h{list}\to\h{list}$
@@ -403,12 +660,12 @@ Let $[]$ equal
 \deflabel{cons}
 Let $(x : \alpha) :: (X : \h{list}\ \alpha)$ stand for
 \[
-\h{list.cons}\ \{\alpha\}\ x\ X.
+\h{list.cons}\ \optarg{\alpha}\ x\ X.
 \]
 \end{definition}
 
 \deflabel{length}
-Let $\h{list.length}\ \{\alpha\}\ : \h{list}\to \Nat$ = \par\function
+Let $\h{list.length}\ \optarg{\alpha}\ : \h{list}\to \Nat$ = \par\function
 \begin{envMatch}
 $[]$ &$\assign$& $0$\\
 $a :: A$ &$\assign$& 1 + \h{length}\ A.
@@ -472,8 +729,8 @@ $
 This exists by recursion.
 \end{definition}
 
-\deflabel{multiset} Let \h{multiset}\ $\{\alpha\}$ denote the quotient
-of \h{list}\ $\{\alpha\}$ by the equivalence relation
+\deflabel{multiset} Let \h{multiset}\ $\optarg{\alpha}$ denote the quotient
+of \h{list}\ $\optarg{\alpha}$ by the equivalence relation
 \h{is-permutation}.  This exists.
 \end{definition}
 
@@ -507,7 +764,7 @@ enumerated finite set.
 A \h{duplicate~free~multiset} is a structure with
 \begin{itemize}
 \item (parameter) element : \Type
-\item support : multiset $\{element\}$
+\item support : multiset $\optarg{element}$
 \item length\ $\dequiv$ the length of the support,
   with property
 \item noduplicate : nodup support %- a proof that the support set is
@@ -530,10 +787,10 @@ Once we have a bijection, there are two ways to interpret $\in$ for
 We record a coercion
 \begin{align*}
 \h{set-of-duplicate~free~multiset}
-\ \{\alpha\}\ &(X :
-\h{duplicate~free~multiset}\
-\h{over}\ \alpha) : \h{set over}\ \alpha \\ \assign \{ x \mid
-x \in \h{support of}\ X \}.
+\ \optarg{\alpha}\ &(X :
+\h{duplicate~free~multiset}\ %
+\h{over}\ \alpha) : \h{set over}\ \alpha \\ \assign 
+\setcomp{x}{x \in \h{support of}\ X}.
 \end{align*}
 \end{definition}
 
@@ -548,7 +805,7 @@ Let an \df{equivalence} $f:\alpha\to\beta$ stand for a bijection $f$.
 
 We record an equivalence\hfil\break
 \h{set-of-duplicate~free~multiset}
-$\ \{\alpha\}\ (X :
+$\ \optarg{\alpha}\ (X :
 \h{duplicate~free~multiset}\
 \h{over}\ \alpha) : \h{finite set over}\ \alpha $
 
@@ -711,22 +968,22 @@ every lower bound $y$ of $S$ we have $y \le x$.
 \end{definition}
 
 \deflabel{join semilattice} We say $R$ is a \df{join semilattice} iff
-for every $(x\ y),$ there exists a least upper bound of $\{x,y\}$ in
+for every $(x\ y),$ there exists a least upper bound of $\setenum{x,y}$ in
 $R$.
 \end{definition}
 
 \deflabel{meet semilattice} We say $R$ is a \df{meet semilattice} iff
-for every $x, y$ there exists a greatest lower bound of $\{x,y\}$ in
+for every $x, y$ there exists a greatest lower bound of $\setenum{x,y}$ in
 $R$.
 \end{definition}
 
 \deflabel{join} Assume $R$ is a join semilattice.  Let
-$\h{\df{join}}\ x\ y$ be the least upper bound of $\{x,y\}$ in $R$.
+$\h{\df{join}}\ x\ y$ be the least upper bound of $\setenum{x,y}$ in $R$.
 This exists and is unique.
 \end{definition}
 
 \deflabel{meet} Assume $R$ is a meet semilattice.  Let
-$\h{\df{meet}}\ x\ y$ be the greatest lower bound of $\{x,y\}$ in $R$.
+$\h{\df{meet}}\ x\ y$ be the greatest lower bound of $\setenum{x,y}$ in $R$.
 This exists and is unique.
 \end{definition}
 
@@ -798,12 +1055,17 @@ We say that $d$ \df{divides} $m$ iff $d\ne 0$ and there exists $r$
 such that $m= d\*r$.
 \end{definition}
 
+\end{cnl}
 \def\natdiv#1#2{{#1}\mathrel{|}{#2}}
+\begin{cnl}
+
 Let $\natdiv{d}{m}$ stand for $d$ divides $m$.
 
 Let $d$ is a \df{divisor of} $m$ stand for $d$ divides $m$.
 
+\end{cnl}
 \def\natpow#1#2{{#1}^{#2}}
+\begin{cnl}
 
 \deflabel{natpow}
 Assume that $b,n$ are natural numbers.  We define
@@ -825,7 +1087,7 @@ $p$.
 \deflabel{multiplicity}
 The \df{multiplicity} of $p$ in $n$ is the natural number $m$ such that
 \[
-\natpow{p}{m}\ \h{divides}\ n\quad \h{and}\ \natpow{p}{m+1}\
+\natpow{p}{m}\ \h{divides}\ n\quad \h{and}\ \natpow{p}{m+1}\ %
 \h{does not divide}\ n.
 \]
 This exists and is unique.
@@ -897,7 +1159,10 @@ A \h{notation-inverse} is a notational structure with
 \end{itemize}
 \end{definition}
 
+\end{cnl}
 \def\inv#1{{#1}^{-1}}
+\begin{cnl}
+
 Let $\inv{x}$ stand for $C\fld{\h{notation-inverse}}\ x$, inferring
 $(C:\h{notation-inverse})$,
 
@@ -909,7 +1174,7 @@ A \df{group} is a structure with
 \item (notation) $\h{notation-inverse} \assign \h{inv}$
 \item $\forall (x : C),\  x \* \inv{x} = \inv{x} \* x = 1$
 \end{itemize}
-\where\ $\{C \assign\h{element}\}$.
+\wherearg{C \assign\h{element}}.
 \end{definition}
 
 \newpage
@@ -962,7 +1227,7 @@ with properties
 \item \h{left-distributivity}: 
 $\forall\ x\ y\ z : C$, $z\*(x+y) = z\*x + z\*y$
 \end{itemize}
-\where\ $\{C \assign \h{element}\}$.
+\wherearag{C \assign \h{element}}.
 \end{definition}
 
 
@@ -977,8 +1242,8 @@ structure), which is achieved with an explicit function call.
 We make $\h{monoid-of-ring}\ ($R$ : \h{ring}) : \h{monoid} \assign$
 \begin{itemize}
 %\item element \assign R\fld{element}
-\item unit $\assign R\fld\h{unit}'$
-\item op $\assign R\fld\h{op}'$
+\item unit $\assign R\fld\h{unit'}$
+\item op $\assign R\fld\h{op'}$
 \item \blank
 \end{itemize}
 \end{definition}
@@ -1144,7 +1409,7 @@ with properties
 \item submultiplicative : for all $x\ y, A(x \* y) \le (A\ x) \* (A\ y)$\\
   % See https://ncatlab.org/nlab/show/normed+ring
 \end{itemize}
-\where\ $\{A \assign \h{absolute-value}\}$.
+\wherearg{A \assign \h{absolute-value}}.
 \end{definition}
 
 \deflabel{normed field}
@@ -1213,10 +1478,13 @@ This exists and is well subtyped \parenthetical{that is, $H$ is finite}.
 
 In this section, let $G$ denote a fixed finite group.
 
+\end{cnl}
 \def\conj#1#2{{#1}{#2}{#1}^{-1}}
+\begin{cnl}
+
 In this section, let $\conj{g}{X}$ stand for
 \[
-\{g\*x\*\inv{g}\mid x\in X\},
+\setcomp{g\*x\*\inv{g}}{x\in X},
 \]
 \where\ $(g : G)$ $(X : \h{set}\ G)$.
 
@@ -1237,7 +1505,12 @@ Let $|G|$ denote the order of $G$.
 
 In this section, let $p$ denote a fixed prime number.
 
+\end{cnl}
 \def\mult#1#2{m}
+\def\Syl#1#2{\operatorname{Syl}_{#1}(#2)}
+\def\SylN#1#2{n_{#1}(#2)}
+\def\Nz#1#2{|N(#1,#2)|}
+\begin{cnl}
 
 In this section, let $\mult{p}{G}$ denote the multiplicity of $p$ in
 $|G|$.
@@ -1249,20 +1522,18 @@ the \prefix{subgroup~}order of $P$ is $\natpow{p}{\mult{p}{G}}$.
 \end{definition}
 
 
-\def\Syl#1#2{\operatorname{Syl}_{#1}(#2)}
-
 \begin{definition}
-Let $\Syl{p}{G} = \{ P \mid (P\ \h{is a Sylow}\ p\ \h{subgroup
-  of}\ G) \}$.
+Let $\Syl{p}{G} = 
+\setcomp{P}{(P\ \h{is a Sylow}\ p\ \h{subgroup of}\ G)}$.
 \end{definition}
 
-\def\SylN#1#2{n_{#1}(#2)}
+
 
 Let $\SylN{p}{G}$ denote the size of $\Syl{p}{G}$.  This is well
 subtyped \parenthetical{that is, there are finitely many Sylow $p$
   subgroups}.
 
-\def\Nz#1#2{|N(#1,#2)|}
+
 
 \begin{definition}
 Let $\Nz{p}{G}$ be equal to

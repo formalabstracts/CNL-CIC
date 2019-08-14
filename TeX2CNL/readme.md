@@ -7,13 +7,17 @@ Lexer
    The file can be run interactively in a top loop.
 
 
-Using  sedlex, menhir,
+Using  sedlex,
 
 
-Build
+Old Build
  * 	ocamlfind ocamlc -c -package sedlex -package batteries lexer_tex.ml 
  * ocamlfind ocamlc -o lexer_tex.byte -linkpkg -thread -package sedlex -package batteries lexer_tex.cmo
  * ocamlrun lexer_tex.byte
 
  
 
+Build
+ * dune clean
+ * dune build
+ * dune runtest

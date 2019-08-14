@@ -35,7 +35,7 @@ type token =
    | Warn of string 
    | Eof
    | Ignore
-   | NotImplemented;;
+   | NotImplemented of string;;
 
 
 type io_channels = 

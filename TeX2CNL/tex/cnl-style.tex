@@ -25,6 +25,44 @@
 %\renewcommand\labelitemi{\normalfont|}}
 
 
+%% ELLIPSIS, 
+% based on Luis Berlioz's query
+% https://tex.stackexchange.com/questions/503731/how-to-define-a-macro-that-takes-the-definition-of-a-macro-as-an-argument
+% \usepackage{amsmath}
+% \usepackage{xparse}
+
+\ExplSyntaxOn
+\NewDocumentCommand{\ellipsis}{mmmm}
+ {% #1 = main term
+  % #2 = first index
+  % #3 = last index
+  % #4 = operation
+  \group_begin:
+  \lucas_ellipsis:nnnn { #1 } { #2 } { #3 } { #4 }
+  \group_end:
+ }
+\cs_new:Nn \lucas_ellipsis:nnnn
+ {
+  \cs_set:Nn \__lucas_ellipsis_term:n { #1 }
+  \__lucas_ellipsis_term:n { #2 }
+  #4 \dots #4
+  \__lucas_ellipsis_term:n { #3 }
+ }
+\ExplSyntaxOff
+
+%\begin{document}
+
+%$\ellipsis{x^{#1}}{0}{5}{+}$
+
+%$\ellipsis{x_{#1}}{0}{5}{+}$
+
+%$\ellipsis{(x_{#1}+y_{#1}i)}{1}{n}{}$
+
+%\end{document}
+%
+
+
+
 %% CNL CONTROL SEQUENCES
 
 \def\ignoreOptionAndCS[#1]#2{}

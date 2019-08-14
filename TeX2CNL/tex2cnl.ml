@@ -2,6 +2,7 @@
 
 open Type;;
 
+
 (* string operations *)
 let token_to_string = function
   | Natural i -> (string_of_int i)
@@ -10,7 +11,7 @@ let token_to_string = function
   | Par -> ""
   | Comment -> ""
   | Input s -> "\\input{"^s ^"}"
-  | ControlSeq s -> "\\"^s
+  | ControlSeq s -> "[macro:"^s^"]"
   | BeginSeq s -> "\\begin{"^s^"}"
   | EndSeq s -> "\\end{"^s^"}"
   | BeginCnl -> "\\begin{cnl}"
@@ -36,8 +37,9 @@ let token_to_string = function
   | Warn s -> "[TeX2CnlWarning \"" ^s^ "\"]"
   | Eof -> "EOF"
   | Ignore -> ""
-  | NotImplemented -> "NotImplemented"
+  | NotImplemented _ -> "NotImplemented"
   | _ -> "";;
+
 
 let token_to_string_output = function
   | Dollar -> " "
@@ -48,8 +50,9 @@ let token_to_string_output = function
   | EndCnl -> " "
   | BeginSeq _ -> " "
   | EndSeq _ -> " "
+  | ControlSeq s -> "\\"^s
   | Input s -> "[read \"" ^(Filename.remove_extension s)^ ".cnl\"]"
-  | NotImplemented -> " "
+  | NotImplemented _ -> "[TeX2CnlError \"not implemented\"]"
   | _ as t -> (token_to_string t)^" ";;
 
 let _ = token_to_string_output (Input "file");;
@@ -78,6 +81,18 @@ let token_to_clean_string default = function
 let tokens_to_clean_string toks = 
   let cs = List.map (token_to_clean_string "_") toks in 
   String.concat "'" cs;;
+
+let tokens_to_string sep toks = 
+  let cs = List.map token_to_string toks in
+  String.concat sep cs;;
+
+let debug = true;;
+
+let print_debug_endline s = if debug then print_endline s else ();;
+let print_debug s = if debug then print_string s else ();;
+
+let print_debug_token tok = 
+  if debug then print_string ((token_to_string_output tok)^" ") else ();;
 
 let mk_label toks = 
   let t = "L'"^(tokens_to_clean_string toks) in (* force initial letter *)
@@ -134,6 +149,7 @@ let toks = List.map f rs in
   };;
 
 let output_token ios tok = 
+  let _ = print_debug_token tok in 
   output_string (ios.outc) (token_to_string_output tok);;
 
 let output_token_list ios toks = 
@@ -145,10 +161,10 @@ let (output_error,get_error_count) =
   let o_error ios s = output_token ios (Error s) in
   ((fun ios s ->
         let _ = o_error ios s in
+        let _ = print_debug ("[error: "^s^"]") in
         let _ = error_count := 1 + !error_count in
         if !error_count > error_limit then 
           let _ = o_error ios "error_limit exceeded" in
-          let _ = close_out (ios.outc) in
           failwith "error limit exceeded"  (* debug, close all files *)
         else ()),
   (fun () -> !error_count));;
@@ -206,9 +222,12 @@ let peek ios b =
   tok;;
   
 let input_brack_num ios b = 
-  let (x,y,z) = (input ios b,input ios b,input ios b) in
+  let x = input ios b in
+  let y = input ios b in 
+  let z = input ios b in
+  let f() = print_debug "[brack:"; print_debug_token x; print_debug_token y; print_debug_token z; print_debug "]" in
   match(x,y,z) with
-  | (LBrack,Arg i,RBrack) -> i
+  | (LBrack,Natural i,RBrack) -> (f(); i)
   | _ -> (return_input ios [x;y;z]; 0);;
 
 let is_controlseq t = 
@@ -216,8 +235,7 @@ let is_controlseq t =
   | ControlSeq _ -> true
   | _ -> false;;
 
-let get_csname t = 
-  match t with
+let get_csname = function
   | ControlSeq s -> s
   | _ -> "";; (* softfailure *)
 
@@ -248,7 +266,7 @@ let left_mate =
   | ControlSeq ")" -> ControlSeq "("
   | ControlSeq "]" -> ControlSeq "["
   | EndSeq s -> BeginSeq s
-  | _ -> NotImplemented;;
+  | _ -> NotImplemented "";;
 
 let check_mate (ldlims,tok) = 
   match ldlims with 
@@ -359,7 +377,19 @@ let rec macroexpand acc pattern args =
   | t :: rest -> macroexpand (t :: acc) rest args;;
 
 let macrotable = ref [];;
-let setmacro f = (macrotable := f :: !macrotable);;
+
+let debug_show_macro () = 
+  let f = List.map fst !macrotable in
+  "<"^(String.concat "+" f)^">";;
+
+let setmacro f = 
+  let _ = (macrotable := f :: !macrotable) in
+  let _ = debug_show_macro() in
+  ();;
+
+
+let envtable = ref []  (* XX not implemented *)
+let setenv f = (envtable := f :: !envtable);;
 
 let rec opt_assoc s ls = 
   match ls with
@@ -389,17 +419,29 @@ let nopar ios toks s =
   toks';;
 
 let process_controlseq ios cs_string =
+  let _ = print_debug ("[macro:"^cs_string^"]") in
   match cs_string with
+  | "CnlEnvirDelete" -> (* XX not implemented *)
+      let cs = input_cs ios true in 
+      setenv (get_csname cs); []
   | "CnlDelete" -> 
       let i = input_brack_num ios true in
-      let cs = input_cs ios true in setmacro (get_csname cs,(i,[])); []
+      let cs = input_cs ios true in 
+      setmacro (get_csname cs,(i,[])); []
   | "CnlNoExpand" -> 
       let i = input_brack_num ios true in
-      let cs = input_cs ios true in setmacro (get_csname cs,(i,[no_expand;cs])); []
+      let cs = input_cs ios true in 
+      setmacro (get_csname cs,(i,[no_expand;cs])); []
   | "CnlCustom" | "CnlDef"  ->
       let i = input_brack_num ios true in
       let cs = input_cs ios true in
-      let toks = input_to_right_wo_par ios RBrace in setmacro (get_csname cs,(i,toks)); []
+      let toks = input_to_right_wo_par ios RBrace in 
+      setmacro (get_csname cs,(i,toks)); []
+  | "CnlError" ->       
+      let i = input_brack_num ios true in
+      let cs = input_cs ios true in
+      let cname = get_csname cs in
+      setmacro (cname,(i,[Error cname])); []
   | "noexpand" -> 
       let cs = input_cs ios true in [cs]
   | "var" -> [mk_var (input_to_right_wo_par ios RBrace)]
@@ -423,10 +465,12 @@ let process_controlseq ios cs_string =
   | _ -> let otoks = opt_assoc cs_string !macrotable in
          (match otoks with
          | Some (k,pat) -> 
+             let _ = print_debug "+" in 
              let args = (input_matched_brace_list ios [] k) in 
              let repl_text = macroexpand [] pat args in 
              (return_input ios repl_text;[])
          | None ->
+             let _ = print_debug ("-"^debug_show_macro()) in
              if is_math_font(cs_string) then (* \mathfrak{C} -> C__mathfrak *)
                let toks = input_to_right_wo_par ios RBrace in 
                if (List.length toks != 1) then (return_input ios toks; [])
@@ -445,8 +489,10 @@ let transcribe_token ios ifexpand outputif tr tok =
   match tok with
   | ControlSeq s -> if ifexpand then ps(process_controlseq ios s) else p tok
   | Arg _ -> output_error ios "# parameters must appear in macro patterns"
+ (*  
   | FormatEol -> output_error ios "FormatEol must appear in environment"
   | FormatCol -> output_error ios "FormatCol must appear in environment"
+  *)
   | Eol -> output_error ios "unexpected EOL"
   | Eof -> raise End_of_file
   | _ -> p tok;;
@@ -611,6 +657,14 @@ let rec process_environ ios e_stack =
             process_environ ios e_stack)
 ;;
 
+let rec debug_process_environ ios e  = 
+  let tok = input ios false in 
+  match tok with
+  | EndCnl | Input _ | Eof -> (tok) 
+  | _ ->          (transcribe_token ios false (fun _ -> true) [] tok;
+            debug_process_environ ios e)
+;;
+
 let rec seek_cnl_block ios = 
   match (input ios false) with
   | BeginCnl -> BeginCnl 
@@ -629,14 +683,17 @@ let rec process_cnl_block ios =
 let rec process_ios convert_toks io_stack = 
   if io_stack = [] then true 
   else
-    let ios = List.hd io_stack in
-    match (process_cnl_block ios) with
-    | Eof -> let _ = close_out ios.outc in process_ios convert_toks (List.tl io_stack)
-    | Input filename -> (let ios = mk_iochannels convert_toks filename in
-                        process_ios convert_toks (ios :: io_stack))
-    | _ -> (output_error ios "fatal ending file";
-            process_ios convert_toks (List.tl io_stack))
-;;
+    try 
+      let ios = List.hd io_stack in
+      match (process_cnl_block ios) with
+      | Eof -> let _ = close_out ios.outc in process_ios convert_toks (List.tl io_stack)
+      | Input filename -> (let ios = mk_iochannels convert_toks filename in
+                           process_ios convert_toks (ios :: io_stack))
+      | _ -> (output_error ios "fatal ending file";
+              process_ios convert_toks (List.tl io_stack))
+    with Failure _ ->
+           let _ = List.map (fun x -> close_out(x.outc)) io_stack in
+           false;;
   
 let process_doc convert_toks filename = 
   process_ios convert_toks [mk_iochannels convert_toks filename];;
