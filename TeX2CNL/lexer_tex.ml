@@ -37,7 +37,6 @@ let lex_token_to_string = function
   | FormatEol -> "\\"
   | FormatCol -> "&"
   | Tok s -> s
-  | Symbol s -> s
   | Eof -> "EOF"
   | Eol -> "EOL"
   | NotImplemented _ -> "NotImplemented"
@@ -62,7 +61,7 @@ let white =
 
 let alphabet = [%sedlex.regexp? 'a'..'z' | 'A'..'Z']
 
-let alphanum = [%sedlex.regexp? alphabet | numeral10 | '_' | "'" | "-" | "~" ] (* - for hyphen, ~ for connected space *)
+let alphanum = [%sedlex.regexp? alphabet | numeral10 | '_' | '\'' | "-" | "~" ] (* - for hyphen, ~ for connected space *)
              
 let controlseq = [%sedlex.regexp? '\\', Plus(alphabet)]
 

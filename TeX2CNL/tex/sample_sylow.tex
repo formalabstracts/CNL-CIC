@@ -239,7 +239,17 @@ urlcolor=blue]{hyperref}
 \CnlCustom\ifcond{if}
 \CnlCustom\elsecond{else}
 \CnlCustom\where{where}
-%\CnlCustom\assign{ := }
+\CnlCustom\assign{ \concat{}{:=} }
+\CnlCustom\wherearg{where}
+\CnlCustom\fun{fun}
+\CnlCustom\Prop{Prop}
+\CnlCustom\optarg{}
+\CnlCustom\match{match}
+\CnlDelete\par
+\CnlCustom\function{function}
+\CnlCustom\Bool{Bool}
+\CnlCustom\quot{quot}
+%\CnlCustom[2]\prefix{\concat{#1}{#2}}
 
 
 % Prohibited control sequences. 
@@ -1230,7 +1240,7 @@ with properties
 \item \h{left-distributivity}: 
 $\forall\ x\ y\ z : C$, $z\*(x+y) = z\*x + z\*y$
 \end{itemize}
-\wherearag{C \assign \h{element}}.
+\wherearg{C \assign \h{element}}.
 \end{definition}
 
 

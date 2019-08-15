@@ -31,12 +31,15 @@ type token =
    | FormatCol 
    | Label of string
    | Tok of string
-   | Symbol of string
    | Error of string
    | Warn of string 
    | Eof
    | Ignore
    | NotImplemented of string;;
+
+type partrack =
+  | TrackPar
+  | NoTrackPar;;
 
 
 type io_channels = 
@@ -47,6 +50,16 @@ type io_channels =
     outc : out_channel;
   };;
 
+(*
+  name of environment from \begin{name}
+  begin_token insert these into output at beginning
+  tr_token perform this token translation
+  end_token insert these into output at ending
+  drop_toks delete these from output 
+  is_delete produce no output 
+  stay_in_par environment must remain in paragraph 
+ *)
+
 type environ_item =
 {
   name : string;
@@ -55,7 +68,7 @@ type environ_item =
   end_token : token;
   drop_toks : token list;
   is_delete : bool;
-  regard_par : bool;
+  stay_in_par : partrack;
 };;
 
 (* end;; *)
