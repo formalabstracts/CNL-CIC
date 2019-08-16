@@ -575,6 +575,7 @@ let mk_drop_env s drop is_delete =
     stay_in_par = NoTrackPar;
   };;
 
+
 let mk_delete_env s = 
   {
     name = s;
@@ -585,6 +586,29 @@ let mk_delete_env s =
     is_delete = true;
     stay_in_par = NoTrackPar;
   };;
+
+let mk_itemize_env s item is_delete =
+  {
+    name = s;
+    begin_token = LBrace;
+    end_token = RBrace;
+    tr_token = [(ControlSeq "item",item)];
+    drop_toks = [];
+    is_delete = is_delete;
+    stay_in_par = TrackPar;
+  };;
+
+let mk_case_env s is_delete =
+  {
+    name = s;
+    begin_token = Tok "case";
+    end_token = Tok "end";
+    tr_token = [];
+    drop_toks = [FormatCol;FormatEol];
+    is_delete = is_delete;
+    stay_in_par = TrackPar;
+  };;
+
 
 let mk_eqn_env s is_delete = 
   {
@@ -624,8 +648,12 @@ let mk_e_item s e =
   if List.mem s (!envdeltable) then mk_delete_env s
   else if is_prologue_env s then mk_drop_env s [] (e.is_delete)
   else 
-    match s with 
-    | "center" -> mk_drop_env s [] (e.is_delete)
+    match s with
+    | "itemize" | "structure" | "make" ->
+                                  mk_itemize_env s (Semi) (e.is_delete)
+      | "center" -> mk_drop_env s [] (e.is_delete)
+      | "envMatch" -> mk_drop_env s [FormatEol;FormatCol] e.is_delete
+      | "cases" -> mk_case_env s e.is_delete
       | "flushleft" | "flushright" | "minipage" 
       | "quotation" | "quote" | "verse" -> mk_drop_env s [FormatEol] (e.is_delete)
       | "tabbing" -> mk_drop_env s [FormatEol;FormatCol;ControlSeq "=";ControlSeq ">";ControlSeq "+";ControlSeq "-"] e.is_delete
@@ -680,7 +708,8 @@ let output_prologue ios s =
    output token will be unhandled EndCnl, Input, Eof 
   *)
 
-let rec process_environ ios e_stack = 
+let rec process_environ ios e_stack =
+  let out tok is_delete = if (is_delete) then () else output_token ios tok in 
   let par_filter e = 
     let nrp = not(regard_par e.stay_in_par) in
     let _ = nrp || (output_error ios 
@@ -708,7 +737,7 @@ let rec process_environ ios e_stack =
                     let msg = null_env.name^" is an illegal environment name; ignored" in
                     (output_error ios msg; process_environ ios e_stack)
                   else if (s = e.name) then
-                    (output_token ios e.end_token; process_environ ios (List.tl e_stack))
+                    (out e.end_token e.is_delete; process_environ ios (List.tl e_stack))
                   else 
                     let msg = "\\end{" ^(e.name)^ "} expected, \\end{" 
                               ^s^ "} found; input ignored." in
@@ -718,7 +747,8 @@ let rec process_environ ios e_stack =
                     (output_error ios msg; process_environ ios e_stack)
                     else
                       let e' = mk_e_item s e in
-                      let _ = if not(e'.is_delete) then output_prologue ios s in
+                      let _ = if not(e'.is_delete)
+                              then output_prologue ios s ; out e'.begin_token e'.is_delete in
                       process_environ ios (e' :: e_stack)
     | _ -> let ifexpand = not(e.is_delete) in
            let outputif tok = not(e.is_delete) && not(List.mem tok (e.drop_toks)) in 

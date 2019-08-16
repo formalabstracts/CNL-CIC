@@ -143,7 +143,7 @@ lit_prove : LIT_PROVE | LIT_SHOW {}
 lit_we_say : LIT_WE LIT_SAY option(LIT_THAT) {}
 lit_left : LIT_LEFT | LIT_RIGHT | LIT_NO {}
 lit_field_key : 
-| LIT_OVER
+| LIT_PARAMETER
 | LIT_TYPE
 | LIT_MAP {}
 lit_qed : LIT_END | LIT_QED | LIT_OBVIOUS | LIT_TRIVIAL {}
@@ -161,7 +161,9 @@ lit_enddocument :
 | LIT_ENDSUBDIVISION
 {}
 lit_def : LIT_DEF | LIT_DEFINITION {}
-lit_axiom : LIT_AXIOM | LIT_CONJECTURE | LIT_HYPOTHESIS | LIT_EQUATION | LIT_FORMULA {}
+                      lit_axiom : LIT_AXIOM | LIT_CONJECTURE | LIT_HYPOTHESIS | LIT_EQUATION | LIT_FORMULA {}
+lit_property : LIT_PROPERTY | LIT_PROPERTIES {}                                                                                                 
+lit_with_properties : LIT_WITH lit_property {}                                                                                                 
 lit_theorem :
 | LIT_PROPOSITION
 | LIT_THEOREM
@@ -173,7 +175,8 @@ lit_location :
 | lit_axiom
 | lit_def {}
 lit_sort : LIT_TYPE | LIT_PROP {}
-lit_classifier : LIT_CLASSIFIER | LIT_CLASSIFIERS {}
+                        lit_classifier : LIT_CLASSIFIER | LIT_CLASSIFIERS {}
+                                                          
 
 label : ATOMIC_IDENTIFIER {}
 
@@ -578,7 +581,7 @@ mutual_inductive_type : LIT_INDUCTIVE
 structure : option(LIT_NOTATIONAL) LIT_STRUCTURE 
   option(lit_param) args
   option(LIT_WITH) brace_semi(field)
-  option(LIT_SATISFYING satisfying_preds {}) {}
+  option(lit_with_properties satisfying_preds {}) {}
 
   lit_param : LIT_WITH LIT_PARAMETERS {}
 
@@ -591,7 +594,7 @@ structure : option(LIT_NOTATIONAL) LIT_STRUCTURE
   | prim_structure
   | var_or_atomic opt_colon_type {}
 
-  field_prefix : ALT list(lit_field_key) {}
+  field_prefix : ALT option(paren(comma_nonempty_list(lit_field_key) {})) {}
   field_suffix : LIT_WITHOUT LIT_NOTATION | field_assign {}
   field_assign : ASSIGN expr {}
 
@@ -671,7 +674,7 @@ alt_term : (* These bind tightly because of terminating END *)
  Case statements generate an obligation for exhaustive cases. 
  Matches must also be exhaustive. 
  *)
-case_term : LIT_CASE term LIT_OF 
+case_term : LIT_CASE (* term LIT_OF  *)
   nonempty_list(alt_case) LIT_END {}
   alt_case : ALT prop ASSIGN term {}
 
