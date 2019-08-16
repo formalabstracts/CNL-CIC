@@ -52,6 +52,21 @@ urlcolor=blue]{hyperref}
 \newenvironment{envMatch}%
                {\par\begin{tabular}{@{\quad\normalfont| }lll}}%
                {\end{tabular}\par}
+               \newcommand{\matchitem}{\\}
+               \newcommand{\firstmatchitem}{}
+
+               \newcommand\caseif[2]{#1 & \condif\ #2}
+               \newcommand\caseotherwise[1]{#1&\otherwise}
+
+\newenvironment{structure}%
+{\begin{itemize}}
+{\end{itemize}}
+\newcommand{\firstitem}{\item}
+
+\newenvironment{make}                              
+{\begin{itemize}}
+{\end{itemize}}
+
 
 
 
@@ -173,6 +188,7 @@ urlcolor=blue]{hyperref}
 %\newcommand{\fld}{.} %use \h{. }
 \newcommand{\dequiv}{\mathrel{:=}} %{\mathrel{:\equiv}}
 \newcommand{\assign}{\mathrel{:=}} %{\mathrel{:\equiv}}
+\newcommand{\cons}{\mathrel{:\!:}}
 %\def\assign{\mathrel{:=}}
 \newcommand{\Nat}{\ensuremath{{\mathbb N}}}
 \newcommand{\Real}{\ensuremath{{\mathbb R}}}
@@ -189,6 +205,9 @@ urlcolor=blue]{hyperref}
 \renewcommand\labelitemi{--}
 \renewcommand{\qed}{\ensuremath{\square}}
 
+\def\lsection#1{\section{#1}\label{#1}}
+\def\lsubsection#1{\subsection{#1}\label{#1}}
+\def\lsubsubsection#1{\subsubsection{#1}\label{#1}}
 \def\deflabel#1{\begin{definition}[#1]\label{#1}}
 \def\thmlabel#1{\begin{theorem}[#1]\label{#1}}
 \def\namelabel#1{[#1]\label{#1}}
@@ -224,6 +243,11 @@ urlcolor=blue]{hyperref}
 \newcommand{\setenum}[1]{\{#1\}}
 \newcommand{\wherearg}[1]{\where\ $\{#1\}$}
 \newcommand{\optarg}[1]{\{#1\}}
+\newcommand{\inv}[1]{{#1}^{-1}}
+\newcommand{\texstop}{.}
+\newcommand{\texcomma}{,}
+\newcommand{\cnlstop}{}
+
 
 \begin{cnl}
 
@@ -232,25 +256,39 @@ urlcolor=blue]{hyperref}
 
 \CnlCustom[1]\parenI{ (#1) }
 \CnlCustom\*{*}
+\CnlCustom[1]\lsection{Section \concat{}{#1} .}
+\CnlCustom[1]\lsubsection{Subsection \concat{}{#1} .}
+\CnlCustom[1]\lsubsubsection{Subsubsection \concat{}{#1} .}
 \CnlCustom[1]\deflabel{\begin{definition}\label{#1}}
 \CnlCustom[1]\df{ #1 }
 \CnlCustom[1]\h{ #1 }
 \CnlCustom\where{where}
 \CnlCustom\ifcond{if}
+\CnlCustom\otherwise{true}
 \CnlCustom\elsecond{else}
 \CnlCustom\where{where}
 \CnlCustom\assign{ \concat{}{:=} }
+\CnlCustom\cons{\concat{}{::}} 
+\CnlCustom\plural{\concat{/-}{}}
 \CnlCustom\wherearg{where}
 \CnlCustom\fun{fun}
 \CnlCustom\Prop{Prop}
+\CnlCustom\Type{Type}
+\CnlCustom\iff{iff}
 \CnlCustom\optarg{}
 \CnlCustom\match{match}
 \CnlDelete\par
+\CnlDelete\texstop
 \CnlCustom\function{function}
 \CnlCustom\Bool{Bool}
+\CnlCustom\Nat{Nat}
+\CnlCustom\Real{Real}
 \CnlCustom\quot{quot}
-%\CnlCustom[2]\prefix{\concat{#1}{#2}}
-
+\CnlCustom\alpha{V--alpha}
+\CnlCustom\beta{V--beta}
+\CnlCustom[2]\prefix{\concat{#1}{#2}}
+\CnlCustom\cnlstop{.}
+%\CnlCustom\nullbrack{\concat{}{[]}}
 
 % Prohibited control sequences. 
 % That is, they should remain outside the cnl environment.
@@ -268,6 +306,13 @@ urlcolor=blue]{hyperref}
 
 %
 \CnlDelete[1]\phantom
+\CnlDelete\firstitem
+\CnlDelete\texstop
+\CnlDelete\texcomma
+\CnlCustom\matchitem{\alt}
+\CnlCustom\firstmatchitem{\alt}
+\CnlCustom[2]\caseif{#2 \assign #1}
+\CnlCustom[1]\caseotherwise{true \assign #1}
 %\CnlNoExpand[1]\section
 
 % math modes and space
@@ -328,7 +373,7 @@ controlled natural language for mathematics.
 \end{remark}
 
 
-\section{Generalities}
+\lsection{Generalities}
 
 \begin{remark}
 This article is an experiment in writing mathematics in a computer
@@ -379,7 +424,7 @@ to the map field.
 \end{remark}
 
 \newpage
-\section{Set membership}
+\lsection{Set membership}
 
 In this section, let $\alpha,\beta$ denote types.
 
@@ -444,11 +489,11 @@ from values of the structure to that field (which should be a type).
 
 \deflabel{notation in}
 A \h{notation-in} is a notational structure with
-\begin{itemize}
-\item (parameter) $\beta$ % carrier first, to allow dependency.
+\begin{structure}
+\firstitem (parameter) $\beta$ % carrier first, to allow dependency.
 \item (parameter) $\alpha$
-\item \h{notation-in} : $\alpha\to\beta\to \Prop$
-\end{itemize}
+\item \h{notation-in} : $\alpha\to\beta\to \Prop$\texstop
+\end{structure}\cnlstop
 \end{definition}
 
 \deflabel{in}
@@ -462,11 +507,11 @@ Let $x\notin X$ denote $\h{not}(x\in X)$.
 
 \deflabel{notation-subset}
 A \h{notation-subset} is a notational structure with
-\begin{itemize}
-\item (parameter, type) $\alpha$
-\item \h{notation-subseteq} : $\alpha \to \alpha \to \Prop$
+\begin{structure}
+\firstitem (parameter, type) $\alpha$
+\item \h{notation-subseteq} : $\alpha \to \alpha \to \Prop$\texstop
 %\item subset $X\ (Y : \alpha)\ \dequiv X \subseteq Y$ and $X\ne Y$
-\end{itemize}
+\end{structure}\cnlstop
 \end{definition}
 
 \deflabel{subset notation}
@@ -510,16 +555,16 @@ We record a coercion
 (\h{notation-subset}\ \h{over}\ \beta) \assign
 \]
 a structure with
-\begin{itemize}
-\item a \h{notation-subset} over $\beta$
+\begin{structure}
+\firstitem a \h{notation-subset} over $\beta$
 with properties
 \item for all  $(X\ Y : \beta), \h{we have}\ (X \subseteq Y\ \iff
-\h{for all } x,\ x \in X \rightarrow x \in Y)$.
-\end{itemize}
+  \h{for all } x,\ x \in X \rightarrow x \in Y)$\texstop
+\end{structure}\cnlstop
 This exists and is unique.
 
 \newpage
-\section{Natural Number}
+\lsection{Natural Number}
 
 \begin{remark}
 Here we construct the semiring of natural numbers with its standard
@@ -532,17 +577,17 @@ inductive type).
 
 \deflabel{typical structure}
 An \h{typical-structure} is a structure with
-\begin{itemize}
-\item (type) $\alpha : \Type$
-\end{itemize}
+\begin{structure}
+\firstitem (type) $\alpha : \Type$\texstop
+\end{structure}\cnlstop
 \end{definition}
 
 \deflabel{notation zero}
 A \h{notation-zero} is a notational structure with
-\begin{itemize}
-\item $\alpha : \Type$
-\item $\h{notation-zero} : \alpha$.
-\end{itemize}
+\begin{structure}
+\firstitem $\alpha : \Type$
+\item $\h{notation-zero} : \alpha$\texstop
+\end{structure}\cnlstop
 \end{definition}
 
 Let $0$ stand for $C\h{.notation-zero}$, inferring
@@ -550,10 +595,10 @@ $(C:\h{notation-zero})$.
 
 \deflabel{notation one}
 A \h{notation-one} is a notational structure with
-\begin{itemize}
-\item $\alpha : \Type$
-\item \h{notation-one} $ : \alpha$.
-\end{itemize}
+\begin{structure}
+\firstitem $\alpha : \Type$
+\item \h{notation-one} $ : \alpha$\texstop
+\end{structure}\cnlstop
 \end{definition}
 
 Let $1$ stand for $C\h{.notation-one}$, inferring
@@ -561,10 +606,10 @@ $(C:\h{notation-one})$.
 
 \deflabel{notation add}
 A \h{notation-add} is a notational structure with
-\begin{itemize}
-\item $\alpha : \Type$
-\item \h{notation-add} $ : \alpha\to\alpha\to\alpha$.
-\end{itemize}
+\begin{structure}
+\firstitem $\alpha : \Type$
+\item \h{notation-add} $ : \alpha\to\alpha\to\alpha$\texstop
+\end{structure}\cnlstop
 \end{definition}
 
 \deflabel{notation add}
@@ -574,10 +619,10 @@ $30$ and left associativity, inferring $(C:\h{notation-add})$.
 
 \deflabel{notation numeral}
 A \h{notation-numeral} is a notational structure with
-\begin{itemize}
-\item notation-one
-\item notation-add
-\end{itemize}
+\begin{structure}
+\firstitem notation-one
+\item notation-add\texstop
+\end{structure}\cnlstop
 \end{definition}
 
 \begin{remark} A structure that satisfies notation numeral
@@ -589,10 +634,10 @@ has automated support for positive numerals
 
 \deflabel{notation mul}
 A \h{notation-mul} is a notational structure with
-\begin{itemize}
-\item $\alpha : \Type$
-\item \h{notation-mul} $ : \alpha\to\alpha\to\alpha$.
-\end{itemize}
+\begin{structure}
+\firstitem $\alpha : \Type$
+\item \h{notation-mul} $ : \alpha\to\alpha\to\alpha$\texstop
+\end{structure}\cnlstop
 \end{definition}
 
 
@@ -604,48 +649,48 @@ $40$ and left associativity, inferring $(C:\h{notation-mul})$.
 \deflabel{natural numbers}
 Let $\Nat$ be the inductive type
 \begin{envMatch}
-\h{zero} &$:\ \Nat$ \\
-\h{succ} &$:\ \Nat\to\Nat$
+\firstmatchitem \h{zero} &$:\ \Nat$ 
+\matchitem \h{succ} &$:\ \Nat\to\Nat$
 \end{envMatch} with
 \begin{itemize}
-\item (notation) notation-zero $\assign \h{zero}$
-\item (notation) notation-one $\assign \h{succ}\ 0$.
-\end{itemize}
+\firstitem (notation) notation-zero $\assign \h{zero}$
+\item (notation) notation-one $\assign \h{succ}\ 0$\texstop
+\end{itemize}\cnlstop
 \end{definition}
 
 \deflabel{natural number addition}
 We define $\h{add}\ (m:\Nat) (n:\Nat) \assign$
 \par$\match\ n$ with
 \begin{envMatch}
-$0$ &$\assign$& $m$\\
-$\h{succ}\ k$ &$\assign$& $\h{succ}\ (\h{add}\ m\ k)$\\
-\end{envMatch}
+\firstmatchitem $0$ &$\assign$& $m$
+\matchitem $\h{succ}\ k$ &$\assign$& $\h{succ}\ (\h{add}\ m\ k)$\texstop
+\end{envMatch}\cnlstop
 This exists by recursion.
 \end{definition}
 
 Moreover, $\Nat$ implements
 \begin{itemize}
-\item (notation) notation-add $\assign\ \h{add}$.
-\end{itemize}
+\firstitem (notation) notation-add $\assign\ \h{add}$
+\end{itemize}\cnlstop
 
 \deflabel{natural number multiplication}
 We define $\h{mul}\ (m:\Nat) (n:\Nat) \assign$
 \par$\match\ n$ with
 \begin{envMatch}
-$0$ &$\assign$& $0$\\
-$k+1$ &$\assign$& $\h{succ}\ (\h{mul}\ m\ k  + m)$\\
-\end{envMatch}
+\firstmatchitem $0$ &$\assign$& $0$
+\matchitem $k+1$ &$\assign$& $\h{succ}\ (\h{mul}\ m\ k  + m)$\texstop
+\end{envMatch}\cnlstop
 This exists by recursion.
 \end{definition}
 
 Moreover, $\Nat$ implements
 \begin{itemize}
-\item (notation) notation-mul $\assign\ \h{mul}$.
-\end{itemize}
+\firstitem (notation) notation-mul $\assign\ \h{mul}$
+\end{itemize}\cnlstop
 
 
 \newpage
-\section{List}
+\lsection{List}
 
 \begin{remark}
 Intuitively, a list is a finite sequence of elements of the same type.
@@ -658,20 +703,20 @@ In this section, let $\alpha$ denote a type.
 \deflabel{list}
 Let $\h{list}\ \optarg{\alpha}$ be the inductive type
 \begin{envMatch}
-$\h{null}$ &$:$& $\h{list}$\\
-$\h{cons}$ &$:$& $\alpha\to\h{list}\to\h{list}$
-\end{envMatch}
+\firstmatchitem $\h{null}$ &$:$& $\h{list}$
+\matchitem $\h{cons}$ &$:$& $\alpha\to\h{list}\to\h{list}$\texstop
+\end{envMatch}\cnlstop
 \end{definition}
 
 \deflabel{null list}
-Let $[]$ equal
+Let $\nullbrack$ equal
 \[
 \h{null} : \h{list}\ {\alpha}.
 \]
 \end{definition}
 
 \deflabel{cons}
-Let $(x : \alpha) :: (X : \h{list}\ \alpha)$ stand for
+Let $(x : \alpha) \cons (X : \h{list}\ \alpha)$ stand for
 \[
 \h{list.cons}\ \optarg{\alpha}\ x\ X.
 \]
@@ -680,25 +725,25 @@ Let $(x : \alpha) :: (X : \h{list}\ \alpha)$ stand for
 \deflabel{length}
 Let $\h{list.length}\ \optarg{\alpha}\ : \h{list}\to \Nat$ = \par\function
 \begin{envMatch}
-$[]$ &$\assign$& $0$\\
-$a :: A$ &$\assign$& 1 + \h{length}\ A.
-\end{envMatch}
+\firstmatchitem $\nullbrack$ &$\assign$& $0$
+\matchitem $a \cons A$ &$\assign$& 1 + \h{length}\ A\texstop
+\end{envMatch}\cnlstop
 This exists by recursion.
 \end{definition}
 
 \deflabel{list.in}
 Let $\h{list.in}\ (x : \alpha) : \h{list}\to \Bool$ = \par\function
 \begin{envMatch}
-$[]$ &$\assign$& \h{false}\\
-$a :: A$ &$\assign$& $(x = a) \lor (\h{in}\ x\ A)$.
-\end{envMatch}
+\firstmatchitem $\nullbrack$ &$\assign$& \h{false}
+\matchitem $a \cons A$ &$\assign$& $(x = a) \lor (\h{in}\ x\ A)$\texstop
+\end{envMatch}\cnlstop
 This exists by recursion.
 \end{definition}
 
 Moreover, list implements
 \begin{itemize}
-\item (notation) notation-in $(x : \alpha)\ (X : \h{list}) \assign \h{in}\ x\ X$.
-\end{itemize}
+\firstitem (notation) notation-in $(x : \alpha)\ (X : \h{list}) \assign \h{in}\ x\ X$
+\end{itemize}\cnlstop
 
 \begin{remark} The drop function removes the first occurrence
 of an element from a list
@@ -709,10 +754,10 @@ of an element from a list
 Let $\h{list.drop}\ (x : \alpha) : \h{list}\to\h{list} \assign$
 \par\function
 \begin{envMatch}
-$[]$ &$\assign$& []\\
-$a :: A$ &$\assign$&
-$\h{if}\ (x = a)\ \h{then}\ A\ \h{else}\ a :: (\h{drop}\ x\ A)$.
-\end{envMatch}
+\firstmatchitem $\nullbrack$ &$\assign$& \nullbrack
+\matchitem $a \cons A$ &$\assign$&
+$\h{if}\ (x = a)\ \h{then}\ A\ \h{else}\ a \cons (\h{drop}\ x\ A)$\texstop
+\end{envMatch}\cnlstop
 This exists by recursion.
 \end{definition}
 
@@ -728,17 +773,18 @@ construction a multiset has an enumeration by a list.
 Let $\h{list.is-permutation}\ X\ Y : \Bool \assign$
 \par\match $(X,Y)$ with
 \begin{envMatch}
-$([],[])$ &$\assign$& \h{true}\\ [5pt]
-$(x::X,y::Y)$ &$\assign$&%
+  \firstmatchitem $(\nullbrack,\nullbrack)$ &$\assign$& \h{true}
+                  \matchitem [5pt] 
+$(x\cons X,y\cons Y)$ &$\assign$&%
 $
 \left\{
 \begin{tabular}{ll}
 $\ifcond\ (x=y)\ \thencond\ \h{is-permutation}\ X\ Y$ \\
-\elsecond\ $(x\in Y)\land \h{is-permutation}\ X\ (c :: (\h{drop}\ x\ Y))$.
+\elsecond\ $(x\in Y)\land \h{is-permutation}\ X\ (c \cons  (\h{drop}\ x\ Y))$.
 \end{tabular}
-\right.
+\right\texstop
 $
-\end{envMatch}
+\end{envMatch}\cnlstop
 This exists by recursion.
 \end{definition}
 
@@ -754,14 +800,14 @@ This exists and is welldefined.
 \end{definition}
 
 \newpage
-\section{Finiteness}
+\lsection{Finiteness}
 
 In this section, let $\alpha$ stand for a type.
 
 \begin{remark}
 This section relies on results about lists.
 
-Every list is constructed by a finite process of consing $x :: X$ to
+Every list is constructed by a finite process of consing $x \cons  X$ to
 the head of a list.  This finite process can be used to say what it
 means for other types to be finite.
 
@@ -775,14 +821,15 @@ enumerated finite set.
 
 \deflabel{nodup multiset}
 A \h{duplicate~free~multiset} is a structure with
-\begin{itemize}
-\item (parameter) element : \Type
+\begin{structure}
+\firstitem (parameter) element : \Type
 \item support : multiset $\optarg{element}$
 \item length\ $\dequiv$ the length of the support,
   with property
-\item noduplicate : nodup support %- a proof that the support set is
+\item noduplicate : nodup support\texstop
+  %- a proof that the support set is
  %duplicate free.
-\end{itemize}
+\end{structure}\cnlstop
 \end{definition}
 
 \begin{remark}
@@ -819,7 +866,7 @@ Let an \df{equivalence} $f:\alpha\to\beta$ stand for a bijection $f$.
 We record an equivalence\hfil\break
 \h{set-of-duplicate~free~multiset}
 $\ \optarg{\alpha}\ (X :
-\h{duplicate~free~multiset}\
+\h{duplicate~free~multiset}\ %
 \h{over}\ \alpha) : \h{finite set over}\ \alpha $
 
 
@@ -838,7 +885,7 @@ Because of the equivalence, size and support are now defined on finite
 sets.
 \end{remark}
 
-\subsection{finite types}
+\lsubsection{finite types}
 
 \begin{remark}
 We extend the preceding notions from sets to types by using the
@@ -860,14 +907,14 @@ unique.
 
 
 \newpage
-\section{Order}
+\lsection{Order}
 
 \deflabel{binary relation}
 A \df{binary~relation} is a structure with
-\begin{itemize}
-\item (parameter, type) element : \Type
-\item a $relation : element \to element \to \Prop$
-  \end{itemize}
+\begin{structure}
+\firstitem (parameter, type) element : \Type
+\item a $relation : element \to element \to \Prop$\texstop
+  \end{structure}\cnlstop
 \end{definition}
 
 In this section, fix a binary relation $R$.
@@ -1005,18 +1052,18 @@ and a meet semilattice.
 \end{definition}
 
 \newpage
-\section{Order Notation}
+\lsection{Order Notation}
 
 \deflabel{notation le}
 A \h{notation-le} is a notational structure with
-\begin{itemize}
-\item (type) $\alpha : \Type$
-\item \h{notation-le} : $\alpha \to \alpha \to \Prop$
+\begin{structure}
+\firstitem (type) $\alpha : \Type$
+\item \h{notation-le} : $\alpha \to \alpha \to \Prop$\texstop
 %\item lt $x\ (y : D)\ \dequiv x \le y$ and $x\ne y$
 %\item ge $x\ (y : D)\ \dequiv y \le x$
 %\item gt $x\ (y : D)\ \dequiv y < x$
-%where $D = $\h{element-le}.
-\end{itemize}
+%where $D = $\h{element-le}
+\end{structure}\cnlstop
 \end{definition}
 
 Let $x \le y$ denote $C\h{.notation-le}\ x\ y$, inferring
@@ -1037,7 +1084,7 @@ Let $m$ is \df{less~than} $n$ stand for $m < n$.
 Let $n$ is \df{greater~than} $m$ stand for $n > m$.
 
 \newpage
-\section{More on Natural Numbers}
+\lsection{More on Natural Numbers}
 
 In this section, let $m,\ n,\ d,\ p,\ r$ denote natural numbers.
 
@@ -1047,9 +1094,9 @@ In this section, let $m,\ n,\ d,\ p,\ r$ denote natural numbers.
 
 We record a wellfounded total order, where
 \begin{itemize}
-\item relation\ $\dequiv \h{nat-le}$
+\firstitem relation\ $\dequiv \h{nat-le}$
 \item (notation) \h{notation-le} $\assign$ relation
-\end{itemize}
+\end{itemize}\cnlstop
 This exists and is unique.
 
 
@@ -1059,7 +1106,7 @@ $0,\pm1,\pm2,\ldots$ can be interpreted in any structure that
 additionally satisfies \h{notation-neg}.
 \end{remark}
 
-[synonym number/-s]
+[synonym number\plural s]
 
 Let \df{natural number} stand for \Nat.
 
@@ -1085,9 +1132,9 @@ Assume that $b,n$ are natural numbers.  We define
 $\natpow{b}{n}\assign$
 \par$\match\ n$ with
 \begin{envMatch}
-$0$ &$\assign$& $1$\\
-$m+1$ &$\assign$& $b \* \natpow{b}{m}$.
-\end{envMatch}
+\firstmatchitem $0$ &$\assign$& $1$
+\matchitem $m + 1$ &$\assign$& $b \* \natpow{b}{m}$\texstop
+\end{envMatch}\cnlstop
 This exists by recursion.
 \end{definition}
 
@@ -1107,17 +1154,17 @@ This exists and is unique.
 \end{definition}
 
 \newpage
-\section{Group theory}
+\lsection{Group theory}
 
 
 
 \deflabel{magma}
 A \h{magma} is a structure with
-\begin{itemize}
-\item (type, parameter) element : \Type
+\begin{structure}
+\firstitem (type, parameter) element : \Type
 \item an $\h{op} : \h{element} \to \h{element} \to \h{element}$
-\item (notation) $\h{notation-mul} \assign op$
-\end{itemize}
+\item (notation) $\h{notation-mul} \assign op$\texstop
+\end{structure}\cnlstop
 \end{definition}
 
 
@@ -1127,10 +1174,9 @@ dependent type, where the order of the arguments is switched.
 
 We record a coercion $(G : group) : \h{notation-in}\assign$
 \begin{itemize}
-\item $\beta\assign \h{group}$
+\firstitem $\beta\assign \h{group}$
 \item $\alpha\assign G\h{.element}$
-\item 
-\end{itemize}
+\end{itemize}\cnlstop
 \end{remark}
 
 \deflabel{abelian}
@@ -1140,12 +1186,12 @@ M is \df{abelian} iff for all $(x\ y : M)$, $x \* y = y \* x$.
 
 \deflabel{semigroup}
 A \df{semigroup} is a structure with
-\begin{itemize}
-\item a magma
+\begin{structure}
+\firstitem a magma
 with property
 \item associativity : for all $(x\ y\ z : 
-\h{element}),\ x \* y \* z = (x \* y) \* z$.
-\end{itemize}
+\h{element}),\ x \* y \* z = (x \* y) \* z$\texstop
+\end{structure}\cnlstop
 \end{definition}
 
 % for all $(x, y, z : element), x \* y \* z = (x \* y) \* z$.
@@ -1155,43 +1201,40 @@ with property
 
 \deflabel{monoid}
  A \df{monoid} is a structure with
-\begin{itemize}
-\item a semigroup
+\begin{structure}
+\firstitem a semigroup
 \item a unit: element
 \item (notation) $\h{notation-one} \assign \h{unit}$
 with property
-\item for all\ $x,\ x \* 1 = 1 \* x = x$.
-\end{itemize}
+\item for all\ $x,\ x \* 1 = 1 \* x = x$\texstop
+\end{structure}\cnlstop
 \end{definition}
 
 \deflabel{notation inverse}
 A \h{notation-inverse} is a notational structure with
-\begin{itemize}
-\item (parameter) $\alpha : \Type$
-\item \h{notation-inverse} : $\alpha\to\alpha$
-\end{itemize}
+\begin{structure}
+\firstitem (parameter) $\alpha : \Type$
+\item \h{notation-inverse} : $\alpha\to\alpha$\texstop
+\end{structure}\cnlstop
 \end{definition}
 
-\end{cnl}
-\def\inv#1{{#1}^{-1}}
-\begin{cnl}
 
 Let $\inv{x}$ stand for $C\h{.notation-inverse}\ x$, inferring
 $(C:\h{notation-inverse})$,
 
 \deflabel{group}
 A \df{group} is a structure with
-\begin{itemize}
-\item a monoid
+\begin{structure}
+\firstitem a monoid
 \item an inv : $C \to C$ with properties
 \item (notation) $\h{notation-inverse} \assign \h{inv}$
-\item $\forall (x : C),\  x \* \inv{x} = \inv{x} \* x = 1$
-\end{itemize}
+\item $\forall (x : C),\  x \* \inv{x} = \inv{x} \* x = 1$\texcomma
+\end{structure}
 \wherearg{C \assign\h{element}}.
 \end{definition}
 
 \newpage
-\section{Ring and modules}
+\lsection{Ring and modules}
 
 \begin{remark}
 An additive group is just a group in which the surface notation has
@@ -1204,10 +1247,10 @@ fields drop out).
 
 \deflabel{notation neg}
 A \h{notation-neg} is a notational structure with
-\begin{itemize}
-\item $\alpha : \Type$
-\item $\h{notation-neg} : \alpha\to\alpha$.
-\end{itemize}
+\begin{structure}
+\firstitem $\alpha : \Type$
+\item $\h{notation-neg} : \alpha\to\alpha$\texstop
+\end{structure}\cnlstop
 \end{definition}
 
 Let $-x$ stand for $C\h{.notation-neg}\ x$, inferring
@@ -1216,19 +1259,19 @@ $(C:\h{notation-neg})$.
 
 \deflabel{additive group}
 An \df{additive group} is a structure with
-\begin{itemize}
-\item a group without notation
+\begin{structure}
+\firstitem a group without notation
 \item (notation) $\h{notation-zero} \assign \h{unit}$
 \item (notation) $\h{notation-add} \assign \h{op}$
-\item (notation) $\h{notation-neg} \assign \h{inv}$
-\end{itemize}
+\item (notation) $\h{notation-neg} \assign \h{inv}$\texstop
+\end{structure}\cnlstop
 \end{definition}
 
 
 \deflabel{ring}
 A \df{ring} is a structure with
-\begin{itemize}
-\item an abelian additive group
+\begin{structure}
+\firstitem an abelian additive group
 \item an $\h{op'}  : C \to C \to C$
 \item a $\h{unit'} : C$
 \item (notation) $\h{notation-mul} \assign \h{op'}$
@@ -1238,8 +1281,8 @@ with properties
 \item \h{mul-associativity} : $\forall\ x\ y\ z : C,\ x\*y\*z = x\*(y\*z)$
 \item \h{right-distributivity} : $\forall\ x\ y\ z\ : C,\ (x + y)\*z = x\*z + y\*z$
 \item \h{left-distributivity}: 
-$\forall\ x\ y\ z : C$, $z\*(x+y) = z\*x + z\*y$
-\end{itemize}
+$\forall\ x\ y\ z : C$, $z\*(x+y) = z\*x + z\*y$\texcomma
+\end{structure}
 \wherearg{C \assign \h{element}}.
 \end{definition}
 
@@ -1255,10 +1298,10 @@ structure), which is achieved with an explicit function call.
 We make $\h{monoid-of-ring}\ ($R$ : \h{ring}) : \h{monoid} \assign$
 \begin{itemize}
 %\item element \assign R\h{.element}
-\item unit $\assign R\h{.unit'}$
+\firstitem unit $\assign R\h{.unit'}$
 \item op $\assign R\h{.op'}$
 \item \blank
-\end{itemize}
+\end{itemize}\cnlstop
 \end{definition}
 
 
@@ -1283,10 +1326,10 @@ $(x : R)$.  We say that $x$ is a \df{unit} in $R$ iff there exists $(y
 
 \deflabel{notation dot}
 A \h{notation-dot} is a notational structure with
-\begin{itemize}
-\item (parameter, type) $\alpha, \beta : \Type$
-\item (notation) \h{notation-dot} : $\alpha \to \beta \to \beta$
-\end{itemize}
+\begin{structure}
+\firstitem (parameter, type) $\alpha, \beta : \Type$
+\item (notation) \h{notation-dot} : $\alpha \to \beta \to \beta$\texstop
+\end{structure}\cnlstop
 \end{definition}
 
 Let $r \cdot x$ stand for $C\h{.notation-dot}\ r\ x$ with precedence
@@ -1295,8 +1338,8 @@ $50$ and left associativity, inferring $(C:\h{notation-dot})$.
 
 \deflabel{left module}
 A \df{left module} is a structure with
-\begin{itemize}
-\item (parameter) $R$ : ring
+\begin{structure}
+\firstitem (parameter) $R$ : ring
 \item an  additive group
 \item a \h{scalar-multiplication} : 
 $R\h{.element} $\to$ element $\to$ element
@@ -1308,12 +1351,12 @@ for all $r,x,y,\ r \cdot (x + y) = r \cdot x + r \cdot y$
 for all $r,s,x,\ (r + s) \cdot x = r \cdot x + s \cdot x$
 \item multiplicative : 
 for all $r,s,x,\ (r\*s) \cdot x = r \cdot (s \cdot x)$
-\item unital : for all $x,\ 1 \cdot x = x$.
-\end{itemize}
+\item unital : for all $x,\ 1 \cdot x = x$\texstop
+\end{structure}\cnlstop
 \end{definition}
 
 \newpage
-\section{The field of real numbers}
+\lsection{The field of real numbers}
 
 \deflabel{field}
 A \df{field} $R$ is a nontrivial commutative ring such that for all $x\ne 0$,  $x$ is a unit in $R$.
@@ -1321,22 +1364,22 @@ A \df{field} $R$ is a nontrivial commutative ring such that for all $x\ne 0$,  $
 
 \deflabel{vector space}
   A \df{vector space} is a structure with
-  \begin{itemize}
-\item a left module
-\item (parameter) $R$ : field.
-  \end{itemize}
+  \begin{structure}
+\firstitem a left module
+\item (parameter) $R$ : field\texstop
+  \end{structure}\cnlstop
 \end{definition}
 
 
 \deflabel{ordered ring}
 An \df{ordered ring} is a structure with
-\begin{itemize}
-\item a ring
+\begin{structure}
+\firstitem a ring
 \item a linear order with properties
 \item (notation) $\h{notation-le} \assign$ relation
-\item for all $(x\ y\ z)$, if $x \le y$ then $x + z \le y + z$.
-\item for all $(x\ y)$, if $0\le a$ and $0\le b$, then $0\le a\*b$.
-\end{itemize}
+\item for all $(x\ y\ z)$, if $x \le y$ then $x + z \le y + z$
+\item for all $(x\ y)$, if $0\le a$ and $0\le b$, then $0\le a\*b$\texstop
+\end{structure}\cnlstop
 \end{definition}
 
 \begin{remark}
@@ -1345,10 +1388,10 @@ See \url{https://en.wikipedia.org/wiki/Ordered-ring}
 
 \deflabel{ordered field}
 An \df{ordered field} is a a structure with
-\begin{itemize}
-\item an  ordered ring
-\item a field
-\end{itemize}
+\begin{structure}
+\firstitem an  ordered ring
+\item a field\texstop
+\end{structure}\cnlstop
 \end{definition}
 
 \deflabel{complete}
@@ -1363,9 +1406,9 @@ Let
 $\h{ordered-field.absolute-value}\ (x : \h{element}): \h{element}\assign$ 
 \[
 \begin{cases}
- \phantom{-}x&\ifcond\ 0 \le x\\
- -x&\otherwise
-\end{cases}
+\firstmatchitem \caseif{\phantom{-}x}{0 \le x}
+\matchitem \caseotherwise{-x}\texstop
+\end{cases}\cnlstop
 \]
 This exists and is unique and total.
 \end{definition}
@@ -1391,8 +1434,8 @@ such that
 %\begin{itemize}
 %\item $A \assign \h{complete ordered field}$
 %\item $B\ F_1\ F_2 \assign \h{Iso}\ F_1\ F_2$
-%\item $\h{arrow}\ F_1\ F_2 \assign$ the unique element of $\h{Iso}\ F_1\ F_2$.
-%\end{itemize}
+%\item $\h{arrow}\ F_1\ F_2 \assign$ the unique element of $\h{Iso}\ F_1\ F_2$
+%\end{itemize}\cnlstop
 %This exists and is unique.
 %\end{definition}
 
@@ -1407,34 +1450,34 @@ Let \Real\ be the complete ordered field.
 This exists and is canonical.
 \end{definition}
 
-\subsection{norms}
+\lsubsection{norms}
 
 Let $|(x:\Real)|$ denote \h{absolute-value}\ $x$.
 
 \deflabel{normed commutative ring}
   A \df{normed commutative ring} is a structure with
-  \begin{itemize}
-\item a commutative ring
+  \begin{structure}
+\firstitem a commutative ring
 \item an \h{absolute-value} : element $\to \Real$
 with properties
 \item \h{non-negativity} : for all $x$, $A\ x = 0 \iff x = 0$
 \item \h{triangle-inequality} : for all $x\ y,\ A (x + y) \le A\ x + A\ y$
-\item submultiplicative : for all $x\ y, A(x \* y) \le (A\ x) \* (A\ y)$\\
+\item submultiplicative : for all $x\ y, A(x \* y) \le (A\ x) \* (A\ y)$\texcomma
   % See https://ncatlab.org/nlab/show/normed+ring
-\end{itemize}
+\end{structure}
 \wherearg{A \assign \h{absolute-value}}.
 \end{definition}
 
 \deflabel{normed field}
   A \df{normed field} is a structure with
-  \begin{itemize}
-\item a normed commutative ring
-\item a field.
-  \end{itemize}
+  \begin{structure}
+\firstitem a normed commutative ring
+\item a field\texstop
+  \end{structure}\cnlstop
 \end{definition}
 
 
-\subsection{meet semilattice of subgroups}
+\lsubsection{meet semilattice of subgroups}
 
 \begin{remark}
 We introduce the semilattice of subgroups explicitly.  Each subgroup
@@ -1447,13 +1490,13 @@ Because of the way parameters work, we say that $H$ is a subgroup {\it
 
 \deflabel{subgroup}
 A \df{subgroup}  is a structure with
-\begin{itemize}
-\item (parameter) \h{ambient-group} : group
+\begin{structure}
+\firstitem (parameter) \h{ambient-group} : group
 \item (type) support $: \h{set over}\ \h{ambient-group}$
 with properties
 \item nonempty : $1 \in support$ and
-\item closure : for all $x,y \in \h{support}, x \* \inv{y} \in \h{support}$.
-\end{itemize}
+\item closure : for all $x,y \in \h{support}, x \* \inv{y} \in \h{support}$\texstop
+\end{structure}\cnlstop
 \end{definition}
 
 
@@ -1461,11 +1504,11 @@ with properties
 \h{subgroup-semilattice}
 $(G :\h{group}) : \h{meet-semilattice}\assign$
 \begin{itemize}
-\item $\h{element}\ \assign \h{subgroup over}\ G$;
+\firstitem $\h{element}\ \assign \h{subgroup over}\ G$
 \item $\h{relation}\ H_1\ H_2 \assign \h{for all}\ x,\ x \in H_1 \to x \in
-H_2$.  
+H_2$
 \item \blank
-\end{itemize}
+\end{itemize}\cnlstop
 This exists and is unique.
 \end{definition}
 
@@ -1482,12 +1525,12 @@ the \df{order} of $G$ stand for the size of $G$.
 
 \deflabel{subgroup order}
 Assume that $H$ is a subgroup over a finite group $G$.
-The \parenthetical{subgroup} \prefix{subgroup~}order of $H$ is the size of the support of $H$.
+The \parenthetical{subgroup} \prefix{subgroup~}{order} of $H$ is the size of the support of $H$.
 This exists and is well subtyped \parenthetical{that is, $H$ is finite}.
 \end{definition}
 
 \newpage
-\section{Sylows Theorems}
+\lsection{Sylows Theorems}
 
 In this section, let $G$ denote a fixed finite group.
 
@@ -1531,7 +1574,7 @@ $|G|$.
 
 \deflabel{Sylow}
 A \df{Sylow $p$ subgroup of} $G$ is a subgroup $P$ over $G$ such that
-the \prefix{subgroup~}order of $P$ is $\natpow{p}{\mult{p}{G}}$.
+the \prefix{subgroup~}{order} of $P$ is $\natpow{p}{\mult{p}{G}}$.
 \end{definition}
 
 
