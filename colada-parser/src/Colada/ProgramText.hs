@@ -62,11 +62,11 @@ parseTextItem_main =
   (TextItemInstr <$> parseInstr)
 
 parseRawTextItem :: Parser (RawResult Text SimpleError TextItem)
-parseRawTextItem = (withRecovery recover (Right <$> parseTextItem_main)) <* sc
+parseRawTextItem = (withRecovery recover (Right <$> (sc *> parseTextItem_main))) <* sc
   where recover err = Left err <$ manyTill item (parsePeriod *> skip <||> parseRBrack *> skip)
 
 parseTextItem :: Parser TextItem
-parseTextItem = unoption $ parseTreeOfRawResult <$> parseRawTextItem
+parseTextItem = (unoption $ parseTreeOfRawResult <$> parseRawTextItem)
 
 newtype ProgramText = ProgramText [TextItem]
   deriving (Show, Eq)

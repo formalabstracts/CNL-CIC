@@ -103,13 +103,13 @@ parseSimpleStatement :: Parser SimpleStatement
 parseSimpleStatement = SimpleStatement <$> parseTerms <*> (sepby1 parseDoesPred $ parseLit "and")
   
 data ThereIsStatement =
-    ThereIs [NamedTerm] -- parsed with sep_list (option(lit_a) named_term)
+    ThereIs NamedTerms -- parsed with sep_list (option(lit_a) named_term)
   | ThereIsNo NamedTerm
   deriving (Show, Eq)
 
 parseThereIsStatement =
   ThereIsNo <$> (parseLit "there" *> parseLitExist *> parseLit "no" *> parseNamedTerm) <||>
-  ThereIs <$>  ((parseLit "there") *> (parseLitExist) *> (sepby1 parseNamedTerm (option parseLitA)))
+  ThereIs <$>  ((parseLit "there") *> (parseLitExist) *> parseNamedTerms)
 
 newtype ConstStatement = ConstStatement [Text]
   deriving (Show, Eq)
@@ -774,7 +774,7 @@ parseStructure :: Parser Structure
 parseStructure = Structure <$>
   (option (parseLit "notational") *> parseLit "structure" *> option (parseLitParam) *> parseArgs) <*>
   ((option $ parseLit "with") *> option (brace_semi parseField)) <*>
-  (option $ parseLit "satisfying" *> parseSatisfyingPreds)
+  (option $ parseLitWithProperties *> parseSatisfyingPreds)
 
 data Field = Field FieldPrefix FieldIdentifier (Maybe FieldSuffix)
   deriving (Show, Eq)
@@ -788,10 +788,10 @@ newtype SatisfyingPreds = SatisfyingPreds [SatisfyingPred]
 parseSatisfyingPreds :: Parser SatisfyingPreds
 parseSatisfyingPreds = SatisfyingPreds <$> brace_semi parseSatisfyingPred
   
-newtype FieldPrefix = FieldPrefix [[Text]]
+newtype FieldPrefix = FieldPrefix (Maybe [[Text]])
   deriving (Show, Eq)
 
-parseFieldPrefix = parseAlt *> (many1' parseLitFieldKey) >>= return . FieldPrefix
+parseFieldPrefix = parseAlt *> option (paren (comma_nonempty_list(parseLitFieldKey))) >>= return . FieldPrefix
 
 
 data FieldIdentifier =
@@ -868,21 +868,22 @@ parseTightestPrefix =
   TightestPrefixDecimal <$> parseDecimal <||>
   TightestPrefixBlank <$> parseBlank <||>
   TightestPrefixAltTerm <$> parseAltTerm <||>
-  TightestPrefixVar <$> parseVar <||>
   TightestPrefixPrimIdentifierTerm <$> parsePrimIdentifierTerm <||>
   -- TightestPrefixPrimPrefixFunction <$> parsePrimPrefixFunction <||>
   TightestPrefixControlSeqTerm <$> parseControlSeqTerm <||>
-  TightestPrefixDelimitedTerm <$> parseDelimitedTerm
+  TightestPrefixDelimitedTerm <$> parseDelimitedTerm <||>
+  TightestPrefixVar <$> parseVar
   
 data AltTerm =
-    AltTermCaseTerm Term -- parsed as CASE term OF
+    AltTermCaseTerm -- Term
+  -- parsed as CASE term OF
   | AltTermMatchTerm MatchSeq -- parsed as MATCH match_seq WITH
   | AltTermLambdaFunction LambdaFunction
   deriving (Show, Eq)
 
 parseAltTerm :: Parser AltTerm
 parseAltTerm =
-  AltTermCaseTerm <$> (parseLit "case" *> parseTerm <* parseLit "of") <||>
+  (parseLit "case") *> return AltTermCaseTerm <||>
   AltTermMatchTerm <$> (parseLit "match" *> parseMatchSeq <* parseLit "with") <||>
   AltTermLambdaFunction <$> parseLambdaFunction
 

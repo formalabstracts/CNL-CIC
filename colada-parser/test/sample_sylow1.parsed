@@ -1,0 +1,189 @@
+TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["Section"]) (Just (Label (AtomicId "Generalities"))))
+
+ERROR: 399:13:
+    |
+399 |   Let    x  \ne y    stand  for    \neg (  x  =  y  )    .  
+    |             ^^^^^^
+unexpected "\ne y "
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+
+
+TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["Section"]) (Just (Label (AtomicId "Setmembership"))))
+
+ERROR: 429:22:
+    |
+429 |   In  this  section  ,  let    V__alpha  ,  V__beta    denote  types  .  
+    |                      ^^^^^^^^
+unexpected ",  let  "
+expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", '!', '#', '$', '&', '(', '*', '+', '-', '.', '/', ':', '<', '=', '>', '@', '\', '^', 'a', lowercase letter, or uppercase letter
+
+
+ERROR: 432:33:
+    |
+432 |   Let  set  over    V__alpha    be  the  type    V__alpha  \to Prop    .  
+    |                                 ^^^
+unexpected "be "
+expecting "if" or "iff"
+
+
+ERROR: 432:33:
+    |
+432 |   Let  set  over    V__alpha    be  the  type    V__alpha  \to Prop    .  
+    |                                 ^^^
+unexpected "be "
+expecting "if", "iff", or "in"
+
+
+ERROR: 440:8:
+    |
+440 |   fun  (  \blank :  V__alpha  )  :=  
+    |        ^^^
+unexpected "(  "
+expecting "if", "iff", lowercase letter, or uppercase letter
+
+
+ERROR: 440:8:
+    |
+440 |   fun  (  \blank :  V__alpha  )  :=  
+    |        ^^^
+unexpected "(  "
+expecting "if", "iff", "in", lowercase letter, or uppercase letter
+
+
+ERROR: 446:10:
+    |
+446 |   Let    \emptyset   equal  
+    |          ^
+parsed empty list, failing
+
+
+ERROR: 446:10:
+    |
+446 |   Let    \emptyset   equal  
+    |          ^
+parsed empty list, failing
+
+
+ERROR: 453:34:
+    |
+453 |   Let  empty  set  stand  for    \emptyset   .  
+    |                                  ^^^^^^^^
+unexpected "\emptyse"
+expecting "all", "an", "any", "are", "be", "case", "each", "equal", "every", "fun", "function", "if", "iff", "in", "is", "let", "match", "no", "one", "some", "the", "to", "zero", '"', '(', '+', ',', '-', '[', '_', 'a', '{', digit, lowercase letter, or uppercase letter
+
+
+ERROR: 492:3:
+    |
+492 |   {  
+    |   ^
+unexpected '{'
+expecting "where", '.', or '_'
+
+
+ERROR: 492:3:
+    |
+492 |   {  
+    |   ^
+unexpected '{'
+expecting "where", '.', ';', or '_'
+
+
+ERROR: 500:13:
+    |
+500 |   Let    x  \in X    denote    C  .notation_in  x  X    ,  inferring  (  C  :  
+    |             ^^^^^^
+unexpected "\in X "
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+
+
+ERROR: 500:13:
+    |
+500 |   Let    x  \in X    denote    C  .notation_in  x  X    ,  inferring  (  C  :  
+    |             ^^^^^^
+unexpected "\in X "
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+
+
+ERROR: 505:13:
+    |
+505 |   Let    x  \notin X    denote    not  (  x  \in X  )    .  
+    |             ^^^^^^
+unexpected "\notin"
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+
+
+ERROR: 505:13:
+    |
+505 |   Let    x  \notin X    denote    not  (  x  \in X  )    .  
+    |             ^^^^^^
+unexpected "\notin"
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+
+
+ERROR: 510:3:
+    |
+510 |   {  
+    |   ^
+unexpected '{'
+expecting "where", '.', or '_'
+
+
+ERROR: 510:3:
+    |
+510 |   {  
+    |   ^
+unexpected '{'
+expecting "where", '.', ';', or '_'
+
+
+ERROR: 518:13:
+    |
+518 |   Let    X  \subset Y    denote  
+    |             ^^^^^^
+unexpected "\subse"
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+
+
+ERROR: 518:13:
+    |
+518 |   Let    X  \subset Y    denote  
+    |             ^^^^^^
+unexpected "\subse"
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+
+
+ERROR: 530:13:
+    |
+530 |   Let    X  \subseteq Y    denote    X  \subset Y    or    (  X  =  Y  )    .  
+    |             ^^^^^^
+unexpected "\subse"
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+
+
+ERROR: 532:22:
+    |
+532 |   Let    X    is  a  subset  of    Y    stand  for    X  \subseteq Y    .  
+    |                      ^
+unexpected 's'
+expecting '.' or ';'
+
+
+ERROR: 534:22:
+    |
+534 |   Let    x    is  a  member  of    X    stand  for    x  \in X    .  
+    |                      ^
+unexpected 'm'
+expecting '.' or ';'
+
+
+TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadFunctionTokenPattern (FunctionTokenPattern (TokenPattern (Tokens [Token "value",Token "of"]) [(TVarVar (Var "f"),Tokens [Token "at"])] (Just (TVarVar (Var "x")))))) CopulaDenote (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "f"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixDelimitedTerm (DelimitedTermParen (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "x"))) (AppArgs Nothing [])))) Nothing))))))])))) Nothing))))) Nothing) []))
+
+ERROR: 554:3:
+    |
+554 |   {  V__alpha  ;  V__beta  }  (  notation_in  over  V__beta  ,  V__alpha  )  :  
+    |   ^
+unexpected '{'
+expecting "where", ',', '.', ';', or '_'
+
+
+TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "This")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "exists")),RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "and"))]) Nothing)) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "n"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "q"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e")))])))) Nothing))))) Nothing) []))

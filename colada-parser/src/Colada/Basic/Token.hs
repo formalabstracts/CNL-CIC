@@ -171,7 +171,7 @@ parseLitLeft =
   <||> (rp $ parseLit "no")
 
 parseLitFieldKey =
-  (rp $ parseLit "over")   <||>
+  (rp $ parseLit "parameter")   <||>
   (rp $ parseLit "type") <||>
   (rp $ parseLit "map")
 
@@ -206,6 +206,13 @@ parseLitAxiom =
   (rp $ parseLit "hypothesis") <||>
   (rp $ parseLit "equation")   <||>
   (rp $ parseLit "formula")
+
+parseLitProperty =
+  (rp $ parseLit "property") <||>
+  (rp $ parseLit "properties")
+
+parseLitWithProperties =
+  parseLit "with" *> parseLitProperty
 
 parseLitTheorem =
   (rp $ parseLit "proposition")  <||>
