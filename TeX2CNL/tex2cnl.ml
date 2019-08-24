@@ -268,16 +268,6 @@ let peek ios b =
   let tok = input ios b in
   let _ = return_input ios [tok] in
   tok;;
-  
-let input_brack_num ios b = 
-  let x = input ios b in
-  let y = input ios b in 
-  let z = input ios b in
-  let f() = () in 
-(* print_debug "[brack:"; print_debug_token x; print_debug_token y; print_debug_token z; print_debug "]" in *)
-  match(x,y,z) with
-  | (LBrack,Natural i,RBrack) -> (f(); i)
-  | _ -> (return_input ios [x;y;z]; 0);;
 
 let is_controlseq t = 
   match t with 
@@ -400,6 +390,17 @@ let rec input_matched_brace_list ios acc k =
     let t = input_to_right_wo_par ios RBrace in 
     input_matched_brace_list ios (t::acc) (k-1);;
 
+let input_brack_num ios =
+  match (peek ios TrackPar) with
+  | LBrack -> (
+    let toks = input_to_right_wo_par ios RBrack in 
+    (match toks with 
+     | [Natural i] -> i
+       | _ -> (output_error ios ("[nat] expected; replacing input "^(tokens_to_string " " toks)^ " with [0]");0))
+  )
+    | _ -> 0;;
+
+
 (* tuples *)
  (* convert tuple to list at outermost layer, with respect to () {}:
    (a,b,(c,d),e,\frac{f}{g,h}) --> [a;b;(c,d);e;\frac{f}{g,h}]
@@ -479,20 +480,20 @@ let process_controlseq ios cs_string =
 (*  let _ = print_debug ("[process-cs:"^cs_string^"]") in *)
   match cs_string with
   | "CnlDelete" -> 
-      let i = input_brack_num ios TrackPar in
+      let i = input_brack_num ios in
       let cs = input_cs ios TrackPar in 
       setmacro (get_csname cs,(i,[])); []
   | "CnlNoExpand" -> 
-      let i = input_brack_num ios TrackPar in
+      let i = input_brack_num ios in
       let cs = input_cs ios TrackPar in 
       setmacro (get_csname cs,(i,[no_expand;cs])); []
   | "CnlCustom" | "CnlDef"  ->
-      let i = input_brack_num ios TrackPar in
+      let i = input_brack_num ios in
       let cs = input_cs ios TrackPar in
       let toks = input_to_right_wo_par ios RBrace in 
       setmacro (get_csname cs,(i,toks)); []
   | "CnlError" ->       
-      let i = input_brack_num ios TrackPar in
+      let i = input_brack_num ios in
       let cs = input_cs ios TrackPar in
       let cname = get_csname cs in
       setmacro (cname,(i,[Warn ("prohibited: \\"^cname)])); []

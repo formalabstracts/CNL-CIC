@@ -238,7 +238,7 @@ prim_typed_name : PA6 {}
  (* from NOT_IMPLEMENTED. Forthel: primClassRelation
     Forthel uses this for quantifier scoping. 
     This might not be needed in the end. 
-    prim_free_predicate : PA7 {} 
+    prim_predicate_pseudoterm : PA7 {} 
   *)
 
  (* from adjective_pattern *)
@@ -550,9 +550,14 @@ overstructure_type :
 general_type : opentail_type {}
 
 
+ (* extend typing relation to prim_relation
+    so that (r:R a) means (r : {x // R a x})
+  *)
 
-
-colon_type : COLON general_type {}
+colon_type :
+  | COLON general_type
+  | COLON prim_relation app_args
+{}
 
 opt_colon_type : option(colon_type) {}
 
@@ -718,8 +723,8 @@ symbolic_term : opentail_term option(where_suffix) {}
 
 definite_term : 
 | symbolic_term
-| option(LIT_THE) prim_definite_noun
-| paren(option(LIT_THE) prim_definite_noun {}) {}
+| option(LIT_THE) prim_definite_noun {}
+    (* | paren(option(LIT_THE) prim_definite_noun {}) {} subsumed by symbolic_term,tightest_term *)
 
  (* where (Haskell style) *)
   where_suffix : LIT_WHERE brace_semi(tvar opt_colon_type ASSIGN term {}) {}
@@ -811,7 +816,7 @@ tightest_prop :
 | annotated_prop
 {}
 
-identifier_prop : identifier {}
+identifier_prop : prim_relation {} (* *)
 
 annotated_prop : paren(prop COLON LIT_PROP {}) {}
 
@@ -864,30 +869,44 @@ attribute(X) : list(left_attribute) X option(right_attribute) {}
   | LIT_THAT sep_list(does_pred) {}
   | LIT_SUCH LIT_THAT statement {}
 
-typed_name : attribute(typed_name_without_attribute) {}
+attribute_pseudoterm : attribute(typed_name_without_attribute) {}
   typed_name_without_attribute : 
   | prim_typed_name
   | tvar
   | prim_classifier tvar 
   | VAR lit_with LIT_TYPE general_type
   | paren(typed_name_without_attribute)
+      {}
+
+predicate_pseudoterm : attribute(plain_pred_pseudoterm) {}
+                         
+  plain_pred_pseudoterm : 
+  | opt_paren(tdop_rel_prop holding_var {}) {}
+
+ (* A pseudoterm is not a term in the grammar. 
+    It is a term-like entity that can be 
+    quantified over by extracting the
+    free variables from the pseudoterm and
+    quantifying over them.
+    For example, 'for all x,y < 5'.
+  *)      
+      
+pseudoterm :
+  | attribute_pseudoterm
+  | predicate_pseudoterm {} 
+
+pseudoterms : sep_list(option(lit_a) pseudoterm {}) {}
+
+any_name : 
+  | lit_any comma_nonempty_list(any_arg) 
+  | lit_any pseudoterm
+  | lit_any general_type
   {}
+  any_arg :
+  | VAR
+  | annotated_vars {}
 
-named_terms : sep_list(option(lit_a) named_term {}) {}
-
-named_term : typed_name | free_predicate {} (* general_type *)
-
- (* 
-  The relevant variables for binding in the first case are all unheld vars. 
-  In the case of a binary relation only vars2 enter the binder. 
-  *)
-free_predicate : attribute(free_predicate_without_attribute) {} 
-  free_predicate_without_attribute : 
-  (* N.B. This might allow too much. It was prim_free_predicate, rather than prop. *)
-  | opt_paren(prop holding_var {}) 
-  | vars2 binary_relation_op tdop_term {}
-  vars2 : tvar comma_nonempty_list(tvar) {}
-
+                
 (** statement *)
 
 statement : head_statement | chain_statement {}
@@ -909,16 +928,6 @@ statement : head_statement | chain_statement {}
     LIT_OR head_primary {}
   head_primary : head_statement | primary_statement {}
 
-  any_name : 
-  | lit_any comma_nonempty_list(any_arg) 
-  | lit_any typed_name
-  | lit_any free_predicate
-  | lit_any general_type
-  {}
-  any_arg :
-  | VAR
-  | annotated_vars {}
-
 (** primary statement *)
 primary_statement :
   | simple_statement {}
@@ -930,18 +939,18 @@ primary_statement :
 
   simple_statement : terms separated_nonempty_list(LIT_AND, does_pred) {}
 
-  there_is_statement : LIT_THERE lit_exist named_terms {}
-  | LIT_THERE lit_exist LIT_NO named_term {}
+  there_is_statement : LIT_THERE lit_exist pseudoterms {}
+  | LIT_THERE lit_exist LIT_NO pseudoterm {}
 
   const_statement : option(LIT_THE) LIT_THESIS {}
   | option(LIT_THE) LIT_CONTRARY
   | lit_a LIT_CONTRADICTION {}
 
   symbol_statement :
-  | LIT_FORALL free_predicate lit_binder_comma
+  | LIT_FORALL predicate_pseudoterm lit_binder_comma
     symbol_statement {}
-  | LIT_EXISTS free_predicate lit_binder_comma symbol_statement
-  | prim_relation
+  | LIT_EXISTS predicate_pseudoterm lit_binder_comma symbol_statement
+  | (* moved to tightest_prop: prim_relation*)
   | LIT_NOT symbol_statement
   | paren(statement)
   | prop
@@ -1014,7 +1023,7 @@ proof_script : proof_preamble option(list(canned_prefix proof_body {})
 
   case : LIT_CASE statement PERIOD proof_script {}
 
-  choose : choose_prefix named_terms by_ref PERIOD choose_justify {}
+  choose : choose_prefix pseudoterms by_ref PERIOD choose_justify {}
   choose_justify : 
   | option(proof_script {}) {}
   choose_prefix : then_prefix option(lit_lets) lit_choose {}
