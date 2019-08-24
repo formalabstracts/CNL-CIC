@@ -1,0 +1,261 @@
+  Section  Thefieldofrealnumbers  .  
+  
+  Definition  Label_field  .    
+  A  field    R    is  a  nontrivial  commutative  ring  such  that  for  all    x  \ne 0    ,    x    is  a  unit  in    R.  
+    
+  
+  Definition  Label_vector_space  .    
+  A  vector  space  is  a  structure  with  
+  {  
+  a  left  module  
+  ;  (  parameter  )    R    :  field  
+  }  .  
+    
+  
+  
+  Definition  Label_ordered_ring  .    
+  An  ordered  ring  is  a  structure  with  
+  {  
+  a  ring  
+  ;  a  linear  order  with  properties  
+  ;  (  notation  )    notation_le  :=    relation  
+  ;  for  all    (  x  y  z  )    ,  if    x  \le y    then    x  +  z  \le y  +  z    
+  ;  for  all    (  x  y  )    ,  if    0  \le a    and    0  \le b    ,  then    0  \le a  *  b    
+  }  .  
+    
+  
+  
+  
+  
+  
+  Definition  Label_ordered_field  .    
+  An  ordered  field  is  a  a  structure  with  
+  {  
+  an  ordered  ring  
+  ;  a  field  
+  }  .  
+    
+  
+  Definition  Label_complete  .    
+  Assume  that    F    is  an  ordered  field  .  
+  We  say  that    F    is  complete  iff  
+  for  every  subset    S    of  the  universe  of    F    ,  
+  if    S  \ne \emptyset   and    S    has  an  upper  bound  in    F    then    S    has  a  least  upper  bound  in    F    .  
+    
+  
+  % Definition  Label_absolute_value  .    
+  % Let  
+  %   ordered_field.absolute_value  (  x  :  element  )  :  element  :=    
+    
+  % case  
+  % \alt 0  \le x  :=  x  
+  % \alt true  :=  -  x  
+  % end  .  
+    
+  % This  exists  and  is  unique  and  total  .  
+    
+  
+  
+  % Definition  Label_isomorphism_of_complete_ordered_fields  .    
+  % Assume  that    F    and    G    are  complete  ordered  fields  .  
+  % An  isomorphism  of  complete  ordered  fields    F  ,  G    is  a  bijection  
+    
+  % f  :  F  \to G  
+    
+  % such  that  
+  % \eqnarray{[(  
+  % \forall x  y  ,  f  (  x  +  y  )  =  f  (  x  )  +  f  (  y  )  \land f  (  x  *  y  )  =  f  (  x  )  *  f  (  y  )  \land \\\ 
+  % \forall x  y  ,  x  \le y  iff  f  (  x  )  \le f  (  y  )  .  
+  % )]}  
+    
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  % Definition  Label_real  .    
+  % Let  Real  be  the  complete  ordered  field  .  
+  % This  exists  and  is  canonical  .  
+    
+  
+  % Subsection  norms  .  
+  
+  % Let    |  (  x  :  Real  )  |    denote  absolute_value    x    .  
+  
+  Definition  Label_normed_commutative_ring  .    
+  A  normed  commutative  ring  is  a  structure  with  
+  {  
+  a  commutative  ring  
+  ;  an  absolute_value  :  element    \to Real    
+  with  properties  
+  ;  non_negativity  :  for  all    x    ,    A  x  =  0  iff  x  =  0    
+  ;  triangle_inequality  :  for  all    x  y  ,  A  (  x  +  y  )  \le A  x  +  A  y    
+  ;  submultiplicative  :  for  all    x  y  ,  A  (  x  *  y  )  \le (  A  x  )  *  (  A  y  )    
+  
+  % }  
+  % where  {  A  :=  absolute_value  }  .  
+    
+  
+  % Definition  Label_normed_field  .    
+  % A  normed  field  is  a  structure  with  
+  % {  
+  % a  normed  commutative  ring  
+  % ;  a  field  
+  % }  .  
+    
+  
+  
+  % Subsection  meetsemilatticeofsubgroups  .  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  % Definition  Label_subgroup  .    
+  % A  subgroup  is  a  structure  with  
+  % {  
+  % (  parameter  )  ambient_group  :  group  
+  % ;  (  type  )  support    :  set  over  ambient_group    
+  % with  properties  
+  % ;  nonempty  :    1  \in support    and  
+  % ;  closure  :  for  all    x  ,  y  \in support  ,  x  *  \inv {  y  }  \in support    
+  % }  .  
+    
+  
+  
+  % Definition  Label_subgroup_semilattice  .    Let  
+  % subgroup_semilattice  
+  %   (  G  :  group  )  :  meet_semilattice  :=    
+  % {  
+  %   element  :=  subgroup  over  G    
+  % ;    relation  H_1  H_2  :=  for  all  x  ,  x  \in H_1  \to x  \in 
+  % H_2    
+  % ;  \blank 
+  % }  .  
+  % This  exists  and  is  unique  .  
+    
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  % Assume  that    G    is  a  finite  group  ,  let  
+  % the  order  of    G    stand  for  the  size  of    G    .  
+  
+  % Definition  Label_subgroup_order  .    
+  % Assume  that    H    is  a  subgroup  over  a  finite  group    G    .  
+  % The  subgroup_order  of    H    is  the  size  of  the  support  of    H    .  
+  % This  exists  and  is  well  subtyped  .  
+    
+  
+  
+  % Section  SylowsTheorems  .  
+  
+  % In  this  section  ,  let    G    denote  a  fixed  finite  group  .  
+  
+  
+  
+  
+  
+  % In  this  section  ,  let    \conj {  g  }  {  X  }    stand  for  
+    
+  % \setcomp {  g  *  x  *  \inv {  g  }  }  {  x  \in X  }  ,  
+    
+  % where    (  g  :  G  )      (  X  :  set  G  )    .  
+  
+  % Definition  Label_conjugate  .    
+  % Assume  that    (  g  :  G  )    .  Assume  that    H    is  a  subgroup  over    G    .  The  
+  % conjugate  of    H    by    g    in    G    is  the  subgroup    \conj {  g  }  {  H  }    over    G    .  
+    
+  
+  Definition  Label_normalizer  .    
+  Assume  that    H    is  a  subgroup  over    G    .  The  normalizer  of    H    
+  in    G    is  the  subgroup    N    over    G    such  that  for  all    x    ,    x  \in N  
+  iff  \conj {  x  }  {  H  }  =  H    .  This  
+  exists  and  is  unique  .  
+    
+  
+  
+  % Let    |  G  |    denote  the  order  of    G    .  
+  
+  % In  this  section  ,  let    p    denote  a  fixed  prime  number  .  
+  
+  
+  
+  
+  
+  
+  
+  
+  % In  this  section  ,  let    \mult {  p  }  {  G  }    denote  the  multiplicity  of    p    in  
+  %   |  G  |    .  
+  
+  
+  % Definition  Label_Sylow  .    
+  % A  Sylow  p  subgroup  of    G    is  a  subgroup    P    over    G    such  that  
+  % the  subgroup_order  of    P    is    \natpow {  p  }  {  \mult {  p  }  {  G  }  }    .  
+    
+  
+  
+  
+  % Definition  .    Let    \Syl {  p  }  {  G  }  =  
+  % \setcomp {  P  }  {  (  P  is  a  Sylow  p  subgroup  of  G  )  }    .  
+    
+  
+  
+  
+  % Let    \SylN {  p  }  {  G  }    denote  the  size  of    \Syl {  p  }  {  G  }    .  This  is  well  
+  % subtyped  
+  % .  
+  
+  
+  
+  
+  Definition  .    Let    \Nz {  p  }  {  G  }    be  equal  to  
+  the  size  of  the  normalizer  of  each  and  every  Sylow    p    subgroup  of    G    .  
+  This  exists  ,  is  unique  ,  and  is  well_defined  .  
+    
+  
+  
+  Theorem  .    There  exists  a  Sylow    p    subgroup  of    G    .  
+    
+  
+  
+  % Theorem  .    If    P  ,  P\'    are  Sylow    p    subgroups  of    G    then  there  exists    (  g  :  G  )    
+  % such  that    P\'  =  \conj {  g  }  {  P  }    .  
+    
+  
+  
+  % Theorem  .    Assume  that    |  G  |  =  p\'  *  \natpow {  p  }  {  m  }    .  
+  % We  have    \SylN {  p  }  {  G  }    divides    p\'    .  
+    
+  
+  
+  % Theorem  .    We  have    p    divides    (  \SylN {  p  }  {  G  }  -  1  )    .  
+    
+  
+  
+  % Theorem  .    We  have    \SylN {  p  }  {  G  }  *  \Nz {  p  }  {  G  }  =  |  G  |    .  

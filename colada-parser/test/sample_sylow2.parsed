@@ -1,0 +1,152 @@
+TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["Section"]) (Just (Label (AtomicId "Thefieldofrealnumbers"))))
+
+ERROR: 4:27:
+  |
+4 |   A  field    R    is  a  nontrivial  commutative  ring  such  that  for  all    x  \ne 0    ,    x    is  a  unit  in    R.  
+  |                           ^
+unexpected 'n'
+expecting '.'
+
+
+ERROR: 4:27:
+  |
+4 |   A  field    R    is  a  nontrivial  commutative  ring  such  that  for  all    x  \ne 0    ,    x    is  a  unit  in    R.  
+  |                           ^
+unexpected 'n'
+expecting '.' or ';'
+
+
+ERROR: 9:3:
+  |
+9 |   {  
+  |   ^
+unexpected '{'
+expecting "where", '.', or '_'
+
+
+ERROR: 9:3:
+  |
+9 |   {  
+  |   ^
+unexpected '{'
+expecting "where", '.', ';', or '_'
+
+
+ERROR: 18:3:
+   |
+18 |   {  
+   |   ^
+unexpected '{'
+expecting "where", '.', or '_'
+
+
+ERROR: 18:3:
+   |
+18 |   {  
+   |   ^
+unexpected '{'
+expecting "where", '.', ';', or '_'
+
+
+ERROR: 33:3:
+   |
+33 |   {  
+   |   ^
+unexpected '{'
+expecting "where", '.', or '_'
+
+
+ERROR: 33:3:
+   |
+33 |   {  
+   |   ^
+unexpected '{'
+expecting "where", '.', ';', or '_'
+
+
+ERROR: 40:32:
+   |
+40 |   Assume  that    F    is  an  ordered  field  .  
+   |                                ^
+unexpected 'o'
+expecting '.'
+
+
+ERROR: 40:32:
+   |
+40 |   Assume  that    F    is  an  ordered  field  .  
+   |                                ^
+unexpected 'o'
+expecting '.' or ';'
+
+
+ERROR: 42:60:
+   |
+42 |   for  every  subset    S    of  the  universe  of    F    ,  
+   |                                                            ^
+unexpected ','
+expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', ';', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+
+
+ERROR: 101:3:
+    |
+101 |   {  
+    |   ^
+unexpected '{'
+expecting "where", '.', or '_'
+
+
+ERROR: 101:3:
+    |
+101 |   {  
+    |   ^
+unexpected '{'
+expecting "where", '.', ';', or '_'
+
+
+ERROR: 195:31:
+    |
+195 |   Assume  that    H    is  a  subgroup  over    G    .  The  normalizer  of    H    
+    |                               ^
+unexpected 's'
+expecting '.'
+
+
+ERROR: 195:31:
+    |
+195 |   Assume  that    H    is  a  subgroup  over    G    .  The  normalizer  of    H    
+    |                               ^
+unexpected 's'
+expecting '.' or ';'
+
+
+ERROR: 196:82:
+    |
+196 |   in    G    is  the  subgroup    N    over    G    such  that  for  all    x    ,    x  \in N  
+    |                                                                                  ^
+unexpected ','
+expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', ';', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+
+
+TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "This")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "exists")),RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "and"))]) Nothing)) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "n"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "q"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e")))])))) Nothing))))) Nothing) []))
+
+ERROR: 237:27:
+    |
+237 |   Definition  .    Let    \Nz {  p  }  {  G  }    be  equal  to  
+    |                           ^
+parsed empty list, failing
+
+
+ERROR: 237:27:
+    |
+237 |   Definition  .    Let    \Nz {  p  }  {  G  }    be  equal  to  
+    |                           ^
+parsed empty list, failing
+
+
+ERROR: 239:17:
+    |
+239 |   This  exists  ,  is  unique  ,  and  is  well_defined  .  
+    |                 ^^^^^^
+unexpected ",  is "
+expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
