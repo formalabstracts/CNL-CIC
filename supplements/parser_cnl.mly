@@ -28,7 +28,7 @@ Thomas C. Hales, 2019.
   Fake symbols PA0, PA1,... PL1, PL2 will be removed from the
   final grammar.  The have been inserted to reduced the number
   of ambiguities in trying to write this as an LR(1) grammar.
-  The implemented verion will use Parsec will arbitrary lookahead. 
+  The implemented verion will use Parsec with arbitrary lookahead. 
 
   I have lost track of keeping parentheses to a necessary minimum.  
  *)
@@ -46,7 +46,8 @@ Thomas C. Hales, 2019.
 
  (*
   The grammar of expressions should fall into four sorts:
-  props, proofs, types, and terms.  Here a term is an expression that
+  props, proofs, types, and terms (and quasiterms).  
+  Here a term is an expression that
   is not any of the other three.  
 
   The parser of the langauge is not expected do to Lean-style type checking,
@@ -72,11 +73,47 @@ type exp_t =
 
 %%
 
- (* These are not used, but they document the lexical structure. 
+(* Lexing 
+  PERIOD is used to demarcate statements (and sections, etc.)
+  Most parsing can be done on a statement by statement basis.
+  (That is, to parse a statement, it is never necessary to look further ahead.)
+
+  Delimiters, COMMA, and SEMI cannot be combined into larger lexemes. 
+  Delimiters must alway occur in properly nested matching pairs. 
+
+  The only characters that may appear in identifiers are A-Z a-z 0-9 ' _ PERIOD
+  The initial character must be alphabetic [a-zA-Z].
+  The final character must not be a PERIOD.
+  The longest possible match rule holds for identifiers. 
+  According to the internal structure of the identifier, the identifier is
+  classified as
+  a variable, an atomic identifier, a hierarchical identifier, or a token. 
+  A token is case insensitve, but other types of identifiers are case sensitive. 
+  There are no keywords, but many tokens (if, then, else, section, etc.)
+  have special meaning in particular
+  contexts. 
+
+  A control sequence is sequence of characters starting with backslash \
+  and continuing with alphabetic characters [a-z][A-Z].  Longest match rule holds. 
+  A second form of control sequence consists of a single backslash followed
+  by a single nonalphabetic character. 
+
+  A field accessor begins with a PERIOD and otherwise has the same structure
+  as a hierarchical identifier. 
+
+  A symbol is a sequence of symbols that are symbol characters, including
+  * + - = ^ % | PERIOD etc.   PERIODS may form part of a symbol, but never singly
+  in a way that might be confounded with numeric decimal points, full stops,
+  field accessor,  or hierarchical identifier dots.  
+  Longest match rule holds. 
+
+
   delimiter : L_PAREN | R_PAREN | L_BRACK | R_BRACK | L_BRACE | R_BRACE {}
   separator : COMMA | SEMI | PERIOD {}
   punctuation : delimiter | separator {}
-  lexeme : NUMERIC | identifier | FIELD_ACCESSOR | SYMBOL | punctuation {}
+
+  lexeme : NUMERIC | STRING | identifier 
+  | FIELD_ACCESSOR | SYMBOL | punctuation | controlseq {}
  *)
 
 
@@ -161,7 +198,7 @@ lit_enddocument :
 | LIT_ENDSUBDIVISION
 {}
 lit_def : LIT_DEF | LIT_DEFINITION {}
-                      lit_axiom : LIT_AXIOM | LIT_CONJECTURE | LIT_HYPOTHESIS | LIT_EQUATION | LIT_FORMULA {}
+lit_axiom : LIT_AXIOM | LIT_CONJECTURE | LIT_HYPOTHESIS | LIT_EQUATION | LIT_FORMULA {}
 lit_property : LIT_PROPERTY | LIT_PROPERTIES {}                                                                                                 
 lit_with_properties : LIT_WITH lit_property {}                                                                                                 
 lit_theorem :
@@ -174,11 +211,17 @@ lit_location :
 | lit_theorem 
 | lit_axiom
 | lit_def {}
-lit_sort : LIT_TYPE | LIT_PROP {}
-                        lit_classifier : LIT_CLASSIFIER | LIT_CLASSIFIERS {}
-                                                          
 
-label : ATOMIC_IDENTIFIER {}
+lit_classifier : LIT_CLASSIFIER | LIT_CLASSIFIERS {}
+
+ (*
+   Unlike earlier LIT_ and lit_ tokens, identifiers are case sensitive. 
+  *)                                                            
+
+ lit_sort : ID_TYPE | ID_PROP {} (* 'Type' and 'Prop' *)
+ label : ATOMIC_IDENTIFIER {}
+
+
 
 (* stub rules suppress errors for unused nonterminals. *)
 stub_nonterminal :
@@ -483,16 +526,16 @@ tightest_type :
 
 paren_type : paren(general_type) {}
 
-annotated_type : paren(general_type COLON LIT_TYPE {}) {}
+annotated_type : paren(general_type COLON ID_TYPE {}) {}
 
 controlseq_type : cs_brace(prim_type_controlseq) {}
 
 const_type : prim_identifier_type {}
 
-(* if not annotated here, the VAR should be previously annotated in the context. *)
+ (* if not annotated here, the VAR should be previously annotated in the context. *)
 var_type : 
 | VAR 
-| paren(VAR COLON LIT_TYPE {}) {}
+| paren(VAR COLON ID_TYPE {}) {}
 
 subtype :  brace(term holding_var LIT_SUBTYPEMID statement {}) {}
 
@@ -613,7 +656,9 @@ proof_expr :
 | paren(proof_expr)
 {}
 
-(* tightest terms *)
+(* terms *)
+
+(** tightest terms *)
 
 tightest_term : 
 | tightest_prefix
@@ -675,10 +720,10 @@ alt_term : (* These bind tightly because of terminating END *)
 | lambda_function
 {}
 
-(*
- Case statements generate an obligation for exhaustive cases. 
- Matches must also be exhaustive. 
- *)
+ (*
+   Case statements generate an obligation for exhaustive cases. 
+   Matches must also be exhaustive. 
+  *)
 case_term : LIT_CASE (* term LIT_OF  *)
   nonempty_list(alt_case) LIT_END {}
   alt_case : ALT prop ASSIGN term {}
@@ -694,9 +739,9 @@ lambda_function : LIT_FUNCTION identifier args
   opt_colon_type nonempty_list(ALT match_pats ASSIGN term {})
   LIT_END {}
 
-(* term *)
+  app_term : tightest_term app_args {}
 
-app_term : tightest_term app_args {}
+(** opentail term *)               
 
 opentail_term : 
 | lambda_term
@@ -752,11 +797,61 @@ terms : sep_list(term) {}
 plain_term : plain(term) {}
   plain(X) : X {} 
 
-(* loose ends *)
-
 
 (** make. *)
 make_term_opt_colon_type : make_term opt_colon_type {}
+
+(** pseudoterms and attributes (forthel style) *)
+
+attribute(X) : list(left_attribute) X option(right_attribute) {}
+
+  left_attribute : 
+  | prim_simple_adjective 
+  | prim_simple_adjective_multisubject {}
+
+  right_attribute : 
+  | sep_list(is_pred) {}
+  | LIT_THAT sep_list(does_pred) {}
+  | LIT_SUCH LIT_THAT statement {}
+
+attribute_pseudoterm : attribute(typed_name_without_attribute) {}
+  typed_name_without_attribute : 
+  | prim_typed_name
+  | tvar
+  | prim_classifier tvar 
+  | VAR lit_with ID_TYPE general_type
+  | paren(typed_name_without_attribute)
+{}
+
+predicate_pseudoterm : attribute(plain_pred_pseudoterm) {}
+
+  plain_pred_pseudoterm : 
+  | opt_paren(tdop_rel_prop holding_var {}) {}
+
+ (* A pseudoterm is not a term in the grammar. 
+    It is a term-like entity that can be 
+    quantified over by extracting the
+    free variables from the pseudoterm and
+    quantifying over them.
+    For example, 'for all x,y < 5'.
+  *)      
+
+pseudoterm :
+  | attribute_pseudoterm
+  | predicate_pseudoterm {} 
+
+pseudoterms : sep_list(option(lit_a) pseudoterm {}) {}
+
+any_name : 
+  | lit_any comma_nonempty_list(any_arg) 
+  | lit_any pseudoterm
+  | lit_any general_type
+  {}
+  any_arg :
+  | VAR
+  | annotated_vars {}
+
+
 
 (* TDOP symbolic terms and formulas *)
  (* top down operator precedence formulas. 
@@ -818,7 +913,7 @@ tightest_prop :
 
 identifier_prop : prim_relation {} (* *)
 
-annotated_prop : paren(prop COLON LIT_PROP {}) {}
+annotated_prop : paren(prop COLON ID_PROP {}) {}
 
 app_prop : tightest_prop app_args {} 
 
@@ -856,57 +951,7 @@ has_pred :
   possessed_noun : attribute(prim_possessed_noun) {}
 
 
-(** attributes (forthel style) *)
 
-attribute(X) : list(left_attribute) X option(right_attribute) {}
-
-  left_attribute : 
-  | prim_simple_adjective 
-  | prim_simple_adjective_multisubject {}
-
-  right_attribute : 
-  | sep_list(is_pred) {}
-  | LIT_THAT sep_list(does_pred) {}
-  | LIT_SUCH LIT_THAT statement {}
-
-attribute_pseudoterm : attribute(typed_name_without_attribute) {}
-  typed_name_without_attribute : 
-  | prim_typed_name
-  | tvar
-  | prim_classifier tvar 
-  | VAR lit_with LIT_TYPE general_type
-  | paren(typed_name_without_attribute)
-      {}
-
-predicate_pseudoterm : attribute(plain_pred_pseudoterm) {}
-                         
-  plain_pred_pseudoterm : 
-  | opt_paren(tdop_rel_prop holding_var {}) {}
-
- (* A pseudoterm is not a term in the grammar. 
-    It is a term-like entity that can be 
-    quantified over by extracting the
-    free variables from the pseudoterm and
-    quantifying over them.
-    For example, 'for all x,y < 5'.
-  *)      
-      
-pseudoterm :
-  | attribute_pseudoterm
-  | predicate_pseudoterm {} 
-
-pseudoterms : sep_list(option(lit_a) pseudoterm {}) {}
-
-any_name : 
-  | lit_any comma_nonempty_list(any_arg) 
-  | lit_any pseudoterm
-  | lit_any general_type
-  {}
-  any_arg :
-  | VAR
-  | annotated_vars {}
-
-                
 (** statement *)
 
 statement : head_statement | chain_statement {}
@@ -1103,14 +1148,14 @@ definition_statement :
     | symbol_pattern option(paren_precedence_level)
     | identifier_pattern {}
 
-(*
+ (*
   structure_def : option(lit_a) identifier_pattern LIT_IS 
     lit_a structure {}
 
   inductive_def : opt_define inductive_type {}
   
   mutual_inductive_def : opt_define mutual_inductive_type {}
- *)
+  *)
 
  (*
 
