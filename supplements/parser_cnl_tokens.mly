@@ -2,7 +2,7 @@
 %token <string> CONTROLSEQ (* \cs *)
 
 %token <string> NUMBER (*digit+ *)
-%token <string> DECIMAL (*digit+ . digit+ *)
+(* %token <string> DECIMAL (*digit+ . digit+ *) *)
 %token <string> INTEGER (* (+|-)? number  *)
 %token <string> NUMERIC (*(+|-)? (number | decimal) *)
 %token <string> SYMBOL
@@ -15,6 +15,8 @@
 %token <string> R_BRACE
 %token <string> MAPSTO (* |-> *)
 %token <string> PERIOD
+%token <string> MID (* set comprehension | *)
+%token <string> TMID (* subtype comprehension // *)
 %token <string> COMMA
 %token <string> SEMI
 %token <string> COLON
@@ -113,7 +115,6 @@ LIT_LET
 LIT_LIBRARY
 LIT_MAP
 LIT_MATCH
-LIT_MID
 LIT_NO
 LIT_NOT
 LIT_NOTATION
@@ -155,7 +156,6 @@ LIT_STRUCTURE
 LIT_SUBDIVISION
 LIT_SUBSECTION
 LIT_SUBSUBSECTION
-LIT_SUBTYPEMID
 LIT_SUCH
 LIT_SUPPOSE
 LIT_SYNONYM
@@ -173,6 +173,7 @@ LIT_TO
 LIT_TOTAL
 LIT_TRIVIAL
 LIT_TRUE
+LIT_TYPE
 ID_TYPE
 LIT_UNIQUE
 LIT_US

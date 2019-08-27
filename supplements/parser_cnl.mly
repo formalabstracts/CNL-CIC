@@ -95,25 +95,65 @@ type exp_t =
 
   A control sequence is sequence of characters starting with backslash \
   and continuing with alphabetic characters [a-z][A-Z].  Longest match rule holds. 
+  Control sequences are case sensitive.
+
   A second form of control sequence consists of a single backslash followed
-  by a single nonalphabetic character. 
+  by a single character. 
+  The second character cannot be alphabetic, a delimiter, or separator. 
 
   A field accessor begins with a PERIOD and otherwise has the same structure
   as a hierarchical identifier. 
 
+  SYMBOLS
   A symbol is a sequence of symbols that are symbol characters, including
-  * + - = ^ % | PERIOD etc.   PERIODS may form part of a symbol, but never singly
+  * + - = ^ % < > | PERIOD COLON etc.   
+
+  A symbol character is any character EXCEPT
+  whitespace, delimiters, a-z A-Z 0-9, COMMA, SEMI, (greek if unicode is used).
+
+  Longest match rule holds.  
+
+  Certain reserved symbol character sequences are not symbols:
+  An isolated COLON is not a symbol. 
+  An ASSIGN (:=) is not a symbol. 
+  
+
+  PERIODS may form part of a symbol, but never singly
   in a way that might be confounded with numeric decimal points, full stops,
   field accessor,  or hierarchical identifier dots.  
-  Longest match rule holds. 
 
 
+  A symbol must not begin with \ 
+
+
+  LEXICAL CATEGORIES:
   delimiter : L_PAREN | R_PAREN | L_BRACK | R_BRACK | L_BRACE | R_BRACE {}
   separator : COMMA | SEMI | PERIOD {}
   punctuation : delimiter | separator {}
 
   lexeme : NUMERIC | STRING | identifier 
   | FIELD_ACCESSOR | SYMBOL | punctuation | controlseq {}
+
+
+
+  RESERVED CONTROL SEQUENCES.
+  We reserve certain control sequences for Lean-like syntax
+  SYMBOL_QED \qed proof marker 
+  MID \mid vertical stroke of set comprehension
+  TMID \tmid vertical stroke of subtype comprehension 
+  ALT \alt vertical stroke of matches
+  APPLYSUB \sub 
+  COERCION \^ 
+  MAPSTO \mapsto
+  type arrow,  \to 
+  BLANK \blank (or _)
+  \\ \lam \lambder (lambda binder)  
+  (\lambda itself is reserved for ordinary math usage.)
+  \forall (forall symbol)
+  \exists (exists symbol)
+  \Pity (Pi-type binder symbol) 
+  (\Pi itself is reserved for ordinary math usage.)
+
  *)
 
 
@@ -274,8 +314,15 @@ prim_pi_binder : PA4 {} (* type binders *)
 prim_binder_prop : PA5 {}
 
 
- (* from declarations of structures, quotients, 
-    inductive types, mutual inductive types  *) 
+ (* derived from declarations of prim_identifier_type, 
+    structures, quotients, 
+    inductive types, mutual inductive types  
+
+    Roughly, this should be any wordlike type that can carry a
+    "names appositive" and attributes:
+    integer x; real numbers y,z; group G; ring R; modules M,N over R.
+    The recorded patterns should have names in the first position. 
+  *) 
 prim_typed_name : PA6 {} 
 
  (* from NOT_IMPLEMENTED. Forthel: primClassRelation
@@ -405,8 +452,10 @@ annotated_vars : paren(var_modifier nonempty_list(VAR) opt_colon_type {}) {}
 
 tvar : VAR | annotated_var {}
 
+assign_expr : ASSIGN expr {}
+
 record_assign_term :
-  brace_semi(var_or_atomic opt_colon_type ASSIGN expr {})  {}
+  brace_semi(var_or_atomic opt_colon_type assign_expr {})  {}
 
 app_args :  (* can be empty *)
   option( record_assign_term {}) list(tightest_expr) {}
@@ -537,7 +586,7 @@ var_type :
 | VAR 
 | paren(VAR COLON ID_TYPE {}) {}
 
-subtype :  brace(term holding_var LIT_SUBTYPEMID statement {}) {}
+subtype :  brace(term holding_var TMID statement {}) {}
 
 app_type : tightest_type app_args {}
 
@@ -586,11 +635,11 @@ overstructure_type :
 | prim_structure LIT_OVER over_args {}
 
   over_args :
-  | brace_semi(var_or_atomic ASSIGN term {})
+  | brace_semi(var_or_atomic assign_expr {})
   | comma_nonempty_list(tightest_expr) {}
 
 
-general_type : opentail_type {}
+general_type : attribute(opentail_type) {}
 
 
  (* extend typing relation to prim_relation
@@ -642,12 +691,11 @@ structure : option(LIT_NOTATIONAL) LIT_STRUCTURE
   | prim_structure
   | var_or_atomic opt_colon_type {}
 
-  field_prefix : ALT option(paren(comma_nonempty_list(lit_field_key) {})) {}
-  field_suffix : LIT_WITHOUT LIT_NOTATION | field_assign {}
-  field_assign : ASSIGN expr {}
+  field_prefix : option(paren(comma_nonempty_list(lit_field_key) {})) {}
+  field_suffix : LIT_WITHOUT LIT_NOTATION | assign_expr {}
 
   satisfying_preds : brace_semi(satisfying_pred) {}
-  satisfying_pred : ALT option(ATOMIC_IDENTIFIER COLON {}) prop {}
+  satisfying_pred : option(ATOMIC_IDENTIFIER COLON {}) prop {}
 
 (* proof expressions (distinct from proof scripts). *)
 
@@ -671,7 +719,7 @@ tightest_term :
   tightest_prefix :
   | NUMERIC
   | STRING
-  | DECIMAL
+(*  | DECIMAL, covered by NUMERIC *)
   | BLANK 
   | VAR
   | prim_identifier_term
@@ -697,20 +745,20 @@ delimited_term :
 
 annotated_term : paren(term colon_type {}) {}
 
-make_term : brace_semi(var_or_atomic_or_blank
-  option(ASSIGN term {}) {}) {}
+make_term : brace_semi(var_or_atomic_or_blank opt_colon_type
+  option(assign_expr {}) {}) {}
 
   var_or_atomic_or_blank : 
   | var_or_atomic
   | BLANK {}
 
-list_term : bracket(separated_list(SEMI,term) {}) {}
+list_term : bracket(separated_list(SEMI,plain_term) {}) {}
 
-tuple_term : paren(term COMMA comma_nonempty_list(term) {}) {}
+tuple_term : paren(plain_term COMMA comma_nonempty_list(plain_term) {}) {}
 
-set_enum_term : brace(comma_list(term) {}) {}
+set_enum_term : brace(comma_list(plain_term) {}) {}
 
-set_comprehension_term : brace(term holding_var LIT_MID statement {}) {} 
+set_comprehension_term : brace(plain_term holding_var MID statement {}) {} 
 
 (** alt_term *)
 
@@ -726,17 +774,17 @@ alt_term : (* These bind tightly because of terminating END *)
   *)
 case_term : LIT_CASE (* term LIT_OF  *)
   nonempty_list(alt_case) LIT_END {}
-  alt_case : ALT prop ASSIGN term {}
+  alt_case : ALT prop ASSIGN plain_term {}
 
 match_term : LIT_MATCH match_seq LIT_WITH 
-  nonempty_list(ALT match_pats ASSIGN term {}) LIT_END {}
+  nonempty_list(ALT match_pats ASSIGN plain_term {}) LIT_END {}
 
-  match_seq : comma_nonempty_list(term) {}
+  match_seq : comma_nonempty_list(plain_term) {}
   match_pats : comma_nonempty_list(match_pat) {}
-  match_pat : term {} (* Variables that do not appear in match_seq are assumed fresh. *)
+  match_pat : plain_term {} (* Variables that do not appear in match_seq are assumed fresh. *)
 
 lambda_function : LIT_FUNCTION identifier args 
-  opt_colon_type nonempty_list(ALT match_pats ASSIGN term {})
+  opt_colon_type nonempty_list(ALT match_pats ASSIGN plain_term {})
   LIT_END {}
 
   app_term : tightest_term app_args {}
@@ -760,19 +808,20 @@ lambda_fun : LIT_FUN identifier generalized_args
   opt_colon_type ASSIGN opentail_term {}
 
   (* let includes destructuring*)
-let_term : LIT_LET term ASSIGN term LIT_IN opentail_term {}
+let_term : LIT_LET plain_term ASSIGN plain_term LIT_IN opentail_term {}
 
-if_then_else_term : LIT_IF prop LIT_THEN term LIT_ELSE opentail_term {}
+if_then_else_term : LIT_IF prop LIT_THEN plain_term LIT_ELSE opentail_term {}
 
 symbolic_term : opentail_term option(where_suffix) {}
 
 definite_term : 
 | symbolic_term
 | option(LIT_THE) prim_definite_noun {}
-    (* | paren(option(LIT_THE) prim_definite_noun {}) {} subsumed by symbolic_term,tightest_term *)
+    (* | paren(option(LIT_THE) prim_definite_noun {}) {} subsumed by paren(symbolic_term) tightest_term *)
 
  (* where (Haskell style) *)
-  where_suffix : LIT_WHERE brace_semi(tvar opt_colon_type ASSIGN term {}) {}
+  where_suffix : LIT_WHERE brace_semi(option(paren(var_modifier)) 
+                 VAR opt_colon_type option(assign_expr) {}) {}
 
 term : 
 | definite_term 
@@ -845,7 +894,7 @@ pseudoterms : sep_list(option(lit_a) pseudoterm {}) {}
 any_name : 
   | lit_any comma_nonempty_list(any_arg) 
   | lit_any pseudoterm
-  | lit_any general_type
+  | lit_any general_type (* XX remove this? *)
   {}
   any_arg :
   | VAR
@@ -1025,7 +1074,7 @@ axiom : axiom_preamble list(assumption)
   | assumption_prefix statement PERIOD
   | let_annotation PERIOD {}
   assumption_prefix : 
-  | LIT_LET 
+(*  | LIT_LET. Remove ambiguity with statement starting with let_term. *)
   | lit_lets lit_assume option(LIT_THAT) {}
 
   then_prefix : option(lit_then) {}
@@ -1125,7 +1174,7 @@ definition_statement :
   classifier_def : LIT_LET class_tokens lit_is lit_a lit_classifier {}
     class_tokens : comma_nonempty_list(TOKEN) {}
 
-  type_def : opt_define type_head copula lit_a general_type {}
+  type_def : opt_define type_head COLON ID_TYPE copula lit_a general_type {}
 
     type_head :  
     | type_token_pattern 
@@ -1188,8 +1237,8 @@ definition_statement :
   identifier patterns start with an identifier.
 
   Types use the copula.
-  type_def vs. function_def distinguished by whether the RHS of the copula is
-  a type or term. 
+  type_def from function_def distinguished by COLON ID_TYPE
+  before the copula. 
   *)
 
 (* macro *)
