@@ -21,5 +21,21 @@ For example, ~stack exec colada test/test.txt~ should succeed.
 
 Note: in the output, error messages may appear twice in a row with the same offset.
 
+** REPL instructions
+
+From Emacs, enter ~C-c C-z~ from a Haskell-mode buffer with ~intero-mode~ enabled to open the ~intero~ REPL.
+
+Otherwise, run the command
+#+begin_src bash
+stack ghci --with-ghc ghci "--docker-run-args=--interactive=true --tty=false" --no-build --no-load colada-parser
+#+end_src
+in a shell from inside the ~colada-parser~ directory.
+
+Ensure that the OverloadedStrings extension is enabled by e.g. entering ~:set -XOverloadedStrings~. Load all files in the project with ~:load Colada.Tests~. To test a parser ~myParser~, enter
+#+begin_src haskell
+test myParser "my input string here"
+#+end_src
+at the prompt.
+
 ** Author(s)
  - [[https://github.com/jesse-michael-han][Jesse Michael Han]]
