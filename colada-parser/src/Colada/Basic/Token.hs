@@ -149,7 +149,7 @@ parseLitAny =
   <||> (rp $ parseLit "some")
   <||> (rp $ parseLit "no")
 
-parseLitExist = (rp $ parseLit "exists") <||> (rp $ parseLit "exists")
+parseLitExist = (rp $ parseLit "exists") <||> (rp $ parseLit "exist")
 
 parseLitThen =
        (rp $ parseLit "then")
