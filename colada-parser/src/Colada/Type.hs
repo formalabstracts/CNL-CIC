@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE PolyKinds #-}
 {-
-Author(s): Jesse Michael Han (2019)
+Author(s): Jesse Michael Han, Floris van Doorn (2019)
 
 Parsing types and type ascriptions.
 -}
@@ -490,18 +490,18 @@ parseOptArgs = (brace_semi $ do
 
 
 data AnyName =
-    AnyNameAnyArgs [AnyArg]
-  | AnyNameTypedName TypedName
-  | AnyNameFreePredicate FreePredicate
-  | AnyNameGeneralType GeneralType
+    AnyNameAnyArgs [Text] [AnyArg]
+  | AnyNameTypedName [Text] TypedName
+  | AnyNameFreePredicate [Text] FreePredicate
+  | AnyNameGeneralType [Text] GeneralType
   deriving (Show, Eq)
 
 parseAnyName :: Parser AnyName
 parseAnyName =
-  AnyNameAnyArgs <$> (parseLitAny *> sepby1 parseAnyArg parseComma) <||>
-  AnyNameTypedName <$> (parseLitAny *> parseTypedName) <||>
-  AnyNameFreePredicate <$> (parseLitAny *> parseFreePredicate) <||>
-  AnyNameGeneralType <$> (parseLitAny *> parseGeneralType)
+  AnyNameAnyArgs <$> parseLitAny <*> (sepby1 parseAnyArg parseComma) <||>
+  AnyNameTypedName <$> parseLitAny <*> parseTypedName <||>
+  AnyNameFreePredicate <$> parseLitAny <*> parseFreePredicate <||>
+  AnyNameGeneralType <$> parseLitAny <*> parseGeneralType
 
 newtype TypedName = TypedName (Attribute TypedNameWithoutAttribute)
   deriving (Show, Eq)
