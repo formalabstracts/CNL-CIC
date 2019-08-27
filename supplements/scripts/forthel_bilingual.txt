@@ -24,16 +24,6 @@ symbPattern -
 symbToken -
 tokenGroup -
 
-<<<<<<< HEAD
-1.3.2 Notions - 
-primClassNoun - prim_typed_name
-primClassRelation - prim_free_predicate
-names - 
-leftAttribute - 
-rightAttribute - 
-primSimpleAdjective - 
-primSimpleAdjectiveM - 
-=======
 1.3.2 Notions -
 primClassNoun - prim_typed_name - TypedNameWithoutAttribute
 primClassRelation - prim_free_predicate - FreePredicateWithoutAttribute
@@ -42,9 +32,8 @@ leftAttribute -
 rightAttribute -
 primSimpleAdjective -
 primSimpleAdjectiveM -
->>>>>>> 5717cbf... whitespace
 notion - named_term
-classNoun - 
+classNoun -
 classRelation - free_predicate
 
 1.3.3 Terms -
