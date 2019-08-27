@@ -93,7 +93,7 @@ parseLitDefinedAs =
        (rp $ parseLit "said") <+> (rp $ parseLit "to") <+> (rp $ parseLit "be")
   <||> (rp $ parseLit "defined") <+> (rp $ parseLit "to") <+> (rp $ parseLit "be")
   <||> (rp $ parseLit "defined") <+> (rp $ parseLit "as")
-  
+
 parseLitIff =
       (rp $ parseLit "iff") <||> (rp $ parseLit "if")
                              <+> (rp $ parseLit "and")
@@ -139,7 +139,7 @@ parseLitWeRecord =
              (Just <$> ((rp $ parseLit "record") <||>
                         (rp $ parseLit "register"))) <+>
              option (rp $ parseLit "that")
-  
+
 parseLitAny =
        (rp $ parseLit "every")
   <||> (rp $ parseLit "each")
@@ -163,7 +163,7 @@ parseLitProve = (rp $ parseLit "prove") <||> (rp $ parseLit "show")
 parseLitWeSay = (rp $ parseLit "we") <+> (rp $ parseLit "say") <+> (rp $ parseLit "that")
            <||> (rp $ parseLit "we") <+> (rp $ parseLit "say")
 
-parseOptSay = option parseLitWeSay                
+parseOptSay = option parseLitWeSay
 
 parseLitLeft =
        (rp $ parseLit "left")
@@ -237,7 +237,7 @@ parseLitVarMod =
   (rp $ parseLit "remove")
 
 parseLitParam = (rp $ parseLit "with") <+> (rp $ parseLit "parameters")
-      
+
 parseDataHelper :: a -> Text -> (Parser a)
 parseDataHelper l arg = ((do
   x <- not_whitespace
@@ -344,7 +344,7 @@ parseVarOrNumber :: Parser VarOrNumber
 parseVarOrNumber =
   OfNumber <$> parseNumber <||>
   OfVar <$> parseVar
-  
+
 data HierId = HierId [AtomicId] (Maybe VarOrNumber)
   deriving (Show, Eq)
 
@@ -399,7 +399,7 @@ parseSymbolQED = ((symbol' "qed" )
                <||> (symbol  "◾"   )
                <||> (symbol  "◼"   )
                   ) >>= return . SymbolQED
-                  
+
 parseLParen :: Parser LParen
 parseLParen = (ch '(' >> return LParen) <* sc
 
@@ -451,7 +451,7 @@ parseRArrow = parseDataHelper0 RArrow "->"
 parseLArrow :: Parser LArrow
 parseLArrow = parseDataHelper0 LArrow "<-"
           <||> parseDataHelper0 LArrow "←"
-          
+
 parseBlank :: Parser Blank
 parseBlank = parseDataHelper0 Blank "_"
 
@@ -512,7 +512,7 @@ parseTokenOfToken tk = case tk of
 parseTkString :: Parser TkString
 parseTkString = (between (ch '"') (ch '"') str >>= return . TkString) <* sc
   where str = (many $ (ch '\\' <+> item) <||> not_ch '"') >>= return . join
-  
+
   -- (do
   -- as <- many1 alpha <* sc -- the nested lookAheads look insane, but seem to work
   -- b <- succeeds (lookAhead(lookAhead(char '.') >> char '.' >> (alpha) <||> (digit)) <||> fail "foo")
@@ -523,10 +523,10 @@ parseTkString = (between (ch '"') (ch '"') str >>= return . TkString) <* sc
       -- <||> (do as <- many1 alpha
       --          lookAhead (char '.' >> (lookAhead eof) <||> (lookAhead whiteChar))
       -- <||> (many1 alpha <* eof >>= return . Tk .join)
- 
+
   -- (spaceChar >> return $ Lit YES) <|> parseEOF
   -- (spaceChar) <|> eof
-  
+
 
   -- (many1 alpha) >>= return . Tk . join) <* sc
 
@@ -566,7 +566,7 @@ parseFieldAcc = ch ('.') *>
   --     ((do (ch '.') *> (parseAtomicId >>= return . FieldAcc . OfAtomicId))
   -- <||> (do (ch '.') *> (parseNumber >>= return . FieldAcc . OfNumber))
   -- <||> (do (ch '.') *> (parseVar >>= return . FieldAcc . OfVar))) <* sc
-    
+
 parseCoercion :: Parser Coercion
 parseCoercion = (str "↑" <||> str "^|") >> return Coercion
 
