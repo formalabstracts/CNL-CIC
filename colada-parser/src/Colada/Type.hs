@@ -116,8 +116,8 @@ newtype ConstStatement = ConstStatement [Text]
 
 parseConstStatement :: Parser ConstStatement
 parseConstStatement = ConstStatement <$> (option(parseLit "the") *> option(parseLit "thesis") *>
-  ( option(parseLit "the") *> (rp $ parseLit "contrary" ) <||>
-    parseLitA *> (rp $ parseLit "contradiction")))
+  ( option(parseLit "the") *> (pure <$> parseLit "contrary" ) <||>
+    parseLitA *> (pure <$> parseLit "contradiction")))
 
 data SymbolStatement =
     SymbolStatementForall FreePredicate SymbolStatement

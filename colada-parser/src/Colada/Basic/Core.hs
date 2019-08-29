@@ -56,8 +56,8 @@ p <||> q = (try p) <|> q
 (<+>) :: Semigroup a => Parser a -> Parser a -> Parser a
 p <+> q = (<>) <$> p <*> q
 
-rp :: Parser a -> Parser [a]
-rp p = p >>= return . pure
+-- rp :: Parser a -> Parser [a]
+-- rp p = p >>= return . pure
 
 join :: [Text] -> Text
 join ts = foldl (<>) "" ts
@@ -230,7 +230,7 @@ parse_any_of_with_index = parse_any_of_with_index_aux 0
 parse_list :: [a] -> (a -> Parser b) -> Parser [b]
 parse_list as m = case as of
   [] -> return []
-  x:xs -> (rp $ m x) <+> parse_list xs m
+  x:xs -> (pure <$> m x) <+> parse_list xs m
 
 run_all :: [Parser a] -> Parser ()
 run_all ps = case ps of

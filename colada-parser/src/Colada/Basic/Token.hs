@@ -58,7 +58,7 @@ parseLit arg = (str' arg) <* sc
 
 -- test (parse_any_Lits [["foo", "bar"]]) "foo      bar"
 parse_any_Lit :: [[Text]] -> Parser [Text]
-parse_any_Lit = parse_any (rp . parseLit)
+parse_any_Lit = parse_any ((pure <$>) . parseLit)
 
 -- auxiliary lit parsers, of the form `lit_*` in the grammar specification
 
@@ -76,7 +76,7 @@ parseLitLets = (do a <- parseLit "let"
                          Nothing -> [a])
 
 parseLitAssume :: Parser [Text]
-parseLitAssume = (rp $ parseLit "assume") <||> (rp $ parseLit "suppose")
+parseLitAssume = (pure <$> parseLit "assume") <||> (pure <$> parseLit "suppose")
 
 parseLitA = parseLit "an" <||> parseLit "a"
 
@@ -86,96 +86,115 @@ parseSepAndComma = parseLit "and" <||> parseLit ","
 
 parseLitBinderComma = parseLit ","
 
-parseOptDefine = (option $ parseLitLets) <+> (option $ rp $ parseLit "define") <||> option (parseLitWeRecord)
+parseOptDefine = (option $ parseLitLets) <+> (option $ pure <$> parseLit "define") <||> option (parseLitWeRecord)
 
 parseLitDefinedAs :: Parser [Text]
 parseLitDefinedAs =
-       (rp $ parseLit "said") <+> (rp $ parseLit "to") <+> (rp $ parseLit "be")
-  <||> (rp $ parseLit "defined") <+> (rp $ parseLit "to") <+> (rp $ parseLit "be")
-  <||> (rp $ parseLit "defined") <+> (rp $ parseLit "as")
+       (pure <$> parseLit "said") <+> (pure <$> parseLit "to") <+> (pure <$> parseLit "be")
+  <||> (pure <$> parseLit "defined") <+> (pure <$> parseLit "to") <+> (pure <$> parseLit "be")
+  <||> (pure <$> parseLit "defined") <+> (pure <$> parseLit "as")
 
+parseLitIff :: Parser [Text]
 parseLitIff =
-      (rp $ parseLit "iff") <||> (rp $ parseLit "if")
-                             <+> (rp $ parseLit "and")
-                             <+> (rp $ parseLit "only")
-                             <+> (rp $ parseLit "if")
+      (pure <$> parseLit "iff") <||> (pure <$> parseLit "if")
+                             <+> (pure <$> parseLit "and")
+                             <+> (pure <$> parseLit "only")
+                             <+> (pure <$> parseLit "if")
 
+parseLitDenote :: Parser [Text]
 parseLitDenote =
-  (rp $ parseLit "denote") <||> (rp $ parseLit "stand") <+> (rp $ parseLit "for")
+  (pure <$> parseLit "denote") <||> (pure <$> parseLit "stand") <+> (pure <$> parseLit "for")
 
+parseLitDo :: Parser [Text]
 parseLitDo =
-  (rp $ parseLit "does") <||> (rp $ parseLit "does")
+  (pure <$> parseLit "does") <||> (pure <$> parseLit "does")
 
+parseLitIs :: Parser [Text]
 parseLitIs =
-       (rp $ parseLit "is")
-  <||> (rp $ parseLit "are")
-  <||> (rp $ parseLit "to") <+> (rp $ parseLit "be")
-  <||> (rp $ parseLit "be")
+       (pure <$> parseLit "is")
+  <||> (pure <$> parseLit "are")
+  <||> (pure <$> parseLit "to") <+> (pure <$> parseLit "be")
+  <||> (pure <$> parseLit "be")
 
-parseLitEqual = (rp $ parseLit "equal") <+> (rp $ parseLit "to")
+parseLitEqual :: Parser [Text]
+parseLitEqual = (pure <$> parseLit "equal") <+> (pure <$> parseLit "to")
 
-parseLitHas = (rp $ parseLit "has") <||> (rp $ parseLit "have")
+parseLitHas :: Parser [Text]
+parseLitHas = (pure <$> parseLit "has") <||> (pure <$> parseLit "have")
 
+parseLitWith :: Parser [Text]
 parseLitWith =
-       (rp $ parseLit "")
-  <||> (rp $ parseLit "of")
-  <||> (rp $ parseLit "having")
-  <||> (rp $ parseLit "with")
+       (pure <$> parseLit "")
+  <||> (pure <$> parseLit "of")
+  <||> (pure <$> parseLit "having")
+  <||> (pure <$> parseLit "with")
 
+parseLitTrue :: Parser [Text]
 parseLitTrue =
-       (rp $ parseLit "on")
-  <||> (rp $ parseLit "true")
-  <||> (rp $ parseLit "yes")
+       (pure <$> parseLit "on")
+  <||> (pure <$> parseLit "true")
+  <||> (pure <$> parseLit "yes")
 
+parseLitFalse :: Parser [Text]
 parseLitFalse =
-       (rp $ parseLit "off")
-  <||> (rp $ parseLit "false")
-  <||> (rp $ parseLit "no")
+       (pure <$> parseLit "off")
+  <||> (pure <$> parseLit "false")
+  <||> (pure <$> parseLit "no")
 
-parseLitItsWrong = (rp $ parseLit "it") <+> (rp $ parseLit "is") <+> (rp $ parseLit "wrong") <+> (rp $ parseLit "that")
+parseLitItsWrong :: Parser [Text]
+parseLitItsWrong = (pure <$> parseLit "it") <+> (pure <$> parseLit "is") <+> (pure <$> parseLit "wrong") <+> (pure <$> parseLit "that")
 
+parseLitWeRecord :: Parser [Text]
 parseLitWeRecord =
-  unoption $ option (rp $ parseLit "we") <+>
-             (Just <$> ((rp $ parseLit "record") <||>
-                        (rp $ parseLit "register"))) <+>
-             option (rp $ parseLit "that")
+  unoption $ option (pure <$> parseLit "we") <+>
+             (Just <$> ((pure <$> parseLit "record") <||>
+                        (pure <$> parseLit "register"))) <+>
+             option (pure <$> parseLit "that")
 
+parseLitAny :: Parser [Text]
 parseLitAny =
-       (rp $ parseLit "every")
-  <||> (rp $ parseLit "each")
-  <||> (rp $ parseLit "each") <+> (rp $ parseLit "and") <+> (rp $ parseLit "every")
-  <||> (rp $ parseLit "all")
-  <||> (rp $ parseLit "any")
-  <||> (rp $ parseLit "some")
-  <||> (rp $ parseLit "no")
+       (pure <$> parseLit "every")
+  <||> (pure <$> parseLit "each")
+  <||> (pure <$> parseLit "each") <+> (pure <$> parseLit "and") <+> (pure <$> parseLit "every")
+  <||> (pure <$> parseLit "all")
+  <||> (pure <$> parseLit "any")
+  <||> (pure <$> parseLit "some")
+  <||> (pure <$> parseLit "no")
 
-parseLitExist = (rp $ parseLit "exists") <||> (rp $ parseLit "exist")
+parseLitExist :: Parser [Text]
+parseLitExist = (pure <$> parseLit "exists") <||> (pure <$> parseLit "exist")
 
+parseLitThen :: Parser [Text]
 parseLitThen =
-       (rp $ parseLit "then")
-  <||> (rp $ parseLit "therefore")
-  <||> (rp $ parseLit "hence")
+       (pure <$> parseLit "then")
+  <||> (pure <$> parseLit "therefore")
+  <||> (pure <$> parseLit "hence")
 
-parseLitChoose = (rp $ parseLit "take") <||> (rp $ parseLit "choose")
+parseLitChoose :: Parser [Text]
+parseLitChoose = (pure <$> parseLit "take") <||> (pure <$> parseLit "choose")
 
-parseLitProve = (rp $ parseLit "prove") <||> (rp $ parseLit "show")
+parseLitProve :: Parser [Text]
+parseLitProve = (pure <$> parseLit "prove") <||> (pure <$> parseLit "show")
 
-parseLitWeSay = (rp $ parseLit "we") <+> (rp $ parseLit "say") <+> (rp $ parseLit "that")
-           <||> (rp $ parseLit "we") <+> (rp $ parseLit "say")
+parseLitWeSay :: Parser [Text]
+parseLitWeSay = (pure <$> parseLit "we") <+> (pure <$> parseLit "say") <+> (pure <$> parseLit "that")
+           <||> (pure <$> parseLit "we") <+> (pure <$> parseLit "say")
 
 parseOptSay = option parseLitWeSay
 
+parseLitLeft :: Parser [Text]
 parseLitLeft =
-       (rp $ parseLit "left")
-  <||> (rp $ parseLit "right")
-  <||> (rp $ parseLit "no")
+       (pure <$> parseLit "left")
+  <||> (pure <$> parseLit "right")
+  <||> (pure <$> parseLit "no")
 
+parseLitFieldKey :: Parser [Text]
 parseLitFieldKey =
-  (rp $ parseLit "parameter")   <||>
-  (rp $ parseLit "type") <||>
-  (rp $ parseLit "map")
+  (pure <$> parseLit "parameter")   <||>
+  (pure <$> parseLit "type") <||>
+  (pure <$> parseLit "map")
 
-parseLitQED = (rp $ parseLit "end") <||> (rp $ parseLit "QED") <||> (rp $ parseLit "obvious") <||> (rp $ parseLit "trivial")
+parseLitQED = ((pure <$>) parseLit "end") <||> (pure <$> parseLit "QED") <||> (pure <$> parseLit "obvious") <||> (pure <$> parseLit "trivial")
 
 parseLitDocument_aux :: Parser ([Text], Int)
 parseLitDocument_aux =
@@ -183,60 +202,71 @@ parseLitDocument_aux =
     (:) (pure <$> (parseLit "document" <||> parseLit "article")) rest
   where
     rest :: [Parser [Text]]
-    rest = map (rp . parseLit) ["section", "subsection", "subsubsection"]
+    rest = map ((pure <$>) . parseLit) ["section", "subsection", "subsubsection"]
 
-parseLitDocument :: Parser [Text]
+
 parseLitDocument = fst <$> parseLitDocument_aux
 
-parseLitSection =  (rp $ parseLit "section")
-              <||> (rp $ parseLit "subsection")
-              <||> (rp $ parseLit "subsubsection")
+parseLitSection :: Parser [Text]
+parseLitSection =  (pure <$> parseLit "section")
+              <||> (pure <$> parseLit "subsection")
+              <||> (pure <$> parseLit "subsubsection")
 
 parseSubdivision_aux :: Parser ([Text], Int)
 parseSubdivision_aux = (,) <$> parseLitSubdivision <*> ((+1) <$> depthStateVec <$> get)
 
 parseLitSubdivision :: Parser [Text]
-parseLitSubdivision = rp $ parseLit "subdivision"
+parseLitSubdivision = pure <$> parseLit "subdivision"
 
-parseLitDef = (rp $ parseLit "definition") <||> (rp $ parseLit "def")
+parseLitDef :: Parser [Text]
+parseLitDef = (pure <$> parseLit "definition") <||> (pure <$> parseLit "def")
 
+parseLitAxiom :: Parser [Text]
 parseLitAxiom =
-  (rp $ parseLit "axiom")      <||>
-  (rp $ parseLit "conjecture") <||>
-  (rp $ parseLit "hypothesis") <||>
-  (rp $ parseLit "equation")   <||>
-  (rp $ parseLit "formula")
+  (pure <$> parseLit "axiom")      <||>
+  (pure <$> parseLit "conjecture") <||>
+  (pure <$> parseLit "hypothesis") <||>
+  (pure <$> parseLit "equation")   <||>
+  (pure <$> parseLit "formula")
 
+parseLitProperty :: Parser [Text]
 parseLitProperty =
-  (rp $ parseLit "property") <||>
-  (rp $ parseLit "properties")
+  (pure <$> parseLit "property") <||>
+  (pure <$> parseLit "properties")
 
+parseLitWithProperties :: Parser [Text]
 parseLitWithProperties =
   parseLit "with" *> parseLitProperty
 
+parseLitTheorem :: Parser [Text]
 parseLitTheorem =
-  (rp $ parseLit "proposition")  <||>
-  (rp $ parseLit "theorem")      <||>
-  (rp $ parseLit "lemma")        <||>
-  (rp $ parseLit "corollary")
+  (pure <$> parseLit "proposition")  <||>
+  (pure <$> parseLit "theorem")      <||>
+  (pure <$> parseLit "lemma")        <||>
+  (pure <$> parseLit "corollary")
 
+parseLitLocation :: Parser [Text]
 parseLitLocation =
        parseLitDocument
   <||> parseLitTheorem
   <||> parseLitAxiom
   <||> parseLitDef
 
-parseLitSort = (rp $ parseLit "type") <||> (rp $ parseLit "prop")
+parseLitSort :: Parser [Text]
+parseLitSort = (pure <$> parseLit "type") <||> (pure <$> parseLit "prop")
 
-parseLitClassifier = (rp $ parseLit "classifiers") <||> (rp $ parseLit "classifier")
+parseLitClassifier :: Parser [Text]
+parseLitClassifier = (pure <$> parseLit "classifiers") <||> (pure <$> parseLit "classifier")
 
+parseLitVarMod :: Parser [Text]
 parseLitVarMod =
-  (rp $ parseLit "fixed")    <||>
-  (rp $ parseLit "implicit") <||>
-  (rp $ parseLit "resolved") <||>
-  (rp $ parseLit "remove")
+  (pure <$> parseLit "fixed")    <||>
+  (pure <$> parseLit "implicit") <||>
+  (pure <$> parseLit "resolved") <||>
+  (pure <$> parseLit "remove")
 
-parseLitParam = (rp $ parseLit "with") <+> (rp $ parseLit "parameters")
+parseLitParam :: Parser [Text]
+parseLitParam = (pure <$> parseLit "with") <+> (pure <$> parseLit "parameters")
 
 parseDataHelper :: a -> Text -> (Parser a)
 parseDataHelper l arg = ((do
