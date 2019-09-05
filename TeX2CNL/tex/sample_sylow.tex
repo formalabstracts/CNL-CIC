@@ -34,7 +34,7 @@ urlcolor=blue]{hyperref}
 % TITLE AUTHOR DATE
 \title{Sample Controlled Natural Language text,\\ including real numbers and Sylows theorems}
 
-\date{August 14, 2019}
+\date{September 5, 2019}
 \author{Thomas Hales}
 
 % THEOREMS
@@ -48,24 +48,6 @@ urlcolor=blue]{hyperref}
 
 \begin{document}
 \maketitle
-
-\newenvironment{envMatch}%
-               {\par\begin{tabular}{@{\quad\normalfont| }lll}}%
-               {\end{tabular}\par}
-               \newcommand{\matchitem}{\\}
-               \newcommand{\firstmatchitem}{}
-
-               \newcommand\caseif[2]{#1 & \condif\ #2}
-               \newcommand\caseotherwise[1]{#1&\otherwise}
-
-\newenvironment{structure}%
-{\begin{itemize}}
-{\end{itemize}}
-\newcommand{\firstitem}{\item}
-
-\newenvironment{make}                              
-{\begin{itemize}}
-{\end{itemize}}
 
 
 
@@ -172,8 +154,27 @@ urlcolor=blue]{hyperref}
 {\leavevmode\par\begin{tabular}{|p{13cm}}\parskip=\baselineskip{\bf Remark.}}
 {\end{tabular}}
 
+\newenvironment{envMatch}%
+               {\par\begin{tabular}{@{\quad\normalfont| }lll}}%
+               {\end{tabular}\par}
+
+\newenvironment{structure}%
+{\begin{itemize}}
+{\end{itemize}}
 
 
+\newenvironment{make}                              
+{\begin{itemize}}
+{\end{itemize}}
+
+
+%% COMMANDS 
+\newcommand{\matchitem}{\\}
+\newcommand{\firstmatchitem}{}
+\newcommand{\firstitem}{\item}
+
+\newcommand\caseif[2]{#1 & \ifcond\ #2}
+\newcommand\caseotherwise[1]{#1&\otherwise}
 \newcommand{\var}[1]{#1}
 \newcommand{\id}[1]{#1}
 \newcommand{\prefix}[1]{}
@@ -247,6 +248,10 @@ urlcolor=blue]{hyperref}
 \newcommand{\texstop}{.}
 \newcommand{\texcomma}{,}
 \newcommand{\cnlstop}{}
+\newcommand{\nullbrack}{[]}
+\newcommand{\plural}{/-}
+%\newcommand{\caseif}{{\bf if}}
+%\newcommand{\caseotherwise{{\bf otherwise}}
 
 
 \begin{cnl}
@@ -268,7 +273,7 @@ urlcolor=blue]{hyperref}
 \CnlCustom\elsecond{else}
 \CnlCustom\where{where}
 \CnlCustom\assign{ \concat{}{:=} }
-\CnlCustom\cons{\concat{}{::}} 
+\CnlCustom\cons{\concat{}{:\,\,:}} 
 \CnlCustom\plural{\concat{/-}{}}
 \CnlCustom\wherearg{where}
 \CnlCustom\fun{fun}
@@ -277,7 +282,7 @@ urlcolor=blue]{hyperref}
 \CnlCustom\iff{iff}
 \CnlCustom\optarg{}
 \CnlCustom\match{match}
-\CnlDelete\par
+
 \CnlDelete\texstop
 \CnlCustom\function{function}
 \CnlCustom\Bool{Bool}
@@ -340,6 +345,7 @@ urlcolor=blue]{hyperref}
 \CnlDelete\bigg
 \CnlDelete\Bigg
 \CnlDelete\allowdisplaybreaks
+%\CnlDelete\par
 
 
 
@@ -576,7 +582,7 @@ inductive type).
 \end{remark}
 
 \deflabel{typical structure}
-An \h{typical-structure} is a structure with
+A \h{typical-structure} is a structure with
 \begin{structure}
 \firstitem (type) $\alpha : \Type$\texstop
 \end{structure}\cnlstop
@@ -1342,7 +1348,7 @@ A \df{left module} is a structure with
 \firstitem (parameter) $R$ : ring
 \item an  additive group
 \item a \h{scalar-multiplication} : 
-$R\h{.element} $\to$ element $\to$ element
+$R\h{.element} \to$ element $\to$ element
 \item (notation) $\h{notation-dot} \assign \h{scalar-multiplication}$
 with properties
 \item \h{left-linear} : 
