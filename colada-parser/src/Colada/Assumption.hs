@@ -43,7 +43,7 @@ parseAssumptionPrefix =
         <$>
           (pure . pure <$> parseLitLets) <+>
           (pure . pure <$> parseLitAssume) <+>
-          (pure <$> option (rp $ parseLit "that"))
+          (pure <$> option (pure <$> parseLit "that"))
 
 data ThenPrefix = ThenPrefix (Maybe [Text])
   deriving (Show, Eq)
