@@ -385,10 +385,16 @@ let input_to_right_wo_par ios right =
               else [Error errormsg] in 
   error @ toks' ;;
 
-let rec input_matched_brace_list ios acc k = 
+let rec skipover ios b skip = 
+  let tok = input ios b in
+  if (List.mem tok skip) then skipover ios b skip
+  else return_input ios [tok];;
+
+let rec input_matched_brace_list ios acc skip k = 
   if (k=0) then List.rev acc else 
+    let _ = skipover ios TrackPar skip in
     let t = input_to_right_wo_par ios RBrace in 
-    input_matched_brace_list ios (t::acc) (k-1);;
+    input_matched_brace_list ios (t::acc) skip (k-1);;
 
 let input_brack_num ios =
   match (peek ios TrackPar) with
@@ -501,6 +507,8 @@ let process_controlseq ios cs_string =
       let cs = input_cs ios TrackPar in [cs]
   | "var" -> [mk_var (input_to_right_wo_par ios RBrace)]
   | "id" -> [mk_id (input_to_right_wo_par ios RBrace)]
+  | "par" -> []
+  | "_" -> [Tok "_"]
   | "list" ->
       let toks = input_to_right_wo_par ios RBrace in 
       (return_input ios (list_of_noparen_tuple toks) ; [])
@@ -518,7 +526,8 @@ let process_controlseq ios cs_string =
          (match otoks with
          | Some (k,pat) -> 
 (*             let _ = if (k>0) then print_debug "[expanding macro," else () in  *)
-             let args = (input_matched_brace_list ios [] k) in 
+             let skip = [FormatCol;FormatEol] in
+             let args = (input_matched_brace_list ios [] skip k) in 
              let repl_text = macroexpand [] pat args in 
 (*             let _ = if (k>0) then 
                        (print_debug "expanded macro:";
@@ -565,11 +574,11 @@ let null_env  =
     stay_in_par = NoTrackPar;
   };;
 
-let mk_drop_env s drop is_delete = 
+let mk_drop_env s drop endt is_delete = 
   {
     name = s;
     begin_token = Ignore;
-    end_token = Ignore;
+    end_token = endt;
     tr_token = [];
     drop_toks = drop;
     is_delete = is_delete;
@@ -588,10 +597,10 @@ let mk_delete_env s =
     stay_in_par = NoTrackPar;
   };;
 
-let mk_itemize_env s item is_delete =
+let mk_itemize_env s beg item is_delete =
   {
     name = s;
-    begin_token = LBrace;
+    begin_token = beg;
     end_token = RBrace;
     tr_token = [(ControlSeq "item",item)];
     drop_toks = [];
@@ -614,9 +623,9 @@ let mk_case_env s is_delete =
 let mk_eqn_env s is_delete = 
   {
     name = s;
-    begin_token = if is_delete then Ignore else Tok "\\eqnarray{[(";
-    end_token = if is_delete then Ignore else Tok ")]}";
-    tr_token = if is_delete then [] else [(FormatEol,Tok "); (")];
+    begin_token = Tok "\\eqnarray{[(";
+    end_token = Tok ")]}";
+    tr_token = [(FormatEol,Tok "); (")];
     drop_toks = [FormatCol];
     is_delete = is_delete;
     stay_in_par = TrackPar;
@@ -625,10 +634,9 @@ let mk_eqn_env s is_delete =
 let mk_matrix_env s is_delete = 
   {
     name = s; 
-    begin_token = if is_delete then Ignore else Tok ("\\"^s^"{[[(");
-    end_token = if is_delete then Ignore else Tok (")]]}");
-    tr_token = (if is_delete then []
-               else [(FormatEol,Tok ")]; [(");(FormatCol,Tok "); (")]);
+    begin_token = Tok ("\\"^s^"{[[(");
+    end_token = Tok (")]]}");
+    tr_token = [(FormatEol,Tok ")]; [(");(FormatCol,Tok "); (")];
     drop_toks = [];
     is_delete = is_delete;
     stay_in_par = TrackPar;
@@ -647,23 +655,24 @@ let is_prologue_env s =
 
 let mk_e_item s e =
   if List.mem s (!envdeltable) then mk_delete_env s
-  else if is_prologue_env s then mk_drop_env s [] (e.is_delete)
+  else if is_prologue_env s then mk_drop_env s [] Ignore (e.is_delete)
   else 
     match s with
-    | "itemize" | "structure" | "make" ->
-                                  mk_itemize_env s (Semi) (e.is_delete)
-      | "center" -> mk_drop_env s [] (e.is_delete)
-      | "envMatch" -> mk_drop_env s [FormatEol;FormatCol] e.is_delete
+    | "itemize" | "structure" | "make"  ->
+                                  mk_itemize_env s LBrace (Semi) (e.is_delete)
+      | "center" -> mk_drop_env s [] Ignore (e.is_delete)
+      | "align" | "align*" -> mk_drop_env s [FormatCol;FormatCol] Ignore (e.is_delete)
+      | "envMatch" -> mk_drop_env s [FormatEol;FormatCol] (Tok "end") e.is_delete
       | "cases" -> mk_case_env s e.is_delete
       | "flushleft" | "flushright" | "minipage" 
-      | "quotation" | "quote" | "verse" -> mk_drop_env s [FormatEol] (e.is_delete)
-      | "tabbing" -> mk_drop_env s [FormatEol;FormatCol;ControlSeq "=";ControlSeq ">";ControlSeq "+";ControlSeq "-"] e.is_delete
+      | "quotation" | "quote" | "verse" -> mk_drop_env s [FormatEol] Ignore (e.is_delete)
+      | "tabbing" -> mk_drop_env s [FormatEol;FormatCol;ControlSeq "=";ControlSeq ">";ControlSeq "+";ControlSeq "-"] Ignore e.is_delete
       | "array" -> mk_matrix_env s (e.is_delete) 
-      | "align" | "align*" | "eqnarray" | "eqnarray*" 
+      | "eqnarray" | "eqnarray*" 
       | "gather" | "gather*" | "equation" | "equation*" -> mk_eqn_env s e.is_delete
       | "figure" | "picture" | "remark" 
       | "thebibliography" | "titlepage" -> mk_delete_env s
-      | "multline" | "split" -> mk_drop_env s [FormatEol;FormatCol] (e.is_delete)
+      | "multline" | "split" -> mk_drop_env s [FormatEol;FormatCol] Ignore (e.is_delete)
       | "matrix" | "pmatrix" | "bmatrix" | "Bmatrix" | "vmatrix" | "Vmatrix"
       | "smallmatrix" -> mk_matrix_env s e.is_delete
       | _ -> mk_delete_env s ;;

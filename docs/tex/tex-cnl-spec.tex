@@ -461,13 +461,13 @@ For example, in
 \end{equation}
 we have \verb!I=\omega_{0}(\bu)!, \verb!J=\omega_{3}(\bu)!, $i=0$, $j=3$, 
 
-We can probably manufacture a \TeX\ macro \verb!\ellipsis#1#2#3#4!
+We can manufacture a \TeX\ macro \verb!\ellipsis#1#2#3#4!
 Where the arguments are $H$ (as a term without the binder), $i$, $j$, \verb!\op!, respectively
 that constructs the correct \TeX'ed pdf.  Roughly, $H$ should contain say a \verb!\DUMMY! where
 the insertion is to take place.  The insertions are handled, say with something of the form \verb!\futurelet\DUMMY\CH i!,
 where \verb!\CH! expands to $H$.
 
-Once a macro \verb!\ellipsis! is constructed as above, we can add custom rendering to the CNL image
+We can add custom rendering to the CNL image
 by binding the term $H$ as \verb!(\LAM \DUMMY, H)! and applying it to $i$ and $j$.  
 
 This would not be hygienic; we would not be able to nest ellipses.

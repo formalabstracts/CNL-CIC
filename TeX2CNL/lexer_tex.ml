@@ -199,6 +199,8 @@ let rec lex_token buf =
     | endseq -> EndSeq(strip_to_brace(string_lexeme buf))
     | cnlenvdel -> Cnlenvdel(strip_to_brace(string_lexeme buf))
     | inputseq -> Input(strip_to_brace(string_lexeme buf))
+    | format_eol -> FormatEol
+    | format_col -> FormatCol
     | controlseq -> ControlSeq(drop (string_lexeme buf) 2)
     | controlchar -> ControlSeq(drop (string_lexeme buf) 2)
     | arg -> Arg(int_of_string(drop (string_lexeme buf) 1))
@@ -208,8 +210,6 @@ let rec lex_token buf =
     | rbrack -> RBrack
     | lbrace -> LBrace
     | rbrace -> RBrace
-    | format_eol -> FormatEol
-    | format_col -> FormatCol
     | id -> Tok(trim_ends(convert_hyphen(string_lexeme buf)))
     | word -> Tok(strip_nonalpha(string_lexeme buf))
     | unmarked_id -> Tok(convert_hyphen(string_lexeme buf))

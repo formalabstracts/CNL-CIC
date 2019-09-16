@@ -205,7 +205,7 @@ lit_we_record :  (* for instances / type class mechanism *)
 lit_any : (* can extend: finitely many, almost all, etc. *)
 | LIT_EVERY
 | LIT_EACH
-| LIT_EACH LIT_AND LIT_EVERY
+| LIT_SOME LIT_AND LIT_EVERY
 | LIT_ALL
 | LIT_ANY
 | LIT_SOME
@@ -220,6 +220,9 @@ lit_prove : LIT_PROVE | LIT_SHOW {}
 lit_we_say : LIT_WE LIT_SAY option(LIT_THAT) {}
 lit_left : LIT_LEFT | LIT_RIGHT | LIT_NO {}
 lit_field_key : 
+| LIT_COERCION
+| LIT_NOTATIONLESS
+| LIT_NOTATION
 | LIT_PARAMETER
 | LIT_TYPE
 | LIT_MAP {}
@@ -423,6 +426,10 @@ instruction :
   instruct_synonym : bracket(LIT_SYNONYM
     separated_nonempty_list (instruct_sep,nonempty_list(TOKEN)) {}) {}
 
+synonym_statement :
+option(LIT_WE) option(LIT_INTRODUCE) LIT_SYNONYMS 
+separated_nonempty_list(instruct_sep,nonempty_list(TOKEN)) PERIOD {}
+
 (* variables *)
 
  (* Variables can be given the modifier LIT_INFERRING
@@ -446,9 +453,10 @@ instruction :
 
   *)
 
-var_modifier : option(LIT_INFERRING) {}
-annotated_var : paren(var_modifier VAR opt_colon_type {}) {}
-annotated_vars : paren(var_modifier nonempty_list(VAR) opt_colon_type {}) {}
+(* var_modifier : option(LIT_INFERRING) {} *)
+annotated_var : paren(VAR opt_colon_type {}) {}
+annotated_vars : paren(nonempty_list(VAR) opt_colon_type {}) {}
+
 
 tvar : VAR | annotated_var {}
 
@@ -686,13 +694,12 @@ structure : option(LIT_NOTATIONAL) LIT_STRUCTURE
    If the field identifier is a prim_structure, it becomes embedded. 
    *)
 
-  field : field_prefix field_identifier option(field_suffix) {}
+  field : field_prefix field_identifier option(assign_expr) {}
   field_identifier : 
   | prim_structure
   | var_or_atomic opt_colon_type {}
 
   field_prefix : option(paren(comma_nonempty_list(lit_field_key) {})) {}
-  field_suffix : LIT_WITHOUT LIT_NOTATION | assign_expr {}
 
   satisfying_preds : brace_semi(satisfying_pred) {}
   satisfying_pred : option(ATOMIC_IDENTIFIER COLON {}) prop {}
@@ -745,7 +752,7 @@ delimited_term :
 
 annotated_term : paren(term colon_type {}) {}
 
-make_term : brace_semi(var_or_atomic_or_blank opt_colon_type
+make_term : LIT_MAKE brace_semi(var_or_atomic_or_blank opt_colon_type
   option(assign_expr {}) {}) {}
 
   var_or_atomic_or_blank : 
@@ -820,7 +827,7 @@ definite_term :
     (* | paren(option(LIT_THE) prim_definite_noun {}) {} subsumed by paren(symbolic_term) tightest_term *)
 
  (* where (Haskell style) *)
-  where_suffix : LIT_WHERE brace_semi(option(paren(var_modifier)) 
+  where_suffix : LIT_WHERE brace_semi(option(LIT_INFERRING) 
                  VAR opt_colon_type option(assign_expr) {}) {}
 
 term : 
@@ -1059,7 +1066,10 @@ text : list(text_item) {}
     | macro
     | section_preamble
     | declaration
-    | instruction {}
+    | instruction
+    | misc_statement {}
+
+misc_statement : synonym_statement {}
 
 (* declaration test:declaration *)
 declaration : axiom | definition | theorem  {}
@@ -1170,6 +1180,8 @@ definition_statement :
   opt_define : 
   | option(lit_lets) option(LIT_DEFINE)
   | opt_record {}
+  macro_inferring : paren(LIT_INFERRING nonempty_list(VAR) opt_colon_type {}) {}
+
 
   classifier_def : LIT_LET class_tokens lit_is lit_a lit_classifier {}
     class_tokens : comma_nonempty_list(TOKEN) {}
@@ -1183,7 +1195,7 @@ definition_statement :
     | binary_controlseq_pattern (* fixed precedence level, right assoc *)
     {} 
 
-  function_def : opt_define function_head
+  function_def : opt_define function_head option(macro_inferring {})
     copula option(lit_equal) option(LIT_THE) plain_term {}
 
     function_head :
@@ -1191,7 +1203,7 @@ definition_statement :
     | symbol_pattern option(paren_precedence_level)
     | identifier_pattern  {}
 
-  predicate_def : opt_say predicate_head iff_junction statement {}
+  predicate_def : opt_say predicate_head option(COMMA macro_inferring {}) iff_junction statement {}
     predicate_head :
     | predicate_token_pattern
     | symbol_pattern option(paren_precedence_level)
@@ -1249,13 +1261,11 @@ macro : option(insection) macro_bodies {}
 
   macro_bodies : macro_body list(SEMI option(LIT_AND) macro_body {}) PERIOD {}
 
-  macro_inferring : LIT_INFERRING nonempty_list(annotated_vars) {}
-
   macro_body : 
   | classifier_def 
   | type_def 
-  | function_def option(COMMA macro_inferring {}) 
-  | predicate_def option(COMMA macro_inferring {}) 
+  | function_def  
+  | predicate_def  
   | let_annotation 
   | we_record_def
   {}
@@ -1270,7 +1280,11 @@ macro : option(insection) macro_bodies {}
 
   *)
 
-  let_annotation : lit_fix comma_nonempty_list(annotated_vars) {}
+  let_annotation : 
+  | lit_fix comma_nonempty_list(annotated_vars) {}
+  | LIT_LET VAR LIT_BE lit_a general_type {} 
+  | LIT_LET VAR LIT_BE lit_a type_or_prop {}
+  type_or_prop : LIT_TYPE | LIT_PROPOSITION {}
 
   we_record_def : lit_we_record comma_nonempty_list(plain_term) {}
 

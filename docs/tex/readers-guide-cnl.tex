@@ -1,0 +1,448 @@
+\documentclass[12pt]{article}
+
+
+% PACKAGES
+\usepackage{url}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{currfile}
+\usepackage{fancyvrb}
+\usepackage{xparse} % needed for \ellipsis control sequence in cnl-style
+\usepackage{enumitem} % for topsep=0pt
+\usepackage{colonequals}
+
+% for underscores https://texfaq.org/FAQ-underscore
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+\usepackage{lineno}
+
+\usepackage[
+bookmarksopen,
+bookmarksdepth=2,
+%breaklinks=true
+colorlinks=true,
+urlcolor=blue]{hyperref}
+
+% GLOBAL FORMATTING
+%\linenumbers
+\parindent=0pt
+\parskip=0.5\baselineskip
+\raggedbottom
+
+% TITLE AUTHOR DATE
+\title{Reader's Guide to the Colada Language}
+
+\date{September 15, 2019}
+\author{Thomas Hales}
+
+% THEOREMS
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}[definition]{Theorem}
+\newtheorem{lemma}[definition]{Lemma}
+\numberwithin{definition}{section}
+%\newtheorem{specification}[definition]{Specification}
+
+
+% DOCUMENT
+
+\begin{document}
+\maketitle
+
+\setcounter{tocdepth}{1}
+\tableofcontents
+\newpage
+
+\newcommand{\Nat}{{\mathbb N}}
+\newcommand{\Int}{{\mathbb Z}}
+\newcommand{\Real}{{\mathbb R}}
+
+This is a reader's guide to the Colada language, as in Pina Colada.  The name
+stands for {\bf CO}ntrolled {\bf LA}nguage {\bf DA}ta.
+
+\section{Introduction}
+By a controlled natural language for mathematics, we mean etc.
+
+This is a short guide to reading texts that have been written in the
+Colada controlled natural language.  My goal was to keep this reader's
+guide really short.  It is intended to provide \emph{quick start} that
+avoids the technicalities.  The intended reader of this guide is a
+with no experience in reading Colada documents and no experience in type theory.
+
+We have tried to design a language that is rather close to current
+conventions of written mathematical communication.  However, an exact
+fit is not possible for various reasons.
+
+\begin{itemize}
+\item Most mathematical writing is imprecise.
+\item The semantics of our language is dependent type theory.
+\end{itemize}
+
+It is easier to read a Colada document than to write one.%
+\footnote{Just as it is easier to watch a film than to direct one, to
+  use Stephen Watt's apt analogy.}  
+%
+This guide is meant to help mathematicians read the language on an
+intuitive level, with an emphasis on those aspects of the language
+that are most unlike traditional mathematical writing.
+
+A longer separate document (the writer's guide to the Colada language)
+in preparation will give a careful specification of the language and a
+tutorial on writing Colada texts.
+
+As a first approximation, the Colada language can be viewed as the
+disjoint union of the syntaxes of \LaTeX, dependent type theory, and
+Forthel, glued together along a common semantic core.%
+%
+\footnote{The intended target semantics of the Colada language is the
+  calculus of inductive constructions, as implemented in the Lean
+  theorem prover.}
+%
+From a slightly simpler perspective, Colada documents are just
+\LaTeX\ documents with precisely described semantics.  Colada documents are
+generally written in \LaTeX, and this reader's guide describes how to
+read the pdf document, as typeset with \LaTeX.
+
+The language has been designed as a language in which mathematical
+definitions and theorem statements can be expressed in a precise,
+yet readable manner.   Stating something precisely in a computer
+readable format is no guarantee of correctness.  The reader be warned!
+
+The language includes syntax for mathematical
+proofs, but that has not been our primary aim.  There is no guarantee
+that a proof written in in our language can be reconstructed as a formal
+proof in a proof assistant. The reader be warned!
+
+\section{Type theory notation}
+
+The biggest adjustment in reading Colada texts is that the semantics
+are based on type theory rather than set theory.
+
+Set theory and type theory are two different ways to organize much of
+mathematics into a comprehensive system.  Type theory is rather like
+set theory, but with a few important differences.
+
+The Venn diagram is a universally recognized picture of sets. Venn
+diagrams depict sets as collections of objects that intersect in
+various ways. Types can also be depicted as collections of objects.
+However, types are always disjoint from one another (and this is the
+absolutely crucial difference from sets).  Thus, a picture of type
+theory looks more like that non-overlapping bricks on a wall, where
+each type is represented as a brick.
+
+The primary difficulty of trying to use set theory as a foundational
+system on a computer is that sets freely mix (in Venn diagram style).
+On a computer, set theory becomes like a distasteful scavenger soup in which
+everything is thrown into the same pot.
+
+A disciplined type system organizes data on a computer.  The primary
+difficulty in trying to use type theory as a foundational system for
+mathematics is that types to not mix at all (following the metaphor of
+backed bricks on a wall).  The challenge is to make the types mix a
+just a bit.  For example, we do not want the natural number zero and
+the real number zero (which are distinct objects in type theory) to be
+completely divorced from each other.
+
+In type theory, every object has a unique type.%
+%
+\footnote{Throughout these notes, we refer to a particular version of
+  type theory called the calculus of inductive constructions with
+  non-cumulative universes, as implemented in the Lean theorem
+  prover.}
+%
+This is the \emph{fundamental theorem} of type theory.
+
+
+
+\subsection{Colons are everywhere}
+
+We turn to a description of the syntax.
+
+\[
+\boxed{(n : \Nat)}
+\]
+means that $n$ has type $\Nat$.  In set theory, we would write that
+$n$ is a member of the set $\Nat$, or $n \in \Nat$.  To a rough
+approximation, the reader can read $(n : \Nat)$ as $n\in \Nat$.
+By definition, $0$ is the smallest natural number.
+
+\[
+\boxed{x\in X}
+\]
+
+The notation $x\in X$ still appears in our language, but it is not a
+primitive of our language the way it is in set theory.  An author of a
+document is free to extend the meaning of $\in$ to new contexts.  For
+example, an author might define $x\in X$ to mean that a natural number $x$
+is stored in a leaf of a tree structure $X$.
+
+\[
+\boxed{(f : \Real \to \Real)}
+\]
+means that $f$ has type $\Real\to\Real$.  An object $f$ of type
+$\Real\to\Real$ is a function from domain $\Real$ to codomain $\Real$
+(as a naive set-theoretic reading of the boxed expression might
+suggest).  That is, $\Real\to\Real$ denotes the function space, and
+$f$ is a member of that function space.  In brief, there
+is little harm in reading $f :\Real\to\Real$ just like in set theory,
+even if a type theorist reads it in a slightly different way.
+
+\[
+\boxed{(f : \Nat \to\Int \to \Real)}\quad \text{or equivalently}\quad \boxed{(f:\Nat\to(\Int\to\Real))}
+\]
+means that $f$ is a function with domain $\Nat$ and codomain the
+function space $\Int\to\Real$.  Thus, we have a function
+$f(n):\Int\to\Real$ for each $n\in \Nat$, and $f(n)(r):\Real$ for each
+$r\in\Int$.  Note that the function space $\Nat\to\Int\to\Real$ is in
+bijective correspondence $f\leftrightarrow F$ with the function space
+$(\Nat\times \Int)\to\Real$, where $f(n)(r) = F(n,r)$. This
+corresponds with the natural bijection between $(\Real^{\Int})^{\Nat}$
+and $\Real^{\Nat\times\Int}$ in set theory, where $Y^X$ denotes the space
+of functions from $X$ to $Y$.
+
+
+It is very common in type theory to construct functions whose type is
+a chain of arrows (for example, $X_1\to (X_2\to (X_3 \to X_4))$, or
+more concisely, $X_1\to X_2\to X_3 \to X_4$).  Such functions $f$ are
+said to be curried (named for the logician Curry), which are generally
+preferred to their uncurried $F:X_1\times X_2\times X_3\to X_4$
+counterparts.
+
+\[
+\boxed{(p : 1 < 2)}
+\]
+A mathematical proposition (such as $1<2$) can appear to the right
+of a colon.  In this case, the boxed expressed should be read
+``$p$ is a proof of the proposition $1<2$''.  
+
+When $X$ and $Y$ are
+propositions, $p: X\to Y$ can be read both as ``$p$ is a proof
+of the proposition `$X$ implies $Y$' ''  and as ``$p$ is a function
+that transforms a proof of $X$ into a proof of $Y$.''
+
+\section{Functions}
+
+Here is the notation for functions.
+
+
+\[
+\boxed{f\ x}
+\]
+means $f(x)$.  Generally the parentheses are not written, when
+applying a function $f$ to its argument.
+
+\[
+\boxed{f\ x\ y}
+\]
+means $f(x)(y)$, where $f$ is a curried function $f:X\to Y\to Z$.
+
+
+\begin{center}
+\fbox{\begin{minipage}{6em}
+$\displaystyle\begin{aligned}[topsep=1pt]
+f:X &\to Y \\
+x &\mapsto f\ x
+\end{aligned}$
+\end{minipage}}
+\end{center}
+gives a function $f$ of type $X\to Y$, specified by the rule $x\mapsto f\ x$.
+
+\begin{center}
+\fbox{\begin{minipage}{11em}
+$\displaystyle\begin{aligned}[topsep=1pt]
+\Int\to (n:\Int) &\to \Int/n\Int \\
+a\quad n &\mapsto a \mod n
+\end{aligned}$
+\end{minipage}}
+\end{center}
+This is a \emph{dependent function}, in which the codomain depends on
+the second of two integer arguments to the function.  Pay careful
+attention to the syntax%
+\footnote{Type theorist call the type of a dependent function a
+  $\Pi$-type, by analogy with the set theoretic product $\Pi_{n\in\Nat}
+  (\Int/n\Int)$, the set of sequences $(b_n)_{n\in\Nat}$ such that
+  $b_n\in \Int/n\Int$.}
+%
+of the type: $\Int\to (n:\Int) \to
+\Int/n\Int$. The second (curried) argument of the function is an
+integer, which is labeled as $n$ in the type signature in order to
+specify the codomain.
+
+Dependent functions are one of the most striking features of our type
+theory.  Dependent functions appear more frequently here in set
+theory, because in set theory a multiplicity of codomains can be
+replaced with their union, to reduce to a single codomain.%
+\footnote{In type theory a heterogeneous union is not so
+  straightforward.}
+
+\[
+\boxed{\text{\bf fun}\ x\ := y}
+\]
+means the same as $x\mapsto y$.  The keyword {\bf fun} introduces the
+rule.%
+\footnote{{\bf fun} (or $\mapsto$) is our preferred notation for a
+  $\lambda$-term in the $\lambda$-calculus.  We avoid the Greek letter
+  $\lambda$ in order to free up the letter for the many other uses of
+  $\lambda$ in mathematics (and also to remain closer to the preferred
+  convention $\mapsto$ of mathematicians).  The variable $a$ is a
+  bound variable.}  In general, $x := y$ means that the left-hand side
+$x$ is defined to be $y$.
+
+\[
+\boxed{(\text{\bf fun}\ x\ y\ := x + y)\ 1\ 2 = 1+2}\quad\text{or}\quad
+\boxed{(x\ y\ \mapsto x+y)\ 1\ 2 = 1+2}
+\]
+is an anonymous 
+function, applied to curried arguments $1$ and $2$, yielding $1+2$.
+
+
+
+\begin{center}
+\fbox{\begin{minipage}{8em}
+\text{\bf function}\par
+\begin{tabular}{@{\quad\normalfont| }lll}
+$0$ &$:=$ &$0$\\
+$k+1$ &$:=$ &$k$
+\end{tabular}
+\end{minipage}
+}
+\end{center}
+This function is the truncated decrement on the natural numbers, which maps $0$ to $0$
+and $k+1$ to $k$.   The different cases are marked with a vertical stroke $|$.
+We use {\bf function} when the function definition has different cases
+and use {\bf fun} when the function has multiple curried arguments.
+
+
+\section{Formulas}
+
+We try to make formulas appear similar to those appearing
+in conventional mathematical texts.
+
+New notations may be introduced as a document progresses.
+
+\[
+\boxed{1 + 1 + 1}
+\]
+means $(1+1)+1$ because infix\footnote{By an infix notation,
+we mean a function (such as $+$) that is inserted between its
+arguments.  A postfix notation (such as $3!$) appears after
+its argument. A prefix notation (such as $\sin\ \pi$) appears before
+its argument.} addition is left associative.  Binary
+operations can be left associative or right associative, and its
+associativity determines how to reinsert parentheses into chains of
+the operation.
+
+\[
+\boxed{1 + 2 * 3}
+\]
+means $1 + (2*3)$ because 
+multiplication has higher precedence than
+addition.  The precedence of each binary operation is an integer.  The
+precedence of every non-logical operation (such as addition,
+multiplication, subtraction, and powers) is positive. The precedence
+of predicates (such as $=$, $<$, $\subset$, $\in$) is zero. The
+precedence of every logical operation (such as and, or, iff) is
+negative.  New operations are assigned a precedence when introduced
+into a document.
+
+\[
+\boxed{u < x = y = z \le w}
+\]
+means $u < x$ and $x = y$ and $y = z$ and $z\le w$.  Predicates all have the
+same precedence level and they may be chained as in this example.
+The chained predicates mean the same as if broken into separate predicates
+joined by \emph{and}.
+
+\[
+\boxed{\cos \pi/2 + 4!}
+\]
+means $(\cos\pi)/2 + (4!)$.  Function applications (here $\cos$
+applied to $x$) and postfix notations (here the factorial applied to
+$4$) always have higher precedence than all infix binary operations
+(here $+$ and $/$).
+
+
+We try to retain standard mathematical notation wherever possible for
+numbers, polynomials, matrices, limits, derivatives, integrals,
+ellipsis $\ldots$.  However, there are some noteworthy distinctions,
+where we need to be pedantic to get everything just right.
+\[
+\boxed{x^7 - 7 x + 3}
+\]
+is a polynomial of degree $7$ in $x$. However, the internal representation
+of polynomials is by a function $0\mapsto3,1\mapsto-7,7\mapsto1$
+of finite support, which maps exponents to coefficients,
+in which the $x$ has disappeared.
+
+\[
+\boxed{\frac{d (x\mapsto x^3)}{dx} = (x \mapsto 3 x^2)}\quad\text{versus}\quad
+\boxed{\frac{d\,x^3}{dx} = 3 x^2}
+\]
+Derivative notation $dx^3/dx$ is problematic. We should differentiate
+a function $x \mapsto x^3$ rather than a term $x^3$.  However, the
+variable $x$ in the function is bound, and it cannot legitimately%
+%
+\footnote{Our language does not support \emph{bound variable
+    anaphors}, as they are called. In fact, our language has no
+  pronouns at all. Phrases such as \emph{``we have''} in a Colada text
+  are empty filler words that are ignored by the semantics.}  
+%
+occur outside the function (in $dx$).  We might choose to provide
+\emph{syntactic sugar} which allows the illegitimate syntax to
+continue to be used, with a translation behind the scenes into
+something that makes sense.  The reader is hereby warned that sugary
+syntax (especially when it condones questionable mathematical
+practice) can be introduced by document authors, even when deceptive
+and disturbing.
+
+
+
+
+\section{Programming Notation}
+
+The Colada language is written with a precise syntax that can 
+be interpreted directly by computer.  Because of that, some of the
+notations are similar to those found in programming languages.%
+\footnote{Functional programming languages such as OCaml and Haskell
+  share significant amounts of syntax with Colada.}
+
+\[
+\boxed{[1;2;3]} \quad\text{versus}\quad \boxed{(1,2,3)}
+\]
+A list $[1;2;3]$ is very much like a tuple $(1,2,3)$, but it
+carries the additional requirement that all of its entries have the
+same type (in this case the entries have type $\Nat$).  Lists are very
+common.  There is a large library of functions (with special
+notations) designed to make lists easy to work with.  For example $0
+\coloncolon[1;2;3]$ attaches $0$ to the beginning of the list to
+produce $[0;1;2;3]$; and $[1;2;3] @ [4;5;6]$ appends the second list
+to the first to produce $[1;2;3;4;5;6]$.
+
+Each component of an a tuple $(x,y,z)$ can have a different type.
+
+
+match,  case, inductive types, structures.
+
+\section{New definitions}
+
+
+\section{Acknowledgements}
+The design of the Colada language owes much to discussions with Peter
+Koepke, who introduced me to his research, building a long tradition
+(Gluskov, Paskevich, ForTheL, SAD, Naproche-SAD).  The way forward on
+the formal abstracts project finally became clear to me after a
+discussion with Peter at the AITP meetings in Austria in March 2019. I
+draw inspiration from the accomplished language designers
+(particularly Arnold Neumaier, Stephen Wolfram, Bill Farmer, Jacques
+Carette, Jeremy Avigad, Leo de Moura, Mario Carneiro, William Stein,
+Bob Harper, John Harrison, Freek Wiedijk, Larry Paulson, Tobias
+Nipkow, Dana Scott, Mike Gordon, Mark Adams) that it is my pleasure to
+know.  Designing a language was simply not on my bucket list, and I
+never would have dared to undertake this project without their
+precedent.
+
+
+\end{document}
+
