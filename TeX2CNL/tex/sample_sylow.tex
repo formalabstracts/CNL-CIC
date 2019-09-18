@@ -154,7 +154,8 @@ urlcolor=blue]{hyperref}
 
 %% ENVIRONMENTS
 
-\newenvironment{cnl}{}{}
+\newenvironment{cnl}{\centerline{\bf CNL text starts here.}}
+{\centerline{\bf CNL text ends here.}}
 % \leavevmode\par is to make remark work 
 % when it is the first item in a subsection.
 
@@ -276,6 +277,14 @@ urlcolor=blue]{hyperref}
 %\newcommand{\caseif}{{\bf if}}
 %\newcommand{\caseotherwise{{\bf otherwise}}
 
+% Local Defs for Sylows Theorems
+\def\natdiv#1#2{{#1}\mathrel{|}{#2}}
+\def\natpow#1#2{{#1}^{#2}}
+\def\conj#1#2{{#1}{#2}{#1}^{-1}}
+\def\mult#1#2{m}
+\def\Syl#1#2{\operatorname{Syl}_{#1}(#2)}
+\def\SylN#1#2{n_{#1}(#2)}
+\def\Nz#1#2{|N(#1,#2)|}
 
 \begin{cnl}
 
@@ -1177,17 +1186,11 @@ We say that $d$ \df{divides} $m$ iff $d\ne 0$ and there exists $r$
 such that $m= d\*r$.
 \end{definition}
 
-\end{cnl}
-\def\natdiv#1#2{{#1}\mathrel{|}{#2}}
-\begin{cnl}
 
 Let $\natdiv{d}{m}$ stand for $d$ divides $m$.
 
 Let $d$ is a \df{divisor of} $m$ stand for $d$ divides $m$.
 
-\end{cnl}
-\def\natpow#1#2{{#1}^{#2}}
-\begin{cnl}
 
 \deflabel{natpow}
 Assume that $b,n$ are natural numbers.  We define
@@ -1618,9 +1621,6 @@ This exists and is well subtyped \parenthetical{that is, $H$ is finite}.
 
 In this section, let $G$ denote a fixed finite group.
 
-\end{cnl}
-\def\conj#1#2{{#1}{#2}{#1}^{-1}}
-\begin{cnl}
 
 In this section, let $\conj{g}{X}$ stand for
 \[
@@ -1645,12 +1645,6 @@ Let $|G|$ denote the order of $G$.
 
 In this section, let $p$ denote a fixed prime number.
 
-\end{cnl}
-\def\mult#1#2{m}
-\def\Syl#1#2{\operatorname{Syl}_{#1}(#2)}
-\def\SylN#1#2{n_{#1}(#2)}
-\def\Nz#1#2{|N(#1,#2)|}
-\begin{cnl}
 
 In this section, let $\mult{p}{G}$ denote the multiplicity of $p$ in
 $|G|$.
