@@ -63,7 +63,38 @@ This is a reader's guide to the Colada language, as in Pina Colada.  The name
 stands for {\bf CO}ntrolled {\bf LA}nguage {\bf DA}ta.
 
 \section{Introduction}
-By a controlled natural language for mathematics, we mean etc.
+
+
+By a controlled natural language for mathematics (CNL), we mean an
+artificial language for the communication of mathematics that
+\begin{itemize}
+\item is deliberately designed with precise computer-readable syntax
+  and semantics,
+\item is based on a single natural language (which for us will be
+  English),
+\item and is broadly understood at least in an intuitive way by
+  mathematically literate speakers of the natural language.
+\end{itemize}
+
+
+
+
+Here are some design goals.
+\begin{itemize}
+\item The language should narrow the gap between formalization and
+  current mathematical written communication.
+\item Writing documents in this language should be similar to writing
+  \LaTeX.
+\item Reading documents in this language should be similar to reading
+  ordinary mathematical texts typeset in \LaTeX.  A short explanation
+  should be all that is needed to explain the special conventions of
+  the language.
+\item The logical and mathematical foundations of the system are
+  provided by the Calculus of Inductive Constructions (CiC) as
+  implemented in the Lean theorem prover.  Documents written in the
+  language should compile to CiC.
+\end{itemize}
+
 
 This is a short guide to reading texts that have been written in the
 Colada controlled natural language.  My goal was to keep this reader's
