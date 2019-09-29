@@ -1,10 +1,8 @@
 %token <string> STRING
 %token <string> CONTROLSEQ (* \cs *)
 
-%token <string> NUMBER (*digit+ *)
-(* %token <string> DECIMAL (*digit+ . digit+ *) *)
-%token <string> INTEGER (* (+|-)? number  *)
-%token <string> NUMERIC (*(+|-)? (number | decimal) *)
+%token <string> DECIMAL (* (+|-)? digit+ . digit+ *) 
+%token <string> INTEGER (* (+|-)?  digit+  *)
 %token <string> SYMBOL
 %token <string> SYMBOL_QED (* proof token *)
 %token <string> L_PAREN
@@ -27,12 +25,15 @@
 %token <string> APPLYSUB (* subscript token to mark function applications to subscripts, distinct from BLANK *)
 %token <string> SLASH
 %token <string> SLASHDASH
+%token <string> COERCION (* coercion symbol *)
+%token <string> LAMBDA
+%token <string> PITY
+%token <string> QUANTIFIER
 %token <string> VAR (* alpha (digit | _ | ')* or alpha _ _ alphanum* *)
-%token <string> TOKEN
+%token <string> WORD
 %token <string> ATOMIC_IDENTIFIER (*alpha (alphanum)* and not a VAR *)
 %token <string> HIERARCHICAL_IDENTIFIER (* period separated atomics *)
-%token <string> FIELD_ACCESSOR (* period then hier-identifier or NUMBER *)
-%token <string> COERCION (* coercion symbol *)
+%token <string> FIELD_ACCESSOR (* period then hier-identifier *)
 %token <string> NOT_IMPLEMENTED (*placeholder *)
 %token <string> NOT_DEBUGGED (*placeholder *)
 
@@ -200,9 +201,6 @@ PA1b
 PA1c
 PA1d
 PA2
-PA3
-PA4
-PA5
 PA6
 PA7
 PA8
@@ -225,7 +223,7 @@ PL1
 PL2
 PL2a
 PL3
-(* PL4 *)
+PL4
 
 
 

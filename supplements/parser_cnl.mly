@@ -74,85 +74,8 @@ type exp_t =
 %%
 
 (* Lexing 
-  PERIOD is used to demarcate statements (and sections, etc.)
-  Most parsing can be done on a statement by statement basis.
-  (That is, to parse a statement, it is never necessary to look further ahead.)
 
-  Delimiters, COMMA, and SEMI cannot be combined into larger lexemes. 
-  Delimiters must alway occur in properly nested matching pairs. 
-
-  The only characters that may appear in identifiers are A-Z a-z 0-9 ' _ PERIOD
-  The initial character must be alphabetic [a-zA-Z].
-  The final character must not be a PERIOD.
-  The longest possible match rule holds for identifiers. 
-  According to the internal structure of the identifier, the identifier is
-  classified as
-  a variable, an atomic identifier, a hierarchical identifier, or a token. 
-  A token is case insensitve, but other types of identifiers are case sensitive. 
-  There are no keywords, but many tokens (if, then, else, section, etc.)
-  have special meaning in particular
-  contexts. 
-
-  A control sequence is sequence of characters starting with backslash \
-  and continuing with alphabetic characters [a-z][A-Z].  Longest match rule holds. 
-  Control sequences are case sensitive.
-
-  A second form of control sequence consists of a single backslash followed
-  by a single character. 
-  The second character cannot be alphabetic, a delimiter, or separator. 
-
-  A field accessor begins with a PERIOD and otherwise has the same structure
-  as a hierarchical identifier. 
-
-  SYMBOLS
-  A symbol is a sequence of symbols that are symbol characters, including
-  * + - = ^ % < > | PERIOD COLON etc.   
-
-  A symbol character is any character EXCEPT
-  whitespace, delimiters, a-z A-Z 0-9, COMMA, SEMI, (greek if unicode is used).
-
-  Longest match rule holds.  
-
-  Certain reserved symbol character sequences are not symbols:
-  An isolated COLON is not a symbol. 
-  An ASSIGN (:=) is not a symbol. 
-  
-
-  PERIODS may form part of a symbol, but never singly
-  in a way that might be confounded with numeric decimal points, full stops,
-  field accessor,  or hierarchical identifier dots.  
-
-
-  A symbol must not begin with \ 
-
-
-  LEXICAL CATEGORIES:
-  delimiter : L_PAREN | R_PAREN | L_BRACK | R_BRACK | L_BRACE | R_BRACE {}
-  separator : COMMA | SEMI | PERIOD {}
-  punctuation : delimiter | separator {}
-
-  lexeme : NUMERIC | STRING | identifier 
-  | FIELD_ACCESSOR | SYMBOL | punctuation | controlseq {}
-
-
-
-  RESERVED CONTROL SEQUENCES.
-  We reserve certain control sequences for Lean-like syntax
-  SYMBOL_QED \qed proof marker 
-  MID \mid vertical stroke of set comprehension
-  TMID \tmid vertical stroke of subtype comprehension 
-  ALT \alt vertical stroke of matches
-  APPLYSUB \sub 
-  COERCION \^ 
-  MAPSTO \mapsto
-  type arrow,  \to 
-  BLANK \blank (or _)
-  \\ \lam \lambder (lambda binder)  
-  (\lambda itself is reserved for ordinary math usage.)
-  \forall (forall symbol)
-  \exists (exists symbol)
-  \Pity (Pi-type binder symbol) 
-  (\Pi itself is reserved for ordinary math usage.)
+  The lexical structure comments are in  lexer_cnl.ml
 
  *)
 
@@ -178,12 +101,20 @@ phrase_list_transition : PL1 {}
 phrase_list_filler : PL2 {}
 phrase_list_proof_statement : PL3 {}
 
+ (* NOT_IMPLEMENTED.  A case_sensitive_word is a 
+  WORD token, but parsed in a case sensitive way, possibly with synonyms *)
+case_sensitive_word : PL4 {}
+atomic : case_sensitive_word | ATOMIC_IDENTIFIER {}
+identifier : atomic | HIERARCHICAL_IDENTIFIER {}
+
+
 (* literals *)
+
+  (* Each literal LIT_* is a case insensitive WORD token *)
 
 lit_a : LIT_A | LIT_AN {}
 article : lit_a | LIT_THE {}
 sep_and_comma : LIT_AND | COMMA {}
-identifier : ATOMIC_IDENTIFIER | HIERARCHICAL_IDENTIFIER {}
 lit_binder_comma : COMMA {}
 
 lit_defined_as : LIT_SAID LIT_TO LIT_BE
@@ -258,13 +189,11 @@ lit_location :
 lit_classifier : LIT_CLASSIFIER | LIT_CLASSIFIERS {}
 
  (*
-   Unlike earlier LIT_ and lit_ tokens, identifiers are case sensitive. 
+   Unlike earlier LIT_ and lit_ words, identifiers are case sensitive. 
   *)                                                            
 
  lit_sort : ID_TYPE | ID_PROP {} (* 'Type' and 'Prop' *)
- label : ATOMIC_IDENTIFIER {}
-
-
+ label : atomic {}
 
 (* stub rules suppress errors for unused nonterminals. *)
 stub_nonterminal :
@@ -311,10 +240,10 @@ prim_term_controlseq : PA1d {}
  (* from type_head.controlseq_pattern, no prec *)
 prim_type_controlseq : PA2 {}
 
- (* from NOT_IMPLEMENTED *)
-prim_lambda_binder : PA3 {} (* term binders *)
-prim_pi_binder : PA4 {} (* type binders *)
-prim_binder_prop : PA5 {}
+ (* from NOT_IMPLEMENTED. We need rules to extend these primitives. *)
+prim_lambda_binder : LAMBDA {} (* lambda term binders *)
+prim_pi_binder : PITY {} (* Pi type binders *)
+prim_binder_prop : QUANTIFIER {}  (* forall, exists, etc. *)
 
 
  (* derived from declarations of prim_identifier_type, 
@@ -418,17 +347,17 @@ instruction :
   instruct_keyword_string : LIT_READ | LIT_LIBRARY {}
 
   instruct_command : bracket( instruct_keyword_command) {}
-  instruct_int : bracket(instruct_keyword_int NUMBER {}) {}
+  instruct_int : bracket(instruct_keyword_int INTEGER {}) {}
   bool_tf : lit_true | lit_false {}
   instruct_bool : bracket(instruct_keyword_bool bool_tf {}){}
   instruct_string : bracket(instruct_keyword_string STRING {}) {}
   instruct_sep : SLASH | SLASHDASH {}
   instruct_synonym : bracket(LIT_SYNONYM
-    separated_nonempty_list (instruct_sep,nonempty_list(TOKEN)) {}) {}
+    separated_nonempty_list (instruct_sep,nonempty_list(WORD)) {}) {}
 
 synonym_statement :
 option(LIT_WE) option(LIT_INTRODUCE) LIT_SYNONYMS 
-separated_nonempty_list(instruct_sep,nonempty_list(TOKEN)) PERIOD {}
+separated_nonempty_list(instruct_sep,nonempty_list(WORD)) PERIOD {}
 
 (* variables *)
 
@@ -491,7 +420,7 @@ args : option( opt_args {}) required_args {}
     | var_or_atomic {}
 
 
-  var_or_atomic : VAR | ATOMIC_IDENTIFIER {}
+  var_or_atomic : VAR | atomic {}
   var_or_atomics : nonempty_list(var_or_atomic) {}   
 
  (*
@@ -673,7 +602,7 @@ inductive_type : LIT_INDUCTIVE identifier args
 
 mutual_inductive_type : LIT_INDUCTIVE
   comma_nonempty_list(identifier) args 
-  list(LIT_WITH ATOMIC_IDENTIFIER args colon_type
+  list(LIT_WITH atomic args colon_type
        list(alt_constructor) {}) 
   LIT_END{}
 
@@ -697,12 +626,13 @@ structure : option(LIT_NOTATIONAL) LIT_STRUCTURE
   field : field_prefix field_identifier option(assign_expr) {}
   field_identifier : 
   | prim_structure
+  | var_or_atomic opt_colon_sort
   | var_or_atomic opt_colon_type {}
 
   field_prefix : option(paren(comma_nonempty_list(lit_field_key) {})) {}
 
   satisfying_preds : brace_semi(satisfying_pred) {}
-  satisfying_pred : option(ATOMIC_IDENTIFIER COLON {}) prop {}
+  satisfying_pred : option(atomic COLON {}) prop {}
 
 (* proof expressions (distinct from proof scripts). *)
 
@@ -711,7 +641,18 @@ proof_expr :
 | paren(proof_expr)
 {}
 
+(* APPLYSUB handles subscripts coming from a TeX file.
+
+   In brief, 
+   x_1 is an identifier.
+   x APPLYSUB {1} is equivalent to x 1 and is the deTeXed form of x_{1}.
+   x APPLYSUB {i j} is equivalent to x i j.  (This is perhaps a surprise.) 
+   x APPLYSUB {(f j)} is equivalent to x (f j).
+ *)
+
 (* terms *)
+
+
 
 (** tightest terms *)
 
@@ -724,9 +665,9 @@ tightest_term :
   tightest_terms : paren(nonempty_list(tightest_term)) {}
 
   tightest_prefix :
-  | NUMERIC
+  | DECIMAL
+  | INTEGER
   | STRING
-(*  | DECIMAL, covered by NUMERIC *)
   | BLANK 
   | VAR
   | prim_identifier_term
@@ -790,7 +731,7 @@ match_term : LIT_MATCH match_seq LIT_WITH
   match_pats : comma_nonempty_list(match_pat) {}
   match_pat : plain_term {} (* Variables that do not appear in match_seq are assumed fresh. *)
 
-lambda_function : LIT_FUNCTION identifier args 
+lambda_function : LIT_FUNCTION args 
   opt_colon_type nonempty_list(ALT match_pats ASSIGN plain_term {})
   LIT_END {}
 
@@ -808,10 +749,10 @@ opentail_term :
 
 lambda_term : 
 | prim_lambda_binder generalized_args lit_binder_comma opentail_term
-| generalized_arg MAPSTO opentail_term 
+| generalized_arg MAPSTO opentail_term (* Can we make this generalized_args? *)
 {}
 
-lambda_fun : LIT_FUN identifier generalized_args 
+lambda_fun : LIT_FUN generalized_args 
   opt_colon_type ASSIGN opentail_term {}
 
   (* let includes destructuring*)
@@ -1183,13 +1124,13 @@ definition_statement :
   macro_inferring : paren(LIT_INFERRING nonempty_list(VAR) opt_colon_type {}) {}
 
 
-  classifier_def : LIT_LET class_tokens lit_is lit_a lit_classifier {}
-    class_tokens : comma_nonempty_list(TOKEN) {}
+  classifier_def : LIT_LET class_words lit_is lit_a lit_classifier {}
+    class_words : comma_nonempty_list(WORD) {}
 
   type_def : opt_define type_head COLON ID_TYPE copula lit_a general_type {}
 
     type_head :  
-    | type_token_pattern 
+    | type_word_pattern 
     | identifier_pattern 
     | controlseq_pattern 
     | binary_controlseq_pattern (* fixed precedence level, right assoc *)
@@ -1199,13 +1140,13 @@ definition_statement :
     copula option(lit_equal) option(LIT_THE) plain_term {}
 
     function_head :
-    | function_token_pattern
+    | function_word_pattern
     | symbol_pattern option(paren_precedence_level)
     | identifier_pattern  {}
 
   predicate_def : opt_say predicate_head option(COMMA macro_inferring {}) iff_junction statement {}
     predicate_head :
-    | predicate_token_pattern
+    | predicate_word_pattern
     | symbol_pattern option(paren_precedence_level)
     | identifier_pattern {}
 
@@ -1239,12 +1180,12 @@ definition_statement :
   (*
   Disambiguation:
   predicates use iff_junction.
-  predicates token patterns start with tvar.
+  predicates word patterns start with tvar.
   identifier patterns start with an identifier.
   symbol patterns contain a symbol.
 
   Functions use the copula.
-  token patterns starts with LIT_THE token ...
+  word patterns starts with LIT_THE word ...
   symbol patterns contain a symbol or CONTROLSEQ.
   identifier patterns start with an identifier.
 
@@ -1290,46 +1231,46 @@ macro : option(insection) macro_bodies {}
 
  (* subsumed by type_def, function_def, etc. 
 
-  type_macro : LIT_LET type_token_pattern
+  type_macro : LIT_LET type_word_pattern
     lit_denote lit_a general_type {}
 
   function_macro : LIT_LET function_head 
     lit_denote plain_term {}
 
   predicate_macro :
-  | LIT_LET predicate_token_pattern lit_denote statement {}
+  | LIT_LET predicate_word_pattern lit_denote statement {}
   | LIT_LET symbol_pattern lit_denote statement {}
  *)
 
 (* pattern *)
 
- (* restriction: tokens in pattern cannot be a variant of
+ (* restriction: words in pattern cannot be a variant of
     "to be", "called", "iff" "a" "stand" "denote"
     cannot start with "the"  *)
 
-token_pattern : tokens list(tvar tokens {}) option(tvar) {}
+word_pattern : words list(tvar words {}) option(tvar) {}
 
-  tokens : nonempty_list(TOKEN) {}
+  words : nonempty_list(WORD) {}
 
-type_token_pattern : option(lit_a) token_pattern {}
+type_word_pattern : option(lit_a) word_pattern {}
 
-function_token_pattern : LIT_THE token_pattern {}
+function_word_pattern : LIT_THE word_pattern {}
 
-predicate_token_pattern :
+predicate_word_pattern :
 | adjective_pattern 
 | adjective_multisubject_pattern
 | verb_pattern
 | verb_multisubject_pattern 
 {}
 
-  adjective_pattern : tvar LIT_IS option(LIT_CALLED) token_pattern {}
+  adjective_pattern : tvar LIT_IS option(LIT_CALLED) word_pattern {}
 
   adjective_multisubject_pattern : 
-    var_multisubject LIT_ARE option(LIT_CALLED) token_pattern {} 
+    var_multisubject LIT_ARE option(LIT_CALLED) word_pattern {} 
 
-  verb_pattern : tvar token_pattern {} 
+  verb_pattern : tvar word_pattern {} 
 
-  verb_multisubject_pattern : var_multisubject token_pattern {}
+  verb_multisubject_pattern : var_multisubject word_pattern {}
 
   var_multisubject :
   | tvar COMMA tvar
