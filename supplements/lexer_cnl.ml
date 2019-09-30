@@ -53,6 +53,48 @@ let raise_lex (p: Lexing.position) tok msg =
   raise @@ LexError (p.pos_fname, line, col, tok, msg)
  *)
 
+(* type *)
+
+type token = 
+  | STRING of string
+  | CONTROLSEQ of string
+  | DECIMAL of string
+  | INTEGER of string
+  | SYMBOL of string
+  | SYMBOL_QED of string
+  | L_PAREN of string
+  | R_PAREN of string
+  | L_BRACK of string
+  | R_BRACK of string
+  | L_BRACE of string
+  | R_BRACE of string
+  | MAPSTO of string
+  | PERIOD of string
+  | MID of string
+  | TMID of string
+  | COMMA of string
+  | SEMI of string
+  | COLON of string
+  | ASSIGN of string
+  | ARROW of string
+  | BLANK of string
+  | ALT of string
+  | APPLYSUB of string
+  | SLASH of string
+  | SLASHDASH of string
+  | COERCION of string
+  | LAMBDA of string
+  | PITY of string
+  | QUANTIFIER of string
+  | VAR of string
+  | WORD of string
+  | ATOMIC_IDENTIFIER of string
+  | HIERARCHICAL_IDENTIFIER of string
+  | FIELD_ACCESSOR of string
+  | EOF
+  | UNKNOWN of string 
+
+
 (* -- Lexical structure -- *)
 
 let digit =
@@ -107,7 +149,7 @@ let semi = [%sedlex.regexp? ';']
 (* symbol does not include '\' *)
           
 let symbol = [%sedlex.regexp? '*' | '+' | '^' | '=' | '<' | '>' | '/' | '!' | 
-              '@' | '#' | '$' | '%' | '&' | '_' | '-' | '|' | ':' | "'" | '.' |
+              '@' | '#' | '$' | '&' | '_' | '-' | '|' | ':' | "'" | '.' |
               '?' | '~' | '`'] 
 
 let symbolseq = [%sedlex.regexp? Plus(symbol)]
@@ -182,6 +224,15 @@ let identkey =
 
 let lexeme = Sedlexing.lexeme
 
+let implode l = List.fold_right (^) l "";;
+
+let string_of_ints js =
+ let cs =  List.map (fun j -> Char.escaped (Uchar.to_char j)) (Array.to_list js) in
+  implode cs;;
+
+
+let string_lexeme buf = string_of_ints(lexeme buf);;
+
 (* 
   The order matters here.  The first match is applied.
 
@@ -198,30 +249,30 @@ let rec lex_token buf =
   match%sedlex buf with
   | Plus(white) -> (lex_token buf)
   | comment -> (lex_token buf)
-    | string -> STRING (lexeme buf)
-    | controlseq -> controlkey(lexeme buf)
-    | controlchar -> controlkey(lexeme buf)
-    | decimal -> DECIMAL(lexeme buf)
-    | integer -> INTEGER(lexeme buf)
-    | number -> INTEGER(lexeme buf)
-    | rparen -> R_PAREN (lexeme buf)
-    | lparen -> L_PAREN (lexeme buf)
-    | lbrack -> L_BRACK (lexeme buf)
-    | rbrack -> R_BRACK (lexeme buf)
-    | lbrace -> L_BRACE (lexeme buf)
-    | rbrace -> R_BRACE (lexeme buf)
-    | comma -> COMMA (lexeme buf)
-    | semi -> SEMI (lexeme buf)
-    | field_accessor -> FIELD_ACCESSOR (lexeme buf)
-    | hierarchical_identifier -> HIERARCHICAL_IDENTIFIER (lexeme buf)
-    | symbolseq -> symbolkey (lexeme buf)
-    | varlong -> VAR (lexeme buf) 
-(*    | var -> VAR (lexeme buf)
-    | word -> WORD (lexeme buf) *)
-    | atomic_identifier -> identkey s 
-    | eof -> EOF
-    | any -> failwith (lexeme buf)
-    | _  -> failwith (lexeme buf)
+    | string -> STRING (string_lexeme buf)
+    | controlseq -> controlkey(string_lexeme buf)
+    | controlchar -> controlkey(string_lexeme buf)
+    | decimal -> DECIMAL(string_lexeme buf)
+    | integer -> INTEGER(string_lexeme buf)
+    | number -> INTEGER(string_lexeme buf)
+    | rparen -> R_PAREN (string_lexeme buf)
+    | lparen -> L_PAREN (string_lexeme buf)
+    | lbrack -> L_BRACK (string_lexeme buf)
+    | rbrack -> R_BRACK (string_lexeme buf)
+    | lbrace -> L_BRACE (string_lexeme buf)
+    | rbrace -> R_BRACE (string_lexeme buf)
+    | comma -> COMMA (string_lexeme buf)
+    | semi -> SEMI (string_lexeme buf)
+    | field_accessor -> FIELD_ACCESSOR (string_lexeme buf)
+    | hierarchical_identifier -> HIERARCHICAL_IDENTIFIER (string_lexeme buf)
+    | symbolseq -> symbolkey (string_lexeme buf)
+    | varlong -> VAR (string_lexeme buf) 
+    | atomic_identifier -> identkey (string_lexeme buf)
+    | eof -> EOF 
+    | any -> UNKNOWN (string_lexeme buf)
+    | _  -> failwith (string_lexeme buf)
+
+(* testing *)
 
 let lex_token_to_string = function
   | STRING s -> "STRING["^s^"]"
@@ -256,52 +307,27 @@ let lex_token_to_string = function
   | QUANTIFIER s -> "Q["^s^"]"
   | VAR s -> "V["^s^"]"
   | WORD s -> "W["^s^"]"
-  | ATOMIC_IDENTIFIER -> "A["^s^"]"
-  | HIERARCHICAL_IDENTIFIER -> "H["^s^"]"
-  | FIELD_ACCESSOR -> "F["^s^"]"
-  | _ -> "?"
+  | ATOMIC_IDENTIFIER s -> "A["^s^"]"
+  | HIERARCHICAL_IDENTIFIER s -> "H["^s^"]"
+  | FIELD_ACCESSOR s -> "F["^s^"]"
+  | EOF -> "[EOF]"
+  | UNKNOWN s -> "?["^s^"]"
 
 let rec lex_tokens acc buf = 
   let t = lex_token buf in 
-  if (t = Eof) then List.rev (Eol :: acc) 
+  if (t = EOF) then List.rev (EOF :: acc) 
   else lex_tokens (t:: acc) buf
 
 let lex_string s : token list = 
   let buf = Sedlexing.Latin1.from_string s in 
   lex_tokens [] buf;;
 
+(*
 let test_lex_string() = List.map print_endline (List.map lex_token_to_string (lex_string "A B C hello\\alpha33[1]there !ready! \\begin \\\\  Riemann-Hilbert %comment \n more #4 # 5  $ ))))))))"));;
+ *)
               
 
 
               
 (* testing stuff *)
 
-(*
-let lexing_positions _ =
-  (Lexing.dummy_pos,Lexing.dummy_pos)
-
-(* git version efcc changed name of this *)
-let with_tokenizer (lexer' : Sedlexing.lexbuf -> token)  (buf : Sedlexing.lexbuf) :
-      (unit -> token * Lexing.position * Lexing.position) =
-  fun () ->
-        let token = lexer' buf in
-        let (start_p, curr_p) = lexing_positions buf in
-    (token, start_p, curr_p)
-
-(* test *)
-let buf_example1 = Sedlexing.Utf8.from_string
-               "'' ``~ ' ` ~ 'a '+ (**) X (* hi *) Y (***) X  (* U )) *) V with | thm theorem then structure α \"string\x65\x65\" Sort Type , ; ) ] } post postulate . package := == # #. #.# *. 123 notation match ( [ { let inductive in import if hi.hi ~mod hi~# #print #eval # end else def 33.33 , : _ _33 _# _*_ := hello #reduce ##hi := structure let in with match :: // #print this.that by universe/-  -/ :+: :: (:= == :) {|} *a *.*_ ... ++ +- +0 +012 my oh.( + ) ohm.≪ - ≫ hello /--//- -//- hi --/'a'\"hello\"1234 0x33AF 0b0101 0o44 /-- abc -/ /-! bye -/'z'/--/ abc print a.b.c a.( + ) a.0.44"
-
-(* both work on the same mutable buffer, *)
-let ff = fun () -> lex_token buf_example1
-BatList.map ff (BatList.init 5 (fun _ -> ()))
-
-let gg = with_tokenizer lex_token buf_example1
-gg()
- *)
-
-(*
-#require "MenhirLib"        
-MenhirLib.Convert.traditional2revised
- *)

@@ -4,22 +4,24 @@
 (name cnl_parse)
 (public_name cnl_parse)
 (wrapped true)
-(modules (:standard parser_cnl))
+(modules (:standard 
+	 ;parser_cnl 
+	 lexer_cnl))
 (libraries sedlex batteries menhirlib)
 (virtual_deps menhir)
 (preprocess (pps ppx_deriving.std  sedlex.ppx))
 )
 
-(menhir
-(modules parser_cnl.ml)
-(flags (--external-tokens Parser_cnl) --explain)
-)
+;(menhir
+;(modules parser_cnl.ml)
+;(flags (--external-tokens Parser_cnl) --explain)
+;)
 
-(rule
-(targets parser_cnl.ml)
-(deps parser_cnl.mly parser_cnl_tokens.mly)
-(action (run menhir %{deps} --base parser_cnl --explain))
-)
+;(rule
+;(targets parser_cnl.ml)
+;(deps parser_cnl.mly parser_cnl_tokens.mly)
+;(action (run menhir %{deps} --base parser_cnl --explain))
+;)
 
 
 
