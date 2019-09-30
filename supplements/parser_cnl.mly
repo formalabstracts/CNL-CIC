@@ -1287,7 +1287,7 @@ binary_controlseq_pattern : tvar controlseq_pattern tvar {} (* subsumed by symbo
 symbol_pattern : option(tvar) symbol list(tvar symbol {}) 
   option(tvar) {}
 
-  symbol : SYMBOL | CONTROLSEQ list(brace(tvar)) {} 
+  symbol : SLASH | SLASHDASH | SYMBOL | CONTROLSEQ list(brace(tvar)) {} 
 
 paren_precedence_level :
 | precedence_level

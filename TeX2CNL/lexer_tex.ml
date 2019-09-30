@@ -145,10 +145,10 @@ let unmarked_id = [%sedlex.regexp? alphabet, Star(unmarked_id_more), Plus(alphan
 
 let lexeme = Sedlexing.lexeme;;
 
-let implode l = List.fold_right (^) l "";;
+let implode l = String.init (List.length l) (List.nth l)
 
 let string_of_ints js =
- let cs =  List.map (fun j -> Char.escaped (Uchar.to_char j)) (Array.to_list js) in
+ let cs =  List.map (fun j ->  (Uchar.to_char j)) (Array.to_list js) in
   implode cs;;
 
 let string_lexeme buf = string_of_ints(lexeme buf);;
@@ -201,8 +201,8 @@ let rec lex_token buf =
     | inputseq -> Input(strip_to_brace(string_lexeme buf))
     | format_eol -> FormatEol
     | format_col -> FormatCol
-    | controlseq -> ControlSeq(drop (string_lexeme buf) 2)
-    | controlchar -> ControlSeq(drop (string_lexeme buf) 2)
+    | controlseq -> ControlSeq(drop (string_lexeme buf) 1) (* was 2 *)
+    | controlchar -> ControlSeq(drop (string_lexeme buf) 1) (* was 2 *)
     | arg -> Arg(int_of_string(drop (string_lexeme buf) 1))
     | rparen -> RParen
     | lparen -> LParen

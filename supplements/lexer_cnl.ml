@@ -146,7 +146,7 @@ let rbrace = [%sedlex.regexp? '}' ]
 let comma = [%sedlex.regexp? ',']
 let semi = [%sedlex.regexp? ';']           
 
-(* symbol does not include '\' *)
+(* symbol excludes '\' *)
           
 let symbol = [%sedlex.regexp? '*' | '+' | '^' | '=' | '<' | '>' | '/' | '!' | 
               '@' | '#' | '$' | '&' | '_' | '-' | '|' | ':' | "'" | '.' |
@@ -154,11 +154,9 @@ let symbol = [%sedlex.regexp? '*' | '+' | '^' | '=' | '<' | '>' | '/' | '!' |
 
 let symbolseq = [%sedlex.regexp? Plus(symbol)]
 
-let separator = [%sedlex.regexp? '.' | ',' | ':' | ';' | '|' ]
+let controllable = [%sedlex.regexp? '.' | ',' | ':' | ';' | '|' | '\\' ]
 
-let controlchar = [%sedlex.regexp? '\\', (symbol | separator ) ]
-
-(* tilde starts the suffix, in which more general character sequences are allowed: *)
+let controlchar = [%sedlex.regexp? '\\', (symbol | controllable) ]
 
 let controlkey s = match s with
 | "\\qed" -> SYMBOL_QED s
@@ -179,18 +177,6 @@ let controlkey s = match s with
 | "\\existsunique" -> QUANTIFIER s
 | _ -> CONTROLSEQ s;;
 
-(* handled by symbolkey:
-let period = [%sedlex.regexp? '.']           
-let colon = [%sedlex.regexp? ':']
-let assign = [%sedlex.regexp? ":="]
-let arrow = [%sedlex.regexp? "->"]
-let mapsto = [%sedlex.regexp? "|->"]
-let alt = [%sedlex.regexp? "|"]
-let slash = [%sedlex.regexp? "/"]
-let slashdash = [%sedlex.regexp? "/-"]     
-let blank = [%sedlex.regexp? '_']
- *)
-
 let symbolkey s = match s with
   | "." -> PERIOD s
   | ":" -> COLON s
@@ -204,8 +190,7 @@ let symbolkey s = match s with
   | _ -> SYMBOL s
 
 
-(* the rule for var and word is that they cannot be directly followed by an alphanum,
-   but we don't have lookahead.  *)
+(* We avoid lookahead by doing a post-tokenization regexp test. *)
 
 let var = [%sedlex.regexp? alphabet, Star(digit | "'" | "_")]
 let word = [%sedlex.regexp? Plus(alphabet) ]
@@ -224,12 +209,11 @@ let identkey =
 
 let lexeme = Sedlexing.lexeme
 
-let implode l = List.fold_right (^) l "";;
+let implode l = String.init (List.length l) (List.nth l)
 
 let string_of_ints js =
- let cs =  List.map (fun j -> Char.escaped (Uchar.to_char j)) (Array.to_list js) in
+ let cs =  List.map (fun j ->  (Uchar.to_char j)) (Array.to_list js) in
   implode cs;;
-
 
 let string_lexeme buf = string_of_ints(lexeme buf);;
 
@@ -243,6 +227,7 @@ let string_lexeme buf = string_of_ints(lexeme buf);;
 
   Some words should actually be treated as 
   case sensitive atomic_identifiers (such as sin, cos, tan).
+  This is left to the parser. 
  *)
 
 let rec lex_token buf =
@@ -275,43 +260,43 @@ let rec lex_token buf =
 (* testing *)
 
 let lex_token_to_string = function
-  | STRING s -> "STRING["^s^"]"
-  | CONTROLSEQ s -> "CS["^s^"]"
-  | DECIMAL s -> s
-  | INTEGER s -> s
-  | SYMBOL s -> "S["^s^"]"
-  | SYMBOL_QED _ -> "[QED]"
-  | L_PAREN _ -> "("
-  | R_PAREN _ -> ")"
-  | L_BRACK _ -> "["
-  | R_BRACK _ -> "]"
-  | L_BRACE _ -> "{"
-  | R_BRACE _ -> "}"
-  | MAPSTO _ -> "->"
-  | PERIOD _ -> "."
-  | MID _ -> "[MID]"
-  | TMID _ -> "[TMID]"
-  | COMMA _ -> ","
-  | SEMI _ -> ";"
-  | COLON _ -> ":"
-  | ASSIGN _ -> ":="
-  | ARROW _ -> "->"
-  | BLANK _ -> "_"
-  | ALT _ -> "|"
-  | APPLYSUB _ -> "[_]"
-  | SLASH _ -> "/"
-  | SLASHDASH _ -> "/-"
-  | COERCION _ -> "\\^"
-  | LAMBDA _ -> "[LAMBDA]"
-  | PITY _ -> "[PI]"
-  | QUANTIFIER s -> "Q["^s^"]"
-  | VAR s -> "V["^s^"]"
-  | WORD s -> "W["^s^"]"
-  | ATOMIC_IDENTIFIER s -> "A["^s^"]"
-  | HIERARCHICAL_IDENTIFIER s -> "H["^s^"]"
-  | FIELD_ACCESSOR s -> "F["^s^"]"
-  | EOF -> "[EOF]"
-  | UNKNOWN s -> "?["^s^"]"
+  | STRING s -> s ^ " (STRING)"
+  | CONTROLSEQ s -> s ^ "(CONTROL)"
+  | DECIMAL s -> s ^ " (DECIMAL)"
+  | INTEGER s -> s ^ " (INTEGER)"
+  | SYMBOL s -> s ^ " (SYMBOL)"
+  | SYMBOL_QED _ -> "(QED)"
+  | L_PAREN _ -> "(L_PAREN)"
+  | R_PAREN _ -> "(R_PAREN)"
+  | L_BRACK _ -> "(L_BRACK)"
+  | R_BRACK _ -> "(R_BRACK)"
+  | L_BRACE _ -> "(L_BRACE)"
+  | R_BRACE _ -> "(R_BRACE)"
+  | MAPSTO _ -> "(MAPSTO)"
+  | PERIOD _ -> "(PERIOD)"
+  | MID _ -> "(MID)"
+  | TMID _ -> "(TMID)"
+  | COMMA _ -> "(COMMA)"
+  | SEMI _ -> "(SEMI)"
+  | COLON _ -> "(COLON)"
+  | ASSIGN _ -> "(ASSIGN)"
+  | ARROW _ -> "(ARROW)"
+  | BLANK _ -> "(BLANK)"
+  | ALT _ -> "(ALT)"
+  | APPLYSUB _ -> "(APPLYSUB)"
+  | SLASH _ -> "(SLASH)"
+  | SLASHDASH _ -> "(SLASHDASH)"
+  | COERCION _ -> "(COERCION)"
+  | LAMBDA _ -> "(LAMBDA)"
+  | PITY _ -> "(PITY)"
+  | QUANTIFIER s -> s ^ " (QUANTIFIER)"
+  | VAR s -> s ^ " (VAR)"
+  | WORD s -> s ^ " (WORD)"
+  | ATOMIC_IDENTIFIER s -> s ^ " (ATOMIC)"
+  | HIERARCHICAL_IDENTIFIER s -> s ^ " (HIERARCHICAL)"
+  | FIELD_ACCESSOR s -> s ^ " (FIELD)"
+  | EOF -> "(EOF)"
+  | UNKNOWN s -> s ^ " ?"
 
 let rec lex_tokens acc buf = 
   let t = lex_token buf in 
