@@ -2,7 +2,7 @@
 \documentclass[12pt]{article}
 
 
-% PACKAGES
+%- PACKAGES
 \usepackage{url}
 \usepackage{amsmath}
 \usepackage{amsthm}
@@ -39,7 +39,7 @@ urlcolor=blue]{hyperref}
 \date{September 14, 2019}
 \author{Thomas Hales}
 
-% THEOREMS
+%- THEOREMS
 \newtheorem{definition}{Definition}
 \newtheorem{theorem}[definition]{Theorem}
 \newtheorem{lemma}[definition]{Lemma}
@@ -47,7 +47,7 @@ urlcolor=blue]{hyperref}
 %\newtheorem{specification}[definition]{Specification}
 
 
-% DOCUMENT
+%- DOCUMENT
 
 \begin{document}
 \maketitle
@@ -231,6 +231,7 @@ urlcolor=blue]{hyperref}
 \renewcommand{\iff}{\leftrightarrow}
 \newcommand{\Prop}{\text{\tt Prop}}
 \newcommand{\Type}{\text{\tt Type}}
+\newcommand{\Bool}{\text{\tt Bool}}
 \newcommand{\assign}{\colonequals} % {colonequals}
 \newcommand{\cons}{\mathrel{\coloncolon}} % {colonequals}
 \newcommand{\Nat}{\ensuremath{{\mathbb N}}}
@@ -306,14 +307,15 @@ urlcolor=blue]{hyperref}
 \CnlCustom\where{where}
 \CnlCustom\assign{ \concat{}{:=} }
 \CnlCustom\cons{\concat{}{::}} 
-\CnlCustom\plural{\concat{/-}{}}
+\CnlCustom\plural{\concat{}{/-}}
 \CnlCustom\wherearg{where}
 \CnlCustom\fun{fun}
-\CnlCustom[2]\funmapsto{(fun #1 := #2)}
+\CnlCustom[2]\funmapsto{(fun #1 \assign #2)}
 %\funalign{A}&{\to}{B}\\{a}{\mapsto}{b}
-\CnlCustom[6]\funalign{(fun (#4 : #1) := (#6 : #3))}
+\CnlCustom[6]\funalign{(fun (#4 : #1) \assign (#6 : #3))}
 \CnlCustom\Prop{Prop}
 \CnlCustom\Type{Type}
+\CnlCustom\Bool{Bool}
 \CnlCustom\iff{iff}
 \CnlCustom\optarg{}
 \CnlCustom\match{match}
@@ -327,14 +329,14 @@ urlcolor=blue]{hyperref}
 \CnlCustom\quot{quot}
 \CnlCustom\alpha{V--alpha}
 \CnlCustom\beta{V--beta}
-\CnlCustom[2]\prefix{\concat{#1}{#2}}
+\CnlCustom\prefix{\concat}
 \CnlCustom\cnlstop{.}
 %\CnlCustom\nullbrack{\concat{}{[]}}
-%\CnlCustom\Bool{Bool}
 \CnlCustom\matchitem{\alt}
 \CnlCustom\firstmatchitem{\alt}
 \CnlCustom[2]\caseif{#2 \assign #1}
 \CnlCustom[1]\caseotherwise{true \assign #1}
+\CnlCustom\rightarrow{\imply}
 %\CnlNoExpand[1]\section
 
 
@@ -412,7 +414,7 @@ urlcolor=blue]{hyperref}
 
 
 
-%% BEGIN
+%-% BEGIN
 
 \begin{remark}
 This is a preliminary text.  It
@@ -474,33 +476,46 @@ to the map field.
 \newpage
 \lsection{Set membership}
 
-In this section, let $\alpha,\beta$ denote types.
+%- macro -> let_annotation 
+In this section let $\alpha,\beta$ be types.
 
-Let $x \ne y$ stand for $\neg(x = y)$.
+%- macro -> predicate_def 
+%- symbol_statement -> LIT_NOT symbol_statement -> LIT_NOT prop
+%- The parentheses are optional.
+We write $x \ne y$ iff not $(x = y)$.
 
-Let an \df{equivalence} $f:\alpha\to\beta$ stand for a bijection $f$.
+%- macro -> definition_statement -> classifier_def
+Let function, quotient, term, relation be classifiers.
 
 
+%- definition
 \deflabel{set}
-Let \df{set} (of)\ $\alpha$ be the type $\alpha \to\Prop$.
+%- definition_statement -> type_def 
+%- type_word_pattern 
+Let \df{set} (of)\ $\alpha$ be the type $\alpha \to\Bool$.
 \end{definition}
 
+%-definition
 \deflabel{universe}
-Let \df{universe} of $\alpha$ stand for the function
+%- function_def -> lit_lets function_head copula LIT_THE plain_term
+%- function_head -> function_word_pattern -> LIT_THE word_pattern
+Let the \df{universe} of $\alpha$ be the function
 \[
-\funmapsto{(\blank : \alpha)}{\h{true}}.
+\funmapsto{(\blank : \alpha) : \Bool}{\h{true}}.
 \]
 \end{definition}
 
 \deflabel{empty set}
-Let empty set (inferring $\alpha$)
-stand for the function
+%- same parse tree as universe
+Let the empty set (inferring $\alpha$) be the function
 \[
-\funmapsto{(\blank\ : \alpha)}{\h{false}}.
+\funmapsto{(\blank\ : \alpha) : \Bool}{\h{false}}.
 \]
 \end{definition}
 
-Let $\emptyset$ stand for empty set.
+%-macro -> function_def
+%- lit_lets symbol_pattern copula LIT_THE plain_term
+Let $\emptyset$ stand for the empty set.
 
 \begin{remark}
 A set $X$ over $\alpha$ is a subset of the universe of $\alpha$. We
@@ -532,6 +547,7 @@ of the same type.
 \end{remark}
 
 \deflabel{notation in}
+%- structure
 A \h{notation-in} is a notational structure with
 \begin{structure}
 \firstitem (parameter) $\beta$ % carrier first, to allow dependency.
@@ -541,12 +557,12 @@ A \h{notation-in} is a notational structure with
 \end{definition}
 
 \deflabel{in}
-Let $x \in X$ (inferring C :
-\h{notation-in}) denote $C\h{.notation-in}\ x\ X$.
+We write $x \in X$ (inferring C :
+\h{notation-in}) iff $C\h{.notation-in}\ x\ X$.
 \end{definition}
 
 \deflabel{notin}
-Let $x\notin X$ denote $\h{not}(x\in X)$.
+We write $x\notin X$ iff $\h{not}(x\in X)$.
 \end{definition}
 
 \deflabel{notation-subset}
@@ -559,7 +575,7 @@ A \h{notation-subset} is a notational structure with
 \end{definition}
 
 \deflabel{subset notation}
-Let $X\subset Y$ (inferring $C : \h{notation-subset})$) denote
+We write $X\subset Y$ (inferring $C : \h{notation-subset})$) iff
 $C\h{.notation-subset}\ X\ Y$.
 \end{definition}
 
@@ -570,14 +586,13 @@ definition.
 \end{remark}
 
 
-Let $X\subseteq Y$ denote $X\subset Y$ or $(X=Y)$.
+We write $X\subseteq Y$ iff $X\subset Y$ or $(X=Y)$.
 
-Let $X$ is a \df{subset of} $Y$ stand for $X\subseteq Y$.
+We say $X$ is a \df{subset of} $Y$ iff $X\subseteq Y$.
 
-Let $x$ is a \df{member of} $X$ stand for $x\in X$.
+We say $x$ is a \df{member of} $X$ iff $x\in X$.
 
 Let the value of $f$ at $x$ stand for $f(x)$.
-
 
 
 \begin{remark}
@@ -590,7 +605,7 @@ all the fields of that structure are inserted into the structure being
 declared. The insertion is flat.  That is the fields appear at the top
 level (rather than nested) in the structure being declared.
 \end{remark}
-%\forall
+
 
 Moreover, \h{notation-in} over $\beta, \alpha$ implements
 \begin{structure}
@@ -924,6 +939,8 @@ We say that $Y$ is
 such that $Y = \setcomp{x}{x \in \h{support}\ X}$.
 \end{definition}
 
+Let an \df{equivalence} $f:\alpha\to\beta$ stand for a bijection $f$.
+
 %\deflabel{set of nodup multiset}
 We record an equivalence
 \begin{align*}
@@ -955,17 +972,18 @@ We extend the preceding notions from sets to types by using the
 universe of a type.  
 \end{remark}
 
-We say that $\alpha$ is a \prefix{type~}\df{finite} type iff the
+%- macro
+We say that $\alpha$ is a \df{\prefix{type~}{finite}} type iff the
 universe of $\alpha$ is finite.
 
 \begin{definition}
-Assume that $\alpha$ is a \prefix{type~}finite type.  The
-\prefix{type~}\df{size} of $\alpha$ is the size of the universe of
+Assume that $\alpha$ is a \prefix{type~}{finite} type.  The
+\df{\prefix{type~}{size}} of $\alpha$ is the size of the universe of
 $\alpha$.  This exists and is unique.
 \end{definition}
 
 \begin{definition}
-Assume that $\alpha$ is a finite type.  The \prefix{type~}\df{support}
+Assume that $\alpha$ is a finite type.  The \df{\prefix{type~}{support}}
 of $\alpha$ is the support of the universe of $\alpha$.  This exists
 and is unique.
 \end{definition}
@@ -1506,7 +1524,7 @@ such that
 \end{definition}
 
 For all complete ordered fields $F,\ G$,
-we record a canonical isomorphism $f : F \to G :=$ 
+we record a canonical isomorphism $f : F \to G \assign$ 
 the isomorphism from $F$ to $G$ of complete ordered fields.
 This exists and is unique.
 

@@ -12,39 +12,15 @@
 (preprocess (pps ppx_deriving.std  sedlex.ppx))
 )
 
-;(menhir
-;(modules parser_cnl.ml)
-;(flags (--external-tokens Parser_cnl) --explain)
-;)
+; remove to end of file to disable parser_cnl
+(menhir
+(modules parser_cnl.ml)
+(flags (--external-tokens Parser_cnl) --explain)
+)
 
-;(rule
-;(targets parser_cnl.ml)
-;(deps parser_cnl.mly parser_cnl_tokens.mly)
-;(action (run menhir %{deps} --base parser_cnl --explain))
-;)
-
-
-
-
-
-
-;;doesn't work:
-;(rule
-; (targets lexer_cnl.mli)
-; (deps    lexer_cnl.ml)
-;; (libraries sedlex sedlex_ppx)
-;; (preprocess
-;;  (pps ppx_deriving sedlex.ppx))
-; (action  (run -p sedlex ${deps} > %{targets})) 
-;)
-
-;CHAFF
-
-;deriving show (works?)
-;; generate lexer -- temporary hack, see https://gitlab.inria.fr/fpottier/menhir/issues/6
-;; https://github.com/smolkaj/ocaml-parsing/blob/master/src/dune
-;(rule
-; (targets lexer_cnl.ml)
-; (deps    (:f lexer_cnl.cppo.ml) parser_cnl.ml)
-; (action  (run cppo %{f} -n -o %{targets})))
+(rule
+(targets parser_cnl.ml)
+(deps parser_cnl.mly parser_cnl_tokens.mly)
+(action (run menhir %{deps} --base parser_cnl --explain))
+)
 

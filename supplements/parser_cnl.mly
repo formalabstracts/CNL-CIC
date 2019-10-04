@@ -120,7 +120,10 @@ lit_binder_comma : COMMA {}
 lit_defined_as : LIT_SAID LIT_TO LIT_BE
 | LIT_DEFINED LIT_AS
 | LIT_DEFINED LIT_TO LIT_BE {}
-lit_iff : LIT_IFF | LIT_IF LIT_AND LIT_ONLY LIT_IF {}
+lit_iff : 
+| LIT_IFF 
+| LIT_IF LIT_AND LIT_ONLY LIT_IF
+| lit_is option(LIT_THE) LIT_PREDICATE {}
 lit_denote : LIT_STAND LIT_FOR | LIT_DENOTE {}
 lit_do : LIT_DO | LIT_DOES {}
 lit_is : LIT_IS | LIT_ARE | option(LIT_TO) LIT_BE {}
@@ -148,8 +151,11 @@ lit_assume : LIT_ASSUME | LIT_SUPPOSE {}
 lit_then : LIT_THEN | LIT_THEREFORE | LIT_HENCE {}
 lit_choose : LIT_TAKE | LIT_CHOOSE {}
 lit_prove : LIT_PROVE | LIT_SHOW {}
-lit_we_say : LIT_WE LIT_SAY option(LIT_THAT) {}
+lit_say : LIT_SAY | LIT_WRITE {}
+lit_we_say : option(LIT_WE) lit_say option(LIT_THAT) {}
 lit_left : LIT_LEFT | LIT_RIGHT | LIT_NO {}
+lit_type : LIT_TYPE | LIT_TYPES {}
+lit_proposition : LIT_PROPOSITION | LIT_PROPOSITIONS {}
 lit_field_key : 
 | LIT_COERCION
 | LIT_NOTATIONLESS
@@ -310,13 +316,17 @@ prim_type_op : PA18a {} (* A + B, A * B on types, etc.  *)
 prim_term_op : PA19 {} (* + - * / etc. *)
 
  (* from predicate_def.symbol_pattern, binary infix with prec=0 or none  *)
-prim_binary_relation_op : PA20 {} (* = < > etc. *)
+prim_binary_relation_op : 
+    | EQUAL
+    | PA20 {} (* = < > etc. *)
 
  (* from predicate_def.symbol_pattern, with prec < 0 *)
 prim_propositional_op : PA21 {} (* logical connectives *)
 
  (* from predicate_def.identifier_pattern *)
-prim_relation : PA22 {} (* prop-valued *)
+prim_relation : 
+| LIT_TRUE
+| LIT_FALSE {} (* prop-valued *)
 
 (* sections test:Sections *)
 
@@ -488,7 +498,7 @@ tightest_expr : (* what is allowed as an arg to function calls *)
 (* sorts *)
 
 sort_expr : (* Side condition: args should be nonempty *)
-| option(args ARROW {}) lit_sort 
+| list(binder_type ARROW {}) lit_sort 
 {}
 
 colon_sort : COLON sort_expr {}
@@ -610,12 +620,13 @@ mutual_inductive_type : LIT_INDUCTIVE
 
  (* we require at least one field.  Later, if needed
     we can create prop_structure, without fields. 
+    fields cannot be called a,an,with. 
   *)
 
 structure : option(LIT_NOTATIONAL) LIT_STRUCTURE 
   option(lit_param) args
   option(LIT_WITH) brace_semi(field)
-  option(lit_with_properties satisfying_preds {}) {}
+  option(option(lit_with_properties) satisfying_preds {}) {}
 
   lit_param : LIT_WITH LIT_PARAMETERS {}
 
@@ -629,7 +640,8 @@ structure : option(LIT_NOTATIONAL) LIT_STRUCTURE
   | var_or_atomic opt_colon_sort
   | var_or_atomic opt_colon_type {}
 
-  field_prefix : option(paren(comma_nonempty_list(lit_field_key) {})) {}
+  field_prefix : option(lit_a) 
+                   option(paren(comma_nonempty_list(lit_field_key) {})) {}
 
   satisfying_preds : brace_semi(satisfying_pred) {}
   satisfying_pred : option(atomic COLON {}) prop {}
@@ -772,7 +784,7 @@ definite_term :
                  VAR opt_colon_type option(assign_expr) {}) {}
 
 term : 
-| definite_term 
+| option(prim_classifier) definite_term 
 | any_name {}  
 
 terms : sep_list(term) {}
@@ -917,11 +929,16 @@ app_prop : tightest_prop app_args {}
 binder_prop :
 | app_prop
 | tdop_rel_prop 
+| lambda_predicate 
 | prim_binder_prop args lit_binder_comma binder_prop {}
 
+lambda_predicate : 
+| LIT_FUN generalized_args COLON ID_PROP ASSIGN tightest_prop {}
+
+
 prop : 
-| binder_prop
-| tdop_prop
+| option(classifier) binder_prop
+| option(classifier) tdop_prop
 {}
 
 
@@ -1124,10 +1141,12 @@ definition_statement :
   macro_inferring : paren(LIT_INFERRING nonempty_list(VAR) opt_colon_type {}) {}
 
 
-  classifier_def : LIT_LET class_words lit_is lit_a lit_classifier {}
+  classifier_def : LIT_LET class_words lit_is option(lit_a) lit_classifier {}
     class_words : comma_nonempty_list(WORD) {}
 
-  type_def : opt_define type_head COLON ID_TYPE copula lit_a general_type {}
+  type_def : 
+  | opt_define type_head COLON ID_TYPE copula lit_a general_type
+  | opt_define type_head copula LIT_THE lit_type general_type {}
 
     type_head :  
     | type_word_pattern 
@@ -1223,9 +1242,9 @@ macro : option(insection) macro_bodies {}
 
   let_annotation : 
   | lit_fix comma_nonempty_list(annotated_vars) {}
-  | LIT_LET VAR LIT_BE lit_a general_type {} 
-  | LIT_LET VAR LIT_BE lit_a type_or_prop {}
-  type_or_prop : LIT_TYPE | LIT_PROPOSITION {}
+  | LIT_LET comma_nonempty_list(VAR) LIT_BE option(lit_a) general_type {} 
+  | LIT_LET comma_nonempty_list(VAR) LIT_BE option(lit_a) type_or_prop {}
+  type_or_prop : lit_type | lit_proposition {}
 
   we_record_def : lit_we_record comma_nonempty_list(plain_term) {}
 
@@ -1246,11 +1265,24 @@ macro : option(insection) macro_bodies {}
 
  (* restriction: words in pattern cannot be a variant of
     "to be", "called", "iff" "a" "stand" "denote"
-    cannot start with "the"  *)
+    cannot start with "the"  
+
+    Parentheses give optional words in pattern.
+    (or word) introduces a synonym to the previous single word. 
+
+    In word, WORDS in parentheses should exclude LIT_OR. 
+  *)
+
+ 
 
 word_pattern : words list(tvar words {}) option(tvar) {}
 
-  words : nonempty_list(WORD) {}
+  word : 
+  | WORD
+  | paren(comma_nonempty_list(LIT_OR nonempty_list(WORD) {}) {})
+  | paren(WORD) {}
+
+  words : WORD list(word) {}
 
 type_word_pattern : option(lit_a) word_pattern {}
 

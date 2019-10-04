@@ -9,7 +9,7 @@ let token_to_string = function
   | Numeric s -> s
   | Eol -> "\n"
   | Par -> ""
-  | Comment -> ""
+  | Comment s -> s
   | Input s -> "\\input{"^s ^"}"
   | Cnlenvdel s -> "\\CnlEnvDelete{"^s^"}"
   | ControlSeq s -> "[\\"^s^"]"
@@ -46,7 +46,7 @@ let token_to_verbose_string = function
   | Numeric s -> "Num"^s
   | Eol -> "Eol"
   | Par -> "Par"
-  | Comment -> "Comment"
+  | Comment s -> "%Comment-"^s
   | Input s -> "Input-"^s
   | Cnlenvdel s -> "Cnlenvdel-"^s
   | ControlSeq s -> "ControlSeq-"^s
@@ -228,27 +228,32 @@ let regard_par = function
   | TrackPar -> true
     | _ -> false;;
 
+let next_eol ios = 
+  not(ios.intoks = []) && (Eol = List.hd ios.intoks);;
 
-let input_ios = 
+let pass_comment s = 
+  String.length s > 1 && (s.[0]='%') && (s.[1]='-');;
+
+let input = 
   let input_1 ios partrack =
     if ios.intoks = [] then Eof else 
       let tok = List.hd ios.intoks in
       let _ = ios.intoks <- List.tl ios.intoks in
-      let tok' = if regard_par partrack && (tok = Eol) && not(ios.intoks =[]) && (Eol = List.hd ios.intoks)
+      let tok' = if regard_par partrack && (tok = Eol) && next_eol ios
                then Par 
                else tok in
       tok' in
-  let rec input_rec ios acc k partrack = 
-    if (k=0) then List.rev acc
-    else 
-      match input_1 ios partrack with 
-      | Comment -> (input_rec ios acc k partrack) (* no paragraph *)
-      | Eol -> (output_token ios Eol; input_rec ios acc k partrack)
-      | Par -> (output_token ios Eol; input_rec ios (Par::acc) (k-1) partrack)
-      | _ as t -> input_rec ios (t::acc) (k-1) partrack in
-  fun ios partrack k -> input_rec ios [] k partrack;;
+  let rec input_rec ios partrack = 
+    match input_1 ios partrack with 
+      | Comment s as t -> 
+          (if next_eol ios && pass_comment s 
+           then output_token ios t; input_rec ios partrack)
+      | Eol -> (output_token ios Eol; input_rec ios partrack)
+      | Par -> (output_token ios Eol; Par)
+      | _ as t -> t in 
+  input_rec;;
 
-let input ios b = List.hd(input_ios ios b 1);;
+(* let input ios b = List.hd(input_ios ios b);; *)
 
 let returnstream = 0;;
 let return_input ios ls = 

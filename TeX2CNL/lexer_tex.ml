@@ -186,7 +186,7 @@ let test() = strip_to_brace "begin { hello } ";;
 let rec lex_token buf = 
  match%sedlex buf with 
  | Plus(white) -> (lex_token buf)
- | comment -> Comment 
+ | comment -> Comment (string_lexeme buf)
   | natural_number -> Natural(int_of_string(string_lexeme buf)) 
     | numeric -> Numeric(string_lexeme buf)
     | eol -> Eol

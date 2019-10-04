@@ -5,7 +5,7 @@ type token =
    | Numeric of string
    | Eol
    | Par 
-   | Comment
+   | Comment of string
    | Input of string
    | Cnlenvdel of string
    | ControlSeq of string
