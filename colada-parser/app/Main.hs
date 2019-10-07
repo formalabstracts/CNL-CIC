@@ -17,8 +17,8 @@ import Text.Megaparsec
 import System.FilePath
 import Data.List.NonEmpty (fromList)
 
-initialState :: Text -> PosState Text
-initialState txt = PosState
+initialPosState :: Text -> PosState Text
+initialPosState txt = PosState
               { pstateInput = txt
               , pstateOffset = 0
               , pstateSourcePos = initialPos ""
@@ -29,7 +29,7 @@ initialState txt = PosState
 errorBundleOfParseError :: Text -> (ParseError Text e) -> ParseErrorBundle Text e
 errorBundleOfParseError txt pe =
   ParseErrorBundle { bundleErrors = fromList [pe],
-                     bundlePosState = initialState txt }
+                     bundlePosState = initialPosState txt }
 
 main :: IO ()
 main = do

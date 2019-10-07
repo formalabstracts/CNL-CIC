@@ -9,10 +9,10 @@ Macros.
 
 module Colada.Namespace where
 
-import Prelude -- hiding (Int, Bool, String, drop)
+import Prelude hiding (Word) -- hiding (Int, Bool, String, drop)
 import qualified Prelude
 import qualified Control.Applicative.Combinators as PC
-import Text.Megaparsec hiding (Token)
+import Text.Megaparsec hiding (Word)
 import Control.Monad (guard)
 import Text.Megaparsec.Char
 import qualified Data.Char as C

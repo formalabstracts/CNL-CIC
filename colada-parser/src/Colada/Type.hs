@@ -11,7 +11,7 @@ Parsing types and type ascriptions.
 
 module Colada.Type where
 
-import Prelude -- hiding (Int, Bool, String, drop)
+import Prelude hiding (Word) -- hiding (Int, Bool, String, drop)
 import qualified Prelude
 import qualified Control.Applicative.Combinators as PC
 import Text.Megaparsec hiding (Token, Label, option)
@@ -1199,7 +1199,7 @@ parseIsAPred =
 ------------------
 
 data ParsedPatt =
-    ParsedWd Token
+    ParsedWd Word
   | ParsedSymbol Symbol
   | ParsedVar Term
   | ParsedName [Var]
@@ -1209,7 +1209,7 @@ data ParsedPatt =
 parsePatt :: Patt -> Parser ParsedPatt
 parsePatt ptt = case ptt of
   Nm -> ParsedName <$> (sepby1 parseVar parseComma)
-  Wd ts -> ParsedWd <$> parse_any_of (map parseTokenOfLit ts)
+  Wd ts -> ParsedWd <$> parse_any_of (map parseWordOfLit ts)
   Sm t -> do s <- parseSymbol
              guard (s == Symbol t)
              return $ ParsedSymbol s
