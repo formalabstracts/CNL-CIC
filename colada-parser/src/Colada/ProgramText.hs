@@ -38,7 +38,7 @@ data TextItem =
 
 -- type synonym possibly allowing errors for textitems
 -- so that parsing can recover from errors
--- this assumes that every text_item is terminated by either a newline or a RBrack
+-- this assumes that every text_item is terminated by either a period or a RBrack
 type RawResults s e t = [RawResult s e t]
 type RawResult s e t = Either (ParseError s e) t
 

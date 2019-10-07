@@ -36,11 +36,3 @@ parseDeclaration =
   DeclarationAxiom <$> parseAxiom <||>
   DeclarationDefinition <$> parseDefinition <||>
   DeclarationTheorem <$> parseTheorem
-
--- data Definition =
-
--- data Theorem = 
-
--- parseDeclaration :: Parser Declaration
--- parseDeclaration = do xs <- (many1 item)
---                       return DummyConstructor

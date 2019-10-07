@@ -849,16 +849,16 @@ parseTightestTerms :: Parser TightestTerms
 parseTightestTerms = paren $ (TightestTerms <$> many1' parseTightestTerm)
 
 data TightestPrefix =
-    TightestPrefixNumeric Numeric
-  | TightestPrefixString TkString
-  | TightestPrefixDecimal Decimal
-  | TightestPrefixBlank Blank
-  | TightestPrefixVar Var
-  | TightestPrefixPrimIdentifierTerm PrimIdentifierTerm
+  TightestPrefixPrimIdentifierTerm PrimIdentifierTerm
   -- | TightestPrefixPrimPrefixFunction PrimPrefixFunction
   | TightestPrefixControlSeqTerm ControlSeqTerm
   | TightestPrefixDelimitedTerm DelimitedTerm
   | TightestPrefixAltTerm AltTerm
+  | TightestPrefixNumeric Numeric
+  | TightestPrefixString TkString
+  | TightestPrefixDecimal Decimal
+  | TightestPrefixBlank Blank
+  | TightestPrefixVar Var
   deriving (Show, Eq)
 
 parseTightestPrefix :: Parser TightestPrefix

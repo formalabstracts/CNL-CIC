@@ -517,19 +517,19 @@ parseVar = (do
 -- TODO later, make sure to implement check against being substring of an identifier
 -- A token is a string of alpha characters which is not followed by a period and another alpha character
 parseToken :: Parser Token
-parseToken = do
+parseToken = (do
   a <- alpha
-  as <- many1 alpha <* sc
+  as <- many1 alpha
   notFollowedBy (char '.' >> (alpha <||> digit))
-  return $ Token . join $ a:as
+  return $ Token . join $ a:as) <* sc
 
 parseToken1 :: Parser Token
 parseToken1 = do
   Token <$> intercalate (pack " ") <$>
     (many1' (do a <- alpha
-                as <- many1 alpha <* sc
+                as <- many1 alpha 
                 notFollowedBy (char '.' >> (alpha <||> digit))
-                return $ join $ a :as))
+                return $ join $ a :as) <* sc) -- TODO(jesse): validate placement of sc
 
 
 parseTokenOfLit :: Text -> Parser Token -- TODO: insert guard to ensure that `arg` is Token-compliant
