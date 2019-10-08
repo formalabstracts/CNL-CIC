@@ -4,43 +4,43 @@
 %token <string> DECIMAL (* (+|-)? digit+ . digit+ *) 
 %token <string> INTEGER (* (+|-)?  digit+  *)
 %token <string> SYMBOL
-%token <string> SYMBOL_QED (* proof token *)
-%token <string> L_PAREN
-%token <string> R_PAREN
-%token <string> L_BRACK
-%token <string> R_BRACK
-%token <string> L_BRACE
-%token <string> R_BRACE
-%token <string> MAPSTO (* |-> *)
-%token <string> PERIOD
-%token <string> MID (* set comprehension | *)
-%token <string> TMID (* subtype comprehension // *)
-%token <string> COMMA
-%token <string> SEMI
-%token <string> COLON
-%token <string> ASSIGN
-%token <string> ARROW (* -> *)
-%token <string> BLANK (* _ *)
-%token <string> ALT
-%token <string> APPLYSUB (* subscript token to mark function applications to subscripts, distinct from BLANK *)
-%token <string> SLASH
-%token <string> SLASHDASH
-%token <string> COERCION (* coercion symbol *)
-%token <string> LAMBDA
-%token <string> PITY
+%token SYMBOL_QED (* proof token *)
+%token L_PAREN
+%token R_PAREN
+%token L_BRACK
+%token R_BRACK
+%token L_BRACE
+%token R_BRACE
+%token MAPSTO (* |-> *)
+%token PERIOD
+%token MID (* set comprehension | *)
+%token TMID (* subtype comprehension // *)
+%token COMMA
+%token SEMI
+%token COLON
+%token ASSIGN
+%token ARROW (* -> *)
+%token BLANK (* _ *)
+%token ALT
+%token APPLYSUB (* subscript token to mark function applications to subscripts, distinct from BLANK *)
+%token SLASH
+%token SLASHDASH
+%token COERCION (* coercion symbol *)
+%token LAMBDA
+%token PITY
 %token <string> QUANTIFIER
 %token <string> VAR (* alpha (digit | _ | ')* or alpha _ _ alphanum* *)
-%token <string> WORD
+%token <string*string> WORD
 %token <string> ATOMIC_IDENTIFIER (*alpha (alphanum)* and not a VAR *)
 %token <string> HIERARCHICAL_IDENTIFIER (* period separated atomics *)
 %token <string> FIELD_ACCESSOR (* period then hier-identifier *)
-%token <string> NOT_IMPLEMENTED (*placeholder *)
-%token <string> NOT_DEBUGGED (*placeholder *)
+%token NOT_IMPLEMENTED (*placeholder *)
+%token NOT_DEBUGGED (*placeholder *)
 
-%token <string> EOF
-%token <string> EQUAL (* SYMBOL "=" *)
+%token EOF
+%token EQUAL (* SYMBOL "=" *)
 
-%token <string>
+%token
 LIT_A
 LIT_ALL
 LIT_AN
@@ -72,6 +72,7 @@ LIT_DEFINE
 LIT_DEFINED
 LIT_DEFINITION
 LIT_DENOTE
+LIT_DIVISION
 LIT_DO
 LIT_DOCUMENT
 LIT_DOES
@@ -79,12 +80,14 @@ LIT_DUMP
 LIT_EACH
 LIT_ELSE
 LIT_END
+LIT_ENDDIVISION
 LIT_ENDSECTION
 LIT_ENDSUBDIVISION
 LIT_ENDSUBSECTION
 LIT_ENDSUBSUBSECTION
 LIT_EQUAL
 LIT_EQUATION
+LIT_ERROR
 LIT_EVERY
 LIT_EXHAUSTIVE
 LIT_EXIST
@@ -137,6 +140,7 @@ LIT_PAIRWISE
 LIT_PARAMETER
 LIT_PARAMETERS
 LIT_PRECEDENCE
+LIT_PREDICATE
 LIT_PRINTGOAL
 LIT_PROOF
 ID_PROP
@@ -165,7 +169,6 @@ LIT_SUBSECTION
 LIT_SUBSUBSECTION
 LIT_SUCH
 LIT_SUPPOSE
-LIT_SYNONYM
 LIT_SYNONYMS
 LIT_TAKE
 LIT_THAT
@@ -186,6 +189,7 @@ LIT_TYPES
 ID_TYPE
 LIT_UNIQUE
 LIT_US
+LIT_WARNING
 LIT_WE
 LIT_WELL
 LIT_WELLDEFINED
@@ -221,7 +225,7 @@ PA18a
 PA19
 PA20
 PA21
-PA22
+(* PA22 *)
 
 PL1
 PL2

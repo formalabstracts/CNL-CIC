@@ -82,9 +82,9 @@ type exp_t =
 
 (* parametrized nonterminals *)
 
-paren(X) : L_PAREN x = X R_PAREN { x }
-bracket(X) : L_BRACK x = X R_BRACK { x }
-brace(X) : L_BRACE x = X R_BRACE { x }
+paren(X) : L_PAREN X R_PAREN { }
+bracket(X) : L_BRACK X R_BRACK { }
+brace(X) : L_BRACE X R_BRACE { }
 brace_semi(X) : brace(separated_nonempty_list(SEMI,X) {}) {}
 opt_paren(X) : X | paren(X) {}
 
@@ -120,13 +120,13 @@ lit_binder_comma : COMMA {}
 lit_defined_as : LIT_SAID LIT_TO LIT_BE
 | LIT_DEFINED LIT_AS
 | LIT_DEFINED LIT_TO LIT_BE {}
+lit_is : LIT_IS | LIT_ARE | option(LIT_TO) LIT_BE {}
 lit_iff : 
 | LIT_IFF 
 | LIT_IF LIT_AND LIT_ONLY LIT_IF
 | lit_is option(LIT_THE) LIT_PREDICATE {}
 lit_denote : LIT_STAND LIT_FOR | LIT_DENOTE {}
 lit_do : LIT_DO | LIT_DOES {}
-lit_is : LIT_IS | LIT_ARE | option(LIT_TO) LIT_BE {}
 lit_equal : LIT_EQUAL LIT_TO {}
 lit_has : LIT_HAS | LIT_HAVE {}
 lit_with : LIT_WITH | LIT_OF | LIT_HAVING {}
@@ -170,11 +170,13 @@ lit_document :
 | LIT_SECTION
 | LIT_SUBSECTION
 | LIT_SUBSUBSECTION 
+| LIT_DIVISION 
 | LIT_SUBDIVISION {}
 lit_enddocument :
 | LIT_ENDSECTION
 | LIT_ENDSUBSECTION
 | LIT_ENDSUBSUBSECTION
+| LIT_ENDDIVISION
 | LIT_ENDSUBDIVISION
 {}
 lit_def : LIT_DEF | LIT_DEFINITION {}
@@ -354,7 +356,7 @@ instruction :
   instruct_keyword_int : LIT_TIMELIMIT {}
   instruct_keyword_bool : LIT_PRINTGOAL | LIT_DUMP | LIT_ONTORED {}
 
-  instruct_keyword_string : LIT_READ | LIT_LIBRARY {}
+  instruct_keyword_string : LIT_READ | LIT_LIBRARY | LIT_ERROR | LIT_WARNING {}
 
   instruct_command : bracket( instruct_keyword_command) {}
   instruct_int : bracket(instruct_keyword_int INTEGER {}) {}
@@ -362,7 +364,8 @@ instruction :
   instruct_bool : bracket(instruct_keyword_bool bool_tf {}){}
   instruct_string : bracket(instruct_keyword_string STRING {}) {}
   instruct_sep : SLASH | SLASHDASH {}
-  instruct_synonym : bracket(LIT_SYNONYM
+(* XX issue: VAR must be included to accommodate /-s plural formation *)
+  instruct_synonym : bracket(LIT_SYNONYMS
     separated_nonempty_list (instruct_sep,nonempty_list(WORD)) {}) {}
 
 synonym_statement :
@@ -937,8 +940,8 @@ lambda_predicate :
 
 
 prop : 
-| option(classifier) binder_prop
-| option(classifier) tdop_prop
+| option(lit_classifier) binder_prop
+| option(lit_classifier) tdop_prop
 {}
 
 
@@ -1020,12 +1023,13 @@ primary_statement :
 (* text *)
 text : list(text_item) {}
   text_item : 
-    | namespace
-    | macro
     | section_preamble
-    | declaration
     | instruction
-    | misc_statement {}
+    | declaration
+    | misc_statement
+    | macro
+    | namespace {}
+
 
 misc_statement : synonym_statement {}
 

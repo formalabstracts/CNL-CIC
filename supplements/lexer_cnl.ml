@@ -61,33 +61,33 @@ type token =
   | DECIMAL of string
   | INTEGER of string
   | SYMBOL of string
-  | SYMBOL_QED of string
-  | L_PAREN of string
-  | R_PAREN of string
-  | L_BRACK of string
-  | R_BRACK of string
-  | L_BRACE of string
-  | R_BRACE of string
-  | MAPSTO of string
-  | PERIOD of string
-  | MID of string
-  | TMID of string
-  | COMMA of string
-  | SEMI of string
-  | COLON of string
-  | ASSIGN of string
-  | ARROW of string
-  | BLANK of string
-  | ALT of string
-  | APPLYSUB of string
-  | SLASH of string
-  | SLASHDASH of string
-  | COERCION of string
-  | LAMBDA of string
-  | PITY of string
+  | SYMBOL_QED
+  | L_PAREN
+  | R_PAREN
+  | L_BRACK
+  | R_BRACK
+  | L_BRACE
+  | R_BRACE
+  | MAPSTO
+  | PERIOD
+  | MID
+  | TMID
+  | COMMA
+  | SEMI
+  | COLON
+  | ASSIGN
+  | ARROW
+  | BLANK
+  | ALT
+  | APPLYSUB
+  | SLASH
+  | SLASHDASH
+  | COERCION
+  | LAMBDA
+  | PITY
   | QUANTIFIER of string
   | VAR of string
-  | WORD of string
+  | WORD of string*string
   | ATOMIC_IDENTIFIER of string
   | HIERARCHICAL_IDENTIFIER of string
   | FIELD_ACCESSOR of string
@@ -159,34 +159,34 @@ let controllable = [%sedlex.regexp? '.' | ',' | ':' | ';' | '|' | '\\' ]
 let controlchar = [%sedlex.regexp? '\\', (symbol | controllable) ]
 
 let controlkey s = match s with
-| "\\qed" -> SYMBOL_QED s
-| "\\mid" -> MID s
-| "\\tmid" -> TMID s
-| "\\alt" -> ALT s 
-| "\\sub" -> APPLYSUB s
-| "\\^" -> COERCION s
-| "\\to" -> ARROW s
-| "\\mapsto" -> MAPSTO s
-| "\\blank" -> BLANK s
-| "\\\\" -> LAMBDA s
-| "\\lam" -> LAMBDA s
-| "\\lambder" -> LAMBDA s
-| "\\Pity" -> PITY s
+| "\\qed" -> SYMBOL_QED
+| "\\mid" -> MID
+| "\\tmid" -> TMID
+| "\\alt" -> ALT 
+| "\\sub" -> APPLYSUB
+| "\\^" -> COERCION
+| "\\to" -> ARROW
+| "\\mapsto" -> MAPSTO
+| "\\blank" -> BLANK
+| "\\\\" -> LAMBDA
+| "\\lam" -> LAMBDA
+| "\\lambder" -> LAMBDA
+| "\\Pity" -> PITY
 | "\\forall" -> QUANTIFIER s
 | "\\exists" -> QUANTIFIER s
 | "\\existsunique" -> QUANTIFIER s
 | _ -> CONTROLSEQ s;;
 
 let symbolkey s = match s with
-  | "." -> PERIOD s
-  | ":" -> COLON s
-  | ":=" -> ASSIGN s
-  | "->" -> ARROW s
-  | "|->" -> MAPSTO s
-  | "|" -> ALT s
-  | "/" -> SLASH s
-  | "/-" -> SLASHDASH s
-  | "_" -> BLANK s 
+  | "." -> PERIOD
+  | ":" -> COLON
+  | ":=" -> ASSIGN
+  | "->" -> ARROW
+  | "|->" -> MAPSTO
+  | "|" -> ALT
+  | "/" -> SLASH
+  | "/-" -> SLASHDASH
+  | "_" -> BLANK
   | _ -> SYMBOL s
 
 
@@ -202,7 +202,7 @@ let identkey =
     Str.string_match (Str.regexp "[a-zA-Z]+$") s 0 in
   fun s -> 
         if is_var s then VAR s
-        else if is_word s then WORD s
+        else if is_word s then WORD (s,String.uppercase_ascii s)
         else ATOMIC_IDENTIFIER s
            
 (* open Parser_cnl *)
@@ -240,14 +240,14 @@ let rec lex_token buf =
     | decimal -> DECIMAL(string_lexeme buf)
     | integer -> INTEGER(string_lexeme buf)
     | number -> INTEGER(string_lexeme buf)
-    | rparen -> R_PAREN (string_lexeme buf)
-    | lparen -> L_PAREN (string_lexeme buf)
-    | lbrack -> L_BRACK (string_lexeme buf)
-    | rbrack -> R_BRACK (string_lexeme buf)
-    | lbrace -> L_BRACE (string_lexeme buf)
-    | rbrace -> R_BRACE (string_lexeme buf)
-    | comma -> COMMA (string_lexeme buf)
-    | semi -> SEMI (string_lexeme buf)
+    | rparen -> R_PAREN
+    | lparen -> L_PAREN
+    | lbrack -> L_BRACK
+    | rbrack -> R_BRACK
+    | lbrace -> L_BRACE
+    | rbrace -> R_BRACE
+    | comma -> COMMA
+    | semi -> SEMI
     | field_accessor -> FIELD_ACCESSOR (string_lexeme buf)
     | hierarchical_identifier -> HIERARCHICAL_IDENTIFIER (string_lexeme buf)
     | symbolseq -> symbolkey (string_lexeme buf)
@@ -265,33 +265,33 @@ let lex_token_to_string = function
   | DECIMAL s -> s ^ " (DECIMAL)"
   | INTEGER s -> s ^ " (INTEGER)"
   | SYMBOL s -> s ^ " (SYMBOL)"
-  | SYMBOL_QED _ -> "(QED)"
-  | L_PAREN _ -> "(L_PAREN)"
-  | R_PAREN _ -> "(R_PAREN)"
-  | L_BRACK _ -> "(L_BRACK)"
-  | R_BRACK _ -> "(R_BRACK)"
-  | L_BRACE _ -> "(L_BRACE)"
-  | R_BRACE _ -> "(R_BRACE)"
-  | MAPSTO _ -> "(MAPSTO)"
-  | PERIOD _ -> "(PERIOD)"
-  | MID _ -> "(MID)"
-  | TMID _ -> "(TMID)"
-  | COMMA _ -> "(COMMA)"
-  | SEMI _ -> "(SEMI)"
-  | COLON _ -> "(COLON)"
-  | ASSIGN _ -> "(ASSIGN)"
-  | ARROW _ -> "(ARROW)"
-  | BLANK _ -> "(BLANK)"
-  | ALT _ -> "(ALT)"
-  | APPLYSUB _ -> "(APPLYSUB)"
-  | SLASH _ -> "(SLASH)"
-  | SLASHDASH _ -> "(SLASHDASH)"
-  | COERCION _ -> "(COERCION)"
-  | LAMBDA _ -> "(LAMBDA)"
-  | PITY _ -> "(PITY)"
+  | SYMBOL_QED -> "(QED)"
+  | L_PAREN -> "(L_PAREN)"
+  | R_PAREN -> "(R_PAREN)"
+  | L_BRACK -> "(L_BRACK)"
+  | R_BRACK -> "(R_BRACK)"
+  | L_BRACE -> "(L_BRACE)"
+  | R_BRACE -> "(R_BRACE)"
+  | MAPSTO -> "(MAPSTO)"
+  | PERIOD -> "(PERIOD)"
+  | MID -> "(MID)"
+  | TMID -> "(TMID)"
+  | COMMA -> "(COMMA)"
+  | SEMI -> "(SEMI)"
+  | COLON -> "(COLON)"
+  | ASSIGN -> "(ASSIGN)"
+  | ARROW -> "(ARROW)"
+  | BLANK -> "(BLANK)"
+  | ALT -> "(ALT)"
+  | APPLYSUB -> "(APPLYSUB)"
+  | SLASH -> "(SLASH)"
+  | SLASHDASH -> "(SLASHDASH)"
+  | COERCION -> "(COERCION)"
+  | LAMBDA -> "(LAMBDA)"
+  | PITY -> "(PITY)"
   | QUANTIFIER s -> s ^ " (QUANTIFIER)"
   | VAR s -> s ^ " (VAR)"
-  | WORD s -> s ^ " (WORD)"
+  | WORD (s,_) -> s ^ " (WORD)"
   | ATOMIC_IDENTIFIER s -> s ^ " (ATOMIC)"
   | HIERARCHICAL_IDENTIFIER s -> s ^ " (HIERARCHICAL)"
   | FIELD_ACCESSOR s -> s ^ " (FIELD)"

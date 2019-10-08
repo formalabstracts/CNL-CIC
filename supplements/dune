@@ -1,11 +1,11 @@
-(dirs :standard \ chaff)
+(dirs :standard menhir_parser \ chaff)
 
 (library
 (name cnl_parse)
 (public_name cnl_parse)
 (wrapped true)
 (modules (:standard 
-	 ;parser_cnl 
+	 parser_cnl 
 	 lexer_cnl))
 (libraries sedlex batteries menhirlib)
 (virtual_deps menhir)
