@@ -12,7 +12,7 @@ Parser state.
 
 module Colada.Basic.State where
 
-import Prelude
+import Prelude hiding (Word)
 import Control.Monad.Trans.State
 import qualified Prelude
 import Text.Megaparsec

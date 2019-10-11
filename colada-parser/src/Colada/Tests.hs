@@ -7,6 +7,7 @@ Tests, for preliminary debugging. This will eventually be merged into the test s
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
+
 module Colada.Tests
 
 (
@@ -27,7 +28,7 @@ module Colada.Tests
 
 where
 
-import Prelude -- hiding (Int, Bool, String, drop)
+import Prelude hiding (Word) -- hiding (Int, Bool, String, drop)
 import qualified Prelude
 import qualified Control.Applicative.Combinators as PC
 import Text.Megaparsec hiding (Token)
@@ -93,7 +94,7 @@ testDefinition = do
   test parseDefinitionPreamble "DEF."
   test parseThisExists "this exists and is well defined and is canonical"
   test parseThisDirectiveAdjective "well-defined"
-  test parseTokenPattern "foo bar baz a foo b bar c baz"
+  test parseWordPattern "foo bar baz a foo b bar c baz"
   test parseClassifierDef "let scheme, schemes, stacks be classifiers"
   test (parseClassifierDef *> (use $ top.clsList)) "let scheme, schemes, stacks, derived stacks be classifiers"
   test parseClassifierDef "let lattice be a classifier"

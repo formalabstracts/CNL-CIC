@@ -5,7 +5,7 @@ ERROR: 399:13:
 399 |   Let    x  \ne y    stand  for    \neg (  x  =  y  )    .  
     |             ^^^^^^
 unexpected "\ne y "
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["Section"]) (Just (Label (AtomicId "Setmembership"))))
@@ -15,39 +15,37 @@ ERROR: 429:22:
 429 |   In  this  section  ,  let    V__alpha  ,  V__beta    denote  types  .  
     |                      ^^^^^^^^
 unexpected ",  let  "
-expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", '!', '#', '$', '&', '(', '*', '+', '-', '.', '/', ':', '<', '=', '>', '@', '\', '^', 'a', lowercase letter, or uppercase letter
+expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", ':', or 'a'
 
 
-ERROR: 432:33:
+ERROR: 432:46:
     |
 432 |   Let  set  over    V__alpha    be  the  type    V__alpha  \to Prop    .  
-    |                                 ^^^
-unexpected "be "
-expecting "if" or "iff"
+    |                                              ^
+failed to parse var
 
 
-ERROR: 432:33:
+ERROR: 432:46:
     |
 432 |   Let  set  over    V__alpha    be  the  type    V__alpha  \to Prop    .  
-    |                                 ^^^
-unexpected "be "
-expecting "if", "iff", or "in"
+    |                                              ^
+failed to parse var
 
 
 ERROR: 440:8:
     |
 440 |   fun  (  \blank :  V__alpha  )  :=  
-    |        ^^^
-unexpected "(  "
-expecting "if", "iff", lowercase letter, or uppercase letter
+    |        ^^^^^^
+unexpected "(  \bl"
+expecting ":=", "are", "be", "denote", "if", "iff", "is", "stand", "to", or ':'
 
 
 ERROR: 440:8:
     |
 440 |   fun  (  \blank :  V__alpha  )  :=  
-    |        ^^^
-unexpected "(  "
-expecting "if", "iff", "in", lowercase letter, or uppercase letter
+    |        ^^^^^^
+unexpected "(  \bl"
+expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 446:10:
@@ -67,25 +65,24 @@ parsed empty list, failing
 ERROR: 453:34:
     |
 453 |   Let  empty  set  stand  for    \emptyset   .  
-    |                                  ^^^^^^^^
-unexpected "\emptyse"
-expecting "all", "an", "any", "are", "be", "case", "each", "equal", "every", "fun", "function", "if", "iff", "in", "is", "let", "match", "no", "one", "some", "the", "to", "zero", '"', '(', '+', ',', '-', '[', '_', 'a', '{', digit, lowercase letter, or uppercase letter
+    |                                  ^
+failed to parse var
 
 
-ERROR: 492:3:
+ERROR: 491:26:
     |
-492 |   {  
-    |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+491 |   A  notation_in  is  a  notational  structure  with  
+    |                          ^
+unexpected 'n'
+expecting '.'
 
 
-ERROR: 492:3:
+ERROR: 491:26:
     |
-492 |   {  
-    |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+491 |   A  notation_in  is  a  notational  structure  with  
+    |                          ^
+unexpected 'n'
+expecting '.' or ';'
 
 
 ERROR: 500:13:
@@ -93,7 +90,7 @@ ERROR: 500:13:
 500 |   Let    x  \in X    denote    C  .notation_in  x  X    ,  inferring  (  C  :  
     |             ^^^^^^
 unexpected "\in X "
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", or ':'
 
 
 ERROR: 500:13:
@@ -101,7 +98,7 @@ ERROR: 500:13:
 500 |   Let    x  \in X    denote    C  .notation_in  x  X    ,  inferring  (  C  :  
     |             ^^^^^^
 unexpected "\in X "
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 505:13:
@@ -109,7 +106,7 @@ ERROR: 505:13:
 505 |   Let    x  \notin X    denote    not  (  x  \in X  )    .  
     |             ^^^^^^
 unexpected "\notin"
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", or ':'
 
 
 ERROR: 505:13:
@@ -117,23 +114,23 @@ ERROR: 505:13:
 505 |   Let    x  \notin X    denote    not  (  x  \in X  )    .  
     |             ^^^^^^
 unexpected "\notin"
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
-ERROR: 510:3:
+ERROR: 509:30:
     |
-510 |   {  
-    |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+509 |   A  notation_subset  is  a  notational  structure  with  
+    |                              ^
+unexpected 'n'
+expecting '.'
 
 
-ERROR: 510:3:
+ERROR: 509:30:
     |
-510 |   {  
-    |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+509 |   A  notation_subset  is  a  notational  structure  with  
+    |                              ^
+unexpected 'n'
+expecting '.' or ';'
 
 
 ERROR: 518:13:
@@ -141,7 +138,7 @@ ERROR: 518:13:
 518 |   Let    X  \subset Y    denote  
     |             ^^^^^^
 unexpected "\subse"
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", or ':'
 
 
 ERROR: 518:13:
@@ -149,7 +146,7 @@ ERROR: 518:13:
 518 |   Let    X  \subset Y    denote  
     |             ^^^^^^
 unexpected "\subse"
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 530:13:
@@ -157,7 +154,7 @@ ERROR: 530:13:
 530 |   Let    X  \subseteq Y    denote    X  \subset Y    or    (  X  =  Y  )    .  
     |             ^^^^^^
 unexpected "\subse"
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 532:22:
@@ -176,50 +173,55 @@ unexpected 'm'
 expecting '.' or ';'
 
 
-TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadFunctionTokenPattern (FunctionTokenPattern (TokenPattern (Tokens [Token "value",Token "of"]) [(TVarVar (Var "f"),Tokens [Token "at"])] (Just (TVarVar (Var "x")))))) CopulaDenote (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "f"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixDelimitedTerm (DelimitedTermParen (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "x"))) (AppArgs Nothing [])))) Nothing))))))])))) Nothing))))) Nothing) []))
+TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadFunctionWordPattern (FunctionWordPattern (WordPattern (Words [Word "value",Word "of"]) [(TVarVar (Var "f"),Words [Word "at"])] (Just (TVarVar (Var "x")))))) CopulaDenote (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "f"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixDelimitedTerm (DelimitedTermParen (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "x"))) (AppArgs Nothing [])))) Nothing))))))])))) Nothing))))) Nothing) []))
 
-ERROR: 554:3:
+ERROR: 554:78:
     |
 554 |   {  V__alpha  ;  V__beta  }  (  notation_in  over  V__beta  ,  V__alpha  )  :  
-    |   ^
-unexpected '{'
-expecting "where", ',', '.', ';', or '_'
+    |                                                                              ^
+unexpected ':'
+expecting "where", ',', '.', or ';'
 
 
-TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "This")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "exists")),RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "and"))]) Nothing)) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "n"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "q"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e")))])))) Nothing))))) Nothing) []))
+ERROR: 564:32:
+    |
+564 |   This  exists  and  is  unique  .  
+    |                                ^
+failed to parse var
+
 
 TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["Section"]) (Just (Label (AtomicId "NaturalNumber"))))
 
-ERROR: 580:3:
+ERROR: 579:33:
     |
-580 |   {  
-    |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+579 |   An  typical_structure  is  a  structure  with  
+    |                                 ^
+unexpected 's'
+expecting '.'
 
 
-ERROR: 580:3:
+ERROR: 579:33:
     |
-580 |   {  
-    |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+579 |   An  typical_structure  is  a  structure  with  
+    |                                 ^
+unexpected 's'
+expecting '.' or ';'
 
 
-ERROR: 587:3:
+ERROR: 586:28:
     |
-587 |   {  
-    |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+586 |   A  notation_zero  is  a  notational  structure  with  
+    |                            ^
+unexpected 'n'
+expecting '.'
 
 
-ERROR: 587:3:
+ERROR: 586:28:
     |
-587 |   {  
-    |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+586 |   A  notation_zero  is  a  notational  structure  with  
+    |                            ^
+unexpected 'n'
+expecting '.' or ';'
 
 
 ERROR: 593:10:
@@ -229,20 +231,20 @@ ERROR: 593:10:
 parsed empty list, failing
 
 
-ERROR: 598:3:
+ERROR: 597:27:
     |
-598 |   {  
-    |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+597 |   A  notation_one  is  a  notational  structure  with  
+    |                           ^
+unexpected 'n'
+expecting '.'
 
 
-ERROR: 598:3:
+ERROR: 597:27:
     |
-598 |   {  
-    |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+597 |   A  notation_one  is  a  notational  structure  with  
+    |                           ^
+unexpected 'n'
+expecting '.' or ';'
 
 
 ERROR: 604:10:
@@ -252,20 +254,20 @@ ERROR: 604:10:
 parsed empty list, failing
 
 
-ERROR: 609:3:
+ERROR: 608:27:
     |
-609 |   {  
-    |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+608 |   A  notation_add  is  a  notational  structure  with  
+    |                           ^
+unexpected 'n'
+expecting '.'
 
 
-ERROR: 609:3:
+ERROR: 608:27:
     |
-609 |   {  
-    |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+608 |   A  notation_add  is  a  notational  structure  with  
+    |                           ^
+unexpected 'n'
+expecting '.' or ';'
 
 
 ERROR: 616:13:
@@ -273,7 +275,7 @@ ERROR: 616:13:
 616 |   let    x  +  y    stand  for    C  .notation_add  x  y    with  precedence  
     |             ^^^^^^
 unexpected "+  y  "
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", or ':'
 
 
 ERROR: 616:13:
@@ -281,25 +283,39 @@ ERROR: 616:13:
 616 |   let    x  +  y    stand  for    C  .notation_add  x  y    with  precedence  
     |             ^^^^^^
 unexpected "+  y  "
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
-TextItemDeclaration (DeclarationDefinition (Definition (DefinitionPreamble (Just (Label (AtomicId "Label_notation_numeral")))) [] (DefinitionAffirm (DefinitionStatementFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "A")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "notation_numeral"))]) Nothing)) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "a"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "n"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "o"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "t"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "a"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "t"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "o"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "n"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "a"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "l"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "s"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "t"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "r"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "c"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "t"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "r"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "w"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "t"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "h"))),TightestExprTerm (TightestTermPrefix (TightestPrefixDelimitedTerm (DelimitedTermMake (MakeTerm [(VarOrAtomicOrBlankVarOrAtomic (VarOrAtomicAtomic (AtomicId "notation_one")),Nothing),(VarOrAtomicOrBlankVarOrAtomic (VarOrAtomicAtomic (AtomicId "notation_add")),Nothing)]))))])))) Nothing)))))) Nothing)))
-
-ERROR: 637:3:
+ERROR: 621:31:
     |
-637 |   {  
-    |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+621 |   A  notation_numeral  is  a  notational  structure  with  
+    |                               ^
+unexpected 'n'
+expecting '.'
 
 
-ERROR: 637:3:
+ERROR: 621:31:
     |
-637 |   {  
-    |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+621 |   A  notation_numeral  is  a  notational  structure  with  
+    |                               ^
+unexpected 'n'
+expecting '.' or ';'
+
+
+ERROR: 636:27:
+    |
+636 |   A  notation_mul  is  a  notational  structure  with  
+    |                           ^
+unexpected 'n'
+expecting '.'
+
+
+ERROR: 636:27:
+    |
+636 |   A  notation_mul  is  a  notational  structure  with  
+    |                           ^
+unexpected 'n'
+expecting '.' or ';'
 
 
 ERROR: 645:13:
@@ -307,7 +323,7 @@ ERROR: 645:13:
 645 |   Let    x  *  y    stand  for    C  .notation_mul  x  y    with  precedence  
     |             ^^^^^^
 unexpected "*  y  "
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", or ':'
 
 
 ERROR: 645:13:
@@ -315,23 +331,23 @@ ERROR: 645:13:
 645 |   Let    x  *  y    stand  for    C  .notation_mul  x  y    with  precedence  
     |             ^^^^^^
 unexpected "*  y  "
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 652:3:
     |
 652 |   \alt zero    :  Nat    
-    |   ^
-unexpected '\'
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+    |   ^^^
+unexpected "\al"
+expecting "are", "be", "is", "to", or ','
 
 
 ERROR: 652:3:
     |
 652 |   \alt zero    :  Nat    
-    |   ^
-unexpected '\'
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', ';', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+    |   ^^^
+unexpected "\al"
+expecting "are", "be", "in", "is", "to", or ','
 
 
 ERROR: 662:22:
@@ -355,7 +371,7 @@ ERROR: 668:32:
 668 |   This  exists  by  recursion  .  
     |                                ^^^^
 unexpected ".  <newline>  "
-expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 671:13:
@@ -363,7 +379,7 @@ ERROR: 671:13:
 671 |   Moreover  ,    Nat    implements  
     |             ^^^^^^
 unexpected ",    N"
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 677:22:
@@ -387,7 +403,7 @@ ERROR: 683:32:
 683 |   This  exists  by  recursion  .  
     |                                ^^^^
 unexpected ".  <newline>  "
-expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 686:13:
@@ -395,7 +411,7 @@ ERROR: 686:13:
 686 |   Moreover  ,    Nat    implements  
     |             ^^^^^^
 unexpected ",    N"
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["Section"]) (Just (Label (AtomicId "List"))))
@@ -405,7 +421,7 @@ ERROR: 701:22:
 701 |   In  this  section  ,  let    V__alpha    denote  a  type  .  
     |                      ^^^^^^^^
 unexpected ",  let  "
-expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", '!', '#', '$', '&', '(', '*', '+', '-', '.', '/', ':', '<', '=', '>', '@', '\', '^', 'a', lowercase letter, or uppercase letter
+expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", ':', or 'a'
 
 
 ERROR: 704:16:
@@ -413,7 +429,7 @@ ERROR: 704:16:
 704 |   Let    list  {  V__alpha  }    be  the  inductive  type  
     |                ^^^^^^
 unexpected "{  V__"
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", '(', ',', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", ',', or ':'
 
 
 ERROR: 704:16:
@@ -421,7 +437,7 @@ ERROR: 704:16:
 704 |   Let    list  {  V__alpha  }    be  the  inductive  type  
     |                ^^^^^^
 unexpected "{  V__"
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ',', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", ',', or ':'
 
 
 ERROR: 712:10:
@@ -457,7 +473,7 @@ ERROR: 726:23:
 726 |   Let    list.length  {  V__alpha  }  :  list  \to Nat    =  function  
     |                       ^^^^^^
 unexpected "{  V__"
-expecting ":=", "are", "at", "be", "denote", "is", "stand", "to", '(', '.', ':', digit, lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "is", "stand", "to", '.', or ':'
 
 
 ERROR: 726:23:
@@ -465,7 +481,7 @@ ERROR: 726:23:
 726 |   Let    list.length  {  V__alpha  }  :  list  \to Nat    =  function  
     |                       ^^^^^^
 unexpected "{  V__"
-expecting ":=", "are", "at", "be", "denote", "in", "is", "stand", "to", '(', '.', ':', digit, lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "in", "is", "stand", "to", '.', or ':'
 
 
 ERROR: 731:32:
@@ -473,7 +489,7 @@ ERROR: 731:32:
 731 |   This  exists  by  recursion  .  
     |                                ^^^^
 unexpected ".  <newline>  "
-expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 735:19:
@@ -481,7 +497,7 @@ ERROR: 735:19:
 735 |   Let    list.in  (  x  :  V__alpha  )  :  list  \to Bool    =  function  
     |                   ^^^^^^
 unexpected "(  x  "
-expecting ":=", "are", "at", "be", "denote", "is", "stand", "to", '.', ':', digit, lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "is", "stand", "to", '.', or ':'
 
 
 ERROR: 735:19:
@@ -489,7 +505,7 @@ ERROR: 735:19:
 735 |   Let    list.in  (  x  :  V__alpha  )  :  list  \to Bool    =  function  
     |                   ^^^^^^
 unexpected "(  x  "
-expecting ":=", "are", "at", "be", "denote", "in", "is", "stand", "to", '.', ':', digit, lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "in", "is", "stand", "to", '.', or ':'
 
 
 ERROR: 740:32:
@@ -497,7 +513,7 @@ ERROR: 740:32:
 740 |   This  exists  by  recursion  .  
     |                                ^^^^
 unexpected ".  <newline>  "
-expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 743:13:
@@ -505,7 +521,7 @@ ERROR: 743:13:
 743 |   Moreover  ,  list  implements  
     |             ^^^^^^
 unexpected ",  lis"
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 754:21:
@@ -513,7 +529,7 @@ ERROR: 754:21:
 754 |   Let    list.drop  (  x  :  V__alpha  )  :  list  \to list  :=    
     |                     ^^^^^^
 unexpected "(  x  "
-expecting ":=", "are", "at", "be", "denote", "is", "stand", "to", '.', ':', digit, lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "is", "stand", "to", '.', or ':'
 
 
 ERROR: 754:21:
@@ -521,7 +537,7 @@ ERROR: 754:21:
 754 |   Let    list.drop  (  x  :  V__alpha  )  :  list  \to list  :=    
     |                     ^^^^^^
 unexpected "(  x  "
-expecting ":=", "are", "at", "be", "denote", "in", "is", "stand", "to", '.', ':', digit, lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "in", "is", "stand", "to", '.', or ':'
 
 
 ERROR: 761:32:
@@ -529,7 +545,7 @@ ERROR: 761:32:
 761 |   This  exists  by  recursion  .  
     |                                ^^^^
 unexpected ".  <newline>  "
-expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 773:40:
@@ -553,7 +569,7 @@ ERROR: 778:5:
 778 |     (  x  ::  X  ,  y  ::  Y  )      :=    
     |     ^^^^^^^^^^^^^
 unexpected "(  x  ::  X  "
-expecting ":=", "an", "are", "article", "at", "axiom", "be", "conjecture", "corollary", "def", "define", "definition", "denote", "document", "end", "equation", "formula", "hypothesis", "if", "iff", "in", "is", "lemma", "let", "proposition", "record", "register", "section", "stand", "subdivision", "subsection", "subsubsection", "the", "theorem", "to", "we", ':', '[', 'a', lowercase letter, or uppercase letter
+expecting ":=", "an", "are", "article", "at", "axiom", "be", "conjecture", "corollary", "def", "define", "definition", "denote", "document", "end", "equation", "formula", "hypothesis", "if", "iff", "in", "is", "lemma", "let", "proposition", "record", "register", "section", "stand", "subdivision", "subsection", "subsubsection", "the", "theorem", "to", "we", ':', '[', or 'a'
 
 
 ERROR: 788:32:
@@ -561,7 +577,7 @@ ERROR: 788:32:
 788 |   This  exists  by  recursion  .  
     |                                ^^^^
 unexpected ".  <newline>  "
-expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 791:53:
@@ -569,7 +585,7 @@ ERROR: 791:53:
 791 |   Definition  Label_multiset  .    Let  multiset    {  V__alpha  }    denote  the  quotient  
     |                                                     ^^^^^^
 unexpected "{  V__"
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", '(', ',', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", ',', or ':'
 
 
 ERROR: 791:53:
@@ -577,7 +593,7 @@ ERROR: 791:53:
 791 |   Definition  Label_multiset  .    Let  multiset    {  V__alpha  }    denote  the  quotient  
     |                                                     ^^^^^^
 unexpected "{  V__"
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ',', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", ',', or ':'
 
 
 ERROR: 793:36:
@@ -585,7 +601,7 @@ ERROR: 793:36:
 793 |   is_permutation  .  This  exists  .  
     |                                    ^^^^
 unexpected ".  <newline>  "
-expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 797:27:
@@ -593,7 +609,7 @@ ERROR: 797:27:
 797 |   Let  multiset.length    (  X  :  multiset  )    denote  the  length  of  
     |                           ^^^^^^
 unexpected "(  X  "
-expecting ":=", "are", "at", "be", "denote", "is", "stand", "to", '.', ':', digit, lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "is", "stand", "to", '.', or ':'
 
 
 ERROR: 797:27:
@@ -601,10 +617,15 @@ ERROR: 797:27:
 797 |   Let  multiset.length    (  X  :  multiset  )    denote  the  length  of  
     |                           ^^^^^^
 unexpected "(  X  "
-expecting ":=", "are", "at", "be", "denote", "in", "is", "stand", "to", '.', ':', digit, lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "in", "is", "stand", "to", '.', or ':'
 
 
-TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "This")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "exists")),RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "and"))]) Nothing)) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "w"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "l"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "l"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "d"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "f"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "n"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "d")))])))) Nothing))))) Nothing) []))
+ERROR: 799:37:
+    |
+799 |   This  exists  and  is  welldefined  .  
+    |                                     ^
+failed to parse var
+
 
 TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["Section"]) (Just (Label (AtomicId "Finiteness"))))
 
@@ -613,27 +634,27 @@ ERROR: 805:22:
 805 |   In  this  section  ,  let    V__alpha    stand  for  a  type  .  
     |                      ^^^^^^^^
 unexpected ",  let  "
-expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", '!', '#', '$', '&', '(', '*', '+', '-', '.', '/', ':', '<', '=', '>', '@', '\', '^', 'a', lowercase letter, or uppercase letter
+expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", ':', or 'a'
 
 
-TextItemInstr (InstrInstructSynonym (InstructSynonym [Token "size",Token "length"]))
+TextItemInstr (InstrInstructSynonym (InstructSynonym [Word "size",Word "length"]))
 
-TextItemInstr (InstrInstructSynonym (InstructSynonym [Token "element",Token "point",Token "carrier"]))
+TextItemInstr (InstrInstructSynonym (InstructSynonym [Word "element",Word "point",Word "carrier"]))
 
-ERROR: 824:3:
+ERROR: 823:38:
     |
-824 |   {  
-    |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+823 |   A  duplicate_free_multiset  is  a  structure  with  
+    |                                      ^
+unexpected 's'
+expecting '.'
 
 
-ERROR: 824:3:
+ERROR: 823:38:
     |
-824 |   {  
-    |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+823 |   A  duplicate_free_multiset  is  a  structure  with  
+    |                                      ^
+unexpected 's'
+expecting '.' or ';'
 
 
 ERROR: 848:3:
@@ -641,7 +662,7 @@ ERROR: 848:3:
 848 |   \eqnarray{[(  
     |   ^^^^^^
 unexpected "\eqnar"
-expecting ":=", "are", "be", "denote", "if", "iff", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "is", "stand", "to", or ':'
 
 
 ERROR: 848:3:
@@ -649,7 +670,7 @@ ERROR: 848:3:
 848 |   \eqnarray{[(  
     |   ^
 unexpected '\'
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', ',', '-', '.', ';', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+expecting "where", ',', '.', or ';'
 
 
 ERROR: 854:3:
@@ -657,7 +678,7 @@ ERROR: 854:3:
 854 |   )]}  
     |   ^^^^^^
 unexpected ")]}  <newline>    <newline>  "
-expecting ":=", "an", "are", "article", "at", "axiom", "be", "conjecture", "corollary", "def", "define", "definition", "denote", "document", "end", "equation", "formula", "hypothesis", "if", "iff", "in", "is", "lemma", "let", "proposition", "record", "register", "section", "stand", "subdivision", "subsection", "subsubsection", "the", "theorem", "to", "we", '!', '#', '$', '&', '(', '*', '+', '-', '.', '/', ':', '<', '=', '>', '@', '[', '\', '^', 'a', lowercase letter, or uppercase letter
+expecting ":=", "an", "are", "article", "at", "axiom", "be", "conjecture", "corollary", "def", "define", "definition", "denote", "document", "end", "equation", "formula", "hypothesis", "if", "iff", "in", "is", "lemma", "let", "proposition", "record", "register", "section", "stand", "subdivision", "subsection", "subsubsection", "the", "theorem", "to", "we", ':', '[', or 'a'
 
 
 ERROR: 854:5:
@@ -665,7 +686,7 @@ ERROR: 854:5:
 854 |   )]}  
     |     ^^^^
 unexpected "}  <newline>    <newline>  <newline> "
-expecting ":=", "an", "are", "article", "at", "axiom", "be", "conjecture", "corollary", "def", "define", "definition", "denote", "document", "end", "equation", "formula", "hypothesis", "if", "iff", "in", "is", "lemma", "let", "proposition", "record", "register", "section", "stand", "subdivision", "subsection", "subsubsection", "the", "theorem", "to", "we", '!', '#', '$', '&', '(', '*', '+', '-', '.', '/', ':', '<', '=', '>', '@', '[', '\', '^', 'a', lowercase letter, or uppercase letter
+expecting ":=", "an", "are", "article", "at", "axiom", "be", "conjecture", "corollary", "def", "define", "definition", "denote", "document", "end", "equation", "formula", "hypothesis", "if", "iff", "in", "is", "lemma", "let", "proposition", "record", "register", "section", "stand", "subdivision", "subsection", "subsubsection", "the", "theorem", "to", "we", ':', '[', or 'a'
 
 
 ERROR: 859:19:
@@ -673,43 +694,48 @@ ERROR: 859:19:
 859 |   Assume  that    (  X  :  set  over  V__alpha  )    .  We  say  that    X    is  
     |                   ^^^^^^
 unexpected "(  X  "
-expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
-TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "say")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "that")),RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "X"))]) Nothing)) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "f"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "n"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "t"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "f"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "f"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "X"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "s"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "a"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "m"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "m"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "b"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "r"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "o"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "f"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "t"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "h"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "m"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "a"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "g"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "o"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "f"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "s"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "t_"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "o"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "f_"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "d"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "p"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "l"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "c"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "a"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "t"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e_"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "f"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "r"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e_"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "m"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "l"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "t"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "s"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "t")))])))) Nothing))))) Nothing) []))
+ERROR: 864:3:
+    |
+864 |   Let  an  equivalence    f  :  V__alpha  \to V__beta    stand  for  a  bijection    f    .  
+    |   ^
+unknown parse error
+
 
 ERROR: 864:33:
     |
 864 |   Let  an  equivalence    f  :  V__alpha  \to V__beta    stand  for  a  bijection    f    .  
     |                                 ^^^^^^
 unexpected "V__alp"
-expecting ":=", "are", "be", "denote", "in", "is", "stand", or "to"
+expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", or "to"
 
 
-ERROR: 868:21:
+ERROR: 868:5:
     |
 868 |     {  V__alpha  }  (  X  :  
-    |                     ^
-unexpected '('
-expecting "where", ',', '.', ';', or '_'
+    |     ^^^^^^
+unexpected "{  V__"
+expecting ":=", "are", "be", "denote", "if", "iff", "is", "stand", "to", or ':'
 
 
 TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["Section"]) (Just (Label (AtomicId "Order"))))
 
-ERROR: 914:3:
+ERROR: 913:30:
     |
-914 |   {  
-    |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+913 |   A  binary_relation  is  a  structure  with  
+    |                              ^
+unexpected 's'
+expecting '.'
 
 
-ERROR: 914:3:
+ERROR: 913:30:
     |
-914 |   {  
-    |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+913 |   A  binary_relation  is  a  structure  with  
+    |                              ^
+unexpected 's'
+expecting '.' or ';'
 
 
 ERROR: 920:22:
@@ -717,7 +743,7 @@ ERROR: 920:22:
 920 |   In  this  section  ,  fix  a  binary  relation    R    .  
     |                      ^^^^^^^^
 unexpected ",  fix  "
-expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", '!', '#', '$', '&', '(', '*', '+', '-', '.', '/', ':', '<', '=', '>', '@', '\', '^', 'a', lowercase letter, or uppercase letter
+expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", ':', or 'a'
 
 
 ERROR: 922:22:
@@ -725,7 +751,7 @@ ERROR: 922:22:
 922 |   In  this  section  ,  let    (  s  x  y  z  :  R  .element  )    .  
     |                      ^^^^^^^^
 unexpected ",  let  "
-expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", '!', '#', '$', '&', '(', '*', '+', '-', '.', '/', ':', '<', '=', '>', '@', '\', '^', 'a', lowercase letter, or uppercase letter
+expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", ':', or 'a'
 
 
 ERROR: 924:22:
@@ -733,7 +759,7 @@ ERROR: 924:22:
 924 |   In  this  section  ,  let    x  \le y    stand  for    R  .relation  x  y    .  
     |                      ^^^^^^^^
 unexpected ",  let  "
-expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", '!', '#', '$', '&', '(', '*', '+', '-', '.', '/', ':', '<', '=', '>', '@', '\', '^', 'a', lowercase letter, or uppercase letter
+expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", ':', or 'a'
 
 
 ERROR: 926:88:
@@ -741,7 +767,7 @@ ERROR: 926:88:
 926 |   Definition  Label_reflexive  .    We  say    R    is  reflexive  iff  for  all    x  ,  x  
     |                                                                                        ^
 unexpected ','
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+expecting '.' or '_'
 
 
 ERROR: 926:88:
@@ -749,7 +775,7 @@ ERROR: 926:88:
 926 |   Definition  Label_reflexive  .    We  say    R    is  reflexive  iff  for  all    x  ,  x  
     |                                                                                        ^
 unexpected ','
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', ';', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+expecting "where", '.', ';', or '_'
 
 
 ERROR: 931:19:
@@ -757,7 +783,7 @@ ERROR: 931:19:
 931 |   all    x  y  z  ,  x  \le y  \land y  \le z  \to x  \le z    .  
     |                   ^
 unexpected ','
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+expecting '.' or '_'
 
 
 ERROR: 931:19:
@@ -765,7 +791,7 @@ ERROR: 931:19:
 931 |   all    x  y  z  ,  x  \le y  \land y  \le z  \to x  \le z    .  
     |                   ^
 unexpected ','
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', ';', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+expecting "where", '.', ';', or '_'
 
 
 ERROR: 935:16:
@@ -773,7 +799,7 @@ ERROR: 935:16:
 935 |   all    x  y  ,  x  \le y  \to y  \le x    .  
     |                ^
 unexpected ','
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+expecting '.' or '_'
 
 
 ERROR: 935:16:
@@ -781,7 +807,7 @@ ERROR: 935:16:
 935 |   all    x  y  ,  x  \le y  \to y  \le x    .  
     |                ^
 unexpected ','
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', ';', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+expecting "where", '.', ';', or '_'
 
 
 ERROR: 938:59:
@@ -853,7 +879,7 @@ ERROR: 951:39:
 951 |   total  iff  for  all    (  x  y  )  ,  x  \le y  or  y  \le x    .  
     |                                       ^
 unexpected ','
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', ';', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+expecting "where", '.', ';', or '_'
 
 
 ERROR: 954:62:
@@ -872,7 +898,13 @@ unexpected 'p'
 expecting '.' or ';'
 
 
-TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "partially")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "ordered")),RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "set"))]) Nothing)) CopulaDenote (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "p"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "o"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "s"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "t")))])))) Nothing))))) Nothing) []))
+ERROR: 958:52:
+    |
+958 |   Let  partially  ordered  set  stand  for  poset  .  
+    |                                                    ^^^
+unexpected ".  "
+expecting "are", "be", "in", "is", "to", or ','
+
 
 ERROR: 960:69:
     |
@@ -890,9 +922,15 @@ unexpected 'l'
 expecting '.' or ';'
 
 
-TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "total")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "order"))]) Nothing)) CopulaDenote (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "l"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "n"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "a"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "r"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "o"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "r"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "d"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "r")))])))) Nothing))))) Nothing) []))
+ERROR: 964:45:
+    |
+964 |   Let  total  order  denote  linear  order  .  
+    |                                             ^^^
+unexpected ".  "
+expecting "are", "be", "in", "is", "to", or ','
 
-TextItemInstr (InstrInstructSynonym (InstructSynonym [Token "greatest",Token "maximum",Token "top"]))
+
+TextItemInstr (InstrInstructSynonym (InstructSynonym [Word "greatest",Word "maximum",Word "top"]))
 
 ERROR: 969:3:
     |
@@ -910,7 +948,7 @@ unexpected 'g'
 expecting '.' or ';'
 
 
-TextItemInstr (InstrInstructSynonym (InstructSynonym [Token "least",Token "minimum",Token "bottom"]))
+TextItemInstr (InstrInstructSynonym (InstructSynonym [Word "least",Word "minimum",Word "bottom"]))
 
 ERROR: 974:70:
     |
@@ -933,7 +971,7 @@ ERROR: 978:13:
 978 |   Let    x  <  y    stand  for    x  \le y    and    x  \ne y    .  
     |             ^^^^^^
 unexpected "<  y  "
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 980:72:
@@ -968,20 +1006,20 @@ unexpected 'm'
 expecting '.' or ';'
 
 
-ERROR: 989:39:
+ERROR: 989:22:
     |
 989 |   exists  no    x    such  that    x  <  x    .  
-    |                                       ^
-unexpected '<'
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+    |                      ^
+unexpected 's'
+expecting "and", "not", "pairwise", "positive", "the", ',', '.', or 'a'
 
 
-ERROR: 989:39:
+ERROR: 989:22:
     |
 989 |   exists  no    x    such  that    x  <  x    .  
-    |                                       ^
-unexpected '<'
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', ';', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+    |                      ^
+unexpected 's'
+expecting "and", "not", "pairwise", "positive", "the", "where", ',', '.', ';', or 'a'
 
 
 ERROR: 992:65:
@@ -1061,7 +1099,7 @@ ERROR: 1012:34:
 1012 |   every    S    such  that    S  \ne \emptyset   there  exists  a  lower  bound    s    of  
      |                                  ^
 unexpected '\'
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+expecting '.' or '_'
 
 
 ERROR: 1012:34:
@@ -1069,12 +1107,24 @@ ERROR: 1012:34:
 1012 |   every    S    such  that    S  \ne \emptyset   there  exists  a  lower  bound    s    of  
      |                                  ^
 unexpected '\'
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', ';', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+expecting "where", '.', ';', or '_'
 
 
-TextItemInstr (InstrInstructSynonym (InstructSynonym [Token "least upper bound",Token "join",Token "supremum"]))
+ERROR: 1016:22:
+     |
+1016 |   [  synonym  least  upper  bound  /  join  /  supremum  ]  
+     |                      ^
+unexpected 'u'
+expecting '/' or ']'
 
-TextItemInstr (InstrInstructSynonym (InstructSynonym [Token "greatest lower bound",Token "meet",Token "infimum"]))
+
+ERROR: 1018:25:
+     |
+1018 |   [  synonym  greatest  lower  bound  /  meet  /  infimum  ]  
+     |                         ^
+unexpected 'l'
+expecting '/' or ']'
+
 
 ERROR: 1020:68:
      |
@@ -1156,15 +1206,19 @@ unexpected 'j'
 expecting '.' or ';'
 
 
-ERROR: 1041:55:
+ERROR: 1041:33:
      |
 1041 |     join  x  y    be  the  least  upper  bound  of    \setenum {  x  ,  y  }    in    R    .  
-     |                                                       ^
-unexpected '\'
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', ';', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+     |                                 ^
+failed to parse var
 
 
-TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "This")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "exists")),RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "and"))]) Nothing)) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "n"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "q"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e")))])))) Nothing))))) Nothing) []))
+ERROR: 1042:32:
+     |
+1042 |   This  exists  and  is  unique  .  
+     |                                ^
+failed to parse var
+
 
 ERROR: 1045:54:
      |
@@ -1182,15 +1236,19 @@ unexpected 'm'
 expecting '.' or ';'
 
 
-ERROR: 1046:58:
+ERROR: 1046:36:
      |
 1046 |     meet  x  y    be  the  greatest  lower  bound  of    \setenum {  x  ,  y  }    in    R    .  
-     |                                                          ^
-unexpected '\'
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', ';', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+     |                                    ^
+failed to parse var
 
 
-TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "This")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "exists")),RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "and"))]) Nothing)) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "n"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "q"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e")))])))) Nothing))))) Nothing) []))
+ERROR: 1047:32:
+     |
+1047 |   This  exists  and  is  unique  .  
+     |                                ^
+failed to parse var
+
 
 ERROR: 1050:49:
      |
@@ -1210,20 +1268,20 @@ expecting '.' or ';'
 
 TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["Section"]) (Just (Label (AtomicId "OrderNotation"))))
 
-ERROR: 1059:3:
+ERROR: 1058:26:
      |
-1059 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+1058 |   A  notation_le  is  a  notational  structure  with  
+     |                          ^
+unexpected 'n'
+expecting '.'
 
 
-ERROR: 1059:3:
+ERROR: 1058:26:
      |
-1059 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+1058 |   A  notation_le  is  a  notational  structure  with  
+     |                          ^
+unexpected 'n'
+expecting '.' or ';'
 
 
 ERROR: 1069:13:
@@ -1231,7 +1289,7 @@ ERROR: 1069:13:
 1069 |   Let    x  \le y    denote    C  .notation_le  x  y    ,  inferring  
      |             ^^^^^^
 unexpected "\le y "
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 1072:13:
@@ -1239,7 +1297,7 @@ ERROR: 1072:13:
 1072 |   Let    x  <  y    stand  for    x  \le y    and    x  \ne y    .  
      |             ^^^^^^
 unexpected "<  y  "
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 1074:13:
@@ -1247,7 +1305,7 @@ ERROR: 1074:13:
 1074 |   Let    x  \ge y    stand  for    y  \le x    .  
      |             ^^^^^^
 unexpected "\ge y "
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 1076:13:
@@ -1255,7 +1313,7 @@ ERROR: 1076:13:
 1076 |   Let    x  >  y    stand  for    y  <  x    .  
      |             ^^^^^^
 unexpected ">  y  "
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 1078:20:
@@ -1274,20 +1332,18 @@ unexpected 't'
 expecting '.' or ';'
 
 
-ERROR: 1082:54:
+ERROR: 1082:28:
      |
 1082 |   Let    m    is  less_than    n    stand  for    m  <  n    .  
-     |                                                      ^
-unexpected '<'
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', ';', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+     |                            ^
+failed to parse var
 
 
-ERROR: 1084:57:
+ERROR: 1084:31:
      |
 1084 |   Let    n    is  greater_than    m    stand  for    n  >  m    .  
-     |                                                         ^
-unexpected '>'
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', ';', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+     |                               ^
+failed to parse var
 
 
 TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["Section"]) (Just (Label (AtomicId "MoreonNaturalNumbers"))))
@@ -1297,7 +1353,7 @@ ERROR: 1089:22:
 1089 |   In  this  section  ,  let    m  ,  n  ,  d  ,  p  ,  r    denote  natural  numbers  .  
      |                      ^^^^^^^^
 unexpected ",  let  "
-expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", '!', '#', '$', '&', '(', '*', '+', '-', '.', '/', ':', '<', '=', '>', '@', '\', '^', 'a', lowercase letter, or uppercase letter
+expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", ':', or 'a'
 
 
 ERROR: 1092:80:
@@ -1305,7 +1361,7 @@ ERROR: 1092:80:
 1092 |   We  say  that    nat_le  m  n    iff  there  exists    d    such  that    m  +  d  =  n    .  
      |                                                                                ^^^^^^
 unexpected "+  d  "
-expecting ":=", "are", "be", "denote", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "is", "stand", "to", or ':'
 
 
 ERROR: 1092:80:
@@ -1313,29 +1369,40 @@ ERROR: 1092:80:
 1092 |   We  say  that    nat_le  m  n    iff  there  exists    d    such  that    m  +  d  =  n    .  
      |                                                                                ^^^^^^
 unexpected "+  d  "
-expecting ":=", "are", "be", "denote", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "is", "stand", "to", or ':'
 
 
-ERROR: 1096:3:
+ERROR: 1095:45:
      |
-1096 |   {  
-     |   ^
-unexpected '{'
-expecting "where", ',', '.', ';', or '_'
+1095 |   We  record  a  wellfounded  total  order  ,  where  
+     |                                             ^
+unexpected ','
+expecting "where", '.', or ';'
 
 
-TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "This")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "exists")),RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "and"))]) Nothing)) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "n"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "q"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e")))])))) Nothing))))) Nothing) []))
+ERROR: 1100:32:
+     |
+1100 |   This  exists  and  is  unique  .  
+     |                                ^
+failed to parse var
 
-TextItemInstr (InstrInstructSynonym (InstructSynonym [Token "number",Token "numbers"]))
 
-TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "natural")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "number"))]) Nothing)) CopulaDenote (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "N"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "a"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "t")))])))) Nothing))))) Nothing) []))
+TextItemInstr (InstrInstructSynonym (InstructSynonym [Word "number",Word "numbers"]))
+
+ERROR: 1111:42:
+     |
+1111 |   Let  natural  number  stand  for  Nat  .  
+     |                                          ^^^
+unexpected ".  "
+expecting "are", "be", "in", "is", "to", or ','
+
 
 ERROR: 1114:51:
      |
 1114 |   We  say  that    d    divides    m    iff    d  \ne 0    and  there  exists    r    
      |                                                   ^
 unexpected '\'
-expecting "at", "case", "function", "inductive", "match", "notational", "qed", "structure", '"', '(', '+', '-', '.', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+expecting "at" or '.'
 
 
 ERROR: 1114:51:
@@ -1343,7 +1410,7 @@ ERROR: 1114:51:
 1114 |   We  say  that    d    divides    m    iff    d  \ne 0    and  there  exists    r    
      |                                                   ^
 unexpected '\'
-expecting "at", "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', ';', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+expecting "at", "where", '.', or ';'
 
 
 ERROR: 1122:10:
@@ -1366,7 +1433,7 @@ ERROR: 1131:22:
 1131 |   Assume  that    b  ,  n    are  natural  numbers  .  We  define  
      |                      ^^^^^^
 unexpected ",  n  "
-expecting ":=", "are", "be", "denote", "if", "iff", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "is", "stand", "to", or ':'
 
 
 ERROR: 1131:22:
@@ -1374,7 +1441,7 @@ ERROR: 1131:22:
 1131 |   Assume  that    b  ,  n    are  natural  numbers  .  We  define  
      |                      ^^^^^^
 unexpected ",  n  "
-expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 1132:5:
@@ -1382,7 +1449,7 @@ ERROR: 1132:5:
 1132 |     \natpow {  b  }  {  n  }  :=    
      |     ^^^^^^
 unexpected "\natpo"
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "the", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "the", "to", or ':'
 
 
 ERROR: 1138:32:
@@ -1390,7 +1457,7 @@ ERROR: 1138:32:
 1138 |   This  exists  by  recursion  .  
      |                                ^^^^
 unexpected ".  <newline>  "
-expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 1142:31:
@@ -1417,40 +1484,43 @@ unexpected 'p'
 expecting '.' or ';'
 
 
-ERROR: 1150:3:
+ERROR: 1148:60:
      |
-1150 |   \natpow {  p  }  {  m  }  divides  n  and  \natpow {  p  }  {  m  +1  }  
-     |   ^
-unexpected '\'
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+1148 |   The  multiplicity  of    p    in    n    is  the  natural  number    m    such  that  
+     |                                                            ^
+failed to parse var
 
 
-ERROR: 1150:3:
+ERROR: 1148:60:
      |
-1150 |   \natpow {  p  }  {  m  }  divides  n  and  \natpow {  p  }  {  m  +1  }  
-     |   ^
-unexpected '\'
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', ';', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+1148 |   The  multiplicity  of    p    in    n    is  the  natural  number    m    such  that  
+     |                                                            ^
+failed to parse var
 
 
-TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "This")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "exists")),RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "and"))]) Nothing)) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "n"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "q"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e")))])))) Nothing))))) Nothing) []))
+ERROR: 1153:32:
+     |
+1153 |   This  exists  and  is  unique  .  
+     |                                ^
+failed to parse var
+
 
 TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["Section"]) (Just (Label (AtomicId "Grouptheory"))))
 
-ERROR: 1163:3:
+ERROR: 1162:20:
      |
-1163 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+1162 |   A  magma  is  a  structure  with  
+     |                    ^
+unexpected 's'
+expecting '.'
 
 
-ERROR: 1163:3:
+ERROR: 1162:20:
      |
-1163 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+1162 |   A  magma  is  a  structure  with  
+     |                    ^
+unexpected 's'
+expecting '.' or ';'
 
 
 ERROR: 1183:19:
@@ -1458,7 +1528,7 @@ ERROR: 1183:19:
 1183 |   Assume  that    (  M  :  magma  )    .  
      |                   ^^^^^^
 unexpected "(  M  "
-expecting ":=", "are", "be", "denote", "if", "iff", "is", "stand", "to", ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "is", "stand", "to", or ':'
 
 
 ERROR: 1183:19:
@@ -1466,7 +1536,7 @@ ERROR: 1183:19:
 1183 |   Assume  that    (  M  :  magma  )    .  
      |                   ^^^^^^
 unexpected "(  M  "
-expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 1184:11:
@@ -1477,52 +1547,52 @@ unexpected 'b'
 expecting '.' or ';'
 
 
-ERROR: 1189:3:
+ERROR: 1188:24:
      |
-1189 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+1188 |   A  semigroup  is  a  structure  with  
+     |                        ^
+unexpected 's'
+expecting '.'
 
 
-ERROR: 1189:3:
+ERROR: 1188:24:
      |
-1189 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+1188 |   A  semigroup  is  a  structure  with  
+     |                        ^
+unexpected 's'
+expecting '.' or ';'
 
 
-ERROR: 1204:3:
+ERROR: 1203:21:
      |
-1204 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+1203 |   A  monoid  is  a  structure  with  
+     |                     ^
+unexpected 's'
+expecting '.'
 
 
-ERROR: 1204:3:
+ERROR: 1203:21:
      |
-1204 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+1203 |   A  monoid  is  a  structure  with  
+     |                     ^
+unexpected 's'
+expecting '.' or ';'
 
 
-ERROR: 1215:3:
+ERROR: 1214:31:
      |
-1215 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+1214 |   A  notation_inverse  is  a  notational  structure  with  
+     |                               ^
+unexpected 'n'
+expecting '.'
 
 
-ERROR: 1215:3:
+ERROR: 1214:31:
      |
-1215 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+1214 |   A  notation_inverse  is  a  notational  structure  with  
+     |                               ^
+unexpected 'n'
+expecting '.' or ';'
 
 
 ERROR: 1222:10:
@@ -1532,30 +1602,30 @@ ERROR: 1222:10:
 parsed empty list, failing
 
 
-ERROR: 1227:3:
+ERROR: 1226:20:
      |
-1227 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+1226 |   A  group  is  a  structure  with  
+     |                    ^
+unexpected 's'
+expecting '.' or ';'
 
 
 TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["Section"]) (Just (Label (AtomicId "Ringandmodules"))))
 
-ERROR: 1250:3:
+ERROR: 1249:27:
      |
-1250 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+1249 |   A  notation_neg  is  a  notational  structure  with  
+     |                           ^
+unexpected 'n'
+expecting '.'
 
 
-ERROR: 1250:3:
+ERROR: 1249:27:
      |
-1250 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+1249 |   A  notation_neg  is  a  notational  structure  with  
+     |                           ^
+unexpected 'n'
+expecting '.' or ';'
 
 
 ERROR: 1256:10:
@@ -1565,36 +1635,36 @@ ERROR: 1256:10:
 parsed empty list, failing
 
 
-ERROR: 1262:3:
+ERROR: 1261:31:
      |
-1262 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+1261 |   An  additive  group  is  a  structure  with  
+     |                               ^
+unexpected 's'
+expecting '.'
 
 
-ERROR: 1262:3:
+ERROR: 1261:31:
      |
-1262 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+1261 |   An  additive  group  is  a  structure  with  
+     |                               ^
+unexpected 's'
+expecting '.' or ';'
 
 
-ERROR: 1273:3:
+ERROR: 1272:19:
      |
-1273 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+1272 |   A  ring  is  a  structure  with  
+     |                   ^
+unexpected 's'
+expecting '.'
 
 
-ERROR: 1273:3:
+ERROR: 1272:19:
      |
-1273 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+1272 |   A  ring  is  a  structure  with  
+     |                   ^
+unexpected 's'
+expecting '.' or ';'
 
 
 ERROR: 1298:31:
@@ -1634,7 +1704,7 @@ ERROR: 1310:35:
 1310 |   commutative  iff  for  every    (  x  y  :  R  )  ,  x  *  y  =  y  *  x    .  
      |                                   ^
 unexpected '('
-expecting "where", '.', ';', or '_'
+expecting "where", '.', or ';'
 
 
 ERROR: 1315:31:
@@ -1658,7 +1728,7 @@ ERROR: 1316:48:
 1316 |   We  say  that    R    is  nontrivial  iff    (  0  :  R  )  \ne (  1  :  R  )    .  
      |                                                ^
 unexpected '('
-expecting "where", '.', ';', or '_'
+expecting "and", "or", "put", "we", "where", "write", '.', or ';'
 
 
 ERROR: 1321:31:
@@ -1682,7 +1752,7 @@ ERROR: 1322:5:
 1322 |     (  x  :  R  )    .  We  say  that    x    is  a  unit  in    R    iff  there  exists    (  y  
      |     ^^^^^^
 unexpected "(  x  "
-expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 1322:54:
@@ -1693,20 +1763,20 @@ unexpected 'u'
 expecting '.' or ';'
 
 
-ERROR: 1329:3:
+ERROR: 1328:27:
      |
-1329 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+1328 |   A  notation_dot  is  a  notational  structure  with  
+     |                           ^
+unexpected 'n'
+expecting '.'
 
 
-ERROR: 1329:3:
+ERROR: 1328:27:
      |
-1329 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+1328 |   A  notation_dot  is  a  notational  structure  with  
+     |                           ^
+unexpected 'n'
+expecting '.' or ';'
 
 
 ERROR: 1335:13:
@@ -1714,23 +1784,23 @@ ERROR: 1335:13:
 1335 |   Let    r  \cdot x    stand  for    C  .notation_dot  r  x    with  precedence  
      |             ^^^^^^
 unexpected "\cdot "
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
-ERROR: 1341:3:
+ERROR: 1340:27:
      |
-1341 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+1340 |   A  left  module  is  a  structure  with  
+     |                           ^
+unexpected 's'
+expecting '.'
 
 
-ERROR: 1341:3:
+ERROR: 1340:27:
      |
-1341 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+1340 |   A  left  module  is  a  structure  with  
+     |                           ^
+unexpected 's'
+expecting '.' or ';'
 
 
 TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["Section"]) (Just (Label (AtomicId "Thefieldofrealnumbers"))))
@@ -1751,52 +1821,52 @@ unexpected 'n'
 expecting '.' or ';'
 
 
-ERROR: 1367:3:
+ERROR: 1366:28:
      |
-1367 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+1366 |   A  vector  space  is  a  structure  with  
+     |                            ^
+unexpected 's'
+expecting '.'
 
 
-ERROR: 1367:3:
+ERROR: 1366:28:
      |
-1367 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+1366 |   A  vector  space  is  a  structure  with  
+     |                            ^
+unexpected 's'
+expecting '.' or ';'
 
 
-ERROR: 1376:3:
+ERROR: 1375:29:
      |
-1376 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+1375 |   An  ordered  ring  is  a  structure  with  
+     |                             ^
+unexpected 's'
+expecting '.'
 
 
-ERROR: 1376:3:
+ERROR: 1375:29:
      |
-1376 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+1375 |   An  ordered  ring  is  a  structure  with  
+     |                             ^
+unexpected 's'
+expecting '.' or ';'
 
 
-ERROR: 1391:3:
+ERROR: 1390:30:
      |
-1391 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+1390 |   An  ordered  field  is  a  a  structure  with  
+     |                              ^
+unexpected 'a'
+expecting '.'
 
 
-ERROR: 1391:3:
+ERROR: 1390:30:
      |
-1391 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+1390 |   An  ordered  field  is  a  a  structure  with  
+     |                              ^
+unexpected 'a'
+expecting '.' or ';'
 
 
 ERROR: 1398:32:
@@ -1820,7 +1890,7 @@ ERROR: 1400:60:
 1400 |   for  every  subset    S    of  the  universe  of    F    ,  
      |                                                            ^
 unexpected ','
-expecting "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', ';', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+expecting "where", '.', ';', or '_'
 
 
 ERROR: 1406:35:
@@ -1828,7 +1898,7 @@ ERROR: 1406:35:
 1406 |     ordered_field.absolute_value  (  x  :  element  )  :  element  :=    
      |                                   ^^^^^^
 unexpected "(  x  "
-expecting ":=", "are", "at", "be", "denote", "is", "stand", "to", '.', ':', digit, lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "is", "stand", "to", '.', or ':'
 
 
 ERROR: 1406:35:
@@ -1836,19 +1906,35 @@ ERROR: 1406:35:
 1406 |     ordered_field.absolute_value  (  x  :  element  )  :  element  :=    
      |                                   ^^^^^^
 unexpected "(  x  "
-expecting ":=", "are", "at", "be", "denote", "in", "is", "stand", "to", '.', ':', digit, lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "in", "is", "stand", "to", '.', or ':'
 
 
-TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "This")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "exists")),RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "and"))]) Nothing)) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "n"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "q"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "a"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "n"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "d"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "t"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "o"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "t"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "a"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "l")))])))) Nothing))))) Nothing) []))
+ERROR: 1413:32:
+     |
+1413 |   This  exists  and  is  unique  and  total  .  
+     |                                ^
+failed to parse var
 
-TextItemDeclaration (DeclarationDefinition (Definition (DefinitionPreamble (Just (Label (AtomicId "Label_isomorphism_of_complete_ordered_fields")))) [] (DefinitionAffirm (DefinitionStatementFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "Assume")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "that")),RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "F")),RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "and")),RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "G"))]) Nothing)) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "c"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "o"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "m"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "p"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "l"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "t"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "o"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "r"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "d"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "r"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "d"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "f"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "l"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "d"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "s")))])))) Nothing)))))) Nothing)))
 
-ERROR: 1419:56:
+ERROR: 1418:49:
+     |
+1418 |   Assume  that    F    and    G    are  complete  ordered  fields  .  
+     |                                                 ^
+failed to parse var
+
+
+ERROR: 1418:49:
+     |
+1418 |   Assume  that    F    and    G    are  complete  ordered  fields  .  
+     |                                                 ^
+failed to parse var
+
+
+ERROR: 1419:18:
      |
 1419 |   An  isomorphism  of  complete  ordered  fields    F  ,  G    is  a  bijection  
-     |                                                        ^
-unexpected ','
-expecting "Assume", "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', ';', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+     |                  ^
+failed to parse var
 
 
 ERROR: 1427:3:
@@ -1856,7 +1942,7 @@ ERROR: 1427:3:
 1427 |   )]}  
      |   ^^^^^^
 unexpected ")]}  <newline>    <newline>  "
-expecting ":=", "an", "are", "article", "at", "axiom", "be", "conjecture", "corollary", "def", "define", "definition", "denote", "document", "end", "equation", "formula", "hypothesis", "if", "iff", "in", "is", "lemma", "let", "proposition", "record", "register", "section", "stand", "subdivision", "subsection", "subsubsection", "the", "theorem", "to", "we", '!', '#', '$', '&', '(', '*', '+', '-', '.', '/', ':', '<', '=', '>', '@', '[', '\', '^', 'a', lowercase letter, or uppercase letter
+expecting ":=", "an", "are", "article", "at", "axiom", "be", "conjecture", "corollary", "def", "define", "definition", "denote", "document", "end", "equation", "formula", "hypothesis", "if", "iff", "in", "is", "lemma", "let", "proposition", "record", "register", "section", "stand", "subdivision", "subsection", "subsubsection", "the", "theorem", "to", "we", ':', '[', or 'a'
 
 
 ERROR: 1427:5:
@@ -1864,12 +1950,23 @@ ERROR: 1427:5:
 1427 |   )]}  
      |     ^^^^
 unexpected "}  <newline>    <newline>  <newline> "
-expecting ":=", "an", "are", "article", "at", "axiom", "be", "conjecture", "corollary", "def", "define", "definition", "denote", "document", "end", "equation", "formula", "hypothesis", "if", "iff", "in", "is", "lemma", "let", "proposition", "record", "register", "section", "stand", "subdivision", "subsection", "subsubsection", "the", "theorem", "to", "we", '!', '#', '$', '&', '(', '*', '+', '-', '.', '/', ':', '<', '=', '>', '@', '[', '\', '^', 'a', lowercase letter, or uppercase letter
+expecting ":=", "an", "are", "article", "at", "axiom", "be", "conjecture", "corollary", "def", "define", "definition", "denote", "document", "end", "equation", "formula", "hypothesis", "if", "iff", "in", "is", "lemma", "let", "proposition", "record", "register", "section", "stand", "subdivision", "subsection", "subsubsection", "the", "theorem", "to", "we", ':', '[', or 'a'
 
 
-TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "Real")) (Args Nothing []) Nothing)) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "c"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "o"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "m"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "p"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "l"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "t"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "o"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "r"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "d"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "r"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "d"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "f"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "l"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "d")))])))) Nothing))))) Nothing) []))
+ERROR: 1449:49:
+     |
+1449 |   Let  Real  be  the  complete  ordered  field  .  
+     |                                                 ^^^
+unexpected ".  "
+expecting "are", "be", "in", "is", "to", or ','
 
-TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "This")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "exists")),RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "and"))]) Nothing)) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "c"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "a"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "n"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "o"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "n"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "c"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "a"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "l")))])))) Nothing))))) Nothing) []))
+
+ERROR: 1450:35:
+     |
+1450 |   This  exists  and  is  canonical  .  
+     |                                   ^
+failed to parse var
+
 
 TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["Subsection"]) (Just (Label (AtomicId "norms"))))
 
@@ -1880,54 +1977,54 @@ ERROR: 1455:10:
 parsed empty list, failing
 
 
-ERROR: 1459:3:
+ERROR: 1458:40:
      |
-1459 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+1458 |   A  normed  commutative  ring  is  a  structure  with  
+     |                                        ^
+unexpected 's'
+expecting '.'
 
 
-ERROR: 1459:3:
+ERROR: 1458:40:
      |
-1459 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+1458 |   A  normed  commutative  ring  is  a  structure  with  
+     |                                        ^
+unexpected 's'
+expecting '.' or ';'
 
 
-ERROR: 1473:3:
+ERROR: 1472:28:
      |
-1473 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+1472 |   A  normed  field  is  a  structure  with  
+     |                            ^
+unexpected 's'
+expecting '.'
 
 
-ERROR: 1473:3:
+ERROR: 1472:28:
      |
-1473 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+1472 |   A  normed  field  is  a  structure  with  
+     |                            ^
+unexpected 's'
+expecting '.' or ';'
 
 
 TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["Subsection"]) (Just (Label (AtomicId "meetsemilatticeofsubgroups"))))
 
-ERROR: 1493:3:
+ERROR: 1492:23:
      |
-1493 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', or '_'
+1492 |   A  subgroup  is  a  structure  with  
+     |                       ^
+unexpected 's'
+expecting '.'
 
 
-ERROR: 1493:3:
+ERROR: 1492:23:
      |
-1493 |   {  
-     |   ^
-unexpected '{'
-expecting "where", '.', ';', or '_'
+1492 |   A  subgroup  is  a  structure  with  
+     |                       ^
+unexpected 's'
+expecting '.' or ';'
 
 
 ERROR: 1505:5:
@@ -1935,7 +2032,7 @@ ERROR: 1505:5:
 1505 |     (  G  :  group  )  :  meet_semilattice  :=    
      |     ^^^^^^
 unexpected "(  G  "
-expecting ":=", "are", "at", "be", "denote", "is", "stand", "to", or ':'
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", or ':'
 
 
 ERROR: 1505:5:
@@ -1943,10 +2040,15 @@ ERROR: 1505:5:
 1505 |     (  G  :  group  )  :  meet_semilattice  :=    
      |     ^^^^^^
 unexpected "(  G  "
-expecting ":=", "are", "at", "be", "denote", "in", "is", "stand", "to", or ':'
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
-TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "This")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "exists")),RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "and"))]) Nothing)) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "n"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "q"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e")))])))) Nothing))))) Nothing) []))
+ERROR: 1512:32:
+     |
+1512 |   This  exists  and  is  unique  .  
+     |                                ^
+failed to parse var
+
 
 ERROR: 1523:31:
      |
@@ -1972,15 +2074,19 @@ unexpected 's'
 expecting '.' or ';'
 
 
-ERROR: 1528:39:
+ERROR: 1528:48:
      |
 1528 |   The  subgroup_order  of    H    is  the  size  of  the  support  of    H    .  
-     |                                       ^^
-unexpected "th"
-expecting "an", "defined", "in", "said", or 'a'
+     |                                                ^
+failed to parse var
 
 
-TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "This")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "exists")),RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "and"))]) Nothing)) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "w"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "l"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "l"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "s"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "b"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "t"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "y"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "p"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "d")))])))) Nothing))))) Nothing) []))
+ERROR: 1529:30:
+     |
+1529 |   This  exists  and  is  well  subtyped  .  
+     |                              ^
+failed to parse var
+
 
 TextItemSectionPreamble (SectionPreamble (SectionTagDocument ["Section"]) (Just (Label (AtomicId "SylowsTheorems"))))
 
@@ -1989,7 +2095,7 @@ ERROR: 1535:22:
 1535 |   In  this  section  ,  let    G    denote  a  fixed  finite  group  .  
      |                      ^^^^^^^^
 unexpected ",  let  "
-expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", '!', '#', '$', '&', '(', '*', '+', '-', '.', '/', ':', '<', '=', '>', '@', '\', '^', 'a', lowercase letter, or uppercase letter
+expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", ':', or 'a'
 
 
 ERROR: 1541:22:
@@ -1997,7 +2103,7 @@ ERROR: 1541:22:
 1541 |   In  this  section  ,  let    \conj {  g  }  {  X  }    stand  for  
      |                      ^^^^^^^^
 unexpected ",  let  "
-expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", '!', '#', '$', '&', '(', '*', '+', '-', '.', '/', ':', '<', '=', '>', '@', '\', '^', 'a', lowercase letter, or uppercase letter
+expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", ':', or 'a'
 
 
 ERROR: 1548:19:
@@ -2005,7 +2111,7 @@ ERROR: 1548:19:
 1548 |   Assume  that    (  g  :  G  )    .  Assume  that    H    is  a  subgroup  over    G    .  The  
      |                   ^^^^^^
 unexpected "(  g  "
-expecting ":=", "are", "be", "denote", "if", "iff", "is", "stand", "to", ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "is", "stand", "to", or ':'
 
 
 ERROR: 1548:19:
@@ -2013,7 +2119,7 @@ ERROR: 1548:19:
 1548 |   Assume  that    (  g  :  G  )    .  Assume  that    H    is  a  subgroup  over    G    .  The  
      |                   ^^^^^^
 unexpected "(  g  "
-expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 1548:67:
@@ -2024,12 +2130,11 @@ unexpected 's'
 expecting '.' or ';'
 
 
-ERROR: 1549:68:
+ERROR: 1549:64:
      |
 1549 |   conjugate  of    H    by    g    in    G    is  the  subgroup    \conj {  g  }  {  H  }    over    G    .  
-     |                                                                    ^
-unexpected '\'
-expecting "Assume", "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', ';', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+     |                                                                ^
+failed to parse var
 
 
 ERROR: 1553:31:
@@ -2048,15 +2153,19 @@ unexpected 's'
 expecting '.' or ';'
 
 
-ERROR: 1554:82:
+ERROR: 1554:31:
      |
 1554 |   in    G    is  the  subgroup    N    over    G    such  that  for  all    x    ,    x  \in N  
-     |                                                                                  ^
-unexpected ','
-expecting "Assume", "case", "function", "inductive", "match", "notational", "qed", "structure", "where", '"', '(', '+', '-', '.', ';', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+     |                               ^
+failed to parse var
 
 
-TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "This")) (Args Nothing [RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "exists")),RequiredArgVarOrAtomic (VarOrAtomicAtomic (AtomicId "and"))]) Nothing)) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "n"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "i"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "q"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e")))])))) Nothing))))) Nothing) []))
+ERROR: 1556:26:
+     |
+1556 |   exists  and  is  unique  .  
+     |                          ^
+failed to parse var
+
 
 ERROR: 1560:10:
      |
@@ -2070,7 +2179,7 @@ ERROR: 1562:22:
 1562 |   In  this  section  ,  let    p    denote  a  fixed  prime  number  .  
      |                      ^^^^^^^^
 unexpected ",  let  "
-expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", '!', '#', '$', '&', '(', '*', '+', '-', '.', '/', ':', '<', '=', '>', '@', '\', '^', 'a', lowercase letter, or uppercase letter
+expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", ':', or 'a'
 
 
 ERROR: 1571:22:
@@ -2078,7 +2187,7 @@ ERROR: 1571:22:
 1571 |   In  this  section  ,  let    \mult {  p  }  {  G  }    denote  the  multiplicity  of    p    in  
      |                      ^^^^^^^^
 unexpected ",  let  "
-expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", '!', '#', '$', '&', '(', '*', '+', '-', '.', '/', ':', '<', '=', '>', '@', '\', '^', 'a', lowercase letter, or uppercase letter
+expecting ":=", "an", "are", "at", "be", "define", "denote", "if", "iff", "is", "let", "record", "register", "stand", "the", "to", "we", ':', or 'a'
 
 
 ERROR: 1576:44:
@@ -2118,7 +2227,12 @@ ERROR: 1588:10:
 parsed empty list, failing
 
 
-TextItemMacro (Macro Nothing (MacroBodies (MacroBodyFunctionDef (FunctionDef (FunctionHeadIdentifierPattern (IdentifierPattern (IdentifierAtomicId (AtomicId "This")) (Args Nothing []) Nothing)) CopulaIsDefinedAs (PlainTerm (TermDefiniteTerm (DefiniteTermSymbolicTerm (SymbolicTerm (OpenTailTermTdopTerm (TdopTermApp (AppTerm (TightestTermPrefix (TightestPrefixVar (Var "w"))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "l"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "l"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "s"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "u"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "b"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "t"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "y"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "p"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "e"))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "d")))])))) Nothing))))) Nothing) []))
+ERROR: 1588:103:
+     |
+1588 |   Let    \SylN {  p  }  {  G  }    denote  the  size  of    \Syl {  p  }  {  G  }    .  This  is  well  
+     |                                                                                                       ^
+failed to parse var
+
 
 ERROR: 1595:27:
      |
@@ -2139,31 +2253,17 @@ ERROR: 1597:17:
 1597 |   This  exists  ,  is  unique  ,  and  is  well_defined  .  
      |                 ^^^^^^
 unexpected ",  is "
-expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
-ERROR: 1601:36:
-     |
-1601 |   Theorem  .    There  exists  a  Sylow    p    subgroup  of    G    .  
-     |                                    ^
-unexpected 'y'
-expecting "and", "let", "not", "pairwise", "positive", "the", "we", ''', '(', ',', '.', '_', 'a', or digit
-
-
-ERROR: 1601:70:
-     |
-1601 |   Theorem  .    There  exists  a  Sylow    p    subgroup  of    G    .  
-     |                                                                      ^^^^
-unexpected ".  <newline>  "
-expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
-
+TextItemDeclaration (DeclarationTheorem (Theorem (TheoremPreamble Nothing) [] (AffirmProofStatementProof (StatementProof (ChainStatement (AndOrChain (AndOrChainPrimaryStatement (PrimaryStatementThereIs (ThereIs (NamedTerms [NamedTermPredicate (FreePredicate (Attribute [] (FreePredicateProp (PropBinderProp (BinderPropAppProp (AppProp (TightestPropIdentifierProp (IdentifierProp (IdentifierAtomicId (AtomicId "Sylow")))) (AppArgs Nothing [TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "p"))),TightestExprProp (TightestPropIdentifierProp (IdentifierProp (IdentifierAtomicId (AtomicId "subgroup")))),TightestExprProp (TightestPropIdentifierProp (IdentifierProp (IdentifierAtomicId (AtomicId "of")))),TightestExprTerm (TightestTermPrefix (TightestPrefixVar (Var "G")))])))) (HoldingVar Nothing)) (Just (RightAttributeIsPred [IsPredHasPred (HasPredArticle [])]))))])))))) (ByRef Nothing) Nothing))))
 
 ERROR: 1605:26:
      |
 1605 |   Theorem  .    If    P  ,  P\'    are  Sylow    p    subgroups  of    G    then  there  exists    (  g  :  G  )    
      |                          ^
 unexpected ','
-expecting "Assume", "case", "function", "inductive", "let", "match", "notational", "qed", "structure", "we", '"', '(', '+', '-', '.', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+expecting "let", "we", '(', '.', or '_'
 
 
 ERROR: 1605:26:
@@ -2171,7 +2271,7 @@ ERROR: 1605:26:
 1605 |   Theorem  .    If    P  ,  P\'    are  Sylow    p    subgroups  of    G    then  there  exists    (  g  :  G  )    
      |                          ^^^^^^
 unexpected ",  P\'"
-expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 1610:33:
@@ -2179,7 +2279,7 @@ ERROR: 1610:33:
 1610 |   Theorem  .    Assume  that    |  G  |  =  p\'  *  \natpow {  p  }  {  m  }    .  
      |                                 ^
 unexpected '|'
-expecting "Assume", "case", "function", "inductive", "let", "match", "notational", "qed", "structure", "we", '"', '(', '+', '-', '.', 'A', '[', '_', '{', '◻', '◼', '◽', '◾', digit, lowercase letter, or uppercase letter
+expecting "let", "we", '(', or '.'
 
 
 ERROR: 1610:33:
@@ -2187,7 +2287,7 @@ ERROR: 1610:33:
 1610 |   Theorem  .    Assume  that    |  G  |  =  p\'  *  \natpow {  p  }  {  m  }    .  
      |                                 ^^^^^^
 unexpected "|  G  "
-expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "be", "denote", "if", "iff", "in", "is", "stand", "to", or ':'
 
 
 ERROR: 1611:15:
@@ -2195,7 +2295,7 @@ ERROR: 1611:15:
 1611 |   We  have    \SylN {  p  }  {  G  }    divides    p\'    .  
      |               ^^^^^^
 unexpected "\SylN "
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", or ':'
 
 
 ERROR: 1615:45:
@@ -2203,7 +2303,7 @@ ERROR: 1615:45:
 1615 |   Theorem  .    We  have    p    divides    (  \SylN {  p  }  {  G  }  -  1  )    .  
      |                                             ^
 unexpected '('
-expecting '.' or '_'
+expecting '.'
 
 
 ERROR: 1615:45:
@@ -2227,4 +2327,4 @@ ERROR: 1619:29:
 1619 |   Theorem  .    We  have    \SylN {  p  }  {  G  }  *  \Nz {  p  }  {  G  }  =  |  G  |    .  
      |                             ^^^^^^
 unexpected "\SylN "
-expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", '(', ':', lowercase letter, or uppercase letter
+expecting ":=", "are", "at", "be", "denote", "if", "iff", "is", "stand", "to", or ':'

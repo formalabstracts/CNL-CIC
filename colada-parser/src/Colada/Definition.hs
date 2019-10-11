@@ -9,7 +9,7 @@ Parsing definitions.
 
 module Colada.Definition where
 
-import Prelude -- hiding (Int, Bool, String, drop)
+import Prelude hiding (Word) -- hiding (Int, Bool, String, drop)
 import qualified Prelude
 import qualified Control.Applicative.Combinators as PC
 import Text.Megaparsec hiding (Token, option, Label, Tokens)
@@ -158,7 +158,7 @@ generatePrimSimpleAdjectiveMultiSubject pttn@(MacroPatts ptts) =
 registerPrimAdjective :: LocalGlobalFlag ->  PredicateDef -> Parser () -- (* from adjective_pattern *)
 registerPrimAdjective lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
-    (PredicateHeadPredicateTokenPattern (PredicateTokenPatternAdjectivePattern adjpatt))
+    (PredicateHeadPredicateWordPattern (PredicateWordPatternAdjectivePattern adjpatt))
       -> do pttn <- patternOfPredicateDef pd
             updatePrimAdjective lgflag pttn
             try (generatePrimSimpleAdjective pttn >>= updatePrimSimpleAdjective lgflag)
@@ -167,7 +167,7 @@ registerPrimAdjective lgflag pd@(PredicateDef ph iffj stmt) =
 registerPrimAdjectiveMacro :: LocalGlobalFlag ->  PredicateDef -> Parser () -- (* from adjective_pattern *)
 registerPrimAdjectiveMacro lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
-    (PredicateHeadPredicateTokenPattern (PredicateTokenPatternAdjectivePattern adjpatt))
+    (PredicateHeadPredicateWordPattern (PredicateWordPatternAdjectivePattern adjpatt))
       -> do pttn <- patternOfPredicateDef pd
             updatePrimAdjective lgflag (toMacroPatts pttn)
             try (generatePrimSimpleAdjective (toMacroPatts pttn) >>= updatePrimSimpleAdjective lgflag)
@@ -176,7 +176,7 @@ registerPrimAdjectiveMacro lgflag pd@(PredicateDef ph iffj stmt) =
 registerPrimAdjectiveMultiSubject :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from adjective_multisubject_pattern *)
 registerPrimAdjectiveMultiSubject lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
-    (PredicateHeadPredicateTokenPattern (PredicateTokenPatternAdjectiveMultiSubjectPattern adjpatt))
+    (PredicateHeadPredicateWordPattern (PredicateWordPatternAdjectiveMultiSubjectPattern adjpatt))
       -> do pttn <- patternOfPredicateDef pd
             updatePrimAdjectiveMultiSubject lgflag pttn
             try (generatePrimSimpleAdjectiveMultiSubject pttn >>= updatePrimSimpleAdjectiveMultiSubject lgflag)
@@ -185,7 +185,7 @@ registerPrimAdjectiveMultiSubject lgflag pd@(PredicateDef ph iffj stmt) =
 registerPrimAdjectiveMultiSubjectMacro :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from adjective_multisubject_pattern *)
 registerPrimAdjectiveMultiSubjectMacro lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
-    (PredicateHeadPredicateTokenPattern (PredicateTokenPatternAdjectiveMultiSubjectPattern adjpatt))
+    (PredicateHeadPredicateWordPattern (PredicateWordPatternAdjectiveMultiSubjectPattern adjpatt))
       -> do pttn <- patternOfPredicateDef pd
             updatePrimAdjectiveMultiSubject lgflag (toMacroPatts pttn)
             try (generatePrimSimpleAdjectiveMultiSubject (toMacroPatts pttn) >>= updatePrimSimpleAdjectiveMultiSubject lgflag)
@@ -194,28 +194,28 @@ registerPrimAdjectiveMultiSubjectMacro lgflag pd@(PredicateDef ph iffj stmt) =
 registerPrimVerb :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from verb_pattern *)
 registerPrimVerb lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
-    (PredicateHeadPredicateTokenPattern (PredicateTokenPatternVerbPattern adjpatt))
+    (PredicateHeadPredicateWordPattern (PredicateWordPatternVerbPattern adjpatt))
       -> patternOfPredicateDef pd >>= updatePrimVerb lgflag
     _ -> empty
 
 registerPrimVerbMacro :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from verb_pattern *)
 registerPrimVerbMacro lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
-    (PredicateHeadPredicateTokenPattern (PredicateTokenPatternVerbPattern adjpatt))
+    (PredicateHeadPredicateWordPattern (PredicateWordPatternVerbPattern adjpatt))
       -> patternOfPredicateDef pd >>= updatePrimVerb lgflag . toMacroPatts
     _ -> empty
 
 registerPrimVerbMultiSubject :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from verb_multiset_pattern *)
 registerPrimVerbMultiSubject lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
-    (PredicateHeadPredicateTokenPattern (PredicateTokenPatternVerbMultiSubjectPattern adjpatt))
+    (PredicateHeadPredicateWordPattern (PredicateWordPatternVerbMultiSubjectPattern adjpatt))
       -> patternOfPredicateDef pd >>= updatePrimVerbMultiSubject lgflag
     _ -> empty
 
 registerPrimVerbMultiSubjectMacro :: LocalGlobalFlag ->  PredicateDef -> Parser () --  (* from verb_multiset_pattern *)
 registerPrimVerbMultiSubjectMacro lgflag pd@(PredicateDef ph iffj stmt) =
   case ph of
-    (PredicateHeadPredicateTokenPattern (PredicateTokenPatternVerbMultiSubjectPattern adjpatt))
+    (PredicateHeadPredicateWordPattern (PredicateWordPatternVerbMultiSubjectPattern adjpatt))
       -> patternOfPredicateDef pd >>= updatePrimVerbMultiSubject lgflag . toMacroPatts
     _ -> empty
 
@@ -344,7 +344,7 @@ parsePredicateDef =
 patternOfPredicateDef :: PredicateDef -> Parser Pattern
 patternOfPredicateDef fd = case fd of
   PredicateDef predicatehead iffjunction statement -> case predicatehead of
-    PredicateHeadPredicateTokenPattern (predtkpatt) -> patternOfPredicateTokenPattern predtkpatt
+    PredicateHeadPredicateWordPattern (predtkpatt) -> patternOfPredicateWordPattern predtkpatt
     PredicateHeadIdentifierPattern idpatt -> patternOfIdentifierPattern idpatt
     PredicateHeadSymbolPattern sympatt mpl -> patternOfSymbolPattern sympatt
 
@@ -354,7 +354,7 @@ data IffJunction = IffJunction
 parseIffJunction = parseLitIff *> return IffJunction
 
 data PredicateHead =
-    PredicateHeadPredicateTokenPattern PredicateTokenPattern
+    PredicateHeadPredicateWordPattern PredicateWordPattern
   | PredicateHeadSymbolPattern SymbolPattern (Maybe ParenPrecedenceLevel)
   | PredicateHeadIdentifierPattern IdentifierPattern
   -- | PredicateHeadControlSeqPattern ControlSeqPattern
@@ -363,73 +363,73 @@ data PredicateHead =
 
 parsePredicateHead :: Parser PredicateHead
 parsePredicateHead =
-  PredicateHeadPredicateTokenPattern <$> parsePredicateTokenPattern <||>
+  PredicateHeadPredicateWordPattern <$> parsePredicateWordPattern <||>
   PredicateHeadSymbolPattern <$> parseSymbolPattern <*> (option parseParenPrecedenceLevel) <||>
   PredicateHeadIdentifierPattern <$> parseIdentifierPattern--  <||>
   -- PredicateHeadControlSeqPattern <$> parseControlSeqPattern <||>
   -- PredicateHeadBinaryControlSeqPattern <$> parseBinaryControlSeqPattern <*> (option parseParenPrecedenceLevel)
 
-data PredicateTokenPattern =
-    PredicateTokenPatternAdjectivePattern AdjectivePattern
-  | PredicateTokenPatternAdjectiveMultiSubjectPattern AdjectiveMultiSubjectPattern
-  | PredicateTokenPatternVerbPattern VerbPattern
-  | PredicateTokenPatternVerbMultiSubjectPattern VerbMultiSubjectPattern
+data PredicateWordPattern =
+    PredicateWordPatternAdjectivePattern AdjectivePattern
+  | PredicateWordPatternAdjectiveMultiSubjectPattern AdjectiveMultiSubjectPattern
+  | PredicateWordPatternVerbPattern VerbPattern
+  | PredicateWordPatternVerbMultiSubjectPattern VerbMultiSubjectPattern
   deriving (Show, Eq)
 
-parsePredicateTokenPattern :: Parser PredicateTokenPattern
-parsePredicateTokenPattern =
-  PredicateTokenPatternAdjectivePattern <$> parseAdjectivePattern <||>
-  PredicateTokenPatternAdjectiveMultiSubjectPattern <$> parseAdjectiveMultiSubjectPattern <||>
-  PredicateTokenPatternVerbPattern <$> parseVerbPattern <||>
-  PredicateTokenPatternVerbMultiSubjectPattern <$> parseVerbMultiSubjectPattern
+parsePredicateWordPattern :: Parser PredicateWordPattern
+parsePredicateWordPattern =
+  PredicateWordPatternAdjectivePattern <$> parseAdjectivePattern <||>
+  PredicateWordPatternAdjectiveMultiSubjectPattern <$> parseAdjectiveMultiSubjectPattern <||>
+  PredicateWordPatternVerbPattern <$> parseVerbPattern <||>
+  PredicateWordPatternVerbMultiSubjectPattern <$> parseVerbMultiSubjectPattern
 
-patternOfPredicateTokenPattern :: PredicateTokenPattern -> Parser Pattern
-patternOfPredicateTokenPattern ptkpatt = case ptkpatt of
-  (PredicateTokenPatternAdjectivePattern adjpatt) -> patternOfAdjectivePattern adjpatt
-  (PredicateTokenPatternAdjectiveMultiSubjectPattern adjmspatt) -> patternOfAdjectiveMultiSubjectPattern adjmspatt
-  (PredicateTokenPatternVerbPattern vpatt) -> patternOfVerbPattern vpatt
-  (PredicateTokenPatternVerbMultiSubjectPattern vmspatt) -> patternOfVerbMultiSubjectPattern vmspatt
+patternOfPredicateWordPattern :: PredicateWordPattern -> Parser Pattern
+patternOfPredicateWordPattern ptkpatt = case ptkpatt of
+  (PredicateWordPatternAdjectivePattern adjpatt) -> patternOfAdjectivePattern adjpatt
+  (PredicateWordPatternAdjectiveMultiSubjectPattern adjmspatt) -> patternOfAdjectiveMultiSubjectPattern adjmspatt
+  (PredicateWordPatternVerbPattern vpatt) -> patternOfVerbPattern vpatt
+  (PredicateWordPatternVerbMultiSubjectPattern vmspatt) -> patternOfVerbMultiSubjectPattern vmspatt
 
-data AdjectivePattern = AdjectivePattern TVar TokenPattern
+data AdjectivePattern = AdjectivePattern TVar WordPattern
   deriving (Show, Eq)
 
 parseAdjectivePattern :: Parser AdjectivePattern
 parseAdjectivePattern =
-  AdjectivePattern <$> parseTVar <*> (parseLit "is" *> (option $ parseLit "called") *> parseTokenPattern)
+  AdjectivePattern <$> parseTVar <*> (parseLit "is" *> (option $ parseLit "called") *> parseWordPattern)
 
 patternOfAdjectivePattern :: AdjectivePattern -> Parser Pattern
 patternOfAdjectivePattern (AdjectivePattern tv tkpatt) =
-  (<>) <$> patternOfTVar tv <*> (patternOfTokenPattern tkpatt)
+  (<>) <$> patternOfTVar tv <*> (patternOfWordPattern tkpatt)
 
-data AdjectiveMultiSubjectPattern = AdjectiveMultiSubjectPattern VarMultiSubject TokenPattern
+data AdjectiveMultiSubjectPattern = AdjectiveMultiSubjectPattern VarMultiSubject WordPattern
   deriving (Show, Eq)
 
 patternOfAdjectiveMultiSubjectPattern :: AdjectiveMultiSubjectPattern -> Parser Pattern
 patternOfAdjectiveMultiSubjectPattern (AdjectiveMultiSubjectPattern varms tkpatt) =
-  (<>) <$> patternOfVarMultiSubject varms <*> patternOfTokenPattern tkpatt
+  (<>) <$> patternOfVarMultiSubject varms <*> patternOfWordPattern tkpatt
 
 parseAdjectiveMultiSubjectPattern :: Parser AdjectiveMultiSubjectPattern
-parseAdjectiveMultiSubjectPattern = AdjectiveMultiSubjectPattern <$> parseVarMultiSubject <*> parseTokenPattern
+parseAdjectiveMultiSubjectPattern = AdjectiveMultiSubjectPattern <$> parseVarMultiSubject <*> parseWordPattern
 
-data VerbPattern = VerbPattern TVar TokenPattern
+data VerbPattern = VerbPattern TVar WordPattern
   deriving (Show, Eq)
 
 patternOfVerbPattern :: VerbPattern -> Parser Pattern
 patternOfVerbPattern (VerbPattern tv tkpatt) =
-  (<>) <$> patternOfTVar tv <*> patternOfTokenPattern tkpatt
+  (<>) <$> patternOfTVar tv <*> patternOfWordPattern tkpatt
 
 parseVerbPattern :: Parser VerbPattern
-parseVerbPattern = VerbPattern <$> parseTVar <*> parseTokenPattern
+parseVerbPattern = VerbPattern <$> parseTVar <*> parseWordPattern
 
-data VerbMultiSubjectPattern = VerbMultiSubjectPattern VarMultiSubject TokenPattern
+data VerbMultiSubjectPattern = VerbMultiSubjectPattern VarMultiSubject WordPattern
   deriving (Show, Eq)
 
 patternOfVerbMultiSubjectPattern :: VerbMultiSubjectPattern -> Parser Pattern
 patternOfVerbMultiSubjectPattern (VerbMultiSubjectPattern vms tkpatt) =
-  (<>) <$> patternOfVarMultiSubject vms <*> patternOfTokenPattern tkpatt
+  (<>) <$> patternOfVarMultiSubject vms <*> patternOfWordPattern tkpatt
 
 parseVerbMultiSubjectPattern :: Parser VerbMultiSubjectPattern
-parseVerbMultiSubjectPattern = VerbMultiSubjectPattern <$> parseVarMultiSubject <*> parseTokenPattern
+parseVerbMultiSubjectPattern = VerbMultiSubjectPattern <$> parseVarMultiSubject <*> parseWordPattern
 
 data VarMultiSubject =
     VarMultiSubjectTVar TVar TVar
@@ -473,14 +473,14 @@ data FunctionDef = FunctionDef FunctionHead Copula PlainTerm
 patternOfFunctionDef :: FunctionDef -> Parser Pattern
 patternOfFunctionDef fd = case fd of
   FunctionDef functionhead copula plainterm -> case functionhead of
-    FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt) -> patternOfTokenPattern tkpatt
+    FunctionHeadFunctionWordPattern (FunctionWordPattern tkpatt) -> patternOfWordPattern tkpatt
     FunctionHeadIdentifierPattern idpatt -> patternOfIdentifierPattern idpatt
     FunctionHeadSymbolPattern sympatt mpl -> patternOfSymbolPattern sympatt
 
 precOfFunctionDef :: FunctionDef -> Parser (Int, AssociativeParity)
 precOfFunctionDef fd = case fd of
   FunctionDef functionhead copula plainterm -> case functionhead of
-    FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt) -> empty
+    FunctionHeadFunctionWordPattern (FunctionWordPattern tkpatt) -> empty
     FunctionHeadIdentifierPattern idpatt -> empty
     FunctionHeadSymbolPattern sympatt mpl -> case mpl of
       Nothing -> return defaultPrec
@@ -494,8 +494,8 @@ precOfFunctionDef fd = case fd of
 registerPrimDefiniteNoun :: LocalGlobalFlag ->  FunctionDef -> Parser ()
 registerPrimDefiniteNoun lgflag fd@(FunctionDef fh c pt) =
   case fh of
-    (FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt)) -> do
-      pttn <- patternOfTokenPattern tkpatt
+    (FunctionHeadFunctionWordPattern (FunctionWordPattern tkpatt)) -> do
+      pttn <- patternOfWordPattern tkpatt
       updatePrimDefiniteNoun lgflag pttn
       try (generatePrimPossessedNoun pttn >>= updatePrimPossessedNoun lgflag)
     _ -> empty
@@ -503,8 +503,8 @@ registerPrimDefiniteNoun lgflag fd@(FunctionDef fh c pt) =
 registerPrimDefiniteNounMacro :: LocalGlobalFlag ->  FunctionDef -> Parser ()
 registerPrimDefiniteNounMacro lgflag fd@(FunctionDef fh c pt) =
   case fh of
-    (FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt)) -> do
-      pttn <- patternOfTokenPattern tkpatt
+    (FunctionHeadFunctionWordPattern (FunctionWordPattern tkpatt)) -> do
+      pttn <- patternOfWordPattern tkpatt
       updatePrimDefiniteNoun lgflag (toMacroPatts pttn)
       try (generatePrimPossessedNoun (toMacroPatts pttn) >>= updatePrimPossessedNoun lgflag)
     _ -> empty
@@ -666,7 +666,7 @@ parseFunctionDef = FunctionDef <$> (parseOptDefine *> parseFunctionHead) <*>
   --  do
   -- functiondef@(FunctionDef functionhead _ _) <- parse_function_def_main
   -- case functionhead of
-  --   FunctionHeadFunctionTokenPattern (FunctionTokenPattern tkpatt) -> (patternOfFunctionDef functiondef >>= updatePrimDefiniteNoun) *> return functiondef Globally
+  --   FunctionHeadFunctionWordPattern (FunctionWordPattern tkpatt) -> (patternOfFunctionDef functiondef >>= updatePrimDefiniteNoun) *> return functiondef Globally
   --   FunctionHeadIdentifierPattern idpatt -> (patternOfFunctionDef functiondef >>= updatePrimIdentifierTerm) *> return functiondef Globally
   --   FunctionHeadSymbolPattern sympatt mpl ->
   --     (do ptt <- patternOfFunctionDef functiondef
@@ -684,7 +684,7 @@ parseFunctionDef = FunctionDef <$> (parseOptDefine *> parseFunctionHead) <*>
 -- for now, we are following the rule that side-effects on the state are constraineed to top-level declaration parsers (like the branches of parseDefinition)
 
 data FunctionHead =
-    FunctionHeadFunctionTokenPattern FunctionTokenPattern
+    FunctionHeadFunctionWordPattern FunctionWordPattern
   | FunctionHeadSymbolPattern SymbolPattern (Maybe ParenPrecedenceLevel)
   | FunctionHeadIdentifierPattern IdentifierPattern
   -- | FunctionHeadControlSeqPattern ControlSeqPattern
@@ -693,18 +693,18 @@ data FunctionHead =
 
 parseFunctionHead :: Parser FunctionHead
 parseFunctionHead =
-  FunctionHeadFunctionTokenPattern <$> parseFunctionTokenPattern <||>
+  FunctionHeadFunctionWordPattern <$> parseFunctionWordPattern <||>
   FunctionHeadIdentifierPattern <$> parseIdentifierPattern <||>
   FunctionHeadSymbolPattern <$> parseSymbolPattern <*> (option parseParenPrecedenceLevel)
   --  <||>
   -- FunctionHeadControlSeqPattern <$> parseControlSeqPattern <||>
   -- FunctionHeadBinaryControlSeqPattern <$> parseBinaryControlSeqPattern <*> (option parseParenPrecedenceLevel)
 
-data FunctionTokenPattern = FunctionTokenPattern TokenPattern
+data FunctionWordPattern = FunctionWordPattern WordPattern
   deriving (Show, Eq)
 
-parseFunctionTokenPattern :: Parser FunctionTokenPattern
-parseFunctionTokenPattern = FunctionTokenPattern <$> (parseLit "the" *> parseTokenPattern)
+parseFunctionWordPattern :: Parser FunctionWordPattern
+parseFunctionWordPattern = FunctionWordPattern <$> (parseLit "the" *> parseWordPattern)
 
 data SymbolLowercase = -- corresponds to literal "symbol", not "SYMBOL" in the grammar specification
     SymbolLowercaseSymbol Symbol
@@ -774,8 +774,8 @@ registerPrimIdentifierTypeMacro lgflag td@(TypeDef th cpla gtp) =
 registerPrimTypeOp :: LocalGlobalFlag ->  TypeDef -> Parser () --  (* from type_def, when infix with precedence (from tokenpattern)*)
 registerPrimTypeOp lgflag td@(TypeDef th cpla gtp) =
   case th of
-    (TypeHeadTypeTokenPattern (TypeTokenPattern tkpatt)) ->
-      if isBinaryTokenPattern tkpatt
+    (TypeHeadTypeWordPattern (TypeWordPattern tkpatt)) ->
+      if isBinaryWordPattern tkpatt
         then patternOfTypeDef td >>= updatePrimTypeOp lgflag
         else empty
     _ -> empty
@@ -783,8 +783,8 @@ registerPrimTypeOp lgflag td@(TypeDef th cpla gtp) =
 registerPrimTypeOpMacro :: LocalGlobalFlag ->  TypeDef -> Parser () --  (* from type_def, when infix with precedence (from tokenpattern)*)
 registerPrimTypeOpMacro lgflag td@(TypeDef th cpla gtp) =
   case th of
-    (TypeHeadTypeTokenPattern (TypeTokenPattern tkpatt)) ->
-      if isBinaryTokenPattern tkpatt
+    (TypeHeadTypeWordPattern (TypeWordPattern tkpatt)) ->
+      if isBinaryWordPattern tkpatt
         then patternOfTypeDef td >>= updatePrimTypeOp lgflag . toMacroPatts
         else empty
     _ -> empty
@@ -839,7 +839,7 @@ parseTypeDef :: Parser TypeDef
 parseTypeDef = TypeDef <$> parseTypeHead <*> parseCopula <* parseLitA <*> parseGeneralType
 
 data TypeHead =
-    TypeHeadTypeTokenPattern TypeTokenPattern
+    TypeHeadTypeWordPattern TypeWordPattern
   | TypeHeadIdentifierPattern IdentifierPattern
   | TypeHeadControlSeqPattern ControlSeqPattern
   | TypeHeadBinaryControlSeqPattern BinaryControlSeqPattern
@@ -847,59 +847,59 @@ data TypeHead =
 
 patternOfTypeHead :: TypeHead -> Parser Pattern
 patternOfTypeHead th = case th of
-  (TypeHeadTypeTokenPattern (TypeTokenPattern tkpatt)) -> patternOfTokenPattern tkpatt
+  (TypeHeadTypeWordPattern (TypeWordPattern tkpatt)) -> patternOfWordPattern tkpatt
   (TypeHeadIdentifierPattern idpatt) -> patternOfIdentifierPattern idpatt
   (TypeHeadControlSeqPattern cspatt) -> patternOfControlSeqPattern cspatt
   (TypeHeadBinaryControlSeqPattern bcspatt) -> patternOfBinaryControlSeqPattern bcspatt
 
 parseTypeHead :: Parser TypeHead
 parseTypeHead =
-  TypeHeadTypeTokenPattern <$> parseTypeTokenPattern <||>
+  TypeHeadTypeWordPattern <$> parseTypeWordPattern <||>
   TypeHeadIdentifierPattern <$> parseIdentifierPattern <||>
   TypeHeadControlSeqPattern <$> parseControlSeqPattern <||>
   TypeHeadBinaryControlSeqPattern <$> parseBinaryControlSeqPattern
 
-data TypeTokenPattern = TypeTokenPattern TokenPattern
+data TypeWordPattern = TypeWordPattern WordPattern
   deriving (Show, Eq)
 
-parseTypeTokenPattern :: Parser TypeTokenPattern
-parseTypeTokenPattern = TypeTokenPattern <$> (parseLitA *> parseTokenPattern)
+parseTypeWordPattern :: Parser TypeWordPattern
+parseTypeWordPattern = TypeWordPattern <$> (parseLitA *> parseWordPattern)
 
  -- (* restriction: tokens in pattern cannot be a variant of
  --    "to be", "called", "iff" "a" "stand" "denote"
  --    cannot start with "the"  *)
 
-parsePatternToken :: Parser Token
-parsePatternToken = fail_iff_succeeds (lookAhead' parseCopula) *> -- note: added to ensure copula literals are not consumed by token pattern parsing
-  (guard_result "forbidden token parsed, failing" parseToken $
-                      \x -> not $ elem (tokenToText x) ["the", "to be", "called", "iff", "a", "stand", "denote"])
+parsePatternWord :: Parser Word
+parsePatternWord = (fail_iff_succeeds (lookAhead' parseCopula) *> -- note: added to ensure copula literals are not consumed by token pattern parsing
+  (guard_result "forbidden token parsed, failing" parseWord $
+                      \x -> not $ elem (tokenToText x) ["the", "to be", "called", "iff", "a", "stand", "denote"])) <* sc
 
-newtype Tokens = Tokens [Token]
+newtype Words = Words [Word]
   deriving (Show, Eq)
 
-parseTokens :: Parser Tokens
-parseTokens = Tokens <$> many1' parsePatternToken
+parseWords :: Parser Words
+parseWords = Words <$> many1' parsePatternWord
 
-tokensToTokens :: Tokens -> [Token]
-tokensToTokens tks0@(Tokens tks) = tks
+tokensToWords :: Words -> [Word]
+tokensToWords tks0@(Words tks) = tks
 
-data TokenPattern = TokenPattern Tokens [(TVar, Tokens)] (Maybe TVar)
+data WordPattern = WordPattern Words [(TVar, Words)] (Maybe TVar)
   deriving (Show, Eq)
 
-isBinaryTokenPattern :: TokenPattern -> Bool
-isBinaryTokenPattern tkpatt@(TokenPattern tks tvtks mtv) =
-  tks == (Tokens []) && (length tvtks == 1) && isSomething mtv
+isBinaryWordPattern :: WordPattern -> Bool
+isBinaryWordPattern tkpatt@(WordPattern tks tvtks mtv) =
+  tks == (Words []) && (length tvtks == 1) && isSomething mtv
 
-parseTokenPattern :: Parser TokenPattern
-parseTokenPattern = TokenPattern <$> parseTokens <*>
-                                     (many' $ (,) <$> parseTVar <*> parseTokens) <*>
+parseWordPattern :: Parser WordPattern
+parseWordPattern = WordPattern <$> parseWords <*>
+                                     (many' $ (,) <$> parseTVar <*> parseWords) <*>
                                      (option parseTVar)
 
-patternOfTokenPattern :: TokenPattern -> Parser Pattern
-patternOfTokenPattern tkPatt@(TokenPattern (Tokens tks) tvstkss mtvar) = Patts <$>
+patternOfWordPattern :: WordPattern -> Parser Pattern
+patternOfWordPattern tkPatt@(WordPattern (Words tks) tvstkss mtvar) = Patts <$>
   ((<>) <$> ( do strsyms <- concat <$> use (allStates strSyms)
                  return $ (map (Wd . tokenToText'_aux strsyms) tks) <>
-                     concat (map (\(tv,tks) -> Vr : map (Wd . pure . tokenToText) (tokensToTokens tks)) tvstkss) )
+                     concat (map (\(tv,tks) -> Vr : map (Wd . pure . tokenToText) (tokensToWords tks)) tvstkss) )
             <*> ((unoption $ return mtvar) *> return [Vr] <||> return []))
 
 data IdentifierPattern =
@@ -918,7 +918,7 @@ patternOfIdentifierPattern idpatt =
     IdentifierPattern ident args mct -> (patternOfIdent ident) <+> (patternOfArgs args)
     IdentifierPatternBlank args mct -> (patternOfArgs args)
   -- (<>) <$> (return $ (map (Wd . pure . tokenToText) tks) <>
-  --                    concat (map (\(tv,tks) -> Vr : map (Wd . pure . tokenToText) (tokensToTokens tks)) tvstkss) )
+  --                    concat (map (\(tv,tks) -> Vr : map (Wd . pure . tokenToText) (tokensToWords tks)) tvstkss) )
   --           <*> ((unoption $ return mtvar) *> return [Vr] <||> return [])
    
 data ControlSeqPattern = ControlSeqPattern ControlSequence [TVar]
@@ -996,18 +996,18 @@ data PrecedenceLevel = PrecedenceLevel NumInt (Maybe AssociativeParity)
 parsePrecedenceLevel :: Parser PrecedenceLevel
 parsePrecedenceLevel = PrecedenceLevel <$> (parseLit "with" *> parseLit "precedence" *> parseNumInt) <*> (option $ parseLit "and" *> parseAssociativeParity <* parseLit "associativity")
 
-newtype ClassifierDef = ClassifierDef ClassTokens
+newtype ClassifierDef = ClassifierDef ClassWords
   deriving (Show, Eq)
 
-newtype ClassTokens = ClassTokens [[Token]]
+newtype ClassWords = ClassWords [[Word]]
   deriving (Show, Eq)
 
-parseClassTokens = ClassTokens <$> sepby1 (many1' ((notFollowedBy (parseLitIs <* option parseLitA <* parseLitClassifier)) *> parseToken)) parseComma
+parseClassWords = ClassWords <$> sepby1 (many1' ((notFollowedBy (parseLitIs <* option parseLitA <* parseLitClassifier)) *> parseWord)) parseComma
 
 parseClassifierDef =
-  ClassifierDef <$> (parseLit "let" *>  parseClassTokens <* parseLitIs <* option parseLitA <* parseLitClassifier)
+  ClassifierDef <$> (parseLit "let" *>  parseClassWords <* parseLitIs <* option parseLitA <* parseLitClassifier)
 
 registerClassifierDef :: LocalGlobalFlag -> ClassifierDef -> Parser ()
-registerClassifierDef lgflag clsdef@(ClassifierDef (ClassTokens tkss)) =
+registerClassifierDef lgflag clsdef@(ClassifierDef (ClassWords tkss)) =
   updateClsList2 lgflag (map (liftM tokenToText) tkss)
 

@@ -9,7 +9,7 @@ Parsing axioms.
 
 module Colada.Axiom where
 
-import Prelude -- hiding (Int, Bool, String, drop)
+import Prelude hiding (Word) -- hiding (Int, Bool, String, drop)
 import qualified Prelude
 import qualified Control.Applicative.Combinators as PC
 import Text.Megaparsec hiding (Token, Label, option)

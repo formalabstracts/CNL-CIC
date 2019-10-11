@@ -7,7 +7,7 @@ Parsing instructions.
 {-# LANGUAGE OverloadedStrings #-}
 module Colada.Instr where
 
-import Prelude -- hiding (Int, Bool, String, drop)
+import Prelude hiding (Word) -- hiding (Int, Bool, String, drop)
 import qualified Prelude
 import qualified Control.Applicative.Combinators as PC
 import Text.Megaparsec hiding (Token)
@@ -68,7 +68,7 @@ data InstructKeywordCommand =
 parseInstructKeywordCommand :: Parser InstructKeywordCommand
 parseInstructKeywordCommand = parseLit "exit" *> return LitExit
 
-data InstructSynonym = InstructSynonym [Token]
+data InstructSynonym = InstructSynonym [Word]
   deriving (Show, Eq)
 
 parseInstructSynonym :: Parser InstructSynonym
@@ -76,15 +76,28 @@ parseInstructSynonym = with_result (parse_synonym_main) m
   where
     parse_synonym_main = InstructSynonym <$> do
       bracket $ (parseLit "synonyms" <||> parseLit "synonym") *>
-        parseToken1 >>= rest . pure
+        parseWord >>= rest . pure
           where
-            rest :: [Token] -> Parser [Token]
+            rest :: [Word] -> Parser [Word]
             rest syms = case (last syms) of
-              Token txt ->
-                (parseInstructSepPlural *> (rest $ syms <> [Token $ txt <> "s"])) <||>
-                (parseInstructSep *> parseToken1 >>= \x -> (rest $ syms <> [x])) <||>
+              Word txt ->
+                (parseInstructSepPlural *> (rest $ syms <> [Word $ txt <> "s"])) <||>
+                (parseInstructSep *> parseWord >>= \x -> (rest $ syms <> [x])) <||>
                 return syms
     m = updateGlobalStrSyms . (\(InstructSynonym y) -> (map tokenToText y))
+
+    -- note(jesse, October 07 2019, 01:28 PM): deprecated parseWord1, reimplement later if needed
+    -- parse_synonym_main = InstructSynonym <$> do
+    --   bracket $ (parseLit "synonyms" <||> parseLit "synonym") *>
+    --     parseWord1 >>= rest . pure
+    --       where
+    --         rest :: [Word] -> Parser [Word]
+    --         rest syms = case (last syms) of
+    --           Word txt ->
+    --             (parseInstructSepPlural *> (rest $ syms <> [Word $ txt <> "s"])) <||>
+    --             (parseInstructSep *> parseWord1 >>= \x -> (rest $ syms <> [x])) <||>
+    --             return syms
+    -- m = updateGlobalStrSyms . (\(InstructSynonym y) -> (map tokenToText y))
 
 -- TODO: allow parsing of arbitrary postfixes after parsing a "/-"
 data InstructSepPlural = InstructSepPlural

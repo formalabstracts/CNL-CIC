@@ -11,7 +11,7 @@ Managing the parser state.
 
 module Colada.Basic.ParserState where
 
-import Prelude
+import Prelude hiding (Word)
 import Control.Monad.Trans.State
 import qualified Prelude
 import Text.Megaparsec hiding (Token, Label, option, Tokens)

@@ -9,7 +9,7 @@ Tokenization of input.
 
 module Colada.Basic.Token where
 
-import Prelude -- hiding (Int, Bool, String, drop)
+import Prelude hiding (Word)
 import qualified Prelude
 import qualified Control.Applicative.Combinators as PC
 import Text.Megaparsec hiding (Token, Label, option, Tokens)
@@ -276,12 +276,12 @@ parseDataHelper l arg = ((do
 parseDataHelper0 :: a -> Text -> (Parser a)
 parseDataHelper0 l arg = (str' arg >> return l) <* sc
 
-newtype Token = Token Text
+newtype Word = Word Text
   deriving (Show, Eq)
 
-tokenToText :: Token -> Text
+tokenToText :: Word -> Text
 tokenToText tk = case tk of
-  Token txt -> txt
+  Word txt -> txt
 
 data EOF = EOF
   deriving (Show, Eq)
@@ -506,38 +506,153 @@ var_old = do a <- alpha
 var_new :: Parser Text
 var_new = alpha <+> ch '_' <+> ch '_' <+> alphanum
 
--- test parseVar "C__mathcal"
+parseVarOrWordOrAtomicIdChar :: Parser Text
+parseVarOrWordOrAtomicIdChar = (alpha <||> digit <||> ch '_' <||> ch '\'')
+
+-- only meant to be run inside of parseVarOrWordOrAtomic
+-- parses either a var or a varlong
+parseVar_aux :: Parser Var
+parseVar_aux =
+  (Var <$> (var_new <||> var_old)) <* notFollowedBy parseVarOrWordOrAtomicIdChar
+
+isVar :: Text -> Bool
+isVar tk = do
+  case runParser (toParsec parseVar_aux) "" tk of
+    Left _ -> False
+    Right v -> True
+
+parseWord_aux2 :: Parser Word
+parseWord_aux2 = (do
+  a <- alpha
+  as <- many1 alpha
+  notFollowedBy (char '.' >> (alpha <||> digit))
+  return $ Word . join $ a:as) <* sc
+
+-- only meant to be run inside of parseVarOrWordOrAtomic
+-- parses either a var or a varlong
+parseWord_aux :: Parser Word
+parseWord_aux =
+  parseWord_aux2 <* notFollowedBy parseVarOrWordOrAtomicIdChar
+
+isWord :: Text -> Bool
+isWord tk = do
+  case runParser (toParsec parseWord_aux) "" tk of
+    Left _ -> False
+    Right v -> True  
+
+
+atomicid :: Parser Text
+atomicid = (do
+  alph <- alpha
+  rest <- (many' $ alpha <||> digit <||> (ch '_' <* lookAhead' (alpha <||> digit))) >>= return . join
+  -- guard $ (any C.isAlpha (unpack rest)) || (any (\x -> x == (pack . pure $ '_')) rest) -- TODO fix this
+  return $ alph <> rest) <* sc
+
+
+-- only meant to be run inside of parseVarOrWordOrAtomic
+-- parses either a var or a varlong
+parseAtomicId_aux :: Parser AtomicId
+parseAtomicId_aux =
+  (AtomicId <$> atomicid) <* notFollowedBy parseVarOrWordOrAtomicIdChar
+
+isAtomicId :: Text -> Bool
+isAtomicId tk = do
+  case runParser (toParsec parseAtomicId_aux) "" tk of
+    Left _ -> False
+    Right v -> True    
+  
+data VarOrWordOrAtomicId =
+    VarOrWordOrAtomicIdVar Var
+  | VarOrWordOrAtomicIdWord Word
+  | VarOrWordOrAtomicIdAtomicId AtomicId
+  deriving (Show, Eq)
+
+-- corresponds to `identkey` in lexer file, but also parses varlong as part of var
+parseVarOrWordOrAtomicId :: Parser VarOrWordOrAtomicId
+parseVarOrWordOrAtomicId = do
+  tk <- (join <$> (many $ alpha <||> digit <||> ch '_' <||> ch '\'')) <* sc
+  case isVar tk of
+    True -> return $ VarOrWordOrAtomicIdVar $ Var tk
+    False ->
+      case isWord tk of
+        True -> return $ VarOrWordOrAtomicIdWord $ Word tk
+        False ->
+          case isAtomicId tk of
+            True -> return $ VarOrWordOrAtomicIdAtomicId $ AtomicId tk
+            False -> fail "failed to parse var, word, or atomic"
+
+-- test parseVarOrWordOrAtomicId "f1a" >> test parseVarOrWordOrAtomicId "f1" >> test parseVarOrWordOrAtomicId "foobar" >> test parseVarOrWordOrAtomicId "foobar1" >> test parseVarOrWordOrAtomicId "f__bar"
+
+-- test parseWord "foobar"
+-- works as expected
+
+-- note(jesse, October 07 2019, 01:51 PM): disabled this implementation
+-- because this causes section label parsing (which expects an atomicid,
+-- but which under this scheme is usually parsed as a word) to nearly always fail
+
+-- parseVar :: Parser Var
+-- parseVar = do
+--   result <- parseVarOrWordOrAtomicId
+--   case result of
+--     VarOrWordOrAtomicIdVar v -> return v
+--     _ -> fail "failed to parse var"
+
+-- parseWord :: Parser Word    
+-- parseWord = do
+--   result <- parseVarOrWordOrAtomicId
+--   case result of
+--     VarOrWordOrAtomicIdWord w -> return w
+--     _ -> fail "failed to parse word"
+
+-- parseAtomicId :: Parser AtomicId
+-- parseAtomicId = do
+--   result <- parseVarOrWordOrAtomicId
+--   case result of
+--     VarOrWordOrAtomicIdAtomicId a -> return a
+--     _ -> fail "failed to parse atomic"
 
 parseVar :: Parser Var
 parseVar = (do
-  x <- var_new <||> var_old
-  -- (lookAhead' spaceChar) <||> lookAhead' (char '.') <||> lookAhead' (parseEOF)
-  return $ Var $ x) <* sc
+  tk <- join <$> (many $ parseVarOrWordOrAtomicIdChar)
+  case isVar tk of
+    True -> return $ Var tk
+    False -> fail "failed to parse var") <* sc
+
+parseWord :: Parser Word    
+parseWord = (do
+  tk <- join <$> (many $ parseVarOrWordOrAtomicIdChar)
+  case isWord tk of
+    True -> return $ Word tk
+    False -> fail "failed to parse word") <* sc
+
+parseAtomicId :: Parser AtomicId
+parseAtomicId = (do
+  tk <- join <$> (many $ parseVarOrWordOrAtomicIdChar)
+  case isAtomicId tk of
+    True -> return $ AtomicId tk
+    False -> fail "failed to parse atomic") <* sc
+
+
+-- test parseVar "C__mathcal"
 
 -- TODO later, make sure to implement check against being substring of an identifier
 -- A token is a string of alpha characters which is not followed by a period and another alpha character
-parseToken :: Parser Token
-parseToken = do
-  a <- alpha
-  as <- many1 alpha <* sc
-  notFollowedBy (char '.' >> (alpha <||> digit))
-  return $ Token . join $ a:as
 
-parseToken1 :: Parser Token
-parseToken1 = do
-  Token <$> intercalate (pack " ") <$>
-    (many1' (do a <- alpha
-                as <- many1 alpha <* sc
-                notFollowedBy (char '.' >> (alpha <||> digit))
-                return $ join $ a :as))
+-- parseWord1 :: Parser Word
+-- parseWord1 = do
+--   Word <$> intercalate (pack " ") <$>
+--     (many1' (do a <- alpha
+--                 as <- many1 alpha 
+--                 notFollowedBy (char '.' >> (alpha <||> digit))
+--                 return $ join $ a :as) <* sc) -- TODO(jesse): validate placement of sc
 
 
-parseTokenOfLit :: Text -> Parser Token -- TODO: insert guard to ensure that `arg` is Token-compliant
-parseTokenOfLit arg = parseLit arg >>= return . Token
+parseWordOfLit :: Text -> Parser Word -- TODO: insert guard to ensure that `arg` is Word-compliant
+parseWordOfLit arg = parseLit arg >>= return . Word
 
-parseTokenOfToken :: Token -> Parser Token
-parseTokenOfToken tk = case tk of
-  Token txt -> parseTokenOfLit txt
+parseWordOfWord :: Word -> Parser Word
+parseWordOfWord tk = case tk of
+  Word txt -> parseWordOfLit txt
 
 parseTkString :: Parser TkString
 parseTkString = (between (ch '"') (ch '"') str >>= return . TkString) <* sc
@@ -559,17 +674,6 @@ parseTkString = (between (ch '"') (ch '"') str >>= return . TkString) <* sc
 
 
   -- (many1 alpha) >>= return . Tk . join) <* sc
-
-
-atomicid :: Parser Text
-atomicid = (do
-  alph <- alpha
-  rest <- (many' $ alpha <||> digit <||> (ch '_' <* lookAhead' (alpha <||> digit))) >>= return . join
-  -- guard $ (any C.isAlpha (unpack rest)) || (any (\x -> x == (pack . pure $ '_')) rest) -- TODO fix this
-  return $ alph <> rest) <* sc
-
-parseAtomicId :: Parser AtomicId
-parseAtomicId = atomicid >>= return . AtomicId
 
 -- test parseAtomicId "foo_" -- does not parse the underscore
 -- test parseAtomicId "foo123_ab" -- parses the underscore
@@ -651,12 +755,12 @@ parseLabel = Label <$> parseAtomicId
 parseBool :: Parser Bool
 parseBool = parseLitTrue *> return True <||> parseLitFalse *> return False
 
-tokenToText'_aux :: [[Text]] -> Token -> [Text]
+tokenToText'_aux :: [[Text]] -> Word -> [Text]
 tokenToText'_aux strsyms tk = case tk of
-  Token txt -> case (filter (elem txt) strsyms) of
+  Word txt -> case (filter (elem txt) strsyms) of
     [] -> [txt]
     (x:xs) -> ((<>) x $ concat xs)
 
 -- tokenToText' extracts the underlying Text of a token and adds all available synonyms from the state.
-tokenToText' :: Token -> Parser [Text]
+tokenToText' :: Word -> Parser [Text]
 tokenToText' tk = tokenToText'_aux <$> (concat <$> (use (allStates strSyms))) <*> return tk

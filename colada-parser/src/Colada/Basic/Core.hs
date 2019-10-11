@@ -8,7 +8,7 @@ Core combinators and utility functions.
 {-# LANGUAGE OverloadedStrings #-}
 module Colada.Basic.Core where
 
-import Prelude
+import Prelude hiding (Word)
 import Control.Monad.Trans.State.Lazy
 import qualified Prelude
 import Text.Megaparsec
@@ -18,6 +18,7 @@ import Data.Void
 import Control.Monad (guard)
 import qualified Data.Char as C
 import qualified Text.Megaparsec.Char.Lexer as L
+import Data.Functor.Identity
 
 import Colada.Basic.State
 
@@ -45,6 +46,18 @@ toParsec p = fst <$> runtest0 p
 ---- `test p arg` runs `p` on `arg`, suppressing information about the FState
 test :: Show a => Parser a -> Text -> IO ()
 test p arg = parseTest (toParsec p) arg
+
+initialState :: Text -> Text.Megaparsec.State Text
+initialState txt = State txt 0 (PosState txt 0 (SourcePos "" (mkPos 1) (mkPos 1)) (mkPos 1) "")
+
+test' :: Show a => Parser a -> Text -> IO ()
+test' p arg = let (y,z) = runIdentity $ runParserT' (toParsec p) (initialState arg) in do
+  putStrLn "output: "
+  case z of
+    Left w -> putStrLn $ errorBundlePretty w
+    Right a -> putStrLn (show a)
+  putStrLn "remaining state: "
+  putStrLn $ unpack (stateInput y)
 
 repeatN :: Int -> Parser a -> Parser a
 repeatN n p = foldr (>>) p $ replicate (n-1) p
