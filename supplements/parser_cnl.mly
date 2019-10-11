@@ -1094,6 +1094,7 @@ proof_script : proof_preamble option(list(canned_prefix proof_body {})
   | option(proof_script {}) {}
   choose_prefix : then_prefix option(lit_lets) lit_choose {}
 
+  (* changed slightly in ocaml parser to remove a grammar ambiguity *)
   by_method : option(LIT_BY proof_method {}) {}
   proof_method : LIT_CONTRADICTION
     | LIT_CASE LIT_ANALYSIS
@@ -1149,7 +1150,7 @@ definition_statement :
     class_words : comma_nonempty_list(WORD) {}
 
   type_def : 
-  | opt_define type_head COLON ID_TYPE copula lit_a general_type
+  | opt_define type_head COLON ID_TYPE copula option(lit_a) general_type
   | opt_define type_head copula LIT_THE lit_type general_type {}
 
     type_head :  
@@ -1323,7 +1324,7 @@ binary_controlseq_pattern : tvar controlseq_pattern tvar {} (* subsumed by symbo
 symbol_pattern : option(tvar) symbol list(tvar symbol {}) 
   option(tvar) {}
 
-  symbol : SLASH | SLASHDASH | SYMBOL | CONTROLSEQ list(brace(tvar)) {} 
+  symbol : SLASH | SLASHDASH | SYMBOL | controlseq_pattern {} 
 
 paren_precedence_level :
 | precedence_level

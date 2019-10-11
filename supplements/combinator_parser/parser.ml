@@ -69,15 +69,15 @@ let (++) parser1 parser2 input =
   let result2,rest2 = parser2 rest1 in
   (result1,result2),rest2;;
 
+let (>>) prs treatment input =
+  let result,rest = prs input in
+  treatment(result),rest;;
+
 let rec many prs input =
   try let result,next = prs input in
       let results,rest = many prs next in
       (result::results),rest
   with Noparse -> [],input;;
-
-let (>>) prs treatment input =
-  let result,rest = prs input in
-  treatment(result),rest;;
 
 let fix err prs input =
   try prs input
@@ -121,21 +121,31 @@ let someX p =
 
 let a tok = some (fun item -> item = tok);;
 
-let rec atleast n prs i =
+let rec atleast n prs input =
   (if n <= 0 then many prs
-   else prs ++ atleast (n - 1) prs >> (fun (h,t) -> h::t)) i;;
+   else prs ++ atleast (n - 1) prs >> (fun (h,t) -> h::t)) input;;
 
 let finished input =
   if input = [] then 0,input else failwith "Unparsed input";;
 
 (* end of HOL Light *)
 
-let out _ = ();;
+let sort = List.sort_uniq (fun a b -> if (a > b) then 1 else if (a=b) then 0 else -1);;
+
+let _ = sort ["the";"THE";"that";"a";"z"]
+
+let plus prs = atleast 1 prs
+
+let discard _ = ();;
 
 let failparse _ = raise Noparse
-  
 
 let canparse f x = try (ignore(f x); true) with Noparse -> false
+
+let must f parser input = 
+  let (r,rest) = parser input in 
+  let _ = f r || raise Noparse in
+  (r,rest)
 
  (* commitment test *)
 let ( <|> ) (test,parser1) parser2 input = 
@@ -148,6 +158,20 @@ let commit err test parse input =
     fix err parse input  
   else parse input 
 
+let followedby parse input =
+  let (_,_) = parse input in 
+  (),input 
+
+(* accumulate parse1s until parse2 succeeds *)
+let rec until parse1 parse2 input = 
+  try parse2 input 
+  with Noparse -> 
+         let result,next = parse1 input in
+         let (r1,r2),rest = until parse1 parse2 next in
+         (result :: r1, r2),rest
+
+(* parentheses *)
+
 let paren parser  = 
   (a L_PAREN ++ parser ++ a R_PAREN) >> (fun ((_,p),_) -> p) 
 
@@ -157,11 +181,40 @@ let bracket parser =
 let brace parser = 
   (a L_BRACE ++ parser ++ a R_BRACE) >> (fun ((_,p),_) -> p) 
 
+(*
 let brace_semi parser =
   brace(listof parser (a SEMI))
+ *)
 
 let opt_paren parser = 
   paren parser ||| parser
+
+let nonbrack accept = 
+  some(
+      function
+      | L_PAREN | R_PAREN | L_BRACE | R_BRACE | L_BRACK | R_BRACK | PERIOD -> false
+      | t -> accept t
+    )
+
+let rec balancedB accept input = 
+  (many (
+      many(nonbrack accept) |||
+        paren(balancedB accept) |||
+        bracket(balancedB accept) |||
+        brace(balancedB accept)) >> List.flatten  ) input
+
+let balanced = balancedB (fun _ -> true)
+
+let separated p = 
+  let sep p =
+    nonbrack p >> (fun x -> [x]) ||| 
+      paren(balanced) ||| bracket(balanced) ||| brace(balanced) in
+  (many(sep p) >> List.flatten)
+
+let brace_semi = 
+  let semisep = separated (function | SEMI -> false | _ -> true) in
+  brace(semisep ++ many(a(SEMI) ++ semisep)) >>
+    (fun (a,bs) -> a :: (List.map snd bs))
 
 let comma = a COMMA 
 
@@ -179,17 +232,12 @@ let opt_comma_nonempty_list parser =
 let lit_binder_comma = comma
 
 let cs_brace parser1 parser2 = 
-  parser1 ++ elistof (brace parser2) nothing 
-
+  parser1 ++ many (brace parser2) 
 
 (* set up synonym hashtable *)
 (* XX need to add multiword synonyms *)
 
 let synonym = Hashtbl.create 200;;
-
-let sort = List.sort_uniq (fun a b -> if (a > b) then 1 else if (a=b) then 0 else -1);;
-
-let _ = sort ["the";"THE";"that";"a";"z"]
 
 let syn_add1 (key,value) = 
   if Hashtbl.mem synonym key then 
@@ -217,14 +265,6 @@ let frozen =
 "CASE";"CLASSIFIER";"CLASSIFIERS"
 ])
 
-let word s = 
-  let u = find_syn (String.uppercase_ascii s) in 
-  someX (function 
-      | WORD (w,wu) -> 
-          let wsyn = find_syn wu in
-          ((wsyn = u),WORD (w,wsyn))
-      | _ -> (false,UNKNOWN""))
-
 let rec parse_all ps input = 
   match ps with
   | [] -> ([],input)
@@ -237,6 +277,23 @@ let rec parse_some ps input =
   | [] -> raise Noparse
   | p :: ps' -> try (p input) with Noparse -> parse_some ps' input 
   
+let rec somecomb parser = 
+  function
+  | [] -> failparse 
+  | t :: ts -> parser t ||| somecomb parser ts
+
+
+(* words *)
+let word s = 
+  let u = find_syn (String.uppercase_ascii s) in 
+  someX (function 
+      | WORD (w,wu) -> 
+          let wsyn = find_syn wu in
+          ((wsyn = u),WORD (w,wsyn))
+      | _ -> (false,UNKNOWN""))
+
+let anyword = some(function | WORD _ -> true | _ -> false)
+
 let phrase s = 
   let ps = List.map word (String.split_on_char ' ' s) in 
   parse_all ps
@@ -245,10 +302,6 @@ let someword s =
   let s' = List.map word (String.split_on_char ' ' s) in
   parse_some s'
 
-let rec somecomb parser = 
-  function
-  | [] -> failparse 
-  | t :: ts -> parser t ||| somecomb parser ts
 
 let phrase_list_transition = 
 let w _ = "phrase list transition" in
@@ -312,6 +365,12 @@ let atomic_identifier =
     
 let atomic =
   case_sensitive_word ||| atomic_identifier 
+
+let var = some (function | VAR _ -> true | _ -> false)
+
+let var_or_atomic = var ||| atomic
+
+let var_or_atomics = plus(var_or_atomic)
 
 let hierarchical_identifier = 
   some (function
@@ -604,6 +663,51 @@ let synonym_statement =
 
 (* end of instructions *)
 
+(* terms, typ, and props  - type declaration 
+XX expand as we go.
+ *)
+
+type term = 
+  | TVar of token*(typ option)
+and typ = 
+  | TyVar of token
+  | Colon' of token list 
+and prop = 
+  | PVar of token
+
+type stub = 
+  | TextStatement of token list
+  | LetAnnotation of token list
+(*  | Colon_stub of token list *)
+
+type expr = 
+  | Eterm of term
+  | Etyp of typ
+  | Eprop of prop
+
+type wordpattern = 
+  | Wp_wd of token
+  | Wp_syn of token list 
+  | Wp_opt of token 
+  | Wp_var of token* typ
+
+
+(*
+type parses = 
+  {
+    ptm : token list -> term;
+    pty : token list -> typ;
+    ppr : token list -> prop
+  }
+ *)
+
+(* XX do recursion as follows:
+let rec parse_term = parse_term' 
+    { ptm := parse_term; pty := parse_type; ppr := parse_prop }
+and parse_type = parse_type' { etc. }
+and parse_prop = parse_prop' { etc. }
+ *)
+
 (* this_exists *)
 
 type this_adj =
@@ -645,39 +749,27 @@ let this_exists =
   (word "this" ++ sep_list(this_directive_pred) >>
      (fun (_,ls) -> List.flatten ls))
 
-let nonbrack = 
-  some(
-      function
-      | L_PAREN | R_PAREN | L_BRACE | R_BRACE | L_BRACK | R_BRACK | PERIOD -> false
-      | _ -> true
-    )
-
-let exclude p parser input = 
+(* doesn't work properly
+let exclude p parser = 
+  function
+  | [] -> parser []
+  | t :: ts as input -> if p t then raise Noparse else parser input 
   let (result,rest) = parser input in 
   if p result then raise Noparse else (result,rest)
+ *)
   
-let rec balanced input = 
-  (many (
-      many(nonbrack) |||
-        paren(balanced) |||
-        bracket(balanced) |||
-        brace(balanced)) >> List.flatten  ) input
 
-type text_deferred = 
-  | TextStatement of token list
-  | LetAnnotation of token list
 
 (* text *)
 type text_token = 
   | Section_preamble of string (* new current section *)
   | Instruction of string (* keyword *)
-  | Axiom of string*string * (text_deferred list)*text_deferred  (* kind,label,statements,conclusion *)
-  | Definition of string * (text_deferred list)*text_deferred (* label,statements,conclusion *)
-  | Theorem of string * (text_deferred list)*text_deferred  (* label, statements,conclusion *)
+  | Axiom of string*string * (stub list)*stub  (* kind,label,statements,conclusion *)
+  | Definition of string * (stub list)*stub (* label,statements,conclusion *)
+  | Theorem of string * (stub list)*stub  (* label, statements,conclusion *)
   | Synonym
-  | Macro of text_deferred list (* statements *)
+  | Macro of stub list (* statements *)
   | Namespace 
-
 
 (* axiom *)
 let then_prefix = possibly (lit_then)
@@ -689,6 +781,7 @@ let assumption =
   (assumption_prefix ++ balanced ++ (a PERIOD) >> 
      (fun ((_,b),_) -> TextStatement b)) |||
     (balanced ++ (a PERIOD) >> (fun (b,_) -> LetAnnotation b))
+  (* add let_annotation *)
 
 let axiom_preamble = 
   lit_axiom ++ possibly (label) ++ (a PERIOD) >>
@@ -706,30 +799,30 @@ let ref_item = sep_list(possibly lit_location ++ label)
 
 let by_ref = possibly(paren(word "by" ++ ref_item))
 
-let proof_method = 
-  let has_that = List.exists (function | WORD(_,w) -> (w = "THAT") | _ -> false) in
-  let ex_that = exclude has_that in
-  commit "proof method" (someword "contradiction case induction")
-  ((word "contradiction" >> out) |||
-    (phrase "case analysis" >> out) |||
-    (word "induction" ++ possibly (word "on" ++ ex_that balanced) >> out))
-
 let by_method = 
-  possibly(word "by" ++ proof_method)
+  (* exclude 'that' to avoid grammar ambiguity in goal_prefix *)
+  let except = (function | WORD(_,w) -> not(w = "THAT") | _ -> true) in
+  commit "proof method" (word "by")
+  (word "by" ++ 
+    ((word "contradiction" >> discard) |||
+    (phrase "case analysis" >> discard) |||
+    (word "induction" ++ possibly (word "on" ++ balancedB except) >> discard)) ++
+  followedby ((word "that" ||| a(PERIOD))) >> discard)
 
 let choose_prefix = 
   then_prefix ++ possibly(lit_lets) ++ lit_choose 
 
-let canned_proof = phrase_list_proof_statement >> out
+let canned_proof = phrase_list_proof_statement >> discard
 
 let canned_prefix = sep_list(phrase_list_transition) ++ possibly(a(COMMA))
 
 let goal_prefix = 
-  possibly(lit_lets) ++ lit_prove ++ by_method ++ possibly(word "that")
+  possibly(lit_lets) ++ lit_prove ++ 
+    (word "that" >> discard ||| (possibly(by_method ++ word "that") >> discard))
 
 let proof_preamble = 
-  (word "proof" ++ by_method ++ a(PERIOD) >> out) |||
-    (word "indeed" >> out)
+  (word "proof" ++ possibly(by_method) ++ a(PERIOD) >> discard) |||
+    (word "indeed" >> discard)
 
 (* big mutual recursion for proof scripts *)
 
@@ -749,22 +842,22 @@ and goal_proof input =
 and proof_script input = 
   (proof_preamble ++ 
     many(canned_prefix ++ proof_body ++ canned_prefix ++ proof_tail) ++
-    lit_qed ++ a(PERIOD) >> out) input 
+    lit_qed ++ a(PERIOD) >> discard) input 
 
 and proof_body input = 
-  (proof_tail ||| (assumption >> out) >> out) input 
+  (proof_tail ||| (assumption >> discard) >> discard) input 
 
 and proof_tail input = 
-  ((affirm_proof >> out) ||| canned_proof ||| case ||| choose >> out) input
+  ((affirm_proof >> discard) ||| canned_proof ||| case ||| choose >> discard) input
 
 and case input = 
-  (word "case" ++ balanced ++ a(PERIOD) ++ proof_script >> out) input 
+  (word "case" ++ balanced ++ a(PERIOD) ++ proof_script >> discard) input 
 
 and choose input =
-  (choose_prefix ++ balanced ++ a(PERIOD) ++ choose_justify >> out) input 
+  (choose_prefix ++ balanced ++ a(PERIOD) ++ choose_justify >> discard) input 
 
 and choose_justify input = 
-  (possibly(proof_script) >> out) input;;
+  (possibly(proof_script) >> discard) input;;
 
 (* end big recursion *)
 
@@ -777,30 +870,195 @@ let theorem =
   (theorem_preamble ++ many(assumption) ++ affirm_proof >>
     (fun ((l,ls),st) -> Theorem(l,ls,TextStatement st)))
 
+
+(* patterns *)
+(* XX need to process multiword synonyms *)
+
+let pattern_banned = 
+  ["IS";"BE";"ARE";"DENOTE";"STAND";"IF";"IFF";"THE";"A";"AN";
+   "SAID";"DEFINED";"OR";"AND"]
+
+let not_banned =
+  let p s = not(List.mem s pattern_banned) in
+  function
+  | WORD(_,s) -> p s
+  | VAR s -> p s
+  | ATOMIC_IDENTIFIER s -> p s
+  | HIERARCHICAL_IDENTIFIER s -> p s
+  | _ -> true
+
+let any_pattern_word = 
+  some(function 
+      | WORD (_,_) as w  -> not_banned w
+      | _ -> false)
+
+let word_in_pattern = 
+  any_pattern_word >> (fun s -> [Wp_wd s]) |||   
+  (paren(comma_nonempty_list(word "or" ++ plus(any_pattern_word))) 
+  >> (fun ss -> 
+            let ss' = List.map snd ss in 
+             List.map (fun s' -> Wp_syn s') ss')) |||
+  (paren(any_pattern_word) >> (fun s -> [Wp_opt s]))
+
+let words_in_pattern = 
+  (any_pattern_word ++ many(word_in_pattern)) 
+  >> (fun (a,b) -> Wp_wd a :: List.flatten b)
+
+let opt_colon_stub = 
+  possibly(a(COLON) ++ balanced) >> 
+    (fun bs -> Colon' (List.flatten (List.map snd bs)))
+                         
+let tvarpat = 
+  paren(var ++ opt_colon_stub) >>
+    (fun (v,bs) -> Wp_var (v,bs))
+
+let word_pattern = 
+  (words_in_pattern ++ many(tvarpat ++ words_in_pattern) ++ possibly(tvarpat)
+  >>
+    fun ((a,bs),c) ->
+          a @ (List.flatten (List.map (fun (b,b')-> b::b') bs)) @ c
+  )
+
+let type_word_pattern = possibly(lit_a) ++ word_pattern >> snd
+
+let function_word_pattern = word("the") ++ word_pattern >> snd
+
+let adjective_pattern = 
+  tvarpat ++ word "is" ++ possibly (word "called") ++ word_pattern
+  >> (fun (((a,_),_),b) -> a ::b) 
+
+let var_multisubject_pat = 
+  tvarpat ++ a(COMMA) ++ tvarpat >> (fun ((a,_),c) -> a,c) |||
+    (paren(var ++ a(COMMA) ++ var ++ opt_colon_stub)
+    >>
+      (fun (((v,_),v'),bs) -> 
+                        (Wp_var(v,bs),Wp_var(v',bs)))
+                        
+      )
+
+let adjective_multisubject_pattern =
+  var_multisubject_pat ++ word "are" ++ possibly(word "called") ++ word_pattern >>
+    (fun (((v,_),_),w) -> v,w)
+
+let verb_pattern = tvarpat ++ word_pattern 
+
+let verb_multisubject_pattern = var_multisubject_pat ++ word_pattern 
+
+let opt_args_pat = 
+  brace_semi
+
+let required_arg_pat = 
+  paren(var_or_atomics ++ possibly(a(COLON) ++ balanced)) >>
+    (fun (vs,bs) -> let bs' = List.map snd bs in 
+                    List.map (fun v -> v,bs') vs)
+        |||
+    (var_or_atomic  >> fun a -> [a,[]])
+
+let args_pat = 
+  possibly opt_args_pat ++ many(required_arg_pat)
+
+let identifier_pattern = 
+  (must not_banned identifier ||| a(BLANK)) ++
+    args_pat ++ possibly(a(COLON) ++ balanced)
+
+let controlseq = some(function | CONTROLSEQ _ -> true | _ -> false)
+
+let controlseq_pattern = 
+  controlseq ++ many(brace(tvarpat))
+
+let binary_controlseq_pattern = tvarpat ++ controlseq_pattern ++ tvarpat
+
+let symbol = 
+  some(function | SLASH | SLASHDASH -> true | SYMBOL _ -> true | _ -> false) 
+  >> (fun a -> (a,[])) |||
+               controlseq_pattern
+
+let symbol_pattern = possibly(tvarpat) ++ symbol ++
+                       many(tvarpat ++ symbol) ++ possibly(tvarpat)
+
+let precedence_level = 
+  word "with" ++ word "precedence" ++ integer ++
+    possibly(word "and" ++ lit_left ++ word "associativity") >>
+    (fun (((_,_),i),bs) -> 
+           let bs' = List.map (fun((_,l),_) -> l) bs in (i,bs'))
+
+let paren_precedence_level = 
+  precedence_level ||| paren precedence_level
+
+(* pattern end *)
+
+(* macro *)
+
+let we_record_def = 
+  lit_we_record ++ 
+    comma_nonempty_list (many (some(function | COMMA -> false | _ -> true))) >> snd
+
+let annotated_var = paren(var ++ opt_colon_stub)
+
+let annotated_vars = paren(plus(var) ++ opt_colon_stub) >>
+                       (fun (vs,o) -> List.map (fun v -> Wp_var(v,o)) vs)
+
+let let_annotation_prefix = 
+  (word("let") ++ comma_nonempty_list(var) ++ word "be" ++ possibly(lit_a)) >>
+    fun (((_,a),_),_) -> a
+
+
+let let_annotation = 
+  ((word "fix" >> (fun _ -> true) ||| (word "let" >> (fun _ -> false))) ++ 
+    comma_nonempty_list(annotated_vars) 
+   >>
+     (fun (t,bs) -> List.map (fun b -> (t,b)) bs)
+     )
+  |||
+
+    balancedB (function | PERIOD | SEMI -> false | _ -> true))
+  >>
+    (
+      fun ((((_,vs),_),_),bs) -> 
+            List.map (fun v -> (false,Wp_var (v,bs))) vs )
+    )
+
+  
 (* definitions *)
 
 let copula = 
-  (lit_is ++ possibly(lit_defined_as) >> out) |||
-    (a(ASSIGN) >> out) |||
-    (lit_denote >> out)
+  (lit_is ++ possibly(lit_defined_as) >> discard) |||
+    (a(ASSIGN) >> discard) |||
+    (lit_denote >> discard)
 
 let iff_junction = lit_iff 
 
 let opt_say = possibly(lit_we_say)
 
-let opt_record = possibly(lit_we_record) >> out 
+let opt_record = possibly(lit_we_record) >> discard 
 
 let opt_define = 
-  (possibly(lit_lets) ++ possibly(word "define") >> out) |||
+  (possibly(lit_lets) ++ possibly(word "define") >> discard) |||
     (opt_record)
 
+let opt_colon_balanced = 
+  possibly (a(COLON) ++ balanced)
+
 let macro_inferring = 
-  paren(word "inferring" ++ nonempty_list(var) ++ opt_colon_balanced)
+  paren(word "inferring" ++ plus(var) ++ opt_colon_balanced)
 
-let class_words = comma_nonempty_list(word)
+let class_words = comma_nonempty_list(anyword)
 
+(* XX need to add prim actions *)
 let classifier_def = 
   word "let" ++ class_words ++ lit_is ++ possibly(lit_a) ++ lit_classifier
+
+let type_head_tok = XX
+
+let type_def = 
+  ((opt_define ++ 
+     until type_head_tok 
+       (a(COLON) ++ the_case_sensitive_word "Type" ++ copula ++ possibly(lit_a))) |||
+  (opt_define ++ 
+     until type_head_tok 
+       (copula ++ word "the" ++ lit_type))) ++ balanced ++ 
+    followedby (a(PERIOD))
+
 
 
 
