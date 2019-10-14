@@ -206,7 +206,7 @@ lit_classifier : LIT_CLASSIFIER | LIT_CLASSIFIERS {}
 (* stub rules suppress errors for unused nonterminals. *)
 stub_nonterminal :
 | NOT_DEBUGGED
-| make_term_opt_colon_type (* NOT_IMPLEMENTED instance declaration *)
+(* | make_term_opt_colon_type *) (* NOT_IMPLEMENTED instance declaration *)
 {}
 
 (* primitives *)
@@ -311,8 +311,8 @@ prim_verb_multisubject : PA17 {}
 
 prim_structure : PA18 {} 
 
- (* from type_def, when infix with precedence *)
-prim_type_op : PA18a {} (* A + B, A * B on types, etc.  *)
+ (* from type_def symbol pattern  *)
+prim_type_op : PA18a {} (* A + B, A * B on types, etc.  *) 
 
  (* from function_head.symbol_pattern *)
 prim_term_op : PA19 {} (* + - * / etc. *)
@@ -485,7 +485,7 @@ generalized_args : opt_args list(generalized_arg) {}
   which of the free variables of s are to be bound by the comprehension. 
  *)
 
-holding_var : option(paren(LIT_HOLDING comma_nonempty_list(VAR) {})) {}
+holding_var : option(COMMA paren(LIT_HOLDING comma_nonempty_list(VAR) {})) {}
 
 (* expressions *)
 
@@ -728,7 +728,7 @@ set_comprehension_term : brace(plain_term holding_var MID statement {}) {}
 alt_term : (* These bind tightly because of terminating END *)
 | case_term
 | match_term
-| lambda_function
+| match_function
 {}
 
  (*
@@ -746,11 +746,11 @@ match_term : LIT_MATCH match_seq LIT_WITH
   match_pats : comma_nonempty_list(match_pat) {}
   match_pat : plain_term {} (* Variables that do not appear in match_seq are assumed fresh. *)
 
-lambda_function : LIT_FUNCTION args 
+match_function : LIT_FUNCTION args 
   opt_colon_type nonempty_list(ALT match_pats ASSIGN plain_term {})
   LIT_END {}
 
-  app_term : tightest_term app_args {}
+app_term : tightest_term app_args {}
 
 (** opentail term *)               
 
@@ -811,7 +811,7 @@ plain_term : plain(term) {}
 
 
 (** make. *)
-make_term_opt_colon_type : make_term opt_colon_type {}
+(* make_term_opt_colon_type : make_term opt_colon_type {} *)
 
 (** pseudoterms and attributes (forthel style) *)
 
@@ -1136,7 +1136,8 @@ definition_statement :
 | predicate_def
 {}
 
-  copula : lit_is option(lit_defined_as) | ASSIGN | lit_denote {}
+  copula : lit_is option(lit_defined_as) | lit_denote {}
+  function_copula : copula | opt_colon_type ASSIGN {}
   iff_junction : lit_iff {}
   opt_say : option(lit_we_say) {}
   opt_record : option(lit_we_record) {}
@@ -1154,10 +1155,10 @@ definition_statement :
   | opt_define type_head copula LIT_THE lit_type general_type {}
 
     type_head :  
+    | symbol_pattern (* fixed precedence level, right assoc *)
     | type_word_pattern 
     | identifier_pattern 
     | controlseq_pattern 
-    | binary_controlseq_pattern (* fixed precedence level, right assoc *)
     {} 
 
   function_def : opt_define function_head option(macro_inferring {})
@@ -1165,13 +1166,13 @@ definition_statement :
 
     function_head :
     | function_word_pattern
-    | symbol_pattern option(paren_precedence_level)
+    | symbol_pattern
     | identifier_pattern  {}
 
-  predicate_def : opt_say predicate_head option(COMMA macro_inferring {}) iff_junction statement {}
+  predicate_def : opt_say predicate_head option(macro_inferring {}) iff_junction statement {}
     predicate_head :
     | predicate_word_pattern
-    | symbol_pattern option(paren_precedence_level)
+    | symbol_pattern 
     | identifier_pattern {}
 
  (*
@@ -1222,7 +1223,7 @@ definition_statement :
 
 macro : option(insection) macro_bodies {}
 
-  insection : LIT_IN LIT_THIS section_tag {}
+  insection : LIT_IN LIT_THIS lit_document {}
 
   macro_bodies : macro_body list(SEMI option(LIT_AND) macro_body {}) PERIOD {}
 
@@ -1314,15 +1315,15 @@ predicate_word_pattern :
   | paren(VAR COMMA VAR colon_type {}) {}
 
 identifier_pattern :
-| identifier args opt_colon_type {}
-| BLANK args opt_colon_type {} (* instance can be anonymous *)
+| identifier args {}
+| BLANK args {} (* instance can be anonymous *)
 
 controlseq_pattern : CONTROLSEQ list(brace(tvar)) {} (* subsumed by symbol_pattern *)
 
 binary_controlseq_pattern : tvar controlseq_pattern tvar {} (* subsumed by symbol_pattern *)
 
 symbol_pattern : option(tvar) symbol list(tvar symbol {}) 
-  option(tvar) {}
+  option(tvar) option(paren_precedence_level) {}
 
   symbol : SLASH | SLASHDASH | SYMBOL | controlseq_pattern {} 
 
