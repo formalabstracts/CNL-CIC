@@ -1,0 +1,75 @@
+(* module Type = struct *)
+
+type token = 
+   | Natural of int
+   | Numeric of string
+   | Eol
+   | Par 
+   | Comment of string
+   | Input of string
+   | ControlSeq of string
+   | BeginEnv of string
+   | EndEnv of string
+   | LBrack
+   | RBrack
+   | LBrace
+   | RBrace
+   | LDisplay
+   | RDisplay
+   | Display
+   | Dollar
+   | Sub
+   | Comma
+   | Semi
+   | FormatEol 
+   | FormatCol 
+   | Label of string
+   | Tok of string
+   | Error of string
+   | Warn of string 
+   | Eof
+   | Ignore
+   | Lt
+   | Gt
+   | Amp
+   | Apos
+   | Quot
+   | BeginDocument
+   | EndDocument
+   | NotImplemented of string;;
+
+type partrack =
+  | TrackPar
+  | NoTrackPar;;
+
+
+type io_channels = 
+  {
+    infile : string;
+    outfile : string;
+    mutable intoks : token list ;
+    outc : out_channel;
+  };;
+
+(*
+  name of environment from \begin{name}
+  begin_token insert these into output at beginning
+  tr_token perform this token translation
+  end_token insert these into output at ending
+  drop_toks delete these from output 
+  is_delete produce no output 
+  stay_in_par environment must remain in paragraph 
+ *)
+
+type environ_item =
+{
+  name : string;
+  begin_token : token;
+  tr_token : (token*token) list;
+  end_token : token;
+  drop_toks : token list;
+  is_delete : bool;
+  stay_in_par : partrack;
+};;
+
+(* end;; *)

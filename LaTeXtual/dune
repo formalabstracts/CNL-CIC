@@ -1,0 +1,11 @@
+(dirs :standard)
+
+(library
+(name latextual)
+(public_name latextual)
+(wrapped true)
+(libraries sedlex batteries)
+(preprocess (pps ppx_deriving.std  sedlex.ppx))
+)
+
+
