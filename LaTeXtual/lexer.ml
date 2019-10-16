@@ -13,35 +13,6 @@ open BatList
 (* moved to type.ml: 
  *)
 
-let lex_token_to_string = function
-  | Natural i -> (string_of_int i)
-  | Numeric s -> s
-  | Input s -> "\\input{"^s^"}"
-  | ControlSeq s -> s
-  | BeginEnv s -> "\\begin{"^s^"}"
-  | EndEnv s -> "\\end{"^s^"}"
-  | LBrack -> "["
-  | RBrack -> "]"
-  | LBrace -> "{"
-  | RBrace -> "}"
-  | Display -> "$$"
-  | Dollar -> "$"
-  | Sub -> "\\sb"
-  | Comma -> ","
-  | Semi -> ";"
-  | FormatEol -> "\\"
-  | FormatCol -> "&"
-  | Tok s -> s
-  | Eof -> "EOF"
-  | Eol -> "EOL"
-  | Lt -> "&lt;"
-  | Gt -> "&gt;"
-  | Amp -> "&amp;"
-  | Apos -> "&apos;"
-  | Quot -> "&quot;"
-  | NotImplemented _ -> "NotImplemented"
-  | _ -> "";;
-
 
 (* -- Lexical structure -- *)
 
@@ -54,8 +25,11 @@ let numeric =
  
 let eol =   [%sedlex.regexp?  '\n']
 
+let strictwhite = 
+  [%sedlex.regexp? ' ' | '\t' | '\012' | '\r']
+
 let white =
-  [%sedlex.regexp? ' ' | '\t' | '\012' | '~' | '@' | '\r' | '&' | '\'' | '\"'] 
+  [%sedlex.regexp? ' ' | '\t' | '\012' | '~' | '@' | '\r' | '&' | '\'' | '\"' | '#' | '*' | '=' ] 
 
 let alphabet = [%sedlex.regexp? 'a'..'z' | 'A'..'Z']
 
@@ -78,29 +52,32 @@ let rdisplay = [%sedlex.regexp? '\\', ']'  ]
 let format_eol = [%sedlex.regexp? "\\\\", Opt('*') ]
 
 
-let format_col = [%sedlex.regexp? '&']
-
-
 let beginenv = [%sedlex.regexp? "\\begin", Star(white), "{", Star(white), 
                 Plus(alphabet), Opt("*"), Star(white), "}"] 
 
 let endenv = [%sedlex.regexp? "\\end", Star(white), "{", Star(white), 
                 Plus(alphabet), Opt("*"), Star(white), "}"] 
 
-let inputseq = [%sedlex.regexp? "\\input", Star(white), "{", Star(white), 
-                Plus(alphanum), Star(white), "}"] 
+let enddoc = [%sedlex.regexp? "\\end", Star(white), "{", Star(white), 
+                "document", Star(white), "}"] 
 
-let period = [%sedlex.regexp? '.']           
-let comma = [%sedlex.regexp? ',']
-let colon = [%sedlex.regexp? ':']
-let semi = [%sedlex.regexp? ';']           
-let punct = [%sedlex.regexp? period | colon ]
+
+let inputcs = [%sedlex.regexp? "\\input" | "\\include"]
+ 
+let nonfilechar = [%sedlex.regexp? Compl('}' | strictwhite)]
+
+let inputseq = [%sedlex.regexp? inputcs, Star(strictwhite), '{', Star(strictwhite),
+                Star(nonfilechar), Star(strictwhite), '}']
+
+let period = [%sedlex.regexp? '.' | '?' | '!' ]
+let punctuation = [%sedlex.regexp? ':' |  ';' | ',' | '_' | '^' ]
+let symbol = [%sedlex.regexp? period | punctuation | '|' | 
+              '<' | '>' | '^' | '+' | '-' | '=' | '/' | '*' | ')' | '(' | '|' |
+             '%']
+let symbols = [%sedlex.regexp? Plus(symbol, Star(white))]
 
 let dollar = [%sedlex.regexp? '$']
 let doubledollar = [%sedlex.regexp? dollar, dollar ]
-let sub = [%sedlex.regexp? '_']
-
-let symbol = [%sedlex.regexp? punct | '|' | '<' | '>' | '^' | '+' | '-' | '=' | '/' | '*']
 
 (* handle foreign accents in words *)
 let accent_char = [%sedlex.regexp? '\'' | '`' | '^' | '"' | '~' | '=' | '.']
@@ -116,12 +93,6 @@ let accent_cluster = [%sedlex.regexp? "\\", accent_char, alphabet
 
 let word = [%sedlex.regexp? Plus(alphabet | accent_cluster) ]
 
-
-let dot_id = [%sedlex.regexp? '.', alphabet, Star(alphanum) ]
-let unmarked_id = 
-  [%sedlex.regexp? Opt('.'), alphabet, Star(alphanum), Star(dot_id)]
-let id = [%sedlex.regexp? '!', unmarked_id, '!' ]
-           
 (* open Parser_tex *)
 
 let lexeme = Sedlexing.lexeme;;
@@ -166,6 +137,7 @@ let test() = strip_to_brace "begin { hello } ";;
 let rec lex_token buf = 
  match%sedlex buf with 
  | Plus(white) -> (lex_token buf)
+ | format_eol -> (lex_token buf)
  | comment -> Comment (string_lexeme buf)
   | numeral10 -> Natural(int_of_string(string_lexeme buf)) 
     | numeric -> Numeric(string_lexeme buf)
@@ -175,21 +147,17 @@ let rec lex_token buf =
     | dollar -> Dollar
     | beginenv -> BeginEnv(strip_to_brace(string_lexeme buf))
     | endenv -> EndEnv(strip_to_brace(string_lexeme buf))
-    | inputseq -> Input(strip_to_brace(string_lexeme buf))
-    | format_eol -> FormatEol
-    | format_col -> FormatCol
+    | enddoc -> EndDocument 
+    | inputseq -> Input(strip_to_brace(string_lexeme buf)) 
     | controlseq -> ControlSeq(drop (string_lexeme buf) 1)
     | controlchar -> ControlSeq(drop (string_lexeme buf) 1)
     | lbrack -> LBrack
     | rbrack -> RBrack
     | lbrace -> LBrace
     | rbrace -> RBrace
-    | id -> Tok(trim_ends(convert_hyphen(string_lexeme buf)))
     | word -> Tok(strip_nonalpha(string_lexeme buf))
-    | unmarked_id -> Tok(convert_hyphen(string_lexeme buf))
-    | symbol -> Tok(string_lexeme buf)
-    | comma -> Comma 
-    | semi -> Semi
+    | period -> Period
+    | symbols -> Symbol
     | eof -> Eof
     | any -> NotImplemented (string_lexeme buf)
     | _ -> failwith (string_lexeme buf)
@@ -203,7 +171,7 @@ let lex_string s : token list =
   let buf = Sedlexing.Utf8.from_string s in 
   lex_tokens [] buf;;
 
-let test_lex_string = List.map print_endline (List.map lex_token_to_string (lex_string "A B C hello\\alpha33[1]there !re\"ady! \\begin{ cnl } Riemann-Hilbert Poincar\\\'e {\\ae} { \\ae} (xx) \\input{file} \\mathfrak{C}33 [$] {yy} %comment \n more #4 # 5  $ ))))))))"));;
+let test_lex_string = List.map print_endline (List.map lex_token_to_string (lex_string "A B C hello\\alpha33[1]there !re\"ady! \\begin{ cnl } \\end{ document } Riemann-Hilbert Poincar\\\'e {\\ae} { \\ae} (xx) \\include{file} \\mathfrak{C}33 [$] \\input{filename.tex} \\include{file'_.tex} {yy} %comment \n more #4 # 5  $ ))))))))"));;
               
 
 

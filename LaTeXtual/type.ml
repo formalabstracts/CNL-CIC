@@ -18,25 +18,70 @@ type token =
    | RDisplay
    | Display
    | Dollar
-   | Sub
-   | Comma
-   | Semi
-   | FormatEol 
-   | FormatCol 
-   | Label of string
+   | Period
+   | Symbol
    | Tok of string
-   | Error of string
-   | Warn of string 
+   | XmlCs of string*string (* name contents *)
+   | XmlEnv of string*string
+   | XmlDisplayMath
+   | XmlMath
+   | XmlError of string
+   | XmlWarn of string 
+   | XmlMessage of string 
    | Eof
-   | Ignore
-   | Lt
-   | Gt
-   | Amp
-   | Apos
-   | Quot
-   | BeginDocument
    | EndDocument
+   | Ignore
    | NotImplemented of string;;
+
+let lex_token_to_string = function
+  | Natural i -> (string_of_int i)
+  | Numeric s -> s
+  | Input s -> "\\input{"^s^"}"
+  | ControlSeq s -> s
+  | BeginEnv s -> "\\begin{"^s^"}"
+  | EndEnv s -> "\\end{"^s^"}"
+  | LBrack -> "["
+  | RBrack -> "]"
+  | LBrace -> "{"
+  | RBrace -> "}"
+  | Display -> "$$"
+  | Dollar -> "$"
+  | Period -> "."
+  | Symbol -> "-"
+  | Tok s -> s
+  | Eof -> "EOF"
+  | Eol -> "EOL"
+  | EndDocument -> "EDoc"
+  | NotImplemented _ -> "NotImplemented"
+  | _ -> "";;
+
+
+let token_to_verbose_string = function
+  | Natural i -> "Nat"^(string_of_int i)
+  | Numeric s -> "Num"^s
+  | Eol -> "Eol"
+  | Par -> "Par"
+  | Comment s -> "%Comment-"^s
+  | Input s -> "Input-"^s
+  | ControlSeq s -> "ControlSeq-"^s
+  | BeginEnv s -> "BeginEnv-"^s
+  | EndEnv s -> "EndEnv-"^s
+  | LBrack -> "LBrack"
+  | RBrack -> "RBrack"
+  | LBrace -> "LBrace"
+  | RBrace -> "RBrace"
+  | LDisplay -> "LDisplay"
+  | RDisplay -> "RDisplay"
+  | Dollar -> "Dollar"
+  | Display -> "Display"
+  | Period -> "Period"
+  | Symbol -> "Symbol"
+  | Tok s -> "Tok-"^s
+  | Eof -> "Eof"
+  | EndDocument -> "EndDocument"
+  | Ignore -> "Ignore"
+  | NotImplemented s -> "NotImplemented-"^s
+  | _ -> "";;
 
 type partrack =
   | TrackPar
@@ -46,9 +91,7 @@ type partrack =
 type io_channels = 
   {
     infile : string;
-    outfile : string;
     mutable intoks : token list ;
-    outc : out_channel;
   };;
 
 (*

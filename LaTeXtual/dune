@@ -1,4 +1,5 @@
 (dirs :standard)
+(data_only_dirs tex)
 
 (library
 (name latextual)
