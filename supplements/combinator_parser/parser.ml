@@ -181,6 +181,10 @@ let report s =
 let warn cond s =
   if cond then report ("Warning: "^s) else ();;
 
+let curry f x y = f(x,y);;
+
+let uncurry f(x,y) = f x y;;
+
 let rec assocd a l d =
   match l with
     [] -> d
@@ -302,6 +306,8 @@ let finished input =
 
 (* end of HOL Light *)
 
+let pair x y = (x,y)
+
 let string_sort = List.sort_uniq String.compare
 
 let _ = string_sort ["the";"THE";"that";"a";"z"]
@@ -322,16 +328,24 @@ let must f parser input =
   let _ = f r || raise Noparse in
   (r,rest)
 
- (* commitment test *)
+(*
 let ( <|> ) (test,parser1) parser2 input = 
   if canparse test input then 
     parser1 input 
   else parser2 input
+ *)
+ (* commitment test *)
 
 let commit err test parse input = 
   if canparse test input then 
     fix err parse input  
   else parse input 
+
+let commit_head err parse1 parse2 input = 
+  try(  
+    let (result,rest) = parse1 input in 
+    fix err (parse2 (pair result)) rest)
+  with Noparse -> parse2 failparse input
 
 let followedby parse input =
   let (_,_) = parse input in 
@@ -757,8 +771,8 @@ let inscope scope =
     (scope = curscope')
 
 let section_preamble = 
-  commit "preamble" section_tag
-    ((section_tag ++ possibly label ++ period) >> treat_section_preamble)
+  commit_head "preamble" section_tag
+    (fun t -> ((t ++ possibly label ++ period) >> treat_section_preamble))
 
 (* namespace XX NOT_IMPLEMENTED *)
 
@@ -848,9 +862,9 @@ let instruction =
        instruct_int)
 
 let synonym_statement = 
-  let synhead = possibly (word "we") ++ possibly(word "introduce") ++ word "synonyms" in
-  commit "synonym_statement" synhead
-    (synhead ++ synlist >> (fun (_,ls) -> syn_add ls))
+  let head = possibly (word "we") ++ possibly(word "introduce") ++ word "synonyms" in
+  commit_head "synonym_statement" head
+    (fun head -> (head ++ synlist >> (fun (_,ls) -> syn_add ls)))
 
 (* end of instructions *)
 
@@ -933,9 +947,9 @@ let axiom_preamble =
      | _ -> raise Noparse)
 
 let axiom = 
-  commit "axiom" axiom_preamble
-  (axiom_preamble ++ many(assumption) ++ then_prefix ++ balanced ++ a(PERIOD) >>
-     (fun (((((w,labl),ls),_),st),_) -> Axiom (w,labl,ls,Statement' st)))
+  commit_head "axiom" axiom_preamble
+  (fun head -> (head ++ many(assumption) ++ then_prefix ++ balanced ++ a(PERIOD) >>
+     (fun (((((w,labl),ls),_),st),_) -> Axiom (w,labl,ls,Statement' st))))
   
 (* theorem *) 
 let ref_item = sep_list(possibly lit_location ++ label) 
@@ -945,12 +959,12 @@ let by_ref = possibly(paren(word "by" ++ ref_item))
 let by_method = 
   (* exclude 'that' to avoid grammar ambiguity in goal_prefix *)
   let except = (function | WORD(_,w) -> not(w = "THAT") | _ -> true) in
-  commit "proof method" (word "by")
-  (word "by" ++ 
+  commit_head "proof method" (word "by")
+  (fun head -> (head ++ 
     ((word "contradiction" >> discard) |||
     (phrase "case analysis" >> discard) |||
     (word "induction" ++ possibly (word "on" ++ balancedB except) >> discard)) ++
-  followedby ((word "that" ||| a(PERIOD))) >> discard)
+  followedby ((word "that" ||| a(PERIOD))) >> discard))
 
 let choose_prefix = 
   then_prefix ++ possibly(lit_lets) ++ lit_choose 
@@ -1009,9 +1023,9 @@ let theorem_preamble =
      (fun ((_,ls),_) -> getlabel ls))
 
 let theorem = 
-  commit "theorem" theorem_preamble 
-  (theorem_preamble ++ many(assumption) ++ affirm_proof >>
-    (fun ((l,ls),st) -> Theorem(l,ls,Statement' st)))
+  commit_head "theorem" theorem_preamble 
+  (fun head -> (head ++ many(assumption) ++ affirm_proof >>
+    (fun ((l,ls),st) -> Theorem(l,ls,Statement' st))))
 
 
 (* patterns *)
@@ -1173,8 +1187,8 @@ let symbol_pattern =
 (* macro *)
 
 let insection = 
-  commit "macro" (phrase "in this")
-    (phrase "in this" ++ lit_document 
+  commit_head "macro" (phrase "in this")
+    (fun head -> (head ++ lit_document 
      >> 
        (function | (_,WORD(_,s)) -> 
                      (let i = scope_level s in
@@ -1183,7 +1197,7 @@ let insection =
                       then max 0 (List.length !current_scope - 1)
                       else i)
                  | _ -> 0)
-    )
+    ))
 
 
 let we_record_def = 

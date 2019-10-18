@@ -21,8 +21,8 @@ type token =
    | Period
    | Symbol
    | Tok of string
-   | XmlCs of string*string (* name contents *)
-   | XmlEnv of string*string
+   | XmlCs of string (* name contents *)
+   | XmlEnv of string
    | XmlDisplayMath
    | XmlMath
    | XmlError of string
@@ -40,21 +40,20 @@ let lex_token_to_string = function
   | ControlSeq s -> s
   | BeginEnv s -> "\\begin{"^s^"}"
   | EndEnv s -> "\\end{"^s^"}"
-  | LBrack -> "["
-  | RBrack -> "]"
-  | LBrace -> "{"
-  | RBrace -> "}"
+  | LBrack -> ""
+  | RBrack -> ""
+  | LBrace -> ""
+  | RBrace -> ""
   | Display -> "$$"
   | Dollar -> "$"
   | Period -> "."
-  | Symbol -> "-"
+  | Symbol -> ""
   | Tok s -> s
   | Eof -> "EOF"
-  | Eol -> "EOL"
+  | Eol -> "\n"
   | EndDocument -> "EDoc"
   | NotImplemented _ -> "NotImplemented"
   | _ -> "";;
-
 
 let token_to_verbose_string = function
   | Natural i -> "Nat"^(string_of_int i)

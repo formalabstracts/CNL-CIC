@@ -666,7 +666,7 @@ let mk_e_item s e =
     | "itemize" | "structure" | "make"  ->
                                   mk_itemize_env s LBrace (Semi) (e.is_delete)
       | "center" -> mk_drop_env s [] Ignore (e.is_delete)
-      | "align" | "align*" -> mk_drop_env s [FormatCol;FormatCol] Ignore (e.is_delete)
+      | "align" | "align*" -> mk_drop_env s [FormatEol;FormatCol] Ignore (e.is_delete)
       | "envMatch" -> mk_drop_env s [FormatEol;FormatCol] (Tok "end") e.is_delete
       | "cases" -> mk_case_env s e.is_delete
       | "flushleft" | "flushright" | "minipage" 

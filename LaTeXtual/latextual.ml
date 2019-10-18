@@ -20,6 +20,11 @@ look for packages
    This is the default. There is no need to 
  list them all *)
 
+let rec droplast = 
+  function
+  | _ :: t2 :: ts -> droplast (t2 :: ts)
+  | _ -> []
+
 let split_replace (a,a') s = 
   let  s' = String.split_on_char a s in 
   String.concat a' s'
@@ -38,26 +43,28 @@ let html_escaped = string_escaped
 
 let _ = html_escaped "&lt &<\'\""
 
-let ignore_cs = 
+(* default. don't list
+let cs_ignore = 
   ["documentclass";"usepackage";"title";
    "author";"date";"maketitle";"renewcommand";
    "setcounter";"tableofcontents";"listoftables";
    "newcommand"]
+ *)
 
 (* create an item for the cs and its args *)
-let record_cs = (* <cs name="chapter">...</cs> *)
+let cs_record = (* <cs name="chapter">...</cs> *)
   ["chapter";"section";"subsection";"subsubsection";
    "part";"paragraph";"subparagraph";"emph";"textbf"]
 
 (* replace cs by its text equivalent *)
-let white_cs  = 
+let cs_text  = 
   ["alpha";"beta";"gamma";
    "ldots";"cdots"]
 
 
 (* remove marking cs, pass the data inside through.
  *)
-let unmark_cs = []
+let cs_unmark = []
 
 
 (* *)
@@ -65,62 +72,67 @@ let unmark_cs = []
 (* allowed environments. Marked .
    [] {} directlly after \begin{env} are ignored.  *)
 
-let white_env = 
+let env_record = 
   ["abstract";"enumerate";"itemize";"description";
    "labeling"]
 
 (* keep data inside environment without 
    begin and end markers *)
 
-let unmark_env = 
+let env_unmark = 
   ["spacing"]
 
-let rename_env = (* allowed, renamed *)
+let env_rename = (* allowed, renamed *)
   [("def","definition")]
 
 (* string operations *)
 
 let name_tag n = if n="" then "" else (" name=\"" ^html_escaped n^ "\"")
 
-let empty_tag s n = "<"^s^ name_tag n ^ " />"
+let empty_tag s n = "<"^s^ name_tag n ^ "/> "
 
-let content_tag s n c = "<"^s^ name_tag n ^ ">" ^ html_escaped c ^ "</"^s^">"
+let content_tag s n c = "<"^s^ name_tag n ^ "> " ^ html_escaped c ^ " </"^s^"> "
 
-let _ = print_endline (empty_tag "cs" "input")
+let tag_open s n = "<"^s^ name_tag n ^ "> "
 
-let _ = print_endline (content_tag "cs" "input" "reinhardt.tex")
+let tag_closed s n = "</"^s^ name_tag n ^ "> "
+
+let _ =  (empty_tag "cs" "input")
+
+let _ =  (content_tag "cs" "input" "reinhardt.tex")
 
 let token_to_string = Type.lex_token_to_string 
 
+let tokens_to_string sep toks = 
+  let cs = List.map token_to_string toks in
+  String.concat sep cs;;
+
 let token_to_verbose_string = Type.token_to_verbose_string
 
-let token_to_string_output = function
-  | Dollar -> " "
-  | Display -> " "
-  | Eof -> " "
-  | BeginEnv _ -> " "
-  | EndEnv _ -> " "
-  | ControlSeq s -> "\\"^s
-  | Input s -> "[read \"" ^(Filename.remove_extension s)^ ".latextual\"]"
-  | NotImplemented _ -> "[LatextualError \"not implemented\"]"
-  | _ as t -> (token_to_string t)^" ";;
-
-let string_of_xmlelement =
+let token_to_string_output =
   function
-  | XmlCs (s,ss) -> content_tag "cs" s ss
-  | XmlEnv (s,ss) -> content_tag "env" s ss
+  | XmlCs (s) -> empty_tag "cs" s
+  | XmlEnv (s) -> empty_tag "env" s
   | XmlDisplayMath -> empty_tag "display" ""
   | XmlMath -> empty_tag "math" ""
   | XmlError n -> empty_tag "error" n
   | XmlWarn n -> empty_tag "warn" n
   | XmlMessage n -> empty_tag "message" n
-  | t -> token_to_string_output t
+  | Dollar -> " "
+  | Display -> " "
+  | Eof -> " "
+  | BeginEnv _ -> " "
+  | EndEnv _ -> " "
+  | ControlSeq s -> "\\"^s^" "
+  | Input _ -> " "
+  | NotImplemented _ -> " "
+  | _ as t -> (token_to_string t)^" ";;
+
 
 let _ = token_to_string_output (Input "file");;
 
-let tokens_to_string sep toks = 
-  let cs = List.map token_to_string toks in
-  String.concat sep cs;;
+(* debug *)
+
 
 let debug = false;;
 
@@ -130,45 +142,48 @@ let print_debug s = if debug then print_string s else ();;
 let print_debug_token tok = 
   if debug then print_string ((token_to_string_output tok)^" ") else ();;
 
-let mk_label toks = 
-  let t = (tokens_to_string "" toks) in 
-  Tok t ;;
-
-let no_expand = ControlSeq "noexpand";;
-
-let id_fun x = x;;
-
-
 (* I/O output *)
 
-let mk_infile s = 
-  if Sys.file_exists s then s 
-  else 
-    let s' = s ^ ".tex" in
-    if Sys.file_exists s' then s'
-    else failwith ("File "^s^" does not exist")
+let output_recent = ref (Ignore,Ignore)
 
-let read_lines name : string list =
-  let ic = open_in name in
-  let try_read () =
-    try Some (input_line ic) with End_of_file -> None in
-  let rec loop acc = match try_read () with
-    | Some s -> loop (s :: acc)
-    | None -> close_in ic; List.rev acc in
-  loop [];;
+let output_prev r = fst r
 
-let mk_iochannels f s = (* f should terminate lines with Eol *)
-let infile = mk_infile s in
-let rs = read_lines infile in 
-let toks = List.map f rs in
-  {
-    infile = infile; 
-    intoks = List.flatten toks;
-  };;
+let output_prev2 r = 
+  [fst r ; snd r]
+
+let rec subset xs ys = 
+  match xs with 
+  | [] -> true
+  | t :: ts -> List.mem t ys && subset ts ys
+
+let eol_count = ref 0
 
 let output_token tok = 
   let _ = print_debug_token tok in 
-  print_string (token_to_string_output tok);;
+  let r = !output_recent in 
+  let _ = output_recent := (tok,fst !output_recent) in 
+  let ism t = List.mem t [XmlMath;XmlDisplayMath] in
+  ( 
+    if (ism tok && ism (output_prev r)) then ()
+    else if (ism tok && 
+               subset (output_prev2 r) [XmlMath;Eol;XmlDisplayMath]) 
+    then (output_recent := (Eol,Eol))
+    else if (tok = Eol && subset (output_prev2 r) [Eol]) then ()
+    else 
+      (
+        let e = !eol_count in 
+        if (tok = Eol) then eol_count := !eol_count + 1
+        else 
+          (eol_count := 0;
+          if (e > 1) 
+          then 
+            (
+             print_string (tag_closed "par" "");
+             print_string ("\n\n");
+             print_string (tag_open "par" "");
+            );
+           print_string (token_to_string_output tok));
+      ));;
 
 let output_token_list toks = 
   ignore(List.map output_token toks);;
@@ -186,6 +201,37 @@ let (output_error,get_error_count) =
         else ()),
   (fun () -> !error_count));;
 
+let output_failure s = (output_error s; failwith s)
+
+let mk_infile s = 
+  if Sys.file_exists s then s 
+  else 
+    let s' = s ^ ".tex" in
+    if Sys.file_exists s' then s'
+    else (output_failure ("File "^s^" does not exist"))
+
+let read_lines name : string list =
+  let ic = open_in name in
+  let try_read () =
+    try Some (input_line ic) with End_of_file -> None in
+  let rec loop acc = match try_read () with
+    | Some s -> loop (s :: acc)
+    | None -> close_in ic; List.rev acc in
+  loop [];;
+
+let mk_iochannels f s = (* f should terminate lines with Eol *)
+  let infile = mk_infile s in
+  let rs = 
+    try (read_lines infile) 
+    with _ -> output_failure ("unable to read file "^s) in 
+  let toks = 
+    try List.map f rs 
+    with _ -> output_failure ("unable to tokenize file "^s) in
+  {
+    infile = infile; 
+    intoks = List.flatten toks;
+  };;
+
 (* I/O input, peek, and return *)
 
 let regard_par = function
@@ -195,7 +241,7 @@ let regard_par = function
 let next_eol ios = 
   not(ios.intoks = []) && (Eol = List.hd ios.intoks);;
 
-let input = 
+let inputE  = 
   let input_1 ios partrack =
     if ios.intoks = [] then Eof else 
       let tok = List.hd ios.intoks in
@@ -204,13 +250,15 @@ let input =
                then Par 
                else tok in
       tok' in
-  let rec input_rec ios partrack = 
+  let rec input_rec ios partrack give_output = 
     match input_1 ios partrack with 
-      | Comment _ -> (input_rec ios partrack)
-      | Eol -> (output_token Eol; input_rec ios partrack)
-      | Par -> (output_token Eol; Par)
+      | Comment _ -> (input_rec ios partrack give_output)
+      | Eol -> (if give_output then output_token Eol; input_rec ios partrack give_output)
+      | Par -> (if give_output then output_token Eol; Par)
       | _ as t -> t in 
   input_rec;;
+
+let input ios partrack = inputE ios partrack true
 
 let return_input ios ls = 
   let ls' = List.filter (fun t -> not(t = Par)) ls in
@@ -255,43 +303,53 @@ let left_mate =
   | RBrace -> LBrace
   | RBrack -> LBrack
   | RDisplay -> LDisplay
+  | Dollar -> Dollar
+  | Display -> Display
   | ControlSeq ")" -> ControlSeq "("
-  | ControlSeq "]" -> ControlSeq "["
+  | ControlSeq "]" -> ControlSeq "[" (* \[ \] *)
   | _ -> NotImplemented "";;
+
 
 let check_mate (ldlims,tok) = 
   match ldlims with 
-  | t :: ldlims' -> (ldlims',(if t = left_mate tok then [] else [XmlError "mismatched end group"]))
-  | _ -> ldlims,[XmlError "unexpected end group"];;
+  | t :: ldlims' -> 
+      (let _ = (t = left_mate tok) || (output_error "mismatched end group"; true) in
+       ldlims')
+  | _ -> (output_error "unexpected end group"; [])
 
-let record_level (ldlims,tok) = (* ldlims = left delimiter stack  *)
-  match tok with
-  | ControlSeq "(" | ControlSeq "[" | LBrace | LBrack | LDisplay -> 
-     (tok :: ldlims,[tok])
-  | ControlSeq ")" | ControlSeq "]" | RBrace | RBrack | RDisplay -> 
-     let (ldlims',err) = check_mate (ldlims,tok) in (ldlims', (tok :: err))
-  | Dollar -> if (match ldlims with | Dollar :: _ -> true | _ -> false) then 
-                (List.tl ldlims,[])
-              else (Dollar :: ldlims,[])
-  | Display -> if (match ldlims with | Display :: _ -> true | _ -> false) then 
-                (List.tl ldlims,[])
-              else (Display :: ldlims,[])
-  | _ -> (ldlims,[tok]);;
+let level_toks = 
+  [ControlSeq "(";ControlSeq "[";LBrace;LBrack;LDisplay
+  ;ControlSeq ")";ControlSeq "]";RBrace;RBrack;RDisplay
+  ;Dollar;Display
+  ]
 
- (*    We read the tokens using an arbitrary read function with state. *)
+let record_level matchf (ldlims,tok) = (* ldlims = left delimiter stack  *)
+  if not(matchf tok) then (ldlims,[tok])
+  else
+    match tok with
+    | ControlSeq "(" | ControlSeq "[" | LBrace | LBrack 
+    | LDisplay -> 
+        (tok :: ldlims,[tok])
+    | ControlSeq ")" | ControlSeq "]" | RBrace | RBrack 
+    | RDisplay -> 
+        let ldlims' = check_mate (ldlims,tok) in (ldlims', [])
+    | Dollar -> if (match ldlims with | Dollar :: _ -> true | _ -> false) then 
+                  (List.tl ldlims,[])
+                else (Dollar :: ldlims,[])
+    | Display -> if (match ldlims with | Display :: _ -> true | _ -> false) then 
+                   (List.tl ldlims,[])
+                 else (Display :: ldlims,[])
+    | _ -> (ldlims,[tok]);;
 
- (* tr is an arbitrary token transformation.name.
-    read pulls tokens from an arbitrary state. 
-  *)
-let rec leveled_read_until acc read state ldlims tr endif = 
+let rec leveled_read_until acc ios b matchf ldlims endif = 
   try (
-    let (tok,state') = read state in
-    if endif (ldlims,tok) then ([tok],List.rev acc,state)
+    let tok = input ios b in
+    if endif (ldlims,tok) then ([tok],List.rev acc)
     else 
-      let (ldlims',tok') = record_level (ldlims,tok) in 
+      let (ldlims',tok') = record_level matchf (ldlims,tok) in 
       leveled_read_until 
-        ((List.map (fun t -> tr(ldlims',t)) tok') @ acc) read state' ldlims' tr endif)
-  with _ -> ([],List.rev acc,state);;
+        (tok' @ acc) ios b matchf ldlims' endif)
+  with _ -> ([],List.rev acc);;
 
  (* 
    The left,right are the delimiters to be matched.
@@ -301,25 +359,19 @@ let rec leveled_read_until acc read state ldlims tr endif =
    encountered when mate_delim is initialized with say ldlims=[LBrace].
  *)
 
-
-let mate_delim read state right ldlims = 
+let mate_delim ios b matchf right ldlims = 
   let left = left_mate right in
-  let (_,toks,state') = leveled_read_until [] read state ldlims snd 
-   (fun (ldlims,tok) -> (ldlims = [left] && (tok = right))) in 
-  (toks,state');;
-
-let mate_from_list = 
-  let f ls = (List.hd ls,List.tl ls) in 
-  fun right ls -> let (toks,unused) = mate_delim f ls right [left_mate right] in 
-            (toks,unused);;
+  let endif = (fun (ldlims,tok) -> (ldlims = [left] && (tok = right))) in 
+  let (_,toks) = leveled_read_until [] ios b matchf ldlims endif in
+  toks;;
 
 (* input_matched_brace input balanced expression, output doesn't include delimiters.  *)
-let input_to_right ios b right = 
+let input_to_right ios b ignore right = 
   let _ = input_tok ios b (left_mate right) in 
-  fst(mate_delim (fun () -> input ios b, ()) () right [left_mate right]);;
+  mate_delim ios b ignore right [left_mate right];;
 
-let input_to_right_wo_par ios right = 
-  let toks = input_to_right ios TrackPar right in
+let input_to_right_wo_par ios ignore right = 
+  let toks = input_to_right ios TrackPar ignore right in
   let toks' = List.filter (fun t -> not(t = Par)) toks in
   let errormsg = "unexpected par before "^token_to_verbose_string right in
   let error = if List.length toks = List.length toks'
@@ -327,30 +379,35 @@ let input_to_right_wo_par ios right =
               else [XmlError errormsg] in 
   error @ toks' ;;
 
-let rec skipover ios b skip = 
-  let tok = input ios b in
-  if (List.mem tok skip) then skipover ios b skip
-  else return_input ios [tok];;
+let match_brace t = t = RBrace || t = LBrace
 
-let rec input_matched_brace_list ios acc skip k = 
-  if (k=0) then List.rev acc else 
-    let _ = skipover ios TrackPar skip in
-    let t = input_to_right_wo_par ios RBrace in 
-    input_matched_brace_list ios (t::acc) skip (k-1);;
+let rec delete_matching_brack_brace ios b = (* material in [] *)
+  let match_brack t = match_brace t || t = RBrack || t = LBrack in
+  let l = peek ios b in
+  if (l = LBrack) then 
+    (ignore(input_to_right ios b match_brack RBrack);
+     delete_matching_brack_brace ios b)
+  else if (l = LBrace) then 
+    (ignore(input_to_right ios b match_brace RBrace);
+     delete_matching_brack_brace ios b)
+  else ()
 
-let input_brack_num ios =
-  match (peek ios TrackPar) with
-  | LBrack -> (
-    let toks = input_to_right_wo_par ios RBrack in 
-    (match toks with 
-     | [Natural i] -> i
-       | _ -> (output_error ("[nat] expected; replacing input "^(tokens_to_string " " toks)^ " with [0]");0))
-  )
-    | _ -> 0;;
+let rec delete_matching_math ios b = 
+  let match_math t = List.mem t [Dollar;LBrace;RBrace;Display;RDisplay;LDisplay] in
+  let l = peek ios b in
+  if (l = Dollar || l = Display) then 
+    (let t = if (l = Dollar) then XmlMath else XmlDisplayMath in 
+     output_token t;
+     ignore(input_to_right ios b match_math l);
+     delete_matching_math ios b)
+  else if (l = LDisplay) then
+    (output_token XmlDisplayMath;
+     ignore(input_to_right ios b match_math RDisplay);
+     delete_matching_math ios b)
+  else ()
 
-let envdeltable = ref []  ;;
 
-let setdelenv f = (envdeltable := f :: !envdeltable);;
+(* environments *)
 
 let rec opt_assoc ls s = 
   match ls with
@@ -369,12 +426,12 @@ let nopar toks s =
   let _ = (List.length toks' = List.length toks) || (output_error s; true) in
   toks';;
 
-let process_controlseq cs_string =
+let process_controlseq ios cs_string =
 (*  let _ = print_debug ("[process-cs:"^cs_string^"]") in *)
   match cs_string with
   | "par" -> []
   | "_" -> [Tok "_"]
-  | _ -> [ControlSeq cs_string];;
+  | _ -> (delete_matching_brack_brace ios TrackPar; [ControlSeq cs_string]);;
 
 (* environments  *) 
 
@@ -384,8 +441,10 @@ let transcribe_token ifexpand outputif tr tok =
   let p tok = if outputif tok then output_token (default_assoc tr tok) else () in
   let ps toks = output_token_list
                   (List.map (default_assoc tr) (List.filter outputif toks)) in 
+  let _ = ifexpand in
+  let _ = ps in 
   match tok with
-  | ControlSeq s -> if ifexpand then ps(process_controlseq s) else p tok
+(*  | ControlSeq s -> if ifexpand then ps(process_controlseq s) else p tok *)
   | Eol -> output_error "unexpected EOL"
   | Eof -> raise End_of_file
   | _ -> p tok;;
@@ -401,11 +460,11 @@ let null_env  =
     stay_in_par = NoTrackPar;
   };;
 
-let mk_drop_env s drop endt is_delete = 
+let mk_drop_env s drop is_delete = 
   {
     name = s;
-    begin_token = Ignore;
-    end_token = endt;
+    begin_token = Tok (tag_open "env" s);
+    end_token = Tok (tag_closed "env" s);
     tr_token = [];
     drop_toks = drop;
     is_delete = is_delete;
@@ -416,7 +475,7 @@ let mk_drop_env s drop endt is_delete =
 let mk_delete_env s = 
   {
     name = s;
-    begin_token = Ignore;
+    begin_token = XmlCs s;
     end_token = Ignore;
     tr_token = [];
     drop_toks = [];
@@ -424,11 +483,11 @@ let mk_delete_env s =
     stay_in_par = NoTrackPar;
   };;
 
-let mk_itemize_env s beg item is_delete =
+let mk_itemize_env s item is_delete =
   {
     name = s;
-    begin_token = beg;
-    end_token = RBrace;
+    begin_token = Tok (tag_open "env" s);
+    end_token = Tok (tag_closed "env" s);
     tr_token = [(ControlSeq "item",item)];
     drop_toks = [];
     is_delete = is_delete;
@@ -446,33 +505,10 @@ let mk_case_env s is_delete =
     stay_in_par = TrackPar;
   };;
 
-
-let mk_eqn_env s is_delete = 
-  {
-    name = s;
-    begin_token = Tok "\\eqnarray{[(";
-    end_token = Tok ")]}";
-    tr_token = [];
-    drop_toks = [];
-    is_delete = is_delete;
-    stay_in_par = TrackPar;
-  };;
-
-let mk_matrix_env s is_delete = 
-  {
-    name = s; 
-    begin_token = Tok ("\\"^s^"{[[(");
-    end_token = Tok (")]]}");
-    tr_token = [];
-    drop_toks = [];
-    is_delete = is_delete;
-    stay_in_par = TrackPar;
-  };;
-
 let is_prologue_env s =
   match s with
   | "def" | "definition" | "Definition" 
-  | "thm" | "theorem" | "Theorem"
+  | "thm" | "theorem" | "Theorem" | "lemma" | "remark"
   | "prop" | "proposition" | "Proposition"
   | "axiom" | "Axiom"
   | "hyp" | "hypothesis" | "Hypothesis"
@@ -481,65 +517,19 @@ let is_prologue_env s =
 
 
 let mk_e_item s e =
-  if List.mem s (!envdeltable) then mk_delete_env s
-  else if is_prologue_env s then mk_drop_env s [] Ignore (e.is_delete)
+  if is_prologue_env s then mk_drop_env s [] (e.is_delete)
   else 
     match s with
-    | "itemize" | "structure"  ->
-                                  mk_itemize_env s LBrace (Tok"item") (e.is_delete)
-      | "center" -> mk_drop_env s [] Ignore (e.is_delete)
-      | "align" | "align*" -> mk_drop_env s [] Ignore (e.is_delete)
-      | "envMatch" -> mk_drop_env s [] (Tok "end") e.is_delete
+    | "itemize" | "enumerate"  ->
+                    mk_itemize_env s  (Tok "_item_") (e.is_delete)
+      | "center" -> mk_drop_env s [] (e.is_delete)
       | "cases" -> mk_case_env s e.is_delete
       | "flushleft" | "flushright" | "minipage" 
-      | "quotation" | "quote" | "verse" -> mk_drop_env s [] Ignore (e.is_delete)
-      | "tabbing" -> mk_drop_env s [ControlSeq "=";ControlSeq ">";ControlSeq "+";ControlSeq "-"] Ignore e.is_delete
-      | "array" -> mk_matrix_env s (e.is_delete) 
-      | "eqnarray" | "eqnarray*" 
-      | "gather" | "gather*" | "equation" | "equation*" -> mk_eqn_env s e.is_delete
-      | "figure" | "picture" | "remark" 
-      | "thebibliography" | "titlepage" -> mk_delete_env s
-      | "multline" | "split" -> mk_drop_env s [] Ignore (e.is_delete)
-      | "matrix" | "pmatrix" | "bmatrix" | "Bmatrix" | "vmatrix" | "Vmatrix"
-      | "smallmatrix" -> mk_matrix_env s e.is_delete
-      | _ -> mk_delete_env s ;;
+      | "quotation" | "quote" | "verse" -> mk_drop_env s [] (e.is_delete)
+      | "tabbing" -> mk_drop_env s [ControlSeq "=";ControlSeq ">";ControlSeq "+";ControlSeq "-"] e.is_delete
+      | "multline" | "split" -> mk_drop_env s [] (e.is_delete)
+      | _ -> (mk_delete_env s);;
 
-(* declarations *)
-let delete_matching_brack ios b = (* material in [] *)
-  let l = peek ios b in
-  if (l = LBrack) then 
-    ignore(input_to_right ios b RBrack)
-  else ();;
-
-let get_label ios = (* read \label *)
- let l = input ios TrackPar in 
- match l with
- | ControlSeq "label" -> 
-     let toks = input_to_right_wo_par ios RBrace in Some(mk_label toks)
- | _ -> return_input ios [l]; None;;
-
-let declaration_table = 
-  [
-    ("def","Definition");
-    ("thm","Theorem");
-    ("cor","Corollary");
-    ("hyp","Hypothesis");
-    ("prop","Proposition");
-  ];;
-
-let output_decl_prologue ios env_name = 
- let _ = delete_matching_brack ios NoTrackPar in
- let label = get_label ios in 
- let odecl = opt_assoc declaration_table env_name in 
- let s = match odecl with 
-   | None -> String.capitalize_ascii env_name
-   | Some s' -> s' in
- let _ = output_token(Tok s) in
- let _ = match label with | None -> () | Some t -> output_token t in
- output_token (Tok ".");;
-
-let output_prologue ios s = 
-  if is_prologue_env s then output_decl_prologue ios s else ();;
 
  (*
    output token will be unhandled EndDocument, Input, Eof 
@@ -555,8 +545,15 @@ let rec process_environ ios e_stack =
   if (e_stack=[]) 
   then (output_error "unexpected empty environment. ending document envir"; EndDocument) else 
     let e = List.hd e_stack in
-    let tok = input ios (e.stay_in_par) in 
+    let tok = inputE ios (e.stay_in_par) (not e.is_delete) in 
     match tok with
+    | ControlSeq s -> (delete_matching_brack_brace ios TrackPar; 
+                       out (XmlCs (s)) e.is_delete;
+                       process_environ ios e_stack)
+    | Dollar | Display | LDisplay -> 
+                           (return_input ios [tok]; delete_matching_math ios TrackPar; 
+                           process_environ ios e_stack)
+    | Eof -> Eof 
     | Par -> (output_error "illegal paragraph ended before envir end."; 
               let ignore_par_stack = 
                 List.filter par_filter  e_stack in 
@@ -565,7 +562,10 @@ let rec process_environ ios e_stack =
                     let msg = null_env.name^" is an illegal environment name; ignored" in
                     (output_error msg; process_environ ios e_stack)
                   else if (s = e.name) then
-                    (out e.end_token e.is_delete; process_environ ios (List.tl e_stack))
+                    ((if not(e_stack = []) then
+                       let e' = List.hd e_stack in 
+                       out e.end_token e'.is_delete); 
+                     process_environ ios (List.tl e_stack))
                   else 
                     let msg = "\\end{" ^(e.name)^ "} expected, \\end{" 
                               ^s^ "} found; input ignored." in
@@ -574,10 +574,14 @@ let rec process_environ ios e_stack =
                     let msg = null_env.name^" is an illegal environment name; ignored" in
                     (output_error msg; process_environ ios e_stack)
                     else
-                      let e' = mk_e_item s e in
-                      let _ = if not(e'.is_delete)
-                              then output_prologue ios s ; out e'.begin_token e'.is_delete in
-                      process_environ ios (e' :: e_stack)
+                      if (s = "document") then 
+                        (output_token(XmlMessage "begin document");
+                         process_environ ios e_stack)
+                      else
+                        let e' = mk_e_item s e in
+                        let _ = if not(e.is_delete)
+                                then out e'.begin_token e.is_delete in
+                        process_environ ios (e' :: e_stack)
     | _ -> let ifexpand = not(e.is_delete) in
            let outputif tok = not(e.is_delete) && not(List.mem tok (e.drop_toks)) in 
            let tr = e.tr_token in
@@ -593,30 +597,31 @@ let rec debug_process_environ ios e  =
             debug_process_environ ios e)
 ;;
 
-  (* returns Eof, or Input *)
-let rec process_document_block ios = 
-  match (process_environ ios [null_env]) with
-  | EndDocument -> process_document_block ios 
-  | Eof -> Eof
-  | Input _ as t -> t
-  | _ -> (output_error "fatal, ending file"; Eof);;  
-
 let rec process_ios convert_toks io_stack = 
   if io_stack = [] then true 
   else
     try 
       let ios = List.hd io_stack in
-      match (process_document_block ios) with
-      | Eof -> process_ios convert_toks (List.tl io_stack)
-      | Input filename -> (let ios' = mk_iochannels convert_toks filename in
-                           process_ios convert_toks (ios' :: io_stack))
-      | _ -> (output_error ("fatal file error");
+      let _ = output_token (XmlMessage ("reading from "^ ios.infile)) in
+      match process_environ ios [null_env] with
+      | Eof -> (output_token(XmlMessage("end of file "^ios.infile));
+                process_ios convert_toks (List.tl io_stack))
+      | EndDocument -> 
+          (output_token (XmlMessage("end of document in"^ios.infile));
+           true)
+      | Input filename -> 
+          (let ios' = mk_iochannels convert_toks filename in
+           output_token (XmlMessage ("input file "^filename));
+           process_ios convert_toks (ios' :: io_stack))
+      | _ -> (output_error ("fatal file error. Popping file stack.");
               process_ios convert_toks (List.tl io_stack))
-    with Failure _ -> false;;
+    with _ -> (output_token(XmlError("unknown exception")); false);;
 
   
 let process_doc convert_toks filename = 
-  process_ios convert_toks [mk_iochannels convert_toks filename];;
+  print_string "<root><par>";
+  ignore(process_ios convert_toks [mk_iochannels convert_toks filename]);
+  print_string "</par></root>";;
 
 
 (* fin *)
