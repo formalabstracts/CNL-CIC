@@ -1,29 +1,7 @@
-(* types *)
 
 open Type;;
 
-(*
-
-look for packages
-
-\usepackage[utf8]{inputenc}
-\inputencoding 
-
-\usepackage[spanish]{babel}, etc.
-\usepackage{CJK} % Chinese 
-
- *)
-
-
-
-(* ignore and ignore stars following cs.
-   This is the default. There is no need to 
- list them all *)
-
-let rec droplast = 
-  function
-  | _ :: t2 :: ts -> droplast (t2 :: ts)
-  | _ -> []
+(* string operations *)
 
 let split_replace (a,a') s = 
   let  s' = String.split_on_char a s in 
@@ -42,50 +20,6 @@ let html_escaped = string_escaped
      ('\"',"&quot;")]
 
 let _ = html_escaped "&lt &<\'\""
-
-(* default. don't list
-let cs_ignore = 
-  ["documentclass";"usepackage";"title";
-   "author";"date";"maketitle";"renewcommand";
-   "setcounter";"tableofcontents";"listoftables";
-   "newcommand"]
- *)
-
-(* create an item for the cs and its args *)
-let cs_record = (* <cs name="chapter">...</cs> *)
-  ["chapter";"section";"subsection";"subsubsection";
-   "part";"paragraph";"subparagraph";"emph";"textbf"]
-
-(* replace cs by its text equivalent *)
-let cs_text  = 
-  ["alpha";"beta";"gamma";
-   "ldots";"cdots"]
-
-
-(* remove marking cs, pass the data inside through.
- *)
-let cs_unmark = []
-
-
-(* *)
-
-(* allowed environments. Marked .
-   [] {} directlly after \begin{env} are ignored.  *)
-
-let env_record = 
-  ["abstract";"enumerate";"itemize";"description";
-   "labeling"]
-
-(* keep data inside environment without 
-   begin and end markers *)
-
-let env_unmark = 
-  ["spacing"]
-
-let env_rename = (* allowed, renamed *)
-  [("def","definition")]
-
-(* string operations *)
 
 let name_tag n = if n="" then "" else (" name=\"" ^html_escaped n^ "\"")
 
@@ -144,46 +78,42 @@ let print_debug_token tok =
 
 (* I/O output *)
 
-let output_recent = ref (Ignore,Ignore)
-
-let output_prev r = fst r
-
-let output_prev2 r = 
-  [fst r ; snd r]
-
 let rec subset xs ys = 
   match xs with 
   | [] -> true
   | t :: ts -> List.mem t ys && subset ts ys
 
-let eol_count = ref 0
-
-let output_token tok = 
-  let _ = print_debug_token tok in 
-  let r = !output_recent in 
-  let _ = output_recent := (tok,fst !output_recent) in 
-  let ism t = List.mem t [XmlMath;XmlDisplayMath] in
-  ( 
-    if (ism tok && ism (output_prev r)) then ()
-    else if (ism tok && 
-               subset (output_prev2 r) [XmlMath;Eol;XmlDisplayMath]) 
-    then (output_recent := (Eol,Eol))
-    else if (tok = Eol && subset (output_prev2 r) [Eol]) then ()
-    else 
-      (
-        let e = !eol_count in 
-        if (tok = Eol) then eol_count := !eol_count + 1
-        else 
-          (eol_count := 0;
-          if (e > 1) 
-          then 
+let output_token = 
+  let output_recent = ref (Ignore,Ignore) in 
+  let output_prev r = fst r in 
+  let output_prev2 r = [fst r ; snd r] in 
+  let eol_count = ref 0 in 
+  fun tok ->
+        let _ = print_debug_token tok in 
+        let r = !output_recent in 
+        let _ = output_recent := (tok,fst !output_recent) in 
+        let ism t = List.mem t [XmlMath;XmlDisplayMath] in
+        ( 
+          if (ism tok && ism (output_prev r)) then ()
+          else if (ism tok && 
+                     subset (output_prev2 r) [XmlMath;Eol;XmlDisplayMath]) 
+          then (output_recent := (Eol,Eol))
+(*          else if (tok = Eol && subset (output_prev2 r) [Eol]) then () *)
+          else 
             (
-             print_string (tag_closed "par" "");
-             print_string ("\n\n");
-             print_string (tag_open "par" "");
-            );
-           print_string (token_to_string_output tok));
-      ));;
+              let e = !eol_count in 
+              if (tok = Eol) then eol_count := !eol_count + 1
+              else 
+                (eol_count := 0;
+                 if (e > 1) 
+                 then 
+                   (
+                     print_string (tag_closed "par" "");
+                     print_string ("\n\n");
+                     print_string (tag_open "par" "");
+                   );
+                 print_string (token_to_string_output tok));
+        ));;
 
 let output_token_list toks = 
   ignore(List.map output_token toks);;
