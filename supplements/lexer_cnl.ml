@@ -93,7 +93,19 @@ type token =
   | FIELD_ACCESSOR of string
   | EOF
   | UNKNOWN of string 
+[@@deriving show]
 
+type node =
+{
+ pos : Lexing.position*Lexing.position; (* start and end *)
+ tok : token
+}
+
+let pp_node f n = 
+  pp_token f n.tok
+
+
+let tok n = n.tok
 
 (* -- Lexical structure -- *)
 
@@ -215,7 +227,13 @@ let string_of_ints js =
  let cs =  List.map (fun j ->  (Uchar.to_char j)) (Array.to_list js) in
   implode cs;;
 
-let string_lexeme buf = string_of_ints(lexeme buf);;
+let string_lexeme buf = string_of_ints(lexeme buf)
+
+let lp = Sedlexing.lexing_positions 
+
+let mk f buf = { pos = lp buf; tok = f(string_lexeme buf) }
+
+let c tok = (fun _ -> tok)
 
 (* 
   The order matters here.  The first match is applied.
@@ -230,38 +248,39 @@ let string_lexeme buf = string_of_ints(lexeme buf);;
   This is left to the parser. 
  *)
 
-let rec lex_token buf =
+let rec lex_node buf =
   match%sedlex buf with
-  | Plus(white) -> (lex_token buf)
-  | comment -> (lex_token buf)
-    | string -> STRING (string_lexeme buf)
-    | controlseq -> controlkey(string_lexeme buf)
-    | controlchar -> controlkey(string_lexeme buf)
-    | decimal -> DECIMAL(string_lexeme buf)
-    | integer -> INTEGER(string_lexeme buf)
-    | number -> INTEGER(string_lexeme buf)
-    | rparen -> R_PAREN
-    | lparen -> L_PAREN
-    | lbrack -> L_BRACK
-    | rbrack -> R_BRACK
-    | lbrace -> L_BRACE
-    | rbrace -> R_BRACE
-    | comma -> COMMA
-    | semi -> SEMI
-    | field_accessor -> FIELD_ACCESSOR (string_lexeme buf)
-    | hierarchical_identifier -> HIERARCHICAL_IDENTIFIER (string_lexeme buf)
-    | symbolseq -> symbolkey (string_lexeme buf)
-    | varlong -> VAR (string_lexeme buf) 
-    | atomic_identifier -> identkey (string_lexeme buf)
-    | eof -> EOF 
-    | any -> UNKNOWN (string_lexeme buf)
+  | Plus(white) -> (lex_node buf)
+(*  | eol -> (Sedlexing.new_line buf; lex_node buf) *)
+  | comment -> (lex_node buf)
+    | string -> mk (fun t -> STRING t) buf 
+    | controlseq -> mk controlkey buf
+    | controlchar -> mk controlkey buf
+    | decimal -> mk (fun t -> DECIMAL t) buf
+    | integer -> mk (fun t -> INTEGER t) buf 
+    | number -> mk (fun t -> INTEGER t) buf
+    | rparen -> mk (c R_PAREN) buf
+    | lparen -> mk (c L_PAREN) buf
+    | lbrack -> mk (c L_BRACK) buf
+    | rbrack -> mk (c R_BRACK) buf
+    | lbrace -> mk (c L_BRACE) buf
+    | rbrace -> mk (c R_BRACE) buf
+    | comma -> mk (c COMMA) buf
+    | semi -> mk (c SEMI) buf 
+    | field_accessor -> mk (fun t -> FIELD_ACCESSOR t) buf
+    | hierarchical_identifier -> mk (fun t -> HIERARCHICAL_IDENTIFIER t) buf
+    | symbolseq -> mk symbolkey buf
+    | varlong -> mk (fun t -> VAR t) buf
+    | atomic_identifier -> mk identkey buf
+    | eof -> mk (c EOF ) buf
+    | any -> mk (fun t -> UNKNOWN t) buf
     | _  -> failwith (string_lexeme buf)
 
 (* testing *)
 
 let lex_token_to_string = function
   | STRING s -> s ^ " (STRING)"
-  | CONTROLSEQ s -> s ^ "(CONTROL)"
+  | CONTROLSEQ s -> s ^ " (CONTROL)"
   | DECIMAL s -> s ^ " (DECIMAL)"
   | INTEGER s -> s ^ " (INTEGER)"
   | SYMBOL s -> s ^ " (SYMBOL)"
@@ -298,18 +317,33 @@ let lex_token_to_string = function
   | EOF -> "(EOF)"
   | UNKNOWN s -> s ^ " ?"
 
-let rec lex_tokens acc buf = 
-  let t = lex_token buf in 
-  if (t = EOF) then List.rev (EOF :: acc) 
-  else lex_tokens (t:: acc) buf
+let rec lex_nodes acc buf = 
+  let t = lex_node buf in 
+  if (tok t = EOF) then List.rev (t :: acc) 
+  else lex_nodes (t:: acc) buf
 
-let lex_string s : token list = 
+(* N.B. pos_lnum must be positive or it doesn't get updated *)
+
+let lex_string name s : node list = 
   let buf = Sedlexing.Latin1.from_string s in 
-  lex_tokens [] buf;;
+  let _ = Sedlexing.set_filename buf name in 
+  let _ = Sedlexing.set_position buf { Lexing.pos_fname = name; Lexing.pos_lnum = 1; Lexing.pos_bol = 0; Lexing.pos_cnum = 0 } in
+  lex_nodes [] buf;;
 
-(*
-let test_lex_string() = List.map print_endline (List.map lex_token_to_string (lex_string "A B C hello\\alpha33[1]there !ready! \\begin \\\\  Riemann-Hilbert %comment \n more #4 # 5  $ ))))))))"));;
- *)
+let string_pos (p : Lexing.position) =
+  "file="^p.pos_fname ^ 
+    " line=" ^string_of_int p.pos_lnum^
+      " col="^string_of_int (p.pos_cnum-p.pos_bol)
+
+let rec print_nodes = function
+  | [] -> ()
+  | t :: ts -> 
+      (print_string ("NODE:"^string_pos (fst(t.pos))^" ");
+       print_endline(lex_token_to_string t.tok) ; print_nodes ts)
+
+
+
+let test_lex_string() = print_nodes (lex_string "lexer_cnl.ml" "A B C hello\\alpha33[1]there !ready! \\begin \\\\ \n Riemann-Hilbert %comment \n\n more #4 # 5  $ ))))))))");;
               
 
 

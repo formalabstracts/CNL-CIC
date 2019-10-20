@@ -1,5 +1,6 @@
-(test
-(name test1)
+(tests
+(names test1 test2)
 (libraries sedlex batteries cnl_parse)
 (preprocess (pps sedlex.ppx))
 )
+

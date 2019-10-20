@@ -22,35 +22,35 @@ type term =
   | String of string
   | Blank
   | Id of string* typ option
-  | Unparsed' of token list
+  | Unparsed' of node list
   | ControlSeq of string*expr list
-  | Make of (token * typ * token list) list 
-  | Plain' of token list
+  | Make of (node * typ * node list) list 
+  | Plain' of node list
   | List of term list
   | Tuple of term list
   | SetEnum of term list
   | Case of (prop*term) list
   | Match of (term list) * (term list * term) list
-  | MatchFunction of (token list list) * (token * typ) list * typ * (term list * term) list
+  | MatchFunction of (node list list) * (node * typ) list * typ * (term list * term) list
   | Comprehension of term * term list * statement
-  | FieldAccessor of term * token 
+  | FieldAccessor of term * node 
   | ApplySub of term * term list
 
 and typ = 
   | TyVar of string
-  | Colon' of token list 
-  | Type' of token list
-  | TyControlSeq of token * token list list
+  | Colon' of node list 
+  | Type' of node list
+  | TyControlSeq of node * node list list
   | TyId of string 
   | Subtype of term * term list * statement 
 
 and prop = 
-  | PVar of token
-  | Prop' of token list
+  | PVar of node
+  | Prop' of node list
 
 and statement = 
-  | Statement' of token list 
-  | LetAnnotation' of token list
+  | Statement' of node list 
+  | LetAnnotation' of node list
 
 and proof = 
   | Proof
@@ -59,38 +59,41 @@ and expr =
   | Eterm of term
   | Etyp of typ
   | Eprop of prop
-  | Expr' of token list
+  | Expr' of node list
+[@@deriving show]
 
 type associativity = 
   | AssocLeft
   | AssocRight
   | AssocNone
+[@@deriving show]
 
 type wordpattern = 
-  | Wp_wd of token
-  | Wp_sym of token 
-  | Wp_syn of token list 
-  | Wp_opt of token 
-  | Wp_var of token* typ
-  | Wp_fix of token* typ
+  | Wp_wd of node
+  | Wp_sym of node 
+  | Wp_syn of node list 
+  | Wp_opt of node 
+  | Wp_var of node* typ
+  | Wp_fix of node* typ
   | Wp_ty_word of wordpattern list
-  | Wp_bin_cs of wordpattern*(token*(wordpattern list))*wordpattern
-  | Wp_ty_identifier of token* token list list * ((token * typ) list)
-  | Wp_ty_cs of token * wordpattern list
-  | Wp_cs of token * wordpattern list
+  | Wp_bin_cs of wordpattern*(node*(wordpattern list))*wordpattern
+  | Wp_ty_identifier of node* node list list * ((node * typ) list)
+  | Wp_ty_cs of node * wordpattern list
+  | Wp_cs of node * wordpattern list
   | Wp_sympat of wordpattern list * int option  * associativity
   | Wp_sympatP of wordpattern list * int option  * associativity
   | Wp_sympatT of wordpattern list
-  | Wp_identifier of token* token list list * ((token * typ) list)
-  | Wp_identifierP of token* token list list * ((token * typ) list)
+  | Wp_identifier of node* node list list * ((node * typ) list)
+  | Wp_identifierP of node* node list list * ((node * typ) list)
   | Wp_fun_word of wordpattern list
   | Wp_adj of wordpattern list
   | Wp_adjM of wordpattern list
   | Wp_verb of wordpattern list
   | Wp_verbM of wordpattern list
-  | Wp_inferring of wordpattern * token list * typ
-  | Wp_classifier of token list list
-  | Wp_record of token list list
+  | Wp_inferring of wordpattern * node list * typ
+  | Wp_classifier of node list list
+  | Wp_record of node list list
+[@@deriving show]
 
 type this_adj =
   | ThisUnique
@@ -101,8 +104,12 @@ type this_adj =
   | ThisExhaustive 
   | ThisRecursion
   | ThisExist
+[@@deriving show]
 
 type scope = string list
+[@@deriving show]
+
+type pos = Lexing.position * Lexing.position
 
 type prim = 
 
@@ -150,8 +157,9 @@ type prim =
   | Prim_type_var of scope * string 
   | Prim_term_var of scope * string * typ option
   | Prim_prop_var of scope * string 
+[@@deriving show]
 
-type text_token = 
+type text_node = 
   | Section_preamble of string (* new current section *)
   | Instruction of string (* keyword *)
   | Axiom of string*string * (statement list)*statement  (* kind,label,statements,conclusion *)
@@ -160,13 +168,14 @@ type text_token =
   | Synonym
   | Macro of statement list (* statements *)
   | Namespace 
+[@@deriving show]
 
 (*
 type parses = 
   {
-    ptm : token list -> term;
-    pty : token list -> typ;
-    ppr : token list -> prop
+    ptm : node list -> term;
+    pty : node list -> typ;
+    ppr : node list -> prop
   }
  *)
 
@@ -294,15 +303,7 @@ let possibly prs input =
 let some p = 
   function
       [] -> raise Noparse
-    | (h::t) -> if p h then (h,t) else raise Noparse;;
-
-let someX p = 
-  function
-    [] -> raise Noparse
-  | h :: t -> let (b,x) = p h in
-              if b then (x,t) else raise Noparse;;
-
-let a tok = some (fun item -> item = tok);;
+    | (h::t) -> if p h.tok then (h,t) else raise Noparse;;
 
 let rec atleast n prs input =
   (if n <= 0 then many prs
@@ -312,6 +313,32 @@ let finished input =
   if input = [] then (),input else failwith "Unparsed input";;
 
 (* end of HOL Light *)
+
+let (-|) f g x = f(g(x))
+
+let mk (t,p) = { tok = t; pos = p }
+
+let pos n = n.pos 
+
+let rec merge_pos = 
+  function
+  | [t] -> t.pos
+  | t :: ts -> let m = merge_pos ts in (fst t.pos,snd m)
+  | _ -> failwith "empty merge_pos" 
+
+let someX p = 
+  function
+    [] -> raise Noparse
+  | h :: t -> let (b,x) = p h.tok in
+              if b then (x,t) else raise Noparse;;
+
+let some_nodeX p = 
+  function
+    [] -> raise Noparse
+  | h :: t -> let (b,x) = p h.tok in
+              if b then (mk (x,h.pos),t) else raise Noparse;;
+
+let a tok = some (fun item -> item = tok);;
 
 let pair x y = (x,y)
 
@@ -483,11 +510,11 @@ let rec somecomb parser =
 (* words *)
 let word s = 
   let u = find_syn (String.uppercase_ascii s) in 
-  someX (function 
+  some_nodeX (function 
       | WORD (w,wu) -> 
           let wsyn = find_syn wu in
           ((wsyn = u),WORD (w,wsyn))
-      | _ -> (false,UNKNOWN""))
+      | t -> (false,t))
 
 let anyword = some(function | WORD _ -> true | _ -> false)
 
@@ -548,12 +575,12 @@ let  sep_and_comma =
 let sep_list parser = separated_list parser sep_and_comma
 
 let case_sensitive_word = 
-  someX (function 
+  some_nodeX (function 
       | WORD (w,_) -> true,(ATOMIC_IDENTIFIER w)
       | x -> (false,x))
 
 let the_case_sensitive_word s = 
-  someX (function 
+  some_nodeX (function 
       | WORD (w,_) -> (w=s),(ATOMIC_IDENTIFIER w)
       | x -> (false,x))
 
@@ -585,7 +612,7 @@ let identifier =
   (case_sensitive_word 
    >> 
      function 
-     | ATOMIC_IDENTIFIER s -> HIERARCHICAL_IDENTIFIER s
+     | { tok = ATOMIC_IDENTIFIER s; pos } -> mk (HIERARCHICAL_IDENTIFIER s,pos)
      | _ -> failwith "Fatal:identifier") |||
     hierarchical_identifier 
 
@@ -645,7 +672,8 @@ let lit_we_record =
     possibly (word "that")
 
 let lit_any = someword "every each all any some no" |||
-    (phrase "some and every" >> (fun _ -> WORD ("some and every","SOME AND EVERY")))
+    (phrase "some and every" 
+     >> (fun ts -> mk(WORD ("some and every","SOME AND EVERY"),merge_pos ts)))
 
 let lit_exists = someword "exist exists"
 
@@ -740,14 +768,14 @@ let rec cutat p =
 let getlabel =
   function
   | [] -> "" 
-  | [ATOMIC_IDENTIFIER l] -> l 
+  | [{ tok = ATOMIC_IDENTIFIER l; _}] -> l 
   | _ -> failwith "bad format: section label"
 
  (* XX do scoping of variables etc. *)
 
 let treat_section_preamble =
   function
-  | ((WORD(_,sec),ls),_) -> (
+  | (({ tok = WORD(_,sec); _ },ls),_) -> (
     let l = getlabel ls in
     let scope_end = is_scope_end sec in
     let new_level = scope_level sec in 
@@ -794,20 +822,23 @@ let instruct_ints = ref []
 
  (* For now the parser stores instructions without any action *)
 
-let put_commands = function 
-  | WORD (_,w) -> (instruct_commands := (w :: !instruct_commands) )
+
+
+let put_commands = 
+  function 
+  | { tok = WORD (_,w); _ } -> (instruct_commands := (w :: !instruct_commands) )
   | _ -> ()
 
 let put_strings = function 
-  | (WORD (_,w),STRING s) -> (instruct_strings := ((w,s) :: !instruct_strings) )
+  | ({ tok = WORD (_,w); _ },{ tok = STRING s; _ }) -> (instruct_strings := ((w,s) :: !instruct_strings) )
   | _ -> ()
 
 let put_bools = function 
-  | (WORD (_,w),b) -> (instruct_bools := ((w,b) :: !instruct_bools) )
+  | ({ tok = WORD (_,w); _ },b) -> (instruct_bools := ((w,b) :: !instruct_bools) )
   | _ -> ()
 
 let put_ints = function 
-  | (WORD (_,w),i) -> (instruct_ints := ((w,i) :: !instruct_ints) )
+  | ({ tok = WORD (_,w); _ },i) -> (instruct_ints := ((w,i) :: !instruct_ints) )
   | _ -> ()
 
 
@@ -843,10 +874,10 @@ let rec expand_slashdash =
   | WORD (_,w) :: ts -> w :: expand_slashdash ts
   | _ -> failwith "in synonyms, /- must fall between words"
 
- (* XX need to implement multiword synonyms syntoken -> many syntoken *)
+ (* XX need to implement multiword synonyms synnode -> many synnode *)
 
 let synlist = 
-  let syntoken = someX (function 
+  let synnode = someX (function 
                   | SLASHDASH -> true,SLASHDASH 
                   | WORD _ as wd -> true,wd
                   | VAR v as var -> (
@@ -854,8 +885,8 @@ let synlist =
                     let isword = String.length u = 1 && 'A' <= u.[0] && u.[0] <= 'Z' in
                     if isword then true,WORD(v,u) else false,var) 
                   | SLASH -> false,SLASH
-                  | _ -> failwith "illegal token in synonym list") in
-    separated_list syntoken (a SLASH) >> expand_slashdash 
+                  | _ -> failwith "illegal node in synonym list") in
+    separated_list synnode (a SLASH) >> expand_slashdash 
 
 let instruct_synonym = bracket(word "synonyms" ++ synlist) >> 
                          (fun (_,ls) -> syn_add ls)
@@ -875,8 +906,8 @@ let synonym_statement =
 
 (* end of instructions *)
 
-let stored_string = 
-  function
+let stored_string_token = 
+  (function
   | STRING s -> s
   | CONTROLSEQ s -> s
   | DECIMAL s -> s
@@ -888,7 +919,9 @@ let stored_string =
   | HIERARCHICAL_IDENTIFIER s -> s
   | FIELD_ACCESSOR s -> s
   | WORD (_,s) -> s
-  | _ -> warn true "stored string token expected"; ""
+  | _ -> warn true "stored string node expected"; "") 
+
+let stored_string = stored_string_token -| tok
 
 
 (* this_exists *)
@@ -950,7 +983,7 @@ let assumption =
 let axiom_preamble = 
   lit_axiom ++ possibly (label) ++ (a PERIOD) >>
     (function 
-     | ((WORD (_,w),ls),_) -> (w,getlabel ls) 
+     | (({ tok = WORD (_,w); _ },ls),_) -> (w,getlabel ls) 
      | _ -> raise Noparse)
 
 let axiom = 
@@ -1044,12 +1077,12 @@ let pattern_banned =
 
 let not_banned =
   let p s = not(List.mem s pattern_banned) in
-  function
+  (function
   | WORD(_,s) -> p s
   | VAR s -> p s
   | ATOMIC_IDENTIFIER s -> p s
   | HIERARCHICAL_IDENTIFIER s -> p s
-  | _ -> true
+  | _ -> true)
 
 let any_pattern_word = 
   some(function 
@@ -1069,7 +1102,7 @@ let words_in_pattern =
   >> (fun (a,b) -> Wp_wd a :: List.flatten b)
 
 let post_colon_balanced = 
-  balancedB (* true tokens can follow opt_colon_type *)
+  balancedB (* true nodes can follow opt_colon_type *)
     (function | ASSIGN | SEMI | COMMA | ALT | COLON -> false 
               | WORD (_,s) -> not(s = "END") && not(s = "WITH")
               | _ -> true)
@@ -1137,13 +1170,13 @@ let required_arg_pat =
   paren(var_or_atomics ++ opt_colon_type) >>
     (fun (vs,bs) -> List.map (fun v -> v,bs) vs)
         |||
-    (must not_banned var_or_atomic  >> fun a -> [a,Colon' []])
+    (must (not_banned -| tok) var_or_atomic  >> fun a -> [a,Colon' []])
 
 let args = 
   (possibly opt_args_pat >> List.flatten) ++ (many(required_arg_pat) >> List.flatten)
 
 let identifier_pattern = 
-  (must not_banned identifier ||| a(BLANK)) ++
+  (must (not_banned -| tok)  identifier ||| a(BLANK)) ++
     args
 
 let controlseq = some(function | CONTROLSEQ _ -> true | _ -> false)
@@ -1162,13 +1195,13 @@ let symbol =
 
 let precedence_level = 
   let assoc = 
-    function 
+    (function 
     | WORD (_,s) ->
         (match s with 
          | "LEFT" -> AssocLeft 
          | "RIGHT" -> AssocRight 
          | _ -> AssocNone)
-    | _ -> AssocNone in
+    | _ -> AssocNone) -| tok in
   word "with" ++ word "precedence" ++ integer ++
     possibly(word "and" ++ lit_left ++ word "associativity") >>
     (fun (((_,_),i),bs) -> 
@@ -1200,7 +1233,7 @@ let insection =
   commit_head "macro" (phrase "in this")
     (fun head -> (head ++ lit_document 
      >> 
-       (function | (_,WORD(_,s)) -> 
+       (function | (_,{ tok = WORD(_,s); _ }) -> 
                      (let i = scope_level s in
                       let subdivision = (i>3) in
                       if subdivision 
@@ -1401,22 +1434,22 @@ let prim_add tbl (key,value) =
     ("primitive already declared: "^key); 
     Hashtbl.add tbl key value
 
-let prim_token = function
-  | Prim_term_op_controlseq (_,token,_,_,_,_,_) -> token
-  | Prim_binary_relation_controlseq (_,token,_,_,_,_) -> token
-  | Prim_propositional_op_controlseq (_,token,_,_,_,_,_ ) -> token
-  | Prim_type_op_controlseq (_,token,_,_,_) -> token
-  | Prim_term_controlseq (_,token,_,_,_ ) -> token
-  | Prim_type_controlseq (_,token,_,_,_ ) -> token
-  | Prim_lambda_binder (_,token,_ ) -> token
-  | Prim_pi_binder (_,token,_ ) -> token
-  | Prim_binder_prop (_,token,_ ) -> token
-  | Prim_identifier_term (_,token,_,_) -> token
-  | Prim_identifier_type (_,token,_,_) -> token
-  | Prim_type_op (_,token,_,_) -> token
-  | Prim_binary_relation_op (_,token,_,_) -> token
-  | Prim_propositional_op (_,token,_,_,_,_ ) -> token
-  | _ -> failwith "prim_token: token expected" 
+let prim_node = function
+  | Prim_term_op_controlseq (_,node,_,_,_,_,_) -> node
+  | Prim_binary_relation_controlseq (_,node,_,_,_,_) -> node
+  | Prim_propositional_op_controlseq (_,node,_,_,_,_,_ ) -> node
+  | Prim_type_op_controlseq (_,node,_,_,_) -> node
+  | Prim_term_controlseq (_,node,_,_,_ ) -> node
+  | Prim_type_controlseq (_,node,_,_,_ ) -> node
+  | Prim_lambda_binder (_,node,_ ) -> node
+  | Prim_pi_binder (_,node,_ ) -> node
+  | Prim_binder_prop (_,node,_ ) -> node
+  | Prim_identifier_term (_,node,_,_) -> node
+  | Prim_identifier_type (_,node,_,_) -> node
+  | Prim_type_op (_,node,_,_) -> node
+  | Prim_binary_relation_op (_,node,_,_) -> node
+  | Prim_propositional_op (_,node,_,_,_,_ ) -> node
+  | _ -> failwith "prim_node: node expected" 
 
 let prim_string = function
   | Prim_term_var (_,s,_) -> s
@@ -1438,30 +1471,30 @@ let prim_wordpattern = function
   | Prim_term_op (_,wordpattern,_,_) -> wordpattern
   | _ -> failwith "prim_wordpattern: wordpattern expected"
 
-let prim_token_in_scope tbl key =
+let prim_node_in_scope tbl key =
   List.mem key 
-  (List.map prim_token (prim_find_inscope tbl key))
+  (List.map prim_node (prim_find_inscope tbl key))
 
 let prim_string_in_scope tbl key = 
   List.mem key
   (List.map prim_string (prim_find_inscope tbl key))
 
-(*  key=token for prim_token primitives *)
+(*  key=node for prim_node primitives *)
 
 let prim_identifier_term_tbl = Hashtbl.create 200
 
 let prim_identifier_term_exists key =
-  prim_token_in_scope prim_identifier_term_tbl key
+  prim_node_in_scope prim_identifier_term_tbl key
 
 let prim_identifier_type_tbl = Hashtbl.create 50
 
 let prim_identifier_type_exists key =
-  prim_token_in_scope prim_identifier_type_tbl key
+  prim_node_in_scope prim_identifier_type_tbl key
 
 let prim_type_controlseq_tbl = Hashtbl.create 100
 
 let prim_type_controlseq_exists key = 
-  prim_token_in_scope prim_type_controlseq_tbl key
+  prim_node_in_scope prim_type_controlseq_tbl key
 
 let prim_term_var_tbl = Hashtbl.create 200
 
@@ -1522,7 +1555,7 @@ let blank_term = a BLANK >> (fun _ -> Blank)
  (* XX to do - hierarchical identifiers *)
 
 let prim_identifier_term = 
-  someX(fun t -> prim_identifier_term_exists t,Id(stored_string t,None))
+  someX(fun t -> prim_identifier_term_exists t,Id(stored_string_token t,None))
 
 let controlseq1 = someX(function | CONTROLSEQ s -> (true,s) | _ -> (false,""))
 
@@ -1644,7 +1677,7 @@ let controlseq_type =
   >> fun (t,ts) -> TyControlSeq (t,ts)
 
 let const_type = 
-  someX(fun t -> prim_identifier_type_exists t,TyId(stored_string t))
+  someX(fun t -> prim_identifier_type_exists t,TyId(stored_string_token t))
 
 let var_type = 
   let f v = prim_type_var_exists (stored_string v) in 
