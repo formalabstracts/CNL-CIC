@@ -485,7 +485,7 @@ generalized_args : opt_args list(generalized_arg) {}
   which of the free variables of s are to be bound by the comprehension. 
  *)
 
-holding_var : option(COMMA paren(LIT_HOLDING comma_nonempty_list(VAR) {})) {}
+holding_var : option(COMMA paren(LIT_HOLDING comma_nonempty_list(VAR) {}) {}) {}
 
 (* expressions *)
 

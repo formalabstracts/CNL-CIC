@@ -37,10 +37,12 @@ type term =
   | ApplySub of term * term list
 
 and typ = 
-  | TyVar of token
+  | TyVar of string
   | Colon' of token list 
   | Type' of token list
   | TyControlSeq of token * token list list
+  | TyId of string 
+  | Subtype of term * term list * statement 
 
 and prop = 
   | PVar of token
@@ -143,6 +145,11 @@ type prim =
   | Prim_binary_relation_op of scope * token * prop * (term * term)
   | Prim_propositional_op of scope * token * int * associativity * prop * prop list 
   | Prim_relation of scope * wordpattern * typ * term list 
+
+  (* variables *)
+  | Prim_type_var of scope * string 
+  | Prim_term_var of scope * string * typ option
+  | Prim_prop_var of scope * string 
 
 type text_token = 
   | Section_preamble of string (* new current section *)
@@ -1067,9 +1074,12 @@ let post_colon_balanced =
               | WORD (_,s) -> not(s = "END") && not(s = "WITH")
               | _ -> true)
 
+let colon_type = 
+  a COLON ++ post_colon_balanced >> snd 
+               
 let opt_colon_type = 
-  possibly(a(COLON) ++ post_colon_balanced) >> 
-    (fun bs -> Colon' (List.flatten (List.map snd bs)))
+  possibly(colon_type) 
+  >> (fun bs -> Colon' (List.flatten bs))
                          
 let tvarpat = 
   paren(var ++ opt_colon_type) >>
@@ -1378,6 +1388,9 @@ let prim_scope =
   | Prim_binary_relation_op (scope,_,_,_) -> scope
   | Prim_propositional_op (scope,_,_,_,_,_ ) -> scope
   | Prim_relation (scope,_,_,_ ) -> scope
+  | Prim_term_var (scope,_,_) -> scope
+  | Prim_type_var (scope,_) -> scope 
+  | Prim_prop_var (scope,_) -> scope
 
 let prim_find_inscope tbl key = 
   let vs = Hashtbl.find_all tbl key in
@@ -1405,6 +1418,12 @@ let prim_token = function
   | Prim_propositional_op (_,token,_,_,_,_ ) -> token
   | _ -> failwith "prim_token: token expected" 
 
+let prim_string = function
+  | Prim_term_var (_,s,_) -> s
+  | Prim_type_var (_,s) -> s
+  | Prim_prop_var (_,s) -> s
+  | _ -> failwith "prim_string: string expected" 
+
 let prim_wordpattern = function 
   | Prim_typed_name (_,wordpattern,_,_) -> wordpattern
   | Prim_relation (_,wordpattern,_,_ ) -> wordpattern
@@ -1423,19 +1442,41 @@ let prim_token_in_scope tbl key =
   List.mem key 
   (List.map prim_token (prim_find_inscope tbl key))
 
+let prim_string_in_scope tbl key = 
+  List.mem key
+  (List.map prim_string (prim_find_inscope tbl key))
+
 (*  key=token for prim_token primitives *)
 
 let prim_identifier_term_tbl = Hashtbl.create 200
 
-let prim_identifier_exists key =
+let prim_identifier_term_exists key =
   prim_token_in_scope prim_identifier_term_tbl key
 
-(*  | Prim_type_controlseq of scope * token * int * typ * expr list  *)
+let prim_identifier_type_tbl = Hashtbl.create 50
+
+let prim_identifier_type_exists key =
+  prim_token_in_scope prim_identifier_type_tbl key
 
 let prim_type_controlseq_tbl = Hashtbl.create 100
 
 let prim_type_controlseq_exists key = 
   prim_token_in_scope prim_type_controlseq_tbl key
+
+let prim_term_var_tbl = Hashtbl.create 200
+
+let prim_term_var_exists key = 
+  prim_string_in_scope prim_term_var_tbl key
+
+let prim_type_var_tbl = Hashtbl.create 100
+
+let prim_type_var_exists key = 
+  prim_string_in_scope prim_type_var_tbl key
+
+let prim_prop_var_tbl = Hashtbl.create 100
+
+let prim_prop_var_exists key = 
+  prim_string_in_scope prim_prop_var_tbl key
 
 
 
@@ -1481,7 +1522,7 @@ let blank_term = a BLANK >> (fun _ -> Blank)
  (* XX to do - hierarchical identifiers *)
 
 let prim_identifier_term = 
-  someX(fun t -> prim_identifier_exists t,Id(stored_string t,None))
+  someX(fun t -> prim_identifier_term_exists t,Id(stored_string t,None))
 
 let controlseq1 = someX(function | CONTROLSEQ s -> (true,s) | _ -> (false,""))
 
@@ -1590,7 +1631,7 @@ and tightest_terms input =
 
 (* tightest types *)
 
-let paren_type = 
+let paren_type = (* XX need to know a priori that balanced is a type *)
   paren(balanced) >> (fun t -> Type' t)
 
 let annotated_type = 
@@ -1602,4 +1643,41 @@ let controlseq_type =
   cs_brace controlseq1 balanced 
   >> fun (t,ts) -> TyControlSeq (t,ts)
 
+let const_type = 
+  someX(fun t -> prim_identifier_type_exists t,TyId(stored_string t))
 
+let var_type = 
+  let f v = prim_type_var_exists (stored_string v) in 
+  must f var >> (fun v -> TyVar (stored_string v))
+  ||| (paren(var ++ a COLON ++ the_case_sensitive_word "Type") 
+         >> (fun ((v,_),_) -> TyVar (stored_string v)))
+
+let subtype = 
+  brace(commasep ++ holding_var ++ a TMID ++ balanced)
+  >> (fun (((a,b),_),c) -> Subtype (Plain' a,b,Statement' c))
+
+let colon_sort' = a COLON ++ post_colon_balanced >> snd
+
+let alt_constructor = a ALT ++ identifier ++ args ++ a COLON ++ post_colon_balanced
+
+let opt_alt_constructor = a ALT ++ identifier ++ args ++ opt_colon_type
+
+let inductive_type = 
+  word "inductive" ++ identifier ++ args ++ possibly(colon_sort') ++
+    many(opt_alt_constructor) ++ word "end" 
+
+let mutual_inductive_type = 
+  word "inductive" ++ comma_nonempty_list(identifier) ++ args ++
+    many(word "with" ++ atomic ++ args ++ colon_type ++ many(alt_constructor)) ++
+    word "end"
+
+
+
+let structure = 
+  possibly(word "notational") ++ word "structure" 
+  ++ possibly(phrase("with parameters")) ++ args
+  ++ possibly(word "with") ++ brace_semi(field)
+  ++ possibly(possibly(lit_with_properties) ++ satisfying_preds)
+
+        
+    
