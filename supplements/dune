@@ -1,0 +1,12 @@
+(dirs :standard \ chaff)
+
+(library
+(name cnl_parse)
+(public_name cnl_parse)
+(wrapped true)
+(modules (:standard 
+	 parser
+	 lexer_cnl))
+(libraries sedlex batteries) ; menhirlib)
+(preprocess (pps ppx_deriving.std  sedlex.ppx))
+)

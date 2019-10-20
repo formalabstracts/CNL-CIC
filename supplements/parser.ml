@@ -10,7 +10,7 @@ XX expand as we go.
 Primes for still unparsed/unprocessed material.
  *)
 
-open Cnl_parse.Lexer_cnl
+open Lexer_cnl
 
 type term = 
   | TVar of string*(typ option)
@@ -266,7 +266,7 @@ let fix err prs input =
   try prs input
   with Noparse -> failwith (err ^ " expected");;
 
-let rec separated_list prs sep =
+let separated_list prs sep =
   prs ++ many (sep ++ prs >> snd) >> (fun (h,t) -> h::t);;
 
 let nothing input = [],input;;
@@ -1348,7 +1348,7 @@ let macro =
 
 (* primitives *)
 
-let prim_tbl = Hashtbl.create 1000 (* global table *)
+(* let prim_tbl = Hashtbl.create 1000 *) (* global table *)
 
 (* let prim_add (key,value) =  *)
   
@@ -1671,13 +1671,13 @@ let mutual_inductive_type =
     many(word "with" ++ atomic ++ args ++ colon_type ++ many(alt_constructor)) ++
     word "end"
 
-
-
+(*
 let structure = 
   possibly(word "notational") ++ word "structure" 
   ++ possibly(phrase("with parameters")) ++ args
   ++ possibly(word "with") ++ brace_semi(field)
   ++ possibly(possibly(lit_with_properties) ++ satisfying_preds)
+ *)
 
         
     
