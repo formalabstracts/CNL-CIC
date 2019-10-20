@@ -5,11 +5,10 @@
 (public_name cnl_parse)
 (wrapped true)
 (modules (:standard 
-	 parser_cnl 
-	 lexer_cnl))
-(libraries sedlex batteries menhirlib)
+	 parser_cnl))
+(libraries batteries menhirlib)
 (virtual_deps menhir)
-(preprocess (pps ppx_deriving.std  sedlex.ppx))
+(preprocess (pps ppx_deriving.std))
 )
 
 ; remove to end of file to disable parser_cnl
