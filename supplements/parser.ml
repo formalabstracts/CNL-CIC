@@ -176,9 +176,78 @@ type text_node =
 
 (* exceptions and positions *)
 
-exception Noparse of pos*string;;
+type trace = 
+  | TrMany of trace list
+  | TrAdd of trace list
+  | TrOr of trace list
+  | TrGroup of string * trace
+  | TrFail of int*int*token 
+  | TrData of token list
+  | TrString of string 
+  | TrEmpty
+[@@deriving show]
 
-exception Eof;;
+let rec get_trace_data =
+  function 
+  | TrMany t -> List.flatten (List.map get_trace_data t)
+  | TrAdd t -> List.flatten (List.map get_trace_data t)
+  | TrOr [] -> []
+  | TrOr t -> get_trace_data (List.hd (List.rev t))
+  | TrGroup (_,t) -> get_trace_data t
+  | TrFail (_,_,_) -> []
+  | TrData t -> t
+  | TrString _ -> []
+  | TrEmpty -> []
+
+let filter_nonempty = 
+  List.filter (fun t -> not (t = TrEmpty))
+
+let rec clean_tr = 
+  function
+  | TrMany [] -> TrEmpty
+  | TrMany [t] -> clean_tr t
+  | TrMany (t :: ts) -> TrMany (filter_nonempty (clean_tr t :: List.map clean_tr ts))
+  | TrAdd [] -> TrEmpty
+  | TrAdd [t] -> clean_tr t
+  | TrAdd (t :: ts) -> TrAdd (filter_nonempty (clean_tr t :: List.map clean_tr ts))
+  | TrOr [] -> TrEmpty
+  | TrOr [t] -> clean_tr t
+  | TrOr (t :: ts) -> TrOr (filter_nonempty (clean_tr t :: List.map clean_tr ts))
+  | TrGroup (s,t) -> TrGroup(s,clean_tr t)
+  | t -> t
+
+exception Noparse of trace;;
+
+exception Nocatch of trace;;
+
+let trEof =  TrFail (0,0,EOF);;
+
+let failEof = Noparse(trEof)
+
+let getpos = 
+  function 
+  | [] -> raise failEof
+  | t::_ as input -> t.pos,(TrEmpty,input)
+
+let trPos = 
+  function (* input *)
+    | [] -> trEof
+    | n :: _ -> 
+        let p = fst(n.pos) in 
+        let line = p.pos_lnum in 
+        let col = p.pos_cnum - p.pos_bol in 
+        (TrFail(line,col,n.tok))
+
+let mergeOr (t,t') = 
+  match t with 
+  | TrOr t'' -> TrOr (t'' @ [t'])
+  | _ -> TrOr [t;t']
+
+let mergeAdd (t,t') = 
+  match t with 
+  | TrEmpty -> t' 
+  | TrAdd t'' -> TrAdd (t'' @ [t'])
+  | _ -> TrAdd [t;t']
 
 
 let pos n = n.pos 
@@ -191,25 +260,25 @@ let rec merge_pos =
 
 let pair_pos (a,b) = merge_pos [a;b]
 
-let getpos = 
-  function 
-  | [] -> raise Eof
-  | t::_ as input -> t.pos,input 
-
 let pair_noparse sep (p1,s1) (p2,s2) =
 (pair_pos (p1,p2),s1^sep^s2)
 
 let par x = if x = "" then "" else "("^x^")"
 
-let wrap fm parser input = 
+(* let group fm parser input = 
   try 
     parser input 
   with Noparse (p,m) -> 
          let p' = fst(getpos input) in 
          raise (Noparse (pair_pos (p,p'),fm m))
+ *)
 
-let wrapm msg  = 
-  wrap (fun m -> "("^msg^par m^")")
+let group msg parser input  = 
+  try 
+    let (a,(t,ins)) = parser input in 
+    (a,(TrGroup(msg,t),ins)) 
+  with 
+    Noparse t -> raise (Noparse (TrGroup(msg,t)))
 
 
 (* a few lines from HOL Light lib.ml *)
@@ -271,30 +340,39 @@ let rec chop_list n l =
 let _ = chop_list 3 [5;6;7;8;9;10;11;12];;
 
 
-(* Here are a few lines from the HOL Light parser.ml *)
+(* Here are a few lines adapted from HOL Light parser.ml *)
 
 let (|||) parser1 parser2 input =
   try parser1 input
-  with Noparse (_,m) -> wrap (fun m2 -> "fail"^par m^" ||| " ^ m2) parser2 input;;
+  with Noparse t1 -> 
+         try 
+           parser2 input
+         with Noparse t2 -> raise (Noparse (mergeOr(t1,t2)))
 
 let (++) parser1 parser2 input =
-  let result1,rest1 = parser1 input in
-  let result2,rest2 = wrap (fun m2 -> "...++"^m2) parser2 rest1 in
-  (result1,result2),rest2;;
+  let result1,(t1,rest1) = parser1 input in
+  try 
+    let result2,(t2,rest2) = parser2 rest1 in
+    (result1,result2),(mergeAdd(t1,t2),rest2)
+  with Noparse t2 -> raise(Noparse (mergeAdd(t1,t2)));;
 
 let (>>) prs treatment input =
   let result,rest = prs input in
   treatment(result),rest;;
 
 let rec many prs input =
-  try let result,next = prs input in
-      let results,rest = many prs next in
-      (result::results),rest
-  with Noparse _ -> [],input;;
+  try let result,(t,next) = prs input in
+      let results,(tr,rest) = many prs next in
+      let tr' = 
+        match tr with
+        | TrMany ts -> TrMany (t :: ts)
+        | _ -> failwith "many:unreachable state" in 
+      (result::results),(tr',rest)
+  with Noparse _ -> [],(TrMany [],input);;
 
 let fix err prs input =
   try prs input
-  with Noparse _ -> failwith (err ^ " expected");;
+  with Noparse tr -> raise (Nocatch (TrGroup (err,tr)));;
 
 let separated_list prs sep =
   prs ++ many (sep ++ prs >> snd) >> (fun (h,t) -> h::t);;
@@ -302,6 +380,8 @@ let separated_list prs sep =
 let nothing input = [],input;;
 
 let unit input = ((),input);;
+
+let empty input = ((),(TrEmpty,input))
 
 let eseparated_list prs sep =
   separated_list prs sep ||| nothing;;
@@ -319,19 +399,23 @@ let rightbin prs sep cons err =
 
 let possibly prs input =
   try let x,rest = prs input in [x],rest
-  with Noparse _ -> [],input;;
+  with Noparse _ -> [],(TrEmpty,input);;
 
 let some p = 
   function
-      [] -> raise Eof
-    | (h::t) -> if p h.tok then (h,t) else raise (Noparse (h.pos,"some")) ;;
+      [] -> raise failEof
+    | (h::t) as ts -> 
+        if p h.tok then 
+          let tr = TrData [h.tok] in 
+          (h,(tr,t)) 
+        else raise (Noparse (trPos ts))
 
 let rec atleast n prs input =
   (if n <= 0 then many prs
    else prs ++ atleast (n - 1) prs >> (fun (h,t) -> h::t)) input;;
 
 let finished input =
-  if input = [] then (),input else failwith "Unparsed input";;
+  if input = [] then (),(TrEmpty,input) else raise (Noparse (trEof))
 
 (* end of HOL Light *)
 
@@ -341,17 +425,23 @@ let mk (t,p) = { tok = t; pos = p }
 
 let someX p = 
   function
-    [] -> raise Eof
+    [] -> raise failEof
   | h :: t -> let (b,x) = p h in
-              if b then (x,t) else raise (Noparse (h.pos,"someX")) ;;
+              if b then 
+                let tr = TrData [h.tok] in 
+                (x,(tr,t)) 
+              else raise (Noparse (trPos [h]))
 
 (* let someXt p f = someX p (f -| tok) *)
 
 let some_nodeX p = 
   function
-    [] -> raise Eof
+    [] -> raise failEof
   | h :: t -> let (b,x) = p h.tok in
-              if b then (mk (x,h.pos),t) else raise (Noparse(h.pos,"some_nodeX"));;
+              if b then 
+                let tr = TrData [h.tok] in 
+                (mk (x,h.pos),(tr,t)) 
+              else raise (Noparse(trPos[h]))
 
 let a tok = some (fun item -> item = tok);;
 
@@ -370,16 +460,17 @@ let discard _ = ();;
 
 let failparse = 
   function 
-    [] -> raise Eof 
-   | h :: _ -> raise (Noparse(h.pos,"failparse"))
+    [] -> raise failEof 
+   | h :: _ -> raise (Noparse (trPos[h]))
+
+let failtr tr _ = raise (Noparse tr)
 
 let canparse f x = try (ignore(f x); true) with Noparse _ -> false
 
 let must f parser input = 
-  let (r,rest) = parser input in 
-  let p = fst(getpos input) in 
-  let _ = f r || raise (Noparse (p,"must")) in 
-  (r,rest)
+  let (r,(tr,rest)) = parser input in 
+  let _ = f r || raise (Noparse (TrGroup("must",trPos input))) in 
+  (r,(TrGroup("must",tr),rest))
 
 (*
 let ( <|> ) (test,parser1) parser2 input = 
@@ -392,17 +483,27 @@ let ( <|> ) (test,parser1) parser2 input =
 let commit err test parse input = 
   if canparse test input then 
     fix err parse input  
-  else wrapm ("nocommit."^err) parse input
+  else group ("nocommit."^err) parse input
 
+(*
 let commit_head err parse1 parse2 input = 
   (try(  
-    let (result,rest) = parse1 input in 
-    fix err (parse2 (pair result)) rest)
-  with Noparse _ -> parse2 failparse input)
+    let (result,(t,rest)) = parse1 input in 
+    fix err (parse2 (fun ins -> result,(t,ins))) rest)
+  with Noparse t1 -> parse2 (failtr t1) input)
+ *)
+
+let commit_head err parse1 parse2 input = 
+  let (result,(t,rest)) = parse1 input in 
+  try (
+    (parse2 (fun ins -> result,(t,ins))) rest
+  )
+  with Noparse t2 -> raise (Nocatch(TrGroup(err,t2)))
+
 
 let followedby parse input =
-  let (_,_) =  wrapm "followedby" parse input in 
-  (),input
+  let (_,_) =  group "followedby" parse input in 
+  (),(TrEmpty,input)
 
  (* accumulate parse1s until parse2 succeeds *)
 let rec until parse1 parse2 input = 
@@ -534,14 +635,17 @@ let frozen =
 
 let rec parse_all ps input = 
   match ps with
-  | [] -> ([],input)
-  | p::ps' -> let (result,rest) = p input in 
-              let (result',rest') = parse_all ps' rest in
-              (result :: result'),rest'
+  | [] -> ([],(TrMany[],input))
+  | p::ps' -> let (result,(t,rest)) = group "parse_all" p input in 
+              let (result',(tr,rest')) = parse_all ps' rest in
+              let tr' = match tr with
+              | TrMany ts -> TrMany (t :: ts)
+              | _ -> failwith "many:unreachable state" in 
+              (result :: result'),(tr',rest')
 
 let rec parse_some ps input = 
   match ps with 
-  | [] -> raise (Noparse (fst(getpos input),"parse_some"))
+  | [] -> raise (Noparse (TrGroup ("parse_some",trPos input)))
   | p :: ps' -> try (p input) with Noparse _ -> parse_some ps' input 
   
 let rec somecomb parser = 
@@ -551,13 +655,18 @@ let rec somecomb parser =
 
 
 (* words *)
-let word s = 
+let word s input = 
   let u = find_syn (String.uppercase_ascii s) in 
-  some_nodeX (function 
-      | WORD (w,wu) -> 
-          let wsyn = find_syn wu in
-          ((wsyn = u),WORD (w,wsyn))
-      | t -> (false,t))
+  try 
+    let (a,(_,rest)) = some_nodeX 
+      (function 
+       | WORD (w,wu) -> 
+           let wsyn = find_syn wu in
+           ((wsyn = u),WORD (w,wsyn))
+       | t -> (false,t)) input in 
+    (a,(TrString ("word:"^u),rest))
+  with 
+    Noparse _ -> raise (Noparse (TrGroup (("word:"^u),trPos input)))
 
 let anyword = some(function | WORD _ -> true | _ -> false)
 
@@ -857,7 +966,7 @@ let inscope scope =
     (scope = curscope')
 
 let section_preamble = 
-  commit_head "preamble" section_tag
+  commit_head "section" section_tag
     (fun t -> ((t ++ possibly label ++ period) >> treat_section_preamble))
 
 (* namespace XX NOT_IMPLEMENTED *)
@@ -1028,7 +1137,7 @@ let this_exists =
 let then_prefix = possibly (lit_then)
 
 let assumption_prefix = 
-  lit_lets ++ wrapm "assume" lit_assume ++ possibly (word "that")
+  lit_lets ++ group "assume" lit_assume ++ possibly (word "that")
 
 let assumption = 
   (assumption_prefix ++ balanced ++ (a PERIOD) >> 
@@ -1343,9 +1452,9 @@ let let_annotation =
 (* definitions *)
 
 let copula = 
-  (lit_is ++ possibly(lit_defined_as) >> discard) |||
+  group "copula" ((lit_is ++ possibly(lit_defined_as) >> discard) |||
     (a(ASSIGN) >> discard) |||
-    (lit_denote >> discard)
+    (lit_denote >> discard))
 
 let function_copula =
   copula >> (fun _ -> Colon' []) |||
@@ -1394,7 +1503,7 @@ let function_head =
 let function_def = 
   (opt_define ++ function_head ++ possibly(macro_inferring) ++
      copula ++ possibly(lit_equal) ++ possibly(word "the") ++ 
-     balanced ++ followedby (a(PERIOD))) >>
+     group "balanced" balanced  ++ followedby (* (a(PERIOD)) *) empty  ) >>
     (fun (((((((_,h),m),_),_),_),b),_) -> 
            let h' = if m=[] then h 
                     else let (i,i')= List.hd m in Wp_inferring(h,i,i')
@@ -1439,14 +1548,14 @@ let macro =
 (* definition *)
 
 let definition_statement = 
-  classifier_def 
-  ||| function_def
-  ||| type_def
-  ||| predicate_def
+  (group "classifier_def" classifier_def)
+  ||| (group "function_def" function_def)
+  ||| (group "type_def" type_def)
+  ||| (group "predicate_def" predicate_def)
 
 let definition_preamble = 
-  wrapm "definition_preamble" 
-  (getpos ++ wrapm "lit_def" lit_def ++ wrapm "label" (possibly(label)) ++ a PERIOD 
+  group "definition_preamble" 
+  (getpos ++ group "lit_def" lit_def ++ group "label" (possibly(label)) ++ a PERIOD 
   >> (fun (((p,_),l),_) -> (p,getlabel l)))
 
 let definition_affirm = 
@@ -1458,19 +1567,20 @@ let definition_affirm =
             (p',w,ex))
 
 let definition = 
-  definition_preamble ++ wrapm "assumption" (many assumption) 
-  ++ wrapm "affirm" definition_affirm 
-  >> (fun (((p,l),ma),(p',w,ex)) -> Definition (pair_pos (p,p'),l,ma,w,ex))
+  commit_head "definition" definition_preamble 
+  (fun t -> t ++ group "assumption" (many assumption) 
+  ++ group "affirm" definition_affirm 
+  >> (fun (((p,l),ma),(p',w,ex)) -> Definition (pair_pos (p,p'),l,ma,w,ex)))
 
 let text = 
-  (wrapm "section_preamble" section_preamble)
-  ||| instruction
-  ||| axiom
-  ||| definition 
-  ||| theorem 
-  ||| synonym_statement
-  ||| macro
-  ||| (namespace >> (fun _ -> Namespace))
+  (group "section_preamble" section_preamble)
+  ||| (group "instruction" instruction)
+  ||| (group "axiom" axiom)
+  ||| (group "definition" definition)
+  ||| (group "theorem" theorem)
+  ||| (group "synonym_statement" synonym_statement)
+  ||| (group "macro" macro)
+  ||| (group "namespace" namespace >> (fun _ -> Namespace))
 
 
 (* primitives *)

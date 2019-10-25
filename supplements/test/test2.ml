@@ -1,6 +1,7 @@
 open Cnl_parse__Lexer_cnl
 open Cnl_parse__Parser
 
+
 let rec print_tok = function
   | [] -> ()
   | t :: ts -> 
@@ -73,44 +74,56 @@ let mk_nodes infile  =
   List.flatten toks 
 
 let ns = mk_nodes   "../scripts/sylow.cnl";;
-let ns100 = take 50 ns;;
+let ns100 = take 70 ns;;
 
 
 let test2 = List.map print_endline
              (List.map show_token (List.map tok (ns100)))
 
-let (t,x) = text ns100 ;;
-  print_endline (show_text_node t)
+let rec test_it input  = 
+  let input' = 
+    try 
+      let (t,(_,input')) = text input in
+      let _ = print_endline (show_text_node t) in 
+      input' 
+    with Noparse tr 
+       | Nocatch tr ->
+           (
+             print_endline (show_trace (clean_tr tr)); 
+             ignore(List.map print_endline (List.map show_token 
+                                              (List.map tok (take 30 input))));
+             failwith "my-error"
+           ) in
+  test_it input'
 
-let (t,x) = text x;;
-  print_endline (show_text_node t)
+let _ = test_it ns
 
-let (t,x) = text x;;
-  print_endline (show_text_node t);;
-
-let (t,x) = text x;;
-  print_endline (show_text_node t);;
-
-let (t,x) = text x;;
-  print_endline (show_text_node t);;
-
-print_nodes x;;
-
-
-
-let (t,x) = (definition_preamble x);;
-(*   print_endline (show_text_node t);; *)
-
-print_nodes x;;
-print_endline "A";;
-let (_,x) = (assumption x);;
-
-print_nodes x;;
 (*
+let (t,(tr,x)) = text x;;
+  print_endline (show_text_node t);;
+  print_endline (show_trace (clean_tr tr));;
 
- (List.map (fun a -> print_endline (show_wordpattern (fst a))) t);;
 
+try 
+  function_def x 
+with Noparse tr | Nocatch tr ->
+       (print_endline (show_trace (clean_tr tr)); failwith "my-error")
  *)
+
+(*
+let vvs = convert_node "test2.ml" "function (  fun  (  \\blank :  V__alpha  )  :  Bool  :=  true  ) .";;
+
+try 
+let (_,(tr,_)) = group "mybalanced" balanced vvs in 
+print_endline (show_trace (clean_tr tr))
+with Noparse tr | Nocatch tr ->
+       (print_endline (show_trace (clean_tr tr)); failwith "error")
+ *)
+
+(*
+print_nodes x;;
+ *)
+
 
 
 
