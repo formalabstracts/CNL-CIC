@@ -13,17 +13,17 @@ Primes for still unparsed/unprocessed material.
 open Lexer_cnl
 
 type term = 
-  | TVar of string*(typ option)
-  | TVarAtomic of string*(typ option)
+  | TVar of node*(typ option)
+  | TVarAtomic of node*(typ option)
   | Annotated of term*typ 
-  | Decimal of string
+  | Decimal of node
   | Error'
   | Integer of int (* XX should be BigInt *)
-  | String of string
+  | String of node
   | Blank
-  | Id of string* typ option
+  | Id of node* typ option
   | Unparsed' of node list
-  | ControlSeq of string*expr list
+  | ControlSeq of node*expr list
   | Make of (node * typ * node list) list 
   | Plain' of node list
   | List of term list
@@ -37,11 +37,11 @@ type term =
   | ApplySub of term * term list
 
 and typ = 
-  | TyVar of string
+  | TyVar of node
   | Colon' of node list 
   | Type' of node list
   | TyControlSeq of node * node list list
-  | TyId of string 
+  | TyId of node 
   | Subtype of term * term list * statement 
 
 and prop = 
@@ -109,7 +109,11 @@ type this_adj =
 type scope = string list
 [@@deriving show]
 
-type pos = Lexing.position * Lexing.position
+type pos = (Lexing.position * Lexing.position) [@opaque]
+[@@deriving show]
+
+(* let show_pos _ _ = "" *)
+
 
 type prim = 
 
@@ -160,33 +164,52 @@ type prim =
 [@@deriving show]
 
 type text_node = 
-  | Section_preamble of string (* new current section *)
-  | Instruction of string (* keyword *)
-  | Axiom of string*string * (statement list)*statement  (* kind,label,statements,conclusion *)
-  | Definition of string * (statement list)*statement (* label,statements,conclusion *)
-  | Theorem of string * (statement list)*statement  (* label, statements,conclusion *)
-  | Synonym
-  | Macro of statement list (* statements *)
-  | Namespace 
+  | Section_preamble of pos*int*string (* new current section *)
+  | Instruction of pos*string (* keyword *)
+  | Axiom of pos*string*string * (statement list)*statement  (* kind,label,statements,conclusion *)
+  | Definition of pos*string * (statement list)* (wordpattern * node list) list * this_adj list (* label,statements,conclusion *)
+  | Theorem of pos*string * (statement list)*statement  (* label, statements,conclusion *)
+  | Synonym of pos
+  | Macro of pos* int * (wordpattern * node list) list
+  | Namespace
 [@@deriving show]
 
-(*
-type parses = 
-  {
-    ptm : node list -> term;
-    pty : node list -> typ;
-    ppr : node list -> prop
-  }
- *)
+(* exceptions and positions *)
 
-(* XX do recursion as follows:
-let rec parse_term = parse_term' 
-    { ptm := parse_term; pty := parse_type; ppr := parse_prop }
-and parse_type = parse_type' { etc. }
-and parse_prop = parse_prop' { etc. }
- *)
+exception Noparse of pos*string;;
+
+exception Eof;;
 
 
+let pos n = n.pos 
+
+let rec merge_pos = 
+  function
+  | [t] -> t
+  | t :: ts -> let m = merge_pos ts in (fst t,snd m)
+  | _ -> failwith "empty merge_pos" 
+
+let pair_pos (a,b) = merge_pos [a;b]
+
+let getpos = 
+  function 
+  | [] -> raise Eof
+  | t::_ as input -> t.pos,input 
+
+let pair_noparse sep (p1,s1) (p2,s2) =
+(pair_pos (p1,p2),s1^sep^s2)
+
+let par x = if x = "" then "" else "("^x^")"
+
+let wrap fm parser input = 
+  try 
+    parser input 
+  with Noparse (p,m) -> 
+         let p' = fst(getpos input) in 
+         raise (Noparse (pair_pos (p,p'),fm m))
+
+let wrapm msg  = 
+  wrap (fun m -> "("^msg^par m^")")
 
 
 (* a few lines from HOL Light lib.ml *)
@@ -250,15 +273,13 @@ let _ = chop_list 3 [5;6;7;8;9;10;11;12];;
 
 (* Here are a few lines from the HOL Light parser.ml *)
 
-exception Noparse;;
-
 let (|||) parser1 parser2 input =
   try parser1 input
-  with Noparse -> parser2 input;;
+  with Noparse (_,m) -> wrap (fun m2 -> "fail"^par m^" ||| " ^ m2) parser2 input;;
 
 let (++) parser1 parser2 input =
   let result1,rest1 = parser1 input in
-  let result2,rest2 = parser2 rest1 in
+  let result2,rest2 = wrap (fun m2 -> "...++"^m2) parser2 rest1 in
   (result1,result2),rest2;;
 
 let (>>) prs treatment input =
@@ -269,11 +290,11 @@ let rec many prs input =
   try let result,next = prs input in
       let results,rest = many prs next in
       (result::results),rest
-  with Noparse -> [],input;;
+  with Noparse _ -> [],input;;
 
 let fix err prs input =
   try prs input
-  with Noparse -> failwith (err ^ " expected");;
+  with Noparse _ -> failwith (err ^ " expected");;
 
 let separated_list prs sep =
   prs ++ many (sep ++ prs >> snd) >> (fun (h,t) -> h::t);;
@@ -298,12 +319,12 @@ let rightbin prs sep cons err =
 
 let possibly prs input =
   try let x,rest = prs input in [x],rest
-  with Noparse -> [],input;;
+  with Noparse _ -> [],input;;
 
 let some p = 
   function
-      [] -> raise Noparse
-    | (h::t) -> if p h.tok then (h,t) else raise Noparse;;
+      [] -> raise Eof
+    | (h::t) -> if p h.tok then (h,t) else raise (Noparse (h.pos,"some")) ;;
 
 let rec atleast n prs input =
   (if n <= 0 then many prs
@@ -318,25 +339,19 @@ let (-|) f g x = f(g(x))
 
 let mk (t,p) = { tok = t; pos = p }
 
-let pos n = n.pos 
-
-let rec merge_pos = 
-  function
-  | [t] -> t.pos
-  | t :: ts -> let m = merge_pos ts in (fst t.pos,snd m)
-  | _ -> failwith "empty merge_pos" 
-
 let someX p = 
   function
-    [] -> raise Noparse
-  | h :: t -> let (b,x) = p h.tok in
-              if b then (x,t) else raise Noparse;;
+    [] -> raise Eof
+  | h :: t -> let (b,x) = p h in
+              if b then (x,t) else raise (Noparse (h.pos,"someX")) ;;
+
+(* let someXt p f = someX p (f -| tok) *)
 
 let some_nodeX p = 
   function
-    [] -> raise Noparse
+    [] -> raise Eof
   | h :: t -> let (b,x) = p h.tok in
-              if b then (mk (x,h.pos),t) else raise Noparse;;
+              if b then (mk (x,h.pos),t) else raise (Noparse(h.pos,"some_nodeX"));;
 
 let a tok = some (fun item -> item = tok);;
 
@@ -353,13 +368,17 @@ let plus prs = atleast 1 prs
 
 let discard _ = ();;
 
-let failparse _ = raise Noparse
+let failparse = 
+  function 
+    [] -> raise Eof 
+   | h :: _ -> raise (Noparse(h.pos,"failparse"))
 
-let canparse f x = try (ignore(f x); true) with Noparse -> false
+let canparse f x = try (ignore(f x); true) with Noparse _ -> false
 
 let must f parser input = 
   let (r,rest) = parser input in 
-  let _ = f r || raise Noparse in
+  let p = fst(getpos input) in 
+  let _ = f r || raise (Noparse (p,"must")) in 
   (r,rest)
 
 (*
@@ -373,22 +392,22 @@ let ( <|> ) (test,parser1) parser2 input =
 let commit err test parse input = 
   if canparse test input then 
     fix err parse input  
-  else parse input 
+  else wrapm ("nocommit."^err) parse input
 
 let commit_head err parse1 parse2 input = 
-  try(  
+  (try(  
     let (result,rest) = parse1 input in 
     fix err (parse2 (pair result)) rest)
-  with Noparse -> parse2 failparse input
+  with Noparse _ -> parse2 failparse input)
 
 let followedby parse input =
-  let (_,_) = parse input in 
-  (),input 
+  let (_,_) =  wrapm "followedby" parse input in 
+  (),input
 
  (* accumulate parse1s until parse2 succeeds *)
 let rec until parse1 parse2 input = 
   try parse2 input 
-  with Noparse -> 
+  with Noparse _ -> 
          let result,next = parse1 input in
          let (r1,r2),rest = until parse1 parse2 next in
          (result :: r1, r2),rest
@@ -400,6 +419,9 @@ let paren parser  =
 
 let bracket parser = 
   (a L_BRACK ++ parser ++ a R_BRACK) >> (fun ((_,p),_) -> p) 
+
+let pos_bracket parser = 
+    (a L_BRACK ++ parser ++ a R_BRACK) >> (fun ((p',p),p'') -> (pair_pos(p'.pos,p''.pos),p)) 
 
 let brace parser = 
   (a L_BRACE ++ parser ++ a R_BRACE) >> (fun ((_,p),_) -> p) 
@@ -421,7 +443,7 @@ let nonbrack accept =
 
 let rec balancedB accept input = 
   (many (
-      many(nonbrack accept) |||
+      plus(nonbrack accept) |||
         paren(balanced) |||
         bracket(balanced) |||
         brace(balanced)) >> List.flatten  ) input
@@ -445,8 +467,10 @@ let comma = a COMMA
 let comma_nonempty_list parser = 
   separated_list parser comma 
 
+(* 
 let comma_list err parser = 
   eseparated_list err parser comma
+ *)
 
 let opt_comma_nonempty_list parser = 
   separated_list parser (possibly comma) 
@@ -486,7 +510,26 @@ let frozen =
   List.map syn_add (List.map (fun t -> [t]) 
 [
 "A";"AN";"ALL";"AND";"ANY";"ARE";"AS";"ASSUME";"BE";"BY";
-"CASE";"CLASSIFIER";"CLASSIFIERS"
+"CASE";"CLASSIFIER";"CLASSIFIERS"; 
+"COERCION";"CONJECTURE";"CONTRADICTION";"CONTRARY";"COROLLARY";"DEF";
+"DEFINE";"DEFINED";"DEFINITION";"DENOTE";"DIVISION";"DO";"DOCUMENT";
+"DOES";"DUMP";"EACH";"ELSE";"END";"ENDDIVISION";"ENDSECTION";
+"ENDSUBDIVISION";"ENDSUBSECTION";"ENDSUBSUBSECTION";"EQUAL";
+"EQUATION";"ERROR";"EVERY";"EXHAUSTIVE";"EXIST";"EXISTS";"EXIT";
+"FALSE";"FIX";"FOR";"FORALL";"FORMULA";"FUN";"FUNCTION";"HAS";"HAVE";
+"HAVING";"HENCE";"HOLDING";"HYPOTHESIS";"IF";"IFF";"IN";"INFERRING";
+"INDEED";"INDUCTION";"INDUCTIVE";"INTRODUCE";"IS";"IT";"LEFT";"LEMMA";
+"LET";"LIBRARY";"MAKE";"MAP";"MATCH";"NO";"NOT";"NOTATIONAL";"NOTATION";
+"NOTATIONLESS";"OBVIOUS";"OF";"OFF";"ON";"ONLY";"ONTORED";"OR";"OVER";
+"PAIRWISE";"PARAMETER";"PARAMETERS";"PRECEDENCE";"PREDICATE";"PRINTGOAL";
+"PROOF";"PROP";"PROPERTIES";"PROPERTY";"PROVE";"PROPOSITION";"PROPOSITIONS";
+"PROPPED";"QED";"QUOTIENT";"READ";"RECORD";"REGISTER";"RECURSION";"RIGHT";
+"SAID";"SAY";"SECTION";"SHOW";"SOME";"STAND";"STRUCTURE";"SUBDIVISION";
+"SUBSECTION";"SUBSUBSECTION";"SUCH";"SUPPOSE";"SYNONYMS";"TAKE";"THAT";
+"THE";"THEN";"THEOREM";"THERE";"THEREFORE";"THESIS";"THIS";"TIMELIMIT";
+"TO";"TOTAL";"TRIVIAL";"TRUE";"TYPE";"TYPES";"UNIQUE";"US";
+"WARNING";"WE";"WELL";"WELLDEFINED";"WELL_DEFINED";"WELL_PROPPED";
+"WHERE";"WITH";"WRITE";"WRONG";"YES";
 ])
 
 let rec parse_all ps input = 
@@ -498,8 +541,8 @@ let rec parse_all ps input =
 
 let rec parse_some ps input = 
   match ps with 
-  | [] -> raise Noparse
-  | p :: ps' -> try (p input) with Noparse -> parse_some ps' input 
+  | [] -> raise (Noparse (fst(getpos input),"parse_some"))
+  | p :: ps' -> try (p input) with Noparse _ -> parse_some ps' input 
   
 let rec somecomb parser = 
   function
@@ -517,6 +560,10 @@ let word s =
       | t -> (false,t))
 
 let anyword = some(function | WORD _ -> true | _ -> false)
+
+let anywordexcept banned = 
+  let banned' = List.map String.uppercase_ascii banned in 
+  some(function | WORD(_,w) -> not(List.mem w banned') | _ -> false)
 
 let anyphrase = plus(anyword) 
 
@@ -673,7 +720,7 @@ let lit_we_record =
 
 let lit_any = someword "every each all any some no" |||
     (phrase "some and every" 
-     >> (fun ts -> mk(WORD ("some and every","SOME AND EVERY"),merge_pos ts)))
+     >> (fun ts -> mk(WORD ("some and every","SOME AND EVERY"),merge_pos (List.map pos ts))))
 
 let lit_exists = someword "exist exists"
 
@@ -693,7 +740,8 @@ let lit_prove = someword "prove show"
 
 let lit_say = someword "say write"
 
-let lit_we_say = possibly (word "we") ++ lit_say ++ possibly (word "that")
+let lit_we_say = possibly (word "we") ++ lit_say ++ possibly (word "that") >>
+                   (fun ((we,s),r) -> we @ [s] @ r)
 
 let lit_left = someword "left right no"
 
@@ -773,28 +821,31 @@ let getlabel =
 
  (* XX do scoping of variables etc. *)
 
-let treat_section_preamble =
-  function
-  | (({ tok = WORD(_,sec); _ },ls),_) -> (
-    let l = getlabel ls in
-    let scope_end = is_scope_end sec in
-    let new_level = scope_level sec in 
+let set_current_scope (label,scope_end,new_level) = 
     if not(scope_end) then 
       if (4 <= new_level) then 
-        current_scope := l :: !current_scope
+        current_scope := label :: !current_scope
       else 
-        current_scope := l :: (pad (new_level) "" !current_scope)
+        current_scope := label :: (pad (new_level) "" !current_scope)
     else (* scope_end *) 
       if (4 <= new_level) then 
-        current_scope := List.tl (cutat (fun s -> (l="" || l = s)) !current_scope)
+        current_scope := List.tl (cutat (fun s -> (label="" || label = s)) !current_scope)
       else 
         let _ = new_level < List.length !current_scope || 
                   failwith "ending division that was not started" in 
         let ts = pad (new_level + 1) "" !current_scope in 
-        let _ = (List.hd ts = l) || failwith "ending division does not match start" in
+        let _ = (List.hd ts = label) || failwith "ending division does not match start" in
         current_scope := List.tl ts 
-  )
-  | _ -> failwith "bad format: treat_section_preamble"
+
+let treat_section_preamble =
+  (function
+  | (({ tok = WORD(_,sec); pos },ls),p') -> (
+    let l = getlabel ls in
+    let scope_end = is_scope_end sec in
+    let new_level = scope_level sec in 
+    set_current_scope (l,scope_end,new_level); 
+    Section_preamble(pair_pos(pos,p'.pos),new_level,l))
+  | _ -> failwith "bad format: treat_section_preamble")
 
 let inscope scope = 
   let curscope = !current_scope in
@@ -826,43 +877,43 @@ let instruct_ints = ref []
 
 let put_commands = 
   function 
-  | { tok = WORD (_,w); _ } -> (instruct_commands := (w :: !instruct_commands) )
-  | _ -> ()
+  | { tok = WORD (_,w); _ } -> (instruct_commands := (w :: !instruct_commands) ; w )
+  | _ -> ""
 
 let put_strings = function 
-  | ({ tok = WORD (_,w); _ },{ tok = STRING s; _ }) -> (instruct_strings := ((w,s) :: !instruct_strings) )
-  | _ -> ()
+  | ({ tok = WORD (_,w); _ },{ tok = STRING s; _ }) -> (instruct_strings := ((w,s) :: !instruct_strings) ; w)
+  | _ -> ""
 
 let put_bools = function 
-  | ({ tok = WORD (_,w); _ },b) -> (instruct_bools := ((w,b) :: !instruct_bools) )
-  | _ -> ()
+  | ({ tok = WORD (_,w); _ },b) -> (instruct_bools := ((w,b) :: !instruct_bools); w )
+  | _ -> ""
 
 let put_ints = function 
-  | ({ tok = WORD (_,w); _ },i) -> (instruct_ints := ((w,i) :: !instruct_ints) )
-  | _ -> ()
+  | ({ tok = WORD (_,w); _ },i) -> (instruct_ints := ((w,i) :: !instruct_ints); w )
+  | _ -> ""
 
 
 let instruct_keyword_command = someword "exit"
 let instruct_keyword_int = someword "timelimit"
 let instruct_keyword_bool = someword "printgoal dump ontored"
 let instruct_keyword_string = someword "read library error warning"
-let instruct_command = bracket instruct_keyword_command >> put_commands
+let instruct_command = instruct_keyword_command >> put_commands
 
-let integer = someX (function | INTEGER x -> true,int_of_string x | _ -> false,0)
+let integer = someX ((function | INTEGER x -> true,int_of_string x | _ -> false,0)-| tok)
 
 let instruct_int = 
-  bracket(instruct_keyword_int ++ integer) >> put_ints
+  (instruct_keyword_int ++ integer) >> put_ints
 
 let bool_tf = (lit_true >> (fun _ -> true)) ||| 
                 (lit_false >> (fun _ -> false))
 
 let instruct_bool = 
-  bracket(instruct_keyword_bool ++ bool_tf) >> put_bools
+  (instruct_keyword_bool ++ bool_tf) >> put_bools
 
 let string = some (function | STRING _ -> true | _ -> false)
 
 let instruct_string = 
-  bracket(instruct_keyword_string ++ string) >> put_strings
+  (instruct_keyword_string ++ string) >> put_strings
 
  (* We depart slightly from the grammar to make SLASHDASH easier to process *)
 
@@ -877,7 +928,7 @@ let rec expand_slashdash =
  (* XX need to implement multiword synonyms synnode -> many synnode *)
 
 let synlist = 
-  let synnode = someX (function 
+  let synnode = someX ((function 
                   | SLASHDASH -> true,SLASHDASH 
                   | WORD _ as wd -> true,wd
                   | VAR v as var -> (
@@ -885,24 +936,28 @@ let synlist =
                     let isword = String.length u = 1 && 'A' <= u.[0] && u.[0] <= 'Z' in
                     if isword then true,WORD(v,u) else false,var) 
                   | SLASH -> false,SLASH
-                  | _ -> failwith "illegal node in synonym list") in
+                  | _ -> failwith "illegal node in synonym list") -| tok) in
     separated_list synnode (a SLASH) >> expand_slashdash 
 
-let instruct_synonym = bracket(word "synonyms" ++ synlist) >> 
-                         (fun (_,ls) -> syn_add ls)
+let instruct_synonym = (word "synonyms" ++ synlist) >> 
+                         (fun (_,ls) -> syn_add ls; "synonyms")
 
 let instruction = 
   commit "instruction" (a L_BRACK)
-    (instruct_synonym |||
+    (pos_bracket(instruct_synonym |||
        instruct_command |||
        instruct_string |||
        instruct_bool |||
-       instruct_int)
+       instruct_int) >> (fun (a,b) -> Instruction(a,b)))
 
 let synonym_statement = 
   let head = possibly (word "we") ++ possibly(word "introduce") ++ word "synonyms" in
   commit_head "synonym_statement" head
-    (fun head -> (head ++ synlist >> (fun (_,ls) -> syn_add ls)))
+    (fun head -> 
+           ((head >> (fun ((w,i),s) -> merge_pos (List.map pos (w @ i @ [s]))))
+            ++ synlist 
+            ++ a PERIOD  
+            >> (fun ((h,ls),p) -> (syn_add ls;Synonym (pair_pos (h,p.pos))))))
 
 (* end of instructions *)
 
@@ -953,8 +1008,8 @@ let this_directive_pred =
 
 let this_exists = 
   commit "this_exists" (word "this" ++ someword "exists is")
-  (word "this" ++ sep_list(this_directive_pred) >>
-     (fun (_,ls) -> List.flatten ls))
+  (getpos ++ word "this" ++ sep_list(this_directive_pred) ++ getpos ++ a PERIOD >>
+     (fun ((((p,_),ls),p'),_) -> (pair_pos (p,p'),List.flatten ls)))
 
  (* doesn't work properly
  let exclude p parser = 
@@ -973,24 +1028,28 @@ let this_exists =
 let then_prefix = possibly (lit_then)
 
 let assumption_prefix = 
-  lit_lets ++ lit_assume ++ possibly (word "that")
+  lit_lets ++ wrapm "assume" lit_assume ++ possibly (word "that")
 
 let assumption = 
   (assumption_prefix ++ balanced ++ (a PERIOD) >> 
-     (fun ((_,b),_) -> Statement' b)) |||
-    (balanced ++ (a PERIOD) >> (fun (b,_) -> LetAnnotation' b))
+     (fun ((_,b),_) -> Statement' b)) (* |||
+    (* XXX This takes too much *)
+    (balanced ++ (a PERIOD) >> (fun (b,_) -> LetAnnotation' b)) *)
 
 let axiom_preamble = 
   lit_axiom ++ possibly (label) ++ (a PERIOD) >>
     (function 
      | (({ tok = WORD (_,w); _ },ls),_) -> (w,getlabel ls) 
-     | _ -> raise Noparse)
+     | _ -> failwith "axiom_preamble:unreachable-state")
 
 let axiom = 
   commit_head "axiom" axiom_preamble
-  (fun head -> (head ++ many(assumption) ++ then_prefix ++ balanced ++ a(PERIOD) >>
-     (fun (((((w,labl),ls),_),st),_) -> Axiom (w,labl,ls,Statement' st))))
-  
+  (fun head -> 
+         (getpos ++ head ++ many(assumption) 
+          ++ then_prefix ++ balanced ++ getpos ++ a(PERIOD) 
+          >> (fun ((((((p,(w,labl)),ls),_),st),p'),_) -> 
+            Axiom (pair_pos(p,p'),w,labl,ls,Statement' st))))
+
 (* theorem *) 
 let ref_item = sep_list(possibly lit_location ++ label) 
 
@@ -1029,17 +1088,17 @@ let rec affirm_proof input =
 and statement_proof input = 
   (then_prefix ++ balanced ++ by_ref ++ a(PERIOD) ++
     possibly (proof_script) >> 
-     (fun ((((_,b),_),_),_) -> b)) input
+     (fun ((((_,b),_),p),p') -> (merge_pos (p.pos::p'),b))) input
 
 and goal_proof input = 
   (goal_prefix ++ balanced ++ by_ref ++ a(PERIOD) ++ 
      proof_script >> 
-     (fun ((((_,b),_),_),_) -> b)) input
+     (fun ((((_,b),_),_),p) -> (p,b))) input
 
 and proof_script input = 
   (proof_preamble ++ 
     many(canned_prefix ++ proof_body ++ canned_prefix ++ proof_tail) ++
-    lit_qed ++ a(PERIOD) >> discard) input 
+    lit_qed ++ a(PERIOD) >> (fun (_,n) -> n.pos)) input 
 
 and proof_body input = 
   (proof_tail ||| (assumption >> discard) >> discard) input 
@@ -1060,12 +1119,12 @@ and choose_justify input =
 
 let theorem_preamble = 
   (word "theorem" ++ possibly(label) ++ a(PERIOD) >>
-     (fun ((_,ls),_) -> getlabel ls))
+     (fun ((t,ls),p) -> (pair_pos(t.pos,p.pos),getlabel ls)))
 
 let theorem = 
   commit_head "theorem" theorem_preamble 
   (fun head -> (head ++ many(assumption) ++ affirm_proof >>
-    (fun ((l,ls),st) -> Theorem(l,ls,Statement' st))))
+    (fun (((p,l),ls),(p',st)) -> Theorem(pair_pos (p,p'),l,ls,Statement' st))))
 
 
 (* patterns *)
@@ -1115,8 +1174,10 @@ let opt_colon_type =
   >> (fun bs -> Colon' (List.flatten bs))
                          
 let tvarpat = 
-  paren(var ++ opt_colon_type) >>
-    (fun (v,bs) -> Wp_var (v,bs))
+  (paren(var ++ opt_colon_type) >>
+    (fun (v,bs) -> Wp_var (v,bs))) 
+  |||
+    (var >> (fun v -> Wp_var(v,Colon' [])))
 
 let word_pattern = 
   words_in_pattern ++ many(tvarpat ++ words_in_pattern) ++ possibly(tvarpat)
@@ -1246,7 +1307,8 @@ let insection =
 let we_record_def = 
   lit_we_record ++ 
     comma_nonempty_list 
-      (balancedB (function | COMMA | SEMI | PERIOD -> false | _ -> true)) >> snd
+      (balancedB (function | COMMA | SEMI | PERIOD -> false | _ -> true))
+  >> (fun a -> [Wp_record (snd a),[]])
 
 let annotated_var = paren(var ++ opt_colon_type)
 
@@ -1277,6 +1339,7 @@ let let_annotation =
 
 (* macro end *)
 
+
 (* definitions *)
 
 let copula = 
@@ -1302,12 +1365,12 @@ let macro_inferring =
   paren(word "inferring" ++ plus(var) ++ opt_colon_type)
   >> (fun ((_,a),b) -> (a,b))
 
-let class_words = comma_nonempty_list(anyphrase)
+let class_words = comma_nonempty_list(plus(anywordexcept ["is";"are";"be"]))
 
  (* XX need to add prim actions *)
 let classifier_def = 
   word "let" ++ class_words ++ lit_is ++ possibly(lit_a) ++ lit_classifier 
-  >> (fun ((((_,c),_),_),_) -> c)
+  >> (fun ((((_,c),_),_),_) -> [Wp_classifier c,[]])
 
 let type_head = 
   type_word_pattern |||
@@ -1321,7 +1384,7 @@ let type_def =
          copula ++ possibly(lit_a) >> discard) ||| 
          (copula ++ word "the" ++ lit_type >> discard)) ++
       balanced ++ followedby (a(PERIOD))) >>
-    (fun ((((_,a),_),b),_) -> (a,b))
+    (fun ((((_,a),_),b),_) -> [(a,b)])
 
 let function_head = 
   (function_word_pattern |||
@@ -1335,7 +1398,7 @@ let function_def =
     (fun (((((((_,h),m),_),_),_),b),_) -> 
            let h' = if m=[] then h 
                     else let (i,i')= List.hd m in Wp_inferring(h,i,i')
-           in (h',b))
+           in [(h',b)])
 
 let predicate_head = 
   predicate_word_pattern |||
@@ -1349,35 +1412,66 @@ let predicate_def =
     (fun (((((_,h),m),_),b),_) -> 
            let h' = if m=[] then h 
                     else let (i,i')= List.hd m in Wp_inferring(h,i,i')
-           in (h',b)
+           in [(h',b)]
     )
 
 let macro_body = 
-  (type_def 
-   ||| function_def 
-   ||| (we_record_def 
-        >> (fun a -> Wp_record a,[])
-       ) 
-   ||| predicate_def
-  )  
-  >> (fun a -> [a])  
-  ||| (classifier_def 
-       >> (fun a -> [Wp_classifier a,[]])
-      ) 
+  we_record_def 
+  ||| type_def    
+  ||| function_def 
+  ||| predicate_def
+  ||| classifier_def
   ||| let_annotation
 
 let macro_bodies = 
-  separated_list macro_body (a(SEMI) ++ possibly(word "and")) ++ a(PERIOD) 
+  separated_list macro_body (a(SEMI) ++ possibly(word "and")) ++ getpos ++ a(PERIOD) 
   >> fst
 
 let macro = 
-  possibly(insection) ++ macro_bodies 
+  getpos ++ possibly(insection) ++ macro_bodies 
   >>
-    fun (i,m) -> 
+    fun ((p,i),(m,p')) -> 
           let sec_level = (match i with | [] -> 0 | i'::_ -> i') in
-          sec_level,List.flatten m
+          Macro (pair_pos(p,p'),sec_level,List.flatten m)
     
 (* end macro *)                 
+
+(* definition *)
+
+let definition_statement = 
+  classifier_def 
+  ||| function_def
+  ||| type_def
+  ||| predicate_def
+
+let definition_preamble = 
+  wrapm "definition_preamble" 
+  (getpos ++ wrapm "lit_def" lit_def ++ wrapm "label" (possibly(label)) ++ a PERIOD 
+  >> (fun (((p,_),l),_) -> (p,getlabel l)))
+
+let definition_affirm = 
+  definition_statement ++ a PERIOD ++ many(this_exists)
+  >> (fun ((w,p),e) ->
+            let e1 = List.map fst e in 
+            let ex = List.flatten (List.map snd e) in 
+            let p' = merge_pos (p.pos :: e1) in 
+            (p',w,ex))
+
+let definition = 
+  definition_preamble ++ wrapm "assumption" (many assumption) 
+  ++ wrapm "affirm" definition_affirm 
+  >> (fun (((p,l),ma),(p',w,ex)) -> Definition (pair_pos (p,p'),l,ma,w,ex))
+
+let text = 
+  (wrapm "section_preamble" section_preamble)
+  ||| instruction
+  ||| axiom
+  ||| definition 
+  ||| theorem 
+  ||| synonym_statement
+  ||| macro
+  ||| (namespace >> (fun _ -> Namespace))
+
 
 (* primitives *)
 
@@ -1523,9 +1617,9 @@ let proof_expr =
 
 let tvar = 
   var 
-  >> (fun v -> TVar (stored_string v,None))
+  >> (fun v -> TVar (v,None))
   ||| (annotated_var 
-       >> fun (v,ty) -> TVar (stored_string v,Some ty))
+       >> fun (v,ty) -> TVar (v,Some ty))
 
 let pre_expr = (balancedB (function | COMMA | SEMI | PERIOD -> false | _ -> true))
 
@@ -1534,30 +1628,41 @@ let assign_expr = a ASSIGN ++ pre_expr >> snd
 let record_assign_item = 
   var_or_atomic ++ opt_colon_type ++ assign_expr >>
     (fun ((a,b),c) -> 
-           let s = stored_string a in
-           (TVarAtomic(s,Some b),Expr' c))
+           (TVarAtomic(a,Some b),Expr' c))
 
 let record_assign_term = 
   brace_semi >> (fun ts -> List.map (consume record_assign_item) ts)
 
 (* tightest terms *)
 
-let var_term = var >> fun v -> TVar(stored_string v,None)
+let var_term = var >> fun v -> TVar(v,None)
 
-let decimal = someX(function | DECIMAL t -> true,Decimal t  | _ -> false,Error')
+let decimal = 
+  someX
+    (function 
+     | { tok = DECIMAL _ ; _ } as t -> true,Decimal t  
+     | _ -> false,Error')
 
 let integer_term = integer >> (fun i -> Integer i)
 
-let string_term = someX(function | STRING s -> true, String s | _ -> false,Error')
+let string_term = 
+  someX
+    (function 
+     | { tok = STRING _; _ } as s -> true, String s 
+     | _ -> false,Error')
 
 let blank_term = a BLANK >> (fun _ -> Blank)
 
  (* XX to do - hierarchical identifiers *)
 
 let prim_identifier_term = 
-  someX(fun t -> prim_identifier_term_exists t,Id(stored_string_token t,None))
+  someX(fun t -> prim_identifier_term_exists t.tok,Id(t,None))
 
-let controlseq1 = someX(function | CONTROLSEQ s -> (true,s) | _ -> (false,""))
+let controlseq1 = 
+  someX
+    (function 
+     | { tok = CONTROLSEQ _; _ } as s  -> (true,s) 
+     | t -> (false,t))
 
 let controlseq_term = 
   cs_brace controlseq1 balanced 
@@ -1601,7 +1706,7 @@ let set_enum_term =
 let holding_var = (* comma needed for disambiguation *)
   possibly
     (a COMMA ++ paren(word "holding" ++ comma_nonempty_list(var))
-     >> (fun (_,(_,vs)) -> List.map (fun v -> TVar(stored_string v,None)) vs)
+     >> (fun (_,(_,vs)) -> List.map (fun v -> TVar(v,None)) vs)
     ) >> List.flatten
 
 let set_comprehension_term = 
@@ -1677,13 +1782,13 @@ let controlseq_type =
   >> fun (t,ts) -> TyControlSeq (t,ts)
 
 let const_type = 
-  someX(fun t -> prim_identifier_type_exists t,TyId(stored_string_token t))
+  someX(fun t -> prim_identifier_type_exists t.tok,TyId t)
 
 let var_type = 
   let f v = prim_type_var_exists (stored_string v) in 
-  must f var >> (fun v -> TyVar (stored_string v))
+  must f var >> (fun v -> TyVar (v))
   ||| (paren(var ++ a COLON ++ the_case_sensitive_word "Type") 
-         >> (fun ((v,_),_) -> TyVar (stored_string v)))
+         >> (fun ((v,_),_) -> TyVar ( v)))
 
 let subtype = 
   brace(commasep ++ holding_var ++ a TMID ++ balanced)

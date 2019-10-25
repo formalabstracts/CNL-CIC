@@ -1,5 +1,6 @@
 (tests
 (names test1 test2)
+(deps (glob_files ../scripts/*.*))
 (libraries sedlex batteries cnl_parse)
 (preprocess (pps sedlex.ppx))
 )

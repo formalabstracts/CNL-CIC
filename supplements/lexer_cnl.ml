@@ -319,10 +319,10 @@ let lex_token_to_string = function
 
 let rec lex_nodes acc buf = 
   let t = lex_node buf in 
-  if (tok t = EOF) then List.rev (t :: acc) 
+  if (tok t = EOF) then List.rev (acc) 
   else lex_nodes (t:: acc) buf
 
-(* N.B. pos_lnum must be positive or it doesn't get updated *)
+(* N.B. pos_lnum must be positive in Sedlexing or it doesn't get updated *)
 
 let lex_string name s : node list = 
   let buf = Sedlexing.Latin1.from_string s in 

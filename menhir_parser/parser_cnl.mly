@@ -1127,7 +1127,7 @@ definition : definition_preamble list(assumption)
 
   definition_preamble : lit_def option(label) PERIOD {}
   definition_affirm : definition_statement PERIOD 
-    option(this_exists) {}
+    list(this_exists) {}
 
 definition_statement :
 | classifier_def 
