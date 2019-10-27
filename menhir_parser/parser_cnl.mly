@@ -372,6 +372,9 @@ synonym_statement :
 option(LIT_WE) option(LIT_INTRODUCE) LIT_SYNONYMS 
 separated_nonempty_list(instruct_sep,nonempty_list(WORD)) PERIOD {}
 
+moreover_implements : 
+LIT_MOREOVER COMMA general_type LIT_IMPLEMENTS brace_semi(field) PERIOD {}
+
 (* variables *)
 
  (* Variables can be given the modifier LIT_INFERRING
@@ -628,7 +631,7 @@ mutual_inductive_type : LIT_INDUCTIVE
 
 structure : option(LIT_NOTATIONAL) LIT_STRUCTURE 
   option(lit_param) args
-  option(LIT_WITH) brace_semi(field)
+  option(LIT_WITH) brace_semi(extended_field)
   option(option(lit_with_properties) satisfying_preds {}) {}
 
   lit_param : LIT_WITH LIT_PARAMETERS {}
@@ -642,6 +645,10 @@ structure : option(LIT_NOTATIONAL) LIT_STRUCTURE
   | prim_structure
   | var_or_atomic opt_colon_sort
   | var_or_atomic opt_colon_type {}
+
+  extended_field : 
+  | field
+  | satisfying_pred {}
 
   field_prefix : option(lit_a) 
                    option(paren(comma_nonempty_list(lit_field_key) {})) {}
@@ -1028,6 +1035,7 @@ text : list(text_item) {}
     | declaration
     | misc_statement
     | macro
+    | moreover_implements
     | namespace {}
 
 
@@ -1234,6 +1242,7 @@ macro : option(insection) macro_bodies {}
   | predicate_def  
   | let_annotation 
   | we_record_def
+  | enter_namespace
   {}
 
   (* if LIT_FIX is used in let_annotation, it plays the role of a Lean
@@ -1253,6 +1262,8 @@ macro : option(insection) macro_bodies {}
   type_or_prop : lit_type | lit_proposition {}
 
   we_record_def : lit_we_record comma_nonempty_list(plain_term) {}
+
+  enter_namespace : LIT_WE LIT_ENTER LIT_THE LIT_NAMESPACE identifier {}                    
 
  (* subsumed by type_def, function_def, etc. 
 
@@ -1295,11 +1306,14 @@ type_word_pattern : option(lit_a) word_pattern {}
 function_word_pattern : LIT_THE word_pattern {}
 
 predicate_word_pattern :
+| notion_pattern 
 | adjective_pattern 
 | adjective_multisubject_pattern
 | verb_pattern
 | verb_multisubject_pattern 
 {}
+
+  notion_pattern : tvar LIT_IS lit_a word_pattern {}
 
   adjective_pattern : tvar LIT_IS option(LIT_CALLED) word_pattern {}
 

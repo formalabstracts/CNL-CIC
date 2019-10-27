@@ -68,6 +68,18 @@ type associativity =
   | AssocNone
 [@@deriving show]
 
+type this_adj =
+  | ThisUnique
+  | ThisCanonical
+  | ThisWelldefined
+  | ThisWellpropped
+  | ThisTotal
+  | ThisExhaustive 
+  | ThisRecursion
+  | ThisExist
+[@@deriving show]
+
+
 type wordpattern = 
   | Wp_wd of node
   | Wp_sym of node 
@@ -86,24 +98,16 @@ type wordpattern =
   | Wp_identifier of node* node list list * ((node * typ) list)
   | Wp_identifierP of node* node list list * ((node * typ) list)
   | Wp_fun_word of wordpattern list
+  | Wp_notion of wordpattern list
   | Wp_adj of wordpattern list
   | Wp_adjM of wordpattern list
   | Wp_verb of wordpattern list
   | Wp_verbM of wordpattern list
   | Wp_inferring of wordpattern * node list * typ
   | Wp_classifier of node list list
-  | Wp_record of node list list
-[@@deriving show]
-
-type this_adj =
-  | ThisUnique
-  | ThisCanonical
-  | ThisWelldefined
-  | ThisWellpropped
-  | ThisTotal
-  | ThisExhaustive 
-  | ThisRecursion
-  | ThisExist
+  | Wp_record of node list list * this_adj list
+  | Wp_implement of node list * node list list
+  | Wp_namespace of node
 [@@deriving show]
 
 type scope = string list
@@ -170,6 +174,7 @@ type text_node =
   | Definition of pos*string * (statement list)* (wordpattern * node list) list * this_adj list (* label,statements,conclusion *)
   | Theorem of pos*string * (statement list)*statement  (* label, statements,conclusion *)
   | Synonym of pos
+  | Implement of pos*wordpattern
   | Macro of pos* int * (wordpattern * node list) list
   | Namespace
 [@@deriving show]
@@ -202,18 +207,45 @@ let rec get_trace_data =
 let filter_nonempty = 
   List.filter (fun t -> not (t = TrEmpty))
 
-let rec clean_tr = 
+let endswithplus s = 
+  if s = "" then false 
+  else s.[String.length s - 1] = '+'
+
+let is_trstring =
   function
-  | TrMany [] -> TrEmpty
-  | TrMany [t] -> clean_tr t
-  | TrMany (t :: ts) -> TrMany (filter_nonempty (clean_tr t :: List.map clean_tr ts))
-  | TrAdd [] -> TrEmpty
-  | TrAdd [t] -> clean_tr t
-  | TrAdd (t :: ts) -> TrAdd (filter_nonempty (clean_tr t :: List.map clean_tr ts))
-  | TrOr [] -> TrEmpty
-  | TrOr [t] -> clean_tr t
-  | TrOr (t :: ts) -> TrOr (filter_nonempty (clean_tr t :: List.map clean_tr ts))
-  | TrGroup (s,t) -> TrGroup(s,clean_tr t)
+  | TrString _ -> true
+  | _ -> false
+
+let rec clean_tr ls = 
+  let d def ts' = 
+    match List.length ts' with 
+    | 0 -> TrEmpty 
+    | 1 -> clean_tr (List.hd ts')
+    | _ -> def in 
+  match ls with 
+  | TrMany ts -> let ts' = filter_nonempty (List.map clean_tr ts) in 
+                 let ts' = 
+                   if List.for_all is_trstring ts' 
+                   then [TrString (String.concat " " (List.map (function | TrString s -> s | _ -> failwith "trString expected") ts'))]
+                   else ts' in 
+                 d (TrMany ts') ts'
+  | TrAdd ts -> 
+      let ts' = filter_nonempty (List.map clean_tr ts) in 
+      let ts' = 
+        if List.for_all is_trstring ts' 
+        then [TrString ("("^(String.concat " ++ " (List.map (function | TrString s -> s | _ -> failwith "trString expected") ts'))^")")]
+        else ts' in 
+      d (TrAdd ts') ts' 
+  | TrOr ts -> let ts' = filter_nonempty (List.map clean_tr ts) in 
+                d (TrOr ts') ts' 
+  | TrGroup (s,TrGroup(s',t')) -> 
+      let sep = if endswithplus s then "" else "/" in
+                    clean_tr (TrGroup(s^sep^s',t'))
+  | TrGroup (s,TrString s') -> TrString(s^":"^s')
+  | TrGroup (s,t) as trg  -> let t' = clean_tr t in 
+                     if (t = t') then trg else clean_tr (TrGroup(s,t'))
+  | TrData ts -> TrString (string_of_toks ts)
+  | TrFail (i,j,tok) -> TrString("unexpected token:'"^string_of_toks [tok]^"' at line="^string_of_int i^" col="^string_of_int j)
   | t -> t
 
 exception Noparse of trace;;
@@ -278,7 +310,8 @@ let group msg parser input  =
     let (a,(t,ins)) = parser input in 
     (a,(TrGroup(msg,t),ins)) 
   with 
-    Noparse t -> raise (Noparse (TrGroup(msg,t)))
+  | Noparse t -> raise (Noparse (TrGroup(msg,t)))
+  | Nocatch t -> raise (Nocatch (TrGroup(msg,t)))
 
 
 (* a few lines from HOL Light lib.ml *)
@@ -354,7 +387,8 @@ let (++) parser1 parser2 input =
   try 
     let result2,(t2,rest2) = parser2 rest1 in
     (result1,result2),(mergeAdd(t1,t2),rest2)
-  with Noparse t2 -> raise(Noparse (mergeAdd(t1,t2)));;
+  with | Noparse t2 -> raise(Noparse (mergeAdd(t1,t2)))
+       | Nocatch t2 -> raise(Nocatch (TrGroup ("..++",t2)));;
 
 let (>>) prs treatment input =
   let result,rest = prs input in
@@ -372,7 +406,7 @@ let rec many prs input =
 
 let fix err prs input =
   try prs input
-  with Noparse tr -> raise (Nocatch (TrGroup (err,tr)));;
+  with | Noparse tr | Nocatch tr -> raise (Nocatch (TrGroup (err,tr)));;
 
 let separated_list prs sep =
   prs ++ many (sep ++ prs >> snd) >> (fun (h,t) -> h::t);;
@@ -443,7 +477,11 @@ let some_nodeX p =
                 (mk (x,h.pos),(tr,t)) 
               else raise (Noparse(trPos[h]))
 
-let a tok = some (fun item -> item = tok);;
+let a tok input = 
+  try 
+    some (fun item -> item = tok) input
+  with
+    Noparse t -> raise (Noparse (TrGroup ("expected:"^string_of_toks [tok],t)))
 
 let pair x y = (x,y)
 
@@ -483,7 +521,7 @@ let ( <|> ) (test,parser1) parser2 input =
 let commit err test parse input = 
   if canparse test input then 
     fix err parse input  
-  else group ("nocommit."^err) parse input
+  else raise (Noparse (TrGroup ("bad header in "^err,trPos input)))
 
 (*
 let commit_head err parse1 parse2 input = 
@@ -494,16 +532,19 @@ let commit_head err parse1 parse2 input =
  *)
 
 let commit_head err parse1 parse2 input = 
-  let (result,(t,rest)) = parse1 input in 
+  let (result,(t,rest)) = 
+    try parse1 input
+    with Noparse _ -> raise (Noparse (TrGroup("bad header in "^err,trPos input))) in 
   try (
     (parse2 (fun ins -> result,(t,ins))) rest
   )
   with Noparse t2 -> raise (Nocatch(TrGroup(err,t2)))
 
-
-let followedby parse input =
-  let (_,_) =  group "followedby" parse input in 
-  (),(TrEmpty,input)
+let phantom parse input =
+  try 
+    let (_,_) =  group "phantom" parse input in 
+    (),(TrEmpty,input)
+  with Noparse _ -> raise (Noparse(TrGroup("phantom",trPos input)))
 
  (* accumulate parse1s until parse2 succeeds *)
 let rec until parse1 parse2 input = 
@@ -576,27 +617,29 @@ let comma_list err parser =
 let opt_comma_nonempty_list parser = 
   separated_list parser (possibly comma) 
 
-(* let sep_list below *)
-
 let lit_binder_comma = comma
 
 let cs_brace parser1 parser2 = 
   parser1 ++ many (brace parser2) 
 
 (* set up synonym hashtable *)
- (* XX need to add multiword synonyms *)
 
 let synonym = Hashtbl.create 200;;
 
 let syn_add1 (key,value) = 
-  if Hashtbl.mem synonym key then 
-    let value' = Hashtbl.find synonym key in 
-    failwith ("synonym already declared "^key^" "^value')
-  else
-    Hashtbl.add synonym key value
+  let benign = 
+    not(Hashtbl.mem synonym key) || 
+    (let value' = Hashtbl.find synonym key in 
+     (value = value') || failwith ("synonym already declared "^key^" "^value')) in 
+      if benign then Hashtbl.add synonym key value
+
+ (* multiword synonyms are stored by hyphenating words together *)
+
+let hyphen = String.concat "-"
 
 let syn_add ts = 
-  let ts' = string_sort (List.map String.uppercase_ascii ts) in
+  let ts' = List.map hyphen ts in 
+  let ts' = string_sort (List.map String.lowercase_ascii ts') in
   if ts' = [] then ()
   else 
     let value = List.hd ts' in
@@ -608,29 +651,30 @@ let find_syn key =
 
 
 let frozen = 
-  List.map syn_add (List.map (fun t -> [t]) 
+  List.map syn_add (List.map (fun t -> [[t]]) 
 [
-"A";"AN";"ALL";"AND";"ANY";"ARE";"AS";"ASSUME";"BE";"BY";
-"CASE";"CLASSIFIER";"CLASSIFIERS"; 
-"COERCION";"CONJECTURE";"CONTRADICTION";"CONTRARY";"COROLLARY";"DEF";
-"DEFINE";"DEFINED";"DEFINITION";"DENOTE";"DIVISION";"DO";"DOCUMENT";
-"DOES";"DUMP";"EACH";"ELSE";"END";"ENDDIVISION";"ENDSECTION";
-"ENDSUBDIVISION";"ENDSUBSECTION";"ENDSUBSUBSECTION";"EQUAL";
-"EQUATION";"ERROR";"EVERY";"EXHAUSTIVE";"EXIST";"EXISTS";"EXIT";
-"FALSE";"FIX";"FOR";"FORALL";"FORMULA";"FUN";"FUNCTION";"HAS";"HAVE";
-"HAVING";"HENCE";"HOLDING";"HYPOTHESIS";"IF";"IFF";"IN";"INFERRING";
-"INDEED";"INDUCTION";"INDUCTIVE";"INTRODUCE";"IS";"IT";"LEFT";"LEMMA";
-"LET";"LIBRARY";"MAKE";"MAP";"MATCH";"NO";"NOT";"NOTATIONAL";"NOTATION";
-"NOTATIONLESS";"OBVIOUS";"OF";"OFF";"ON";"ONLY";"ONTORED";"OR";"OVER";
-"PAIRWISE";"PARAMETER";"PARAMETERS";"PRECEDENCE";"PREDICATE";"PRINTGOAL";
-"PROOF";"PROP";"PROPERTIES";"PROPERTY";"PROVE";"PROPOSITION";"PROPOSITIONS";
-"PROPPED";"QED";"QUOTIENT";"READ";"RECORD";"REGISTER";"RECURSION";"RIGHT";
-"SAID";"SAY";"SECTION";"SHOW";"SOME";"STAND";"STRUCTURE";"SUBDIVISION";
-"SUBSECTION";"SUBSUBSECTION";"SUCH";"SUPPOSE";"SYNONYMS";"TAKE";"THAT";
-"THE";"THEN";"THEOREM";"THERE";"THEREFORE";"THESIS";"THIS";"TIMELIMIT";
-"TO";"TOTAL";"TRIVIAL";"TRUE";"TYPE";"TYPES";"UNIQUE";"US";
-"WARNING";"WE";"WELL";"WELLDEFINED";"WELL_DEFINED";"WELL_PROPPED";
-"WHERE";"WITH";"WRITE";"WRONG";"YES";
+"a";"an";"all";"and";"any";"are";"as";"assume";"be";"by";
+"case";"classifier";"classifiers"; 
+"coercion";"conjecture";"contradiction";"contrary";"corollary";"def";
+"define";"defined";"definition";"denote";"division";"do";"document";
+"does";"dump";"each";"else";"end";"enddivision";"endsection";
+"endsubdivision";"endsubsection";"endsubsubsection";"equal";
+"equation";"error";"enter";"every";"exhaustive";"exist";"exists";"exit";
+"false";"fix";"fixed";"for";"forall";"formula";"fun";"function";"has";"have";
+"having";"hence";"holding";"hypothesis";"if";"iff";"implements";"in";"inferring";
+"indeed";"induction";"inductive";"introduce";"is";"it";"left";"lemma";
+"let";"library";"make";"map";"match";"moreover";"namespace";
+"no";"not";"notational";"notation";
+"notationless";"obvious";"of";"off";"on";"only";"ontored";"or";"over";
+"pairwise";"parameter";"parameters";"precedence";"predicate";"printgoal";
+"proof";"prop";"properties";"property";"prove";"proposition";"propositions";
+"propped";"qed";"quotient";"read";"record";"register";"recursion";"right";
+"said";"say";"section";"show";"some";"stand";"structure";"subdivision";
+"subsection";"subsubsection";"such";"suppose";"synonyms";"take";"that";
+"the";"then";"theorem";"there";"therefore";"thesis";"this";"timelimit";
+"to";"total";"trivial";"true";"type";"types";"unique";"us";
+"warning";"we";"well";"welldefined";"well_defined";"well_propped";
+"where";"with";"write";"wrong";"yes";
 ])
 
 let rec parse_all ps input = 
@@ -656,22 +700,25 @@ let rec somecomb parser =
 
 (* words *)
 let word s input = 
-  let u = find_syn (String.uppercase_ascii s) in 
+  let u = find_syn (String.lowercase_ascii s) in 
   try 
     let (a,(_,rest)) = some_nodeX 
       (function 
        | WORD (w,wu) -> 
            let wsyn = find_syn wu in
            ((wsyn = u),WORD (w,wsyn))
+       | VAR s -> 
+           let s' = String.lowercase_ascii s in 
+           (s'=u,WORD(s,s'))
        | t -> (false,t)) input in 
-    (a,(TrString ("word:"^u),rest))
+    (a,(TrString ("matched:"^u),rest))
   with 
-    Noparse _ -> raise (Noparse (TrGroup (("word:"^u),trPos input)))
+    Noparse _ -> raise (Noparse (TrGroup (("expected:"^u),trPos input)))
 
 let anyword = some(function | WORD _ -> true | _ -> false)
 
 let anywordexcept banned = 
-  let banned' = List.map String.uppercase_ascii banned in 
+  let banned' = List.map String.lowercase_ascii banned in 
   some(function | WORD(_,w) -> not(List.mem w banned') | _ -> false)
 
 let anyphrase = plus(anyword) 
@@ -726,7 +773,7 @@ let phrase_list_proof_statement =
     (phrase "the proof is" ++ someword "obvious trivial easy routine" >> w)
 
 let  sep_and_comma = 
-  word "and" ||| comma 
+  word "and" ||| (comma ++ possibly(word "and") >> fst)
 
 let sep_list parser = separated_list parser sep_and_comma
 
@@ -741,9 +788,10 @@ let the_case_sensitive_word s =
       | x -> (false,x))
 
 let atomic_identifier =
-  some (function 
-      | ATOMIC_IDENTIFIER _ -> true
-      | _ -> false)
+  some_nodeX (function 
+      | ATOMIC_IDENTIFIER _ as x -> true,x
+      | INTEGER s -> true,ATOMIC_IDENTIFIER s 
+      | t -> false,t)
     
 let atomic =
   case_sensitive_word ||| atomic_identifier 
@@ -769,11 +817,16 @@ let identifier =
    >> 
      function 
      | { tok = ATOMIC_IDENTIFIER s; pos } -> mk (HIERARCHICAL_IDENTIFIER s,pos)
-     | _ -> failwith "Fatal:identifier") |||
+     | _ -> failwith "Fatal:identifier") 
+  |||
+    atomic_identifier
+  |||
     hierarchical_identifier 
 
 let the_id s = 
   some (function
+      | WORD(s',_) -> (s = s')
+      | ATOMIC_IDENTIFIER s' -> (s = s')
       | HIERARCHICAL_IDENTIFIER s' -> (s = s')
       | _ -> false)
 
@@ -825,11 +878,12 @@ let lit_its_wrong = phrase "it is wrong that"
 let lit_we_record = 
   possibly (word "we") ++
     someword "record register" ++
+    possibly(phrase "as identification") ++
     possibly (word "that")
 
 let lit_any = someword "every each all any some no" |||
     (phrase "some and every" 
-     >> (fun ts -> mk(WORD ("some and every","SOME AND EVERY"),merge_pos (List.map pos ts))))
+     >> (fun ts -> mk(WORD ("some and every","some and every"),merge_pos (List.map pos ts))))
 
 let lit_exists = someword "exist exists"
 
@@ -901,16 +955,16 @@ let string_of_scope =
 
 let is_scope_end =
   function
-  | "ENDSECTION" | "ENDSUBSECTION" | "ENDSUBSUBSECTION" | "ENDDIVISION" -> true
+  | "endsection" | "endsubsection" | "endsubsubsection" | "enddivision" -> true
   | _ -> false
 
 let scope_level = 
   function
-  | "DOCUMENT" | "ARTICLE" -> 0
-  | "SECTION" | "ENDSECTION" -> 1
-  | "SUBSECTION" | "ENDSUBSECTION" -> 2
-  | "SUBSUBSECTION" | "ENDSUBSUBSECTION" -> 3
-  | "DIVISION" | "SUBDIVISION" | "ENDDIVISION" | "ENDSUBDIVISION" -> 4
+  | "document" | "article" -> 0
+  | "section" | "endsection" -> 1
+  | "subsection" | "endsubsection" -> 2
+  | "subsubsection" | "endsubsubsection" -> 3
+  | "division" | "subdivision" | "enddivision" | "endsubdivision" -> 4
   | s -> failwith ("bad scope_level "^s)
 
 let pad k x ls =
@@ -1026,27 +1080,36 @@ let instruct_string =
 
  (* We depart slightly from the grammar to make SLASHDASH easier to process *)
 
-let rec expand_slashdash =
+let rec expand_slashdash css cs =
   function
-  | [] -> []
-  | WORD (_,w2) :: SLASHDASH :: WORD (_,w2') :: ts -> 
-      (w2 :: (w2^w2') :: expand_slashdash ts)
-  | WORD (_,w) :: ts -> w :: expand_slashdash ts
-  | _ -> failwith "in synonyms, /- must fall between words"
+  | [] -> let css' = List.filter (fun c -> not(c=[])) (cs :: css) in 
+          List.map List.rev css'
+  | WORD(_,w2) :: ts -> expand_slashdash css (w2 :: cs) ts 
+  | SLASH :: ts -> expand_slashdash (cs :: css) [] ts 
+  | SLASHDASH :: WORD(_,w2') :: ts -> 
+      (match cs with 
+       | [] -> failwith "expand_slashdash: /- must fall between full words"
+       | w2 :: hs -> 
+           let cs2 = (w2^w2') :: hs in 
+           expand_slashdash (cs2 :: cs :: css) [] ts 
+      )
+  | _ -> failwith "expand_slashdash: /- must fall between words"
 
- (* XX need to implement multiword synonyms synnode -> many synnode *)
+
+let is_syntoken = 
+  function 
+  | SLASHDASH -> true,SLASHDASH 
+  | WORD _ as wd -> true,wd
+  | VAR v as var -> (
+    let u = String.lowercase_ascii v in 
+    let isword = String.length u = 1 && 'a' <= u.[0] && u.[0] <= 'z' in
+    if isword then true,WORD(v,u) else false,var) 
+  | SLASH -> true,SLASH
+  | t -> false,t
 
 let synlist = 
-  let synnode = someX ((function 
-                  | SLASHDASH -> true,SLASHDASH 
-                  | WORD _ as wd -> true,wd
-                  | VAR v as var -> (
-                    let u = String.uppercase_ascii v in 
-                    let isword = String.length u = 1 && 'A' <= u.[0] && u.[0] <= 'Z' in
-                    if isword then true,WORD(v,u) else false,var) 
-                  | SLASH -> false,SLASH
-                  | _ -> failwith "illegal node in synonym list") -| tok) in
-    separated_list synnode (a SLASH) >> expand_slashdash 
+  let synnode = someX (is_syntoken -| tok) in
+    many synnode >> (expand_slashdash [] [])
 
 let instruct_synonym = (word "synonyms" ++ synlist) >> 
                          (fun (_,ls) -> syn_add ls; "synonyms")
@@ -1063,10 +1126,19 @@ let synonym_statement =
   let head = possibly (word "we") ++ possibly(word "introduce") ++ word "synonyms" in
   commit_head "synonym_statement" head
     (fun head -> 
-           ((head >> (fun ((w,i),s) -> merge_pos (List.map pos (w @ i @ [s]))))
-            ++ synlist 
-            ++ a PERIOD  
-            >> (fun ((h,ls),p) -> (syn_add ls;Synonym (pair_pos (h,p.pos))))))
+           ((getpos ++ head ++ synlist ++ getpos ++ a PERIOD  
+            >> (fun ((((p,_),ls),p'),_) -> (syn_add ls;Synonym ( pair_pos (p,p')))))))
+
+(* XX need to add to the namespace of the given structure *)
+let morever_implements = 
+  let except = (function | WORD(_,w) -> not(w = "implements") | _ -> true) in
+  let head = word "moreover" ++ comma in
+  commit_head "moreover_implements" head 
+  (fun head ->
+         getpos ++ head ++ balancedB except ++ word "implements" ++ brace_semi
+           ++ getpos ++ a PERIOD
+  ) 
+  >> (fun ((((((p,_),b),_),b'),p'),_) -> Implement (pair_pos(p,p'),Wp_implement (b,b')))
 
 (* end of instructions *)
 
@@ -1112,24 +1184,14 @@ let this_directive_verb =
      fun (_,ts) -> ThisExist :: ts)
 
 let this_directive_pred = 
-  (word "is" ++ sep_list(this_directive_right_attr) >> snd) |||
-    this_directive_verb 
+  group "this is" (word "is" ++ sep_list(this_directive_adjective) >> snd) 
+  |||
+    (group "this_directive_verb" this_directive_verb)
 
-let this_exists = 
+let this_exists = (* no period *)
   commit "this_exists" (word "this" ++ someword "exists is")
-  (getpos ++ word "this" ++ sep_list(this_directive_pred) ++ getpos ++ a PERIOD >>
-     (fun ((((p,_),ls),p'),_) -> (pair_pos (p,p'),List.flatten ls)))
-
- (* doesn't work properly
- let exclude p parser = 
-  function
-  | [] -> parser []
-  | t :: ts as input -> if p t then raise Noparse else parser input 
-  let (result,rest) = parser input in 
-  if p result then raise Noparse else (result,rest)
-  *)
-  
-
+  (getpos ++ word "this" ++ group "sep_list" (sep_list(this_directive_pred)) ++ getpos >>
+     (fun (((p,_),ls),p') -> (pair_pos (p,p'),List.flatten ls)))
 
 (* text *)
 
@@ -1137,12 +1199,12 @@ let this_exists =
 let then_prefix = possibly (lit_then)
 
 let assumption_prefix = 
-  lit_lets ++ group "assume" lit_assume ++ possibly (word "that")
+  possibly(lit_lets) ++ group "assume" lit_assume ++ possibly (word "that")
 
 let assumption = 
   (assumption_prefix ++ balanced ++ (a PERIOD) >> 
      (fun ((_,b),_) -> Statement' b)) (* |||
-    (* XXX This takes too much *)
+    (* XXX This accepts too much *)
     (balanced ++ (a PERIOD) >> (fun (b,_) -> LetAnnotation' b)) *)
 
 let axiom_preamble = 
@@ -1166,13 +1228,13 @@ let by_ref = possibly(paren(word "by" ++ ref_item))
 
 let by_method = 
   (* exclude 'that' to avoid grammar ambiguity in goal_prefix *)
-  let except = (function | WORD(_,w) -> not(w = "THAT") | _ -> true) in
+  let except = (function | WORD(_,w) -> not(w = "that") | _ -> true) in
   commit_head "proof method" (word "by")
   (fun head -> (head ++ 
     ((word "contradiction" >> discard) |||
     (phrase "case analysis" >> discard) |||
     (word "induction" ++ possibly (word "on" ++ balancedB except) >> discard)) ++
-  followedby ((word "that" ||| a(PERIOD))) >> discard))
+  phantom ((word "that" ||| a(PERIOD))) >> discard))
 
 let choose_prefix = 
   then_prefix ++ possibly(lit_lets) ++ lit_choose 
@@ -1240,11 +1302,13 @@ let theorem =
  (* XX need to process multiword synonyms *)
 
 let pattern_banned = 
-  ["IS";"BE";"ARE";"DENOTE";"STAND";"IF";"IFF";"THE";"A";"AN";
-   "SAID";"DEFINED";"OR";"AND";"INFERRING"]
+  ["is";"be";"are";"denote";"stand";"if";"iff";"the";"a";"an";
+   "we";"say";"write";"define";"enter";"namespace";
+   "said";"defined";"or";"fix";"fixed";"and";"inferring"]
 
 let not_banned =
-  let p s = not(List.mem s pattern_banned) in
+  let u = String.lowercase_ascii in 
+  let p s = not(List.mem (u s) pattern_banned) in
   (function
   | WORD(_,s) -> p s
   | VAR s -> p s
@@ -1272,7 +1336,7 @@ let words_in_pattern =
 let post_colon_balanced = 
   balancedB (* true nodes can follow opt_colon_type *)
     (function | ASSIGN | SEMI | COMMA | ALT | COLON -> false 
-              | WORD (_,s) -> not(s = "END") && not(s = "WITH")
+              | WORD (_,s) -> not(s = "end") && not(s = "with")
               | _ -> true)
 
 let colon_type = 
@@ -1288,8 +1352,8 @@ let tvarpat =
   |||
     (var >> (fun v -> Wp_var(v,Colon' [])))
 
-let word_pattern = 
-  words_in_pattern ++ many(tvarpat ++ words_in_pattern) ++ possibly(tvarpat)
+let word_pattern = group "word_pattern"
+  (words_in_pattern ++ many(tvarpat ++ words_in_pattern) ++ possibly(tvarpat))
    >>
      fun ((a,bs),c) ->
            a @ (List.flatten (List.map (fun (b,b')-> b::b') bs)) @ c
@@ -1299,6 +1363,10 @@ let type_word_pattern = possibly(lit_a) ++ word_pattern >> (fun (_,bs) -> Wp_ty_
 let function_word_pattern = 
   word("the") ++ word_pattern >> 
     (fun (_,w) -> Wp_fun_word w)
+
+let notion_pattern = 
+  tvarpat ++ word "is" ++ lit_a ++ word_pattern
+  >> (fun (((v,_),_),w) -> Wp_notion (v::w) )
                               
 let adjective_pattern = 
   tvarpat ++ word "is" ++ possibly (word "called") ++ word_pattern
@@ -1325,6 +1393,7 @@ let verb_multisubject_pattern =
   >> fun ((a,a'),b) -> Wp_verbM (a::a'::b)
 
 let predicate_word_pattern =
+  notion_pattern ||| 
   adjective_pattern |||
     adjective_multisubject_pattern |||
     verb_pattern |||
@@ -1337,22 +1406,23 @@ let opt_args_pat =
    the types are all the same through a metavariable.  *)
 
 let required_arg_pat = 
-  paren(var_or_atomics ++ opt_colon_type) >>
-    (fun (vs,bs) -> List.map (fun v -> v,bs) vs)
-        |||
-    (must (not_banned -| tok) var_or_atomic  >> fun a -> [a,Colon' []])
+  paren(var_or_atomics ++ opt_colon_type) 
+  >> (fun (vs,bs) -> List.map (fun v -> v,bs) vs)
+  |||
+    group "required_arg_pat2" 
+      (must (not_banned -| tok) var_or_atomic  >> fun a -> [a,Colon' []])
 
 let args = 
   (possibly opt_args_pat >> List.flatten) ++ (many(required_arg_pat) >> List.flatten)
 
-let identifier_pattern = 
-  (must (not_banned -| tok)  identifier ||| a(BLANK)) ++
-    args
+let identifier_pattern = group "identifier_pattern"
+  (possibly(lit_a) ++ (must (not_banned -| tok)  identifier ||| a(BLANK)) ++
+    group "args" args)
 
 let controlseq = some(function | CONTROLSEQ _ -> true | _ -> false)
 
 let controlseq_pattern = 
-  controlseq ++ many(brace(tvarpat))
+  group "controlseq_pattern" (controlseq ++ many(brace(tvarpat)))
 
 let binary_controlseq_pattern = 
   tvarpat ++ controlseq_pattern ++ tvarpat >>
@@ -1368,8 +1438,8 @@ let precedence_level =
     (function 
     | WORD (_,s) ->
         (match s with 
-         | "LEFT" -> AssocLeft 
-         | "RIGHT" -> AssocRight 
+         | "left" -> AssocLeft 
+         | "right" -> AssocRight 
          | _ -> AssocNone)
     | _ -> AssocNone) -| tok in
   word "with" ++ word "precedence" ++ integer ++
@@ -1383,9 +1453,9 @@ let precedence_level =
 let paren_precedence_level = 
   precedence_level ||| paren precedence_level
 
-let symbol_pattern = 
-  possibly(tvarpat) ++ symbol ++
-    many(tvarpat ++ symbol) ++ possibly(tvarpat) ++ possibly(paren_precedence_level) >>
+let symbol_pattern = group "symbol_pattern"
+  (possibly(tvarpat) ++ symbol ++
+    many(tvarpat ++ symbol) ++ possibly(tvarpat) ++ possibly(paren_precedence_level)) >>
     (fun ((((a,b),cs),ds),e) -> 
            let cs' = List.flatten (List.map (fun (c,c') -> [c;c']) cs) in
            let e' = (function 
@@ -1401,9 +1471,9 @@ let symbol_pattern =
 
 let insection = 
   commit_head "macro" (phrase "in this")
-    (fun head -> (head ++ lit_document 
+    (fun head -> (head ++ lit_document ++ possibly(comma)
      >> 
-       (function | (_,{ tok = WORD(_,s); _ }) -> 
+       (function | ((_,{ tok = WORD(_,s); _ }),_) -> 
                      (let i = scope_level s in
                       let subdivision = (i>3) in
                       if subdivision 
@@ -1413,11 +1483,12 @@ let insection =
     ))
 
 
-let we_record_def = 
-  lit_we_record ++ 
+let we_record_def = group "we_record_def"
+  (lit_we_record ++
     comma_nonempty_list 
-      (balancedB (function | COMMA | SEMI | PERIOD -> false | _ -> true))
-  >> (fun a -> [Wp_record (snd a),[]])
+      (balancedB (function | COMMA | SEMI | PERIOD -> false | _ -> true)) ++
+  possibly(a PERIOD ++ this_exists >> snd)
+  >> (fun (a,b) -> [Wp_record (snd a,List.flatten (List.map snd b)),[]]))
 
 let annotated_var = paren(var ++ opt_colon_type)
 
@@ -1425,8 +1496,9 @@ let annotated_vars = paren(plus(var) ++ opt_colon_type) >>
                        (fun (vs,o) -> List.map (fun v -> Wp_var(v,o)) vs)
 
 let let_annotation_prefix = 
-  (word("let") ++ comma_nonempty_list(var) ++ word "be" ++ possibly(lit_a)) >>
-    fun (((_,a),_),_) -> a
+  (word("let") ++ comma_nonempty_list(var) ++ word "be" ++ possibly(lit_a) 
+   ++ possibly(word "fixed")) >>
+    fun ((((_,a),_),_),w) -> (a,not(w = []))
 
 let fix_var fix v = if fix then 
                       (match v with
@@ -1434,8 +1506,8 @@ let fix_var fix v = if fix then
                        | _ -> v)
                     else v
 
-let let_annotation = 
-  ((word "fix" >> (fun _ -> true) ||| (word "let" >> (fun _ -> false))) ++ 
+let let_annotation = commit  "let_annotation" (phantom (someword "fix let"))
+  (((word "fix" >> (fun _ -> true) ||| (word "let" >> (fun _ -> false))) ++ 
     comma_nonempty_list(annotated_vars) 
    >>
      (fun (t,bs) -> List.map (fun b -> (fix_var t b,[])) (List.flatten bs))
@@ -1443,18 +1515,24 @@ let let_annotation =
   |||
     ((let_annotation_prefix ++ post_colon_balanced)
      >>
-       fun (vs,b) -> List.map (fun v -> (Wp_var (v,Colon' b),[])) vs 
-    )
+       (fun ((vs,t),b) -> List.map (fun v -> (fix_var t (Wp_var (v,Colon' b)),[])) vs 
+    )))
 
 (* macro end *)
 
 
 (* definitions *)
 
-let copula = 
-  group "copula" ((lit_is ++ possibly(lit_defined_as) >> discard) |||
-    (a(ASSIGN) >> discard) |||
-    (lit_denote >> discard))
+let copula = group "copula"
+  (phantom (someword "is are be denote stand" ||| a (ASSIGN)) ++ 
+     (
+       (lit_is ++ possibly(lit_defined_as) >> discard) 
+       |||
+         (a(ASSIGN) >> discard) 
+       |||
+         (lit_denote >> discard)
+     )
+  ) >> discard
 
 let function_copula =
   copula >> (fun _ -> Colon' []) |||
@@ -1467,8 +1545,8 @@ let opt_say = possibly(lit_we_say)
 let opt_record = possibly(lit_we_record) >> discard 
 
 let opt_define = 
-  (possibly(lit_lets) ++ possibly(word "define") >> discard) |||
-    (opt_record)
+  (possibly(lit_lets) ++ possibly(word "define") >> discard) 
+  |||     (opt_record) (* creates both a definition and record *)
 
 let macro_inferring = 
   paren(word "inferring" ++ plus(var) ++ opt_colon_type)
@@ -1477,33 +1555,45 @@ let macro_inferring =
 let class_words = comma_nonempty_list(plus(anywordexcept ["is";"are";"be"]))
 
  (* XX need to add prim actions *)
-let classifier_def = 
-  word "let" ++ class_words ++ lit_is ++ possibly(lit_a) ++ lit_classifier 
+let classifier_def = group "classifier_def"
+  (word "let" ++ class_words ++ lit_is ++ possibly(lit_a) ++ lit_classifier)
   >> (fun ((((_,c),_),_),_) -> [Wp_classifier c,[]])
 
 let type_head = 
-  type_word_pattern |||
+  group "type_word_pattern" type_word_pattern |||
     (symbol_pattern >> (fun (a,_,_) -> Wp_sympatT (a))) |||
-    (identifier_pattern >> (fun (a,(b,c)) -> Wp_ty_identifier (a,b,c))) |||
+    (identifier_pattern >> (fun ((_,a),(b,c)) -> Wp_ty_identifier (a,b,c))) |||
     (controlseq_pattern >> (fun (a,b) -> Wp_ty_cs (a,b)))
 
-let type_def = 
-  (opt_define ++ type_head ++ 
-      ((a(COLON) ++ the_case_sensitive_word "Type" ++ 
-         copula ++ possibly(lit_a) >> discard) ||| 
-         (copula ++ word "the" ++ lit_type >> discard)) ++
-      balanced ++ followedby (a(PERIOD))) >>
+let type_def_body = 
+  group "Type" (a(COLON) ++ the_case_sensitive_word "Type" ++ 
+                  copula ++ possibly(lit_a) >> discard) 
+  ||| (copula ++
+        (
+               (word "the" ++ lit_type >> discard)
+             |||
+               (possibly(article) 
+                 ++ phantom (possibly(word "notational") ++ word "structure") >> discard)
+             ||| 
+               (possibly(article) 
+                ++ phantom (possibly(word "mutual") ++ word "inductive") >> discard)
+        ) >> discard
+      )
+
+let type_def = group "type_def"
+  (opt_define  ++ group "type_head" type_head ++ type_def_body
+   ++ balanced ++ phantom (a(PERIOD))) >>
     (fun ((((_,a),_),b),_) -> [(a,b)])
 
 let function_head = 
   (function_word_pattern |||
     (symbol_pattern >> (fun (a,b,c) -> Wp_sympat (a,b,c))) ||| 
-       (identifier_pattern >> (fun (a,(b,c)) -> Wp_identifier (a,b,c))))
+       (identifier_pattern >> (fun ((_,a),(b,c)) -> Wp_identifier (a,b,c))))
 
-let function_def = 
+let function_def = group "function_def"
   (opt_define ++ function_head ++ possibly(macro_inferring) ++
-     copula ++ possibly(lit_equal) ++ possibly(word "the") ++ 
-     group "balanced" balanced  ++ followedby (* (a(PERIOD)) *) empty  ) >>
+     function_copula ++ possibly(lit_equal) ++ possibly(article) ++ 
+     group "balanced" balanced  ++ phantom  (a(PERIOD))   ) >>
     (fun (((((((_,h),m),_),_),_),b),_) -> 
            let h' = if m=[] then h 
                     else let (i,i')= List.hd m in Wp_inferring(h,i,i')
@@ -1512,11 +1602,11 @@ let function_def =
 let predicate_head = 
   predicate_word_pattern |||
   (symbol_pattern >> (fun (a,b,c) -> Wp_sympatP (a,b,c))) |||
-    (identifier_pattern >> (fun (a,(b,c)) -> Wp_identifierP (a,b,c)))
+    (identifier_pattern >> (fun ((_,a),(b,c)) -> Wp_identifierP (a,b,c)))
 
-let predicate_def = 
-  opt_say ++ predicate_head ++ possibly(macro_inferring) ++ iff_junction
-  ++ balanced ++ followedby (a(PERIOD)) 
+let predicate_def = group "predicate_def"
+  (opt_say ++ predicate_head ++ possibly(macro_inferring) ++ iff_junction
+  ++ balanced ++ phantom (a(PERIOD)))
   >>
     (fun (((((_,h),m),_),b),_) -> 
            let h' = if m=[] then h 
@@ -1524,34 +1614,41 @@ let predicate_def =
            in [(h',b)]
     )
 
+let enter_namespace = 
+  group "enter_namespace" 
+    (phrase "we enter the namespace" ++ identifier) >> 
+    (fun (_,i) -> [(Wp_namespace i,[])])
+
 let macro_body = 
-  we_record_def 
-  ||| type_def    
+  type_def    
   ||| function_def 
   ||| predicate_def
   ||| classifier_def
   ||| let_annotation
 
 let macro_bodies = 
-  separated_list macro_body (a(SEMI) ++ possibly(word "and")) ++ getpos ++ a(PERIOD) 
-  >> fst
+  we_record_def 
+  ||| enter_namespace
+  |||
+    (separated_list macro_body (a(SEMI) ++ possibly(word "and"))  
+     >> List.flatten)
 
 let macro = 
-  getpos ++ possibly(insection) ++ macro_bodies 
+  getpos ++ possibly(insection) ++ macro_bodies ++ getpos ++ a(PERIOD)
   >>
-    fun ((p,i),(m,p')) -> 
+    fun ((((p,i),m),p'),_)-> 
           let sec_level = (match i with | [] -> 0 | i'::_ -> i') in
-          Macro (pair_pos(p,p'),sec_level,List.flatten m)
+          Macro (pair_pos(p,p'),sec_level, m)
     
 (* end macro *)                 
 
 (* definition *)
 
 let definition_statement = 
-  (group "classifier_def" classifier_def)
-  ||| (group "function_def" function_def)
-  ||| (group "type_def" type_def)
-  ||| (group "predicate_def" predicate_def)
+  (classifier_def)
+  ||| (function_def)
+  ||| type_def
+  ||| (predicate_def)
 
 let definition_preamble = 
   group "definition_preamble" 
@@ -1559,12 +1656,11 @@ let definition_preamble =
   >> (fun (((p,_),l),_) -> (p,getlabel l)))
 
 let definition_affirm = 
-  definition_statement ++ a PERIOD ++ many(this_exists)
-  >> (fun ((w,p),e) ->
-            let e1 = List.map fst e in 
+  getpos ++ definition_statement ++ possibly(a PERIOD ++ this_exists >> snd) 
+  ++ getpos ++ a PERIOD
+  >> (fun ((((p,w),e),p'),_) ->
             let ex = List.flatten (List.map snd e) in 
-            let p' = merge_pos (p.pos :: e1) in 
-            (p',w,ex))
+            (pair_pos(p,p'),w,ex))
 
 let definition = 
   commit_head "definition" definition_preamble 
@@ -1573,14 +1669,18 @@ let definition =
   >> (fun (((p,l),ma),(p',w,ex)) -> Definition (pair_pos (p,p'),l,ma,w,ex)))
 
 let text = 
-  (group "section_preamble" section_preamble)
-  ||| (group "instruction" instruction)
-  ||| (group "axiom" axiom)
-  ||| (group "definition" definition)
-  ||| (group "theorem" theorem)
-  ||| (group "synonym_statement" synonym_statement)
-  ||| (group "macro" macro)
-  ||| (group "namespace" namespace >> (fun _ -> Namespace))
+  group "text" 
+    (
+      (group "section_preamble" section_preamble)
+      ||| (group "instruction" instruction)
+      ||| (group "axiom" axiom)
+      ||| (group "definition" definition)
+      ||| (group "theorem" theorem)
+      ||| (group "macro" macro)
+      ||| (group "synonym_statement" synonym_statement)
+      ||| (group "moreover_implements" morever_implements)
+      ||| (group "namespace" namespace >> (fun _ -> Namespace))
+    )
 
 
 (* primitives *)

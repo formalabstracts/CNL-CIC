@@ -1,8 +1,8 @@
 (dirs :standard menhir_parser \ chaff)
 
 (library
-(name cnl_parse)
-(public_name cnl_parse)
+(name cnl_menhir)
+(public_name cnl_menhir)
 (wrapped true)
 (modules (:standard 
 	 parser_cnl))

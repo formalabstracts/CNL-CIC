@@ -1,0 +1,614 @@
+  %- PACKAGES  
+  %- THEOREMS  
+  %- DOCUMENT  
+  %-% BEGIN  
+  Section  Generalities  .  
+  Section  Setmembership  .  
+  %- macro -> let_annotation   
+  In  this  section  let    V__alpha  ,  V__beta    be  types  .  
+  %- macro -> predicate_def   
+  %- symbol_statement -> LIT_NOT symbol_statement -> LIT_NOT prop  
+  %- The parentheses are optional.  
+  We  write    x  \ne y    iff  not    (  x  =  y  )    .  
+  %- macro -> definition_statement -> classifier_def  
+  Let  function  ,  quotient  ,  term  ,  relation  be  classifiers  .  
+  %- definition  
+  Definition  Label_set  .    
+  %- definition_statement -> type_def   
+  %- type_word_pattern   
+  Let  set  (  of  )    V__alpha    be  the  type    V__alpha  \to Bool    .  
+  %-definition  
+  Definition  Label_universe  .    
+  %- function_def -> lit_lets function_head copula LIT_THE plain_term  
+  %- function_head -> function_word_pattern -> LIT_THE word_pattern  
+  Let  the  universe  of    V__alpha    be  the  function  
+  (  fun  (  \blank :  V__alpha  )  :  Bool  :=  true  )  .  
+  Definition  Label_empty_set  .    
+  %- same parse tree as universe  
+  Let  the  empty  set  (  inferring    V__alpha    )  be  the  function  
+  (  fun  (  \blank :  V__alpha  )  :  Bool  :=  false  )  .  
+  %-macro -> function_def  
+  %- lit_lets symbol_pattern copula LIT_THE plain_term  
+  Let    \emptyset   stand  for  the  empty  set  .  
+  Definition  Label_notation_in  .    
+  %- structure  
+  notation_in  is  the  notational  structure  with  
+  {  
+  (  parameter  )    V__beta    
+  ;  (  parameter  )    V__alpha    
+  ;  notation_in  :    V__alpha  \to V__beta  \to Prop    
+  }  .  
+  Definition  Label_in  .    
+  We  write    x  \in X    (  inferring  C  :  
+  notation_in  )  iff    C  .notation_in  x  X    .  
+  Definition  Label_notin  .    
+  We  write    x  \notin X    iff    not  (  x  \in X  )    .  
+  Definition  Label_notation_subset  .    
+  notation_subset  is  the  notational  structure  with  
+  {  
+  (  parameter  ,  type  )    V__alpha    
+  ;  notation_subseteq  :    V__alpha  \to V__alpha  \to Prop    
+  }  .  
+  Definition  Label_subset_notation  .    
+  We  write    X  \subset Y    (  inferring    C  :  notation_subset  )    iff  
+    C  .notation_subset  X  Y    .  
+  We  write    X  \subseteq Y    iff    X  \subset Y    or    (  X  =  Y  )    .  
+  We  say    X    is  a  subset  of    Y    iff    X  \subseteq Y    .  
+  We  say    x    is  a  member  of    X    iff    x  \in X    .  
+  Let  the  value  of    f    at    x    stand  for    f  (  x  )    .  
+  Moreover  ,  notation_in  over    V__beta  ,  V__alpha    implements  
+  {  
+  (  notation  )  notation_subset    X  Y  :=  
+  for  all  x  ,  x  \in X  \imply x  \in Y    
+  }  .  
+  Section  NaturalNumber  .  
+  Definition  Label_typical_structure  .    
+  A  typical_structure  is  a  structure  with  
+  {  
+  (  type  )    V__alpha  :  Type    
+  }  .  
+  Definition  Label_notation_zero  .    
+  notation_zero  is  the  notational  structure  with  
+  {  
+    V__alpha  :  Type    
+  ;    notation_zero  :  V__alpha    
+  }  .  
+  Let    0    (  inferring  
+    C  :  notation_zero    )  stand  for    C  .notation_zero    .  
+  Definition  Label_notation_one  .    
+  notation_one  is  the  notational  structure  with  
+  {  
+    V__alpha  :  Type    
+  ;  notation_one    :  V__alpha    
+  }  .  
+  Let    1    (  inferring    C  :  notation_one    )  stand  for    C  .notation_one    .  
+  Definition  Label_notation_add  .    
+  notation_add  is  the  notational  structure  with  
+  {  
+    V__alpha  :  Type    
+  ;  notation_add    :  V__alpha  \to V__alpha  \to V__alpha    
+  }  .  
+  Definition  Label_notation_add  .    
+  Let    x  +  y    (  inferring    C  :  notation_add    )  stand  for    C  .notation_add  x  y    with  precedence  
+    30    and  left  associativity  .  
+  Definition  Label_notation_numeral  .    
+  notation_numeral  is  the  notational  structure  with  
+  {  
+  notation_one  
+  ;  notation_add  
+  }  .  
+  Definition  Label_notation_mul  .    
+  notation_mul  is  the  notational  structure  with  
+  {  
+    V__alpha  :  Type    
+  ;  notation_mul    :  V__alpha  \to V__alpha  \to V__alpha    
+  }  .  
+  Definition  Label_notation_mul  .    
+  Let    x  *  y    (  inferring    C  :  notation_mul    )  stand  for    C  .notation_mul  x  y    with  precedence  
+    40    and  left  associativity  .  
+  Definition  Label_natural_numbers  .    
+  Let    Nat    be  the  inductive  type  
+  \alt zero    :  Nat    
+  \alt succ    :  Nat  \to Nat    
+  end  .  
+  Moreover  ,    Nat    implements  
+  {  
+  (  notation  )  notation_zero    :=  zero    
+  ;  (  notation  )  notation_one    :=  succ  0    
+  }  .  
+  Definition  Label_natural_number_addition  .    
+  We  define    add  (  m  n  :  Nat  )  :=    
+    match  n    with  
+  \alt   0      :=      m    
+  \alt   succ  k      :=      succ  (  add  m  k  )    
+  end  .  
+  This  exists  by  recursion  .  
+  Moreover  ,    Nat    implements  
+  {  
+  (  notation  )  notation_add    :=  add    
+  }  .  
+  Definition  Label_natural_number_multiplication  .    
+  We  define    mul  (  m  n  :  Nat  )  :=    
+    match  n    with  
+  \alt   0      :=      0    
+  \alt   k  +1      :=      succ  (  mul  m  k  +  m  )    
+  end  .  
+  This  exists  by  recursion  .  
+  Moreover  ,    Nat    implements  
+  {  
+  (  notation  )  notation_mul    :=  mul    
+  }  .  
+  Section  List  .  
+  In  this  section  ,  let    V__alpha    be  a  type  .  
+  Definition  Label_list  .    
+  Let    list  (  of  )  V__alpha    be  the  inductive  type  
+  \alt   null  {  }      :      list    
+  \alt   cons      :      V__alpha  \to list  \to list    
+  end  .  
+  Definition  Label_null_list  .    
+  Let    \nullbrack   (  inferring    V__alpha    )  stand  for  
+  null  :  list  {  V__alpha  }  .  
+  Definition  Label_cons  .    
+  Let    (  x  :  V__alpha  )  ::  (  X  :  list  V__alpha  )    stand  for  
+  cons  x  X  .  
+  We  introduce  synonyms  size  /  length  .  
+  Definition  Label_length  .    
+  Let    length  :  list  V__alpha  \to Nat  :=    function  
+  \alt   \nullbrack     :=      0    
+  \alt   a  ::  A      :=    1  +  length  A  
+  end  .  
+  This  exists  by  recursion  .  
+  Definition  Label_in  .    
+  Let    in  (  x  :  V__alpha  )  :  list  V__alpha  \to Prop  :=    function  
+  \alt   \nullbrack     :=    false  
+  \alt   a  ::  A      :=      (  x  =  a  )  \lor (  in  x  A  )    
+  end  .  
+  This  exists  by  recursion  .  
+  Moreover  ,  list  implements  
+  {  
+  (  notation  )  notation_in    (  x  :  V__alpha  )  (  X  :  list  V__alpha  )  :=  in  x  X    
+  }  .  
+  Definition  Label_drop  .    
+  Let    drop  (  x  :  V__alpha  )  :  list  V__alpha  \to list  V__alpha  :=    
+  function  
+  \alt   \nullbrack     :=    \nullbrack 
+  \alt   a  ::  A      :=    
+    if  (  x  =  a  )  then  A  else  a  ::  (  drop  x  A  )    
+  end  .  
+  This  exists  by  recursion  .  
+  Subsection  multiset  .  
+  Definition  Label_nodup  .    
+  Let    nodup  :  list  V__alpha  \to Prop  :=    
+  function  
+  \alt   \nullbrack     :=    true  
+  \alt   a  ::  A      :=    
+    nodup  A  \land a  \not \in A    
+  end  .  
+  This  exists  by  recursion  .  
+  Definition  Label_is_permutation  .    
+  Let    is_permutation  X  Y  :  Prop  :=    
+  match    (  X  ,  Y  )    with  
+  \alt   (  \nullbrack ,  \nullbrack )      :=    true  
+  \alt 
+    (  x  ::  X  ,  Y  )      :=    
+    (  x  \in Y  )  \land is_permutation  X  (  drop  x  Y  )    
+  end  .  
+  This  exists  by  recursion  .  
+  Definition  Label_multiset  .    Let  multiset  (  of  )    V__alpha    denote  the  quotient  
+  of    list  V__alpha    by  
+  is_permutation  .  This  exists  .  
+  Definition  Label_length  .    
+  Let  multiset.length    (  X  :  multiset  V__alpha  )    denote  the  length  of  
+    Y    for  each  and  every    X  =  multiset  Y    .  
+  This  exists  and  is  welldefined  .  
+  Moreover  ,  multiset    V__alpha    implements  
+  {  
+  (  notation  )  notation_in    (  x  :  V__alpha  )      (  X  :  multiset  V__alpha  )  :=    
+    x  \in Y    for  each  and  every    X  =  multiset  Y    
+  }  .  
+  Let  multiset.nodup    (  X  :  multiset  V__alpha  )  :  Prop  :=    
+  list.nodup    Y    for  each  and  every    X  =  multiset  Y    .  
+  We  introduce  synonyms  element  /  point  /  carrier  .  
+  Definition  Label_duplicate_free_multiset  .    
+  A  duplicate_free_multiset  is  a  structure  with  
+  {  
+  (  parameter  )  element  :  Type  
+  ;  support  :  multiset  element  
+  ;  length    :=    the  length  of  the  support  
+  ;  nodup  support  
+  %- a proof that the support set is  
+  }  .  
+  Section  Finiteness  .  
+  In  this  section  ,  let    V__alpha    be  a  type  .  
+  In  this  section  ,  let    X    be  a  duplicate  free  multiset    V__alpha    ;  
+  and  let    Y    be  a  set  of    V__alpha    .  
+  Definition  Label_finite  .    
+  We  say  that    Y    is  
+  finite  iff  there  exists    X    
+  such  that    Y  =  \setcomp {  x  }  {  x  \in support  X  }    .  
+  Let  an  equivalence    (  f  :  V__alpha  \to V__beta  )    stand  for  a  bijection    f    .  
+  We  record  as  identification  
+  (  fun  (  X  :  duplicate_free_multiset  V__alpha  )  :=  (  \setcomp {  x  }  {  x  \in support  of  X  }  :  finite  set  V__alpha  )  )  .  
+  This  exists  and  is  unique  .  
+  Subsection  finitetypes  .  
+  We  enter  the  namespace  finite_type  .  
+  %- macro  
+  We  say  that    V__alpha    is  a  finite  type  iff  the  
+  universe  of    V__alpha    is  finite  .  
+  Definition  .    Assume  that    V__alpha    is  a  finite  type  .  The  
+  size  of    V__alpha    is  the  size  of  the  universe  of  
+    V__alpha    .  This  exists  and  is  unique  .  
+  Definition  .    Assume  that    V__alpha    is  a  finite  type  .  The  support  
+  of    V__alpha    is  the  support  of  the  universe  of    V__alpha    .  This  exists  
+  and  is  unique  .  
+  Section  Order  .  
+  Definition  Label_binary_relation  .    
+  A  binary_relation  is  a  structure  with  
+  {  
+  (  parameter  ,  type  )  element  :  Type  
+  ;  a  (  map  )    relation  :  element  \to element  \to Prop    
+  }  .  
+  In  this  section  ,  fix    (  R  :  binary_relation  )    ;  and  
+  let    (  s  x  y  z  :  R  )    ;  and  
+  write    x  \le y    iff    R  x  y    .  
+  Definition  Label_reflexive  .    We  say    R    is  reflexive  iff  for  all    x  ,  x  
+  \le x    .  
+  Definition  Label_transitive  .    We  say    R    is  transitive  iff  for  
+  all    x  y  z  ,  x  \le y  \land y  \le z  \to x  \le z    .  
+  Definition  Label_symmetric  .    We  say    R    is  symmetric  iff  for  
+  all    x  y  ,  x  \le y  \to y  \le x    .  
+  Definition  Label_preorder  .    We  say    R    is  a  preorder  iff    R    is  symmetric  
+  and  transitive  .  
+  Definition  Label_equivalence_relation  .    We  say    R    is  an  
+  equivalence  relation  iff    R    is  reflexive  ,  symmetric  and  transitive  .  
+  Definition  Label_antisymmetric  .    We  say    R    is  antisymmetric  iff  for  
+  all    x  ,  y  ,  x  \le y  and  y  \le x  imply  x  =  y    .  
+  Definition  Label_total  .    Assume  that    R    is  a  preorder  .  We  say  that    R    is  
+  total  iff  for  all    x  ,  y  ,  x  \le y  or  y  \le x    .  
+  Definition  Label_poset  .    We  say  that    R    is  a  poset  iff    R    is  an  
+  antisymmetric  preorder  .  
+  Let  partially  ordered  set  stand  for  poset  .  
+  Definition  Label_linear_order  .    We  say  that    R    is  a  linear  order  iff    R    
+  is  a  total  poset  .  
+  Let  total  order  denote  linear  order  .  
+  We  introduce  synonyms  greatest  /  maximum  /  top  .  
+  Definition  Label_greatest_element  .    We  say  that    y    is  a  
+  greatest  element  in    R    iff  for  all    x  ,  x  \le y    .  
+  We  introduce  synonyms  least  /  minimum  /  bottom  .  
+  Definition  Label_least_element  .    We  say  that    y    is  a  least  element  in  
+    R    iff  for  all    x  ,  y  \le x    .  
+  Let    x  <  y    stand  for    x  \le y    and    x  \ne y    .  
+  Definition  Label_maximal_element  .    We  say  that    y    is  a  maximal  element  
+  in    R    iff  there  exists  no    x    such  that    y  <  x    .  
+  Definition  Label_minimal_element  .    We  say  that    y    is  a  minimal  element  
+  in    R    iff  there  exists  no    x    such  that    x  <  y    .  
+  Definition  Label_irreflexive  .    We  say  that    R    is  irreflexive  iff  there  
+  exists  no    x    such  that    x  <  x    .  
+  Definition  Label_asymmetric  .    We  say  that    R    is  asymmetric  iff  for  
+  all    x  y  ,  x  <  y  implies  that  not  y  <  x    .  
+  Definition  Label_strict_partial_order  .    We  say  that    R    is  a  
+  strict  partial  order  iff    R    is  irreflexive  ,  transitive  ,  and  
+  asymmetric  .  
+  Let    S    be  a  set  of    R    .  
+  Definition  Label_upper_bound  .    We  say    x    is  an  upper  bound  of    S    in    R    
+  iff    s  \le x  for  all  s  \in S    .  
+  Definition  Label_lower_bound  .    We  say    x    is  a  lower  bound  of    S    in    R    
+  iff    x  \le s    for  all    s  \in S    .  
+  Definition  Label_wellfounded  .    We  say  that    R    is  wellfounded  iff  for  
+  every    S    such  that    S  \ne \emptyset   there  exists  a  lower  bound    s    of  
+    S    in    R    such  that    s  \in S    .  
+  We  introduce  synonyms  least  upper  bound  /  join  /  supremum  .  
+  We  introduce  synonyms  greatest  lower  bound  /  meet  /  infimum  .  
+  Definition  Label_least_upper_bound  .    We  say    x    is  a  least  upper  bound  of  
+    S    in    R    iff    x    is  an  upper  bound  of    S    such  that  for  every  upper  
+  bound    y    of    S    we  have    x  \le y    .  
+  Definition  Label_greatest_lower_bound  .    We  say    x    is  a  
+  greatest  lower  bound  of    S    in    R    iff    x    is  a  lower  bound  of    S    such  that  for  
+  every  lower  bound    y    of    S    we  have    y  \le x    .  
+  Definition  Label_join_semilattice  .    We  say    R    is  a  join  semilattice  iff  
+  for  every    x  ,  y    ,  there  exists  a  least  upper  bound  of    \setenum {  x  ,  y  }    in  
+    R    .  
+  Definition  Label_meet_semilattice  .    We  say    R    is  a  meet  semilattice  iff  
+  for  every    x  ,  y    ,  there  exists  a  greatest  lower  bound  of    \setenum {  x  ,  y  }    in  
+    R    .  
+  Definition  Label_join  .    Assume    R    is  a  join  semilattice  .  Let  
+    join  x  y    be  the  least  upper  bound  of    \setenum {  x  ,  y  }    in    R    .  
+  This  exists  and  is  unique  .  
+  Definition  Label_meet  .    Assume    R    is  a  meet  semilattice  .  Let  
+    meet  x  y    be  the  greatest  lower  bound  of    \setenum {  x  ,  y  }    in    R    .  
+  This  exists  and  is  unique  .  
+  Definition  Label_lattice  .      R    is  a  lattice  iff    R    is  a  join  semilattice  
+  and  a  meet  semilattice  .  
+  Section  OrderNotation  .  
+  Definition  Label_notation_le  .    
+  notation_le  is  the  notational  structure  with  
+  {  
+  (  type  )    V__alpha  :  Type    
+  ;  notation_le  :    V__alpha  \to V__alpha  \to Prop    
+  }  .  
+  We  write    x  \le y    (  inferring  
+    C  :  notation_le    )  iff    C  .notation_le  x  y    .  
+  We  write    x  <  y    iff    x  \le y    and    x  \ne y    .  
+  We  write    x  \ge y    iff    y  \le x    .  
+  We  write    x  >  y    iff    y  <  x    .  
+  We  say    m    is  at  most    n    iff    m  \le n    .  
+  We  say    n    is  at  least    m    iff    n  \ge m    .  
+  We  say    m    is  less  than    n    iff    m  <  n    .  
+  We  say    n    is  greater  than    m    iff    n  >  m    .  
+  Section  MoreonNaturalNumbers  .  
+  In  this  section  ,  let    m  ,  n  ,  d  ,  p  ,  r    be  natural  numbers  .  
+  Definition  Label_nat_le  .    
+  We  write  that    nat.nat_le  m  n    iff  there  exists    d    such  that    m  +  d  =  n    .  
+  Moreover  ,    Nat    implements  
+  {  
+  (  notation  )  notation_le    :=    nat_le  
+  }  .  
+  We  introduce  synonyms  number  /-  s  .  
+  Let  natural  number  stand  for  Nat  .  
+  Definition  Label_divides  .    
+  We  say  that    d    divides    m    iff    d  \ne 0    and  there  exists    r    
+  such  that    m  =  d  *  r    .  
+  We  write    \natdiv {  d  }  {  m  }    iff    d    divides    m    .  
+  We  say  that    d    is  a  divisor  of    m    iff    d    divides    m    .  
+  Definition  Label_natpow  .    
+  Assume  that    b  ,  n    are  natural  numbers  .  We  define  
+    \natpow {  b  }  {  n  }  :=    
+    match  n    with  
+  \alt   0      :=      1    
+  \alt   m  +  1      :=      b  *  \natpow {  b  }  {  m  }    
+  end  .  
+  This  exists  by  recursion  .  
+  Definition  Label_prime  .    
+  Assume  that    p    is  a  natural  number  greater  than    1    .  We  say  that    p    
+  is  a  prime  iff  each  divisor  of    p    is  equal  to    1    or  is  equal  to  
+    p    .  
+  Definition  Label_multiplicity  .    
+  Assume  that    n    is  a  positive  natural  number  .  
+  The  multiplicity  of    p    in    n    is  the  natural  number    m    such  that  
+  \natpow {  p  }  {  m  }  divides  n  and  \natpow {  p  }  {  m  +1  }  
+  does  not  divide  n  .  
+  This  exists  and  is  unique  .  
+  Section  Grouptheory  .  
+  In  this  section  ,  let    V__alpha    be  a  type  .  
+  Definition  Label_magma  .    
+  A  magma  is  a  structure  with  
+  {  
+  (  type  ,  parameter  )  element  :  Type  
+  ;  an    op  :  element  \to element  \to element    
+  ;  (  notation  )    notation_mul  :=  op    
+  }  .  
+  Definition  Label_abelian  .    
+  Assume  that    M    is  a  magma  .  
+  M  is  abelian  iff  for  all    (  x  y  :  M  )    ,    x  *  y  =  y  *  x    .  
+  Definition  Label_semigroup  .    
+  A  semigroup  is  a  structure  with  
+  {  
+  a  magma  
+  ;  for  all  elements    x  ,  y  ,  z    ,  
+  x  *  y  *  z  =  (  x  *  y  )  *  z  
+  }  .  
+  Definition  Label_monoid  .    
+  A  monoid  is  a  structure  with  
+  {  
+  a  semigroup  
+  ;  a  unit  :  element  
+  ;  (  notation  )    notation_one  :=  unit    
+  ;  for  all    x  ,  x  *  1  =  1  *  x  =  x    
+  }  .  
+  Definition  Label_notation_inverse  .    
+  notation_inverse  is  the  notational  structure  with  
+  {  
+  (  parameter  )    V__alpha  :  Type    
+  ;  notation_inverse  :    V__alpha  \to V__alpha    
+  }  .  
+  Let    \inv {  x  }    (  inferring  
+    C  :  notation_inverse    )  stand  for    C  .notation_inverse  x    .  
+  Definition  Label_group  .    
+  A  group  is  a  structure  with  
+  {  
+  a  monoid  
+  ;  an  inv  :    C  \to C    
+  ;  (  notation  )    notation_inverse  :=  inv    
+  ;    \forall (  x  :  C  )  ,  x  *  \inv {  x  }  =  \inv {  x  }  *  x  =  1    
+  }  
+  where  {  C  :=  element  }  .  
+  Section  Ringandmodules  .  
+  Definition  Label_notation_neg  .    
+  notation_neg  is  the  notational  structure  with  
+  {  
+    V__alpha  :  Type    
+  ;    notation_neg  :  V__alpha  \to V__alpha    
+  }  .  
+  Let    -  x    (  inferring  
+    C  :  notation_neg  )    
+  stand  for    C  .notation_neg  x    .  
+  Definition  Label_additive_group  .    
+  An  additive  group  is  a  structure  with  
+  {  
+  (  notationless  )  group  
+  ;  (  notation  )    notation_zero  :=  unit    
+  ;  (  notation  )    notation_add  :=  op    
+  ;  (  notation  )    notation_neg  :=  inv    
+  }  .  
+  Definition  Label_ring  .    
+  A  ring  is  a  structure  with  
+  {  
+  an  abelian  additive  group  
+  ;  an    op'  :  C  \to C  \to C    
+  ;  a    unit'  :  C    
+  ;  (  notation  )    notation_mul  :=  op'    
+  ;  (  notation  )    notation_one  :=  unit'    
+  ;    \forall (  x  :  C  )  ,  1  *  x  =  x  *  1  =  x    
+  ;    \forall (  x  y  z  :  C  )  ,  x  *  y  *  z  =  x  *  (  y  *  z  )    
+  ;    \forall (  x  y  z  :  C  )  ,  (  x  +  y  )  *  z  =  x  *  z  +  y  *  z    
+  ;    \forall (  x  y  z  :  C  )  ,  z  *  (  x  +  y  )  =  z  *  x  +  z  *  y    
+  }  
+  where  {  C  :=  element  }  .  
+  Definition  Label_multiplicative_monoid_of_ring  .    
+  Let    monoid_of_ring  (    R    :  ring  )  :  monoid  :=    
+  make  {  
+  unit    :=  R  .unit'    
+  ;  op    :=  R  .op'    
+  ;  _  
+  }  .  
+  Definition  Label_commutative  .    
+  Assume  that    R    is  a  ring  .  We  say  that    R    is  
+  commutative  iff  for  every    (  x  y  :  R  )  ,  x  *  y  =  y  *  x    .  
+  Definition  Label_nontrivial  .    
+  Assume  that    R    is  a  ring  .  
+  We  say  that    R    is  nontrivial  iff    (  0  :  R  )  \ne (  1  :  R  )    .  
+  Definition  Label_unit  .    
+  Assume  that    R    is  a  commutative  ring  .  Assume  that  
+    (  x  :  R  )    .  We  say  that    x    is  a  unit  in    R    iff  there  exists    (  y  
+  :  R  )    such  that    x  *  y  =  y  *  x  =  1    .  
+  Definition  Label_notation_dot  .    
+  notation_dot  is  the  notational  structure  with  
+  {  
+  (  parameter  ,  type  )    V__alpha  ,  V__beta  :  Type    
+  ;  (  notation  )  notation_dot  :    V__alpha  \to V__beta  \to V__beta    
+  }  .  
+  Let    r  \cdot x    (  inferring    C  :  notation_dot    )  
+  stand  for    C  .notation_dot  r  x    .  
+  Definition  Label_left_module  .    
+  A  left  module  is  a  structure  with  
+  {  
+  (  parameter  )    R    :  ring  
+  ;  an  additive  group  
+  ;  a  scalar_multiplication  :  
+    R  .element  \to   element    \to   element  
+  ;  (  notation  )    notation_dot  :=  scalar_multiplication    
+  ;  for  all    r  ,  x  ,  y  ,  r  \cdot (  x  +  y  )  =  r  \cdot x  +  r  \cdot y    
+  ;  
+  for  all    r  ,  s  ,  x  ,  (  r  +  s  )  \cdot x  =  r  \cdot x  +  s  \cdot x    
+  ;  
+  for  all    r  ,  s  ,  x  ,  (  r  *  s  )  \cdot x  =  r  \cdot (  s  \cdot x  )    
+  ;  for  all    x  ,  1  \cdot x  =  x    
+  }  .  
+  Section  Thefieldofrealnumbers  .  
+  Definition  Label_field  .    
+  A  field    R    is  a  nontrivial  commutative  ring  such  that  for  all    x  \ne 0    ,    x    is  a  unit  in    R    .  
+  Definition  Label_vector_space  .    
+  A  vector  space  is  a  structure  with  
+  {  
+  a  left  module  
+  ;  (  parameter  )    R    :  field  
+  }  .  
+  Definition  Label_ordered_ring  .    
+  An  ordered  ring  is  a  structure  with  
+  {  
+  a  ring  
+  ;  a  linear  order  
+  ;  (  notation  )    notation_le  :=    relation  
+  ;  for  all    x  ,  y  ,  z    ,  if    x  \le y    ,  then    x  +  z  \le y  +  z    
+  ;  for  all    x  ,  y    ,  if    0  \le a    and    0  \le b    ,  then    0  \le a  *  b    
+  }  .  
+  Definition  Label_ordered_field  .    
+  An  ordered  field  is  a  a  structure  with  
+  {  
+  an  ordered  ring  
+  ;  a  field  
+  }  .  
+  Definition  Label_complete  .    
+  Assume  that    F    is  an  ordered  field  .  
+  We  say  that    F    is  complete  iff  
+  for  every  subset    S    of  the  universe  of    F    ,  
+  if    S  \ne \emptyset   and    S    has  an  upper  bound  in    F    ,  then    S    has  a  least  upper  bound  in    F    .  
+  Definition  Label_absolute_value  .    
+  Let  
+    ordered_field.absolute_value  :=    
+  (  fun  (  x  :  element  )  :=  (  case  \alt 0  \le x  :=  x  \alt true  :=  -  x  end  :  element  )  )  
+  .  
+  This  exists  and  is  unique  and  total  .  
+  In  this  section  ,  let    (  F  G  :  complete  order  field  )    .  
+  Definition  Label_isomorphism_of_complete_ordered_fields  .    
+  An  isomorphism  of  complete  ordered  fields  from    F    to    G    is  a  bijection  
+  f  :  F  \to G  
+  such  that  
+  for  all  x  ,  y  ,  f  (  x  +  y  )  =  f  (  x  )  +  f  (  y  )  \land f  (  x  *  y  )  =  f  (  x  )  *  f  (  y  )  \land 
+  for  all  x  ,  y  ,  x  \le y  iff  f  (  x  )  \le f  (  y  )  .  
+  We  record  as  identification  
+  the  isomorphism  of  complete  ordered  fields  
+  from    F    to    G    .  This  exists  and  is  unique  .  
+  Definition  Label_real  .    
+  Let  Real  be  the  complete  ordered  field  .  
+  This  exists  and  is  canonical  .  
+  Subsection  norms  .  
+  Let    \realabs {  (  x  :  Real  )  }    denote  absolute_value    x    .  
+  Definition  Label_normed_commutative_ring  .    
+  A  normed  commutative  ring  is  a  structure  with  
+  {  
+  a  commutative  ring  
+  ;  an  absolute_value  :  element    \to Real    
+  ;  for  all    x    ,    A  x  =  0  iff  x  =  0    
+  ;  for  all    x  y  ,  A  (  x  +  y  )  \le A  x  +  A  y    
+  ;  for  all    x  y  ,  A  (  x  *  y  )  \le (  A  x  )  *  (  A  y  )    
+  }  
+  where  {  A  :=  absolute_value  }  .  
+  Definition  Label_normed_field  .    
+  A  normed  field  is  a  structure  with  
+  {  
+  a  normed  commutative  ring  
+  ;  a  field  
+  }  .  
+  Section  SylowsTheorems  .  
+  Subsection  meetsemilatticeofsubgroups  .  
+  Definition  Label_subgroup  .    
+  A  subgroup  is  a  structure  with  
+  {  
+  (  parameter  )  ambient_group  :  group  
+  ;  (  type  )  support    :  set  of  ambient_group    
+  ;    1  \in support    and  
+  ;  for  all    x  ,  y  \in support  ,  x  *  \inv {  y  }  \in support    
+  }  .  
+  Definition  Label_subgroup_semilattice  .    Let  
+  subgroup_semilattice  
+    (  G  :  group  )  :  meet_semilattice  :=    
+  make  {  
+    element  :=  subgroup  over  G    
+  ;    relation  H_1  H_2  :=  for  all  x  ,  x  \in H_1  \to x  \in 
+  H_2    
+  ;  _  
+  }  .  
+  This  exists  and  is  unique  .  
+  Assume  that    G    is  a  finite  group  ,  let  
+  the  order  of    G    stand  for  the  size  of    G    .  
+  We  enter  the  namespace  subgroup  .  
+  Definition  Label_subgroup_order  .    
+  Assume  that    H    is  a  subgroup  over  a  finite  group    G    .  
+  The  order  of    H    is  the  size  of  the  support  of    H    .  
+  This  exists  and  is  well  propped  .  
+  Subsection  statement  .  
+  In  this  section  ,  let    G    be  a  fixed  finite  group  .  
+  In  this  section  ,  let    \conj {  g  }  {  X  }    stand  for  
+  \setcomp {  g  *  x  *  \inv {  g  }  }  {  x  \in X  }  ,  
+  where    (  g  :  G  )      (  X  :  set  G  )    .  
+  Definition  Label_conjugate  .    
+  Assume  that    (  g  :  G  )    .  Assume  that    H    is  a  subgroup  over    G    .  The  
+  conjugate  of    H    by    g    in    G    is  the  subgroup    \conj {  g  }  {  H  }    over    G    .  
+  Definition  Label_normalizer  .    
+  Assume  that    H    is  a  subgroup  over    G    .  The  normalizer  of    H    
+  in    G    is  the  subgroup    N    over    G    such  that  for  all    x    ,    x  \in N  
+  iff  \conj {  x  }  {  H  }  =  H    .  This  
+  exists  and  is  unique  .  
+  Let    \grouporder {  G  }    denote  the  order  of    G    .  
+  In  this  section  ,  let    p    be  a  fixed  prime  number  .  
+  In  this  section  ,  let    \mult {  p  }  {  G  }    denote  the  multiplicity  of    p    in  
+    \grouporder {  G  }    .  
+  Definition  Label_Sylow  .    
+  A  Sylow  p  subgroup  of    G    is  a  subgroup    P    over    G    such  that  
+  the  order  of    P    is    \natpow {  p  }  {  \mult {  p  }  {  G  }  }    .  
+  Definition  .    Let    \Syl {  p  }  {  G  }  :=  
+  \setcomp {  P  }  {  (  P  is  a  Sylow  p  subgroup  of  G  )  }    .  
+  Let    \SylN {  p  }  {  G  }    denote  the  size  of    \Syl {  p  }  {  G  }    .  This  is  well  
+  propped  
+  .  
+  Definition  .    Let    \Nz {  p  }  {  G  }    denote  
+  the  size  of  the  normalizer  of  each  and  every  Sylow    p    subgroup  of    G    .  
+  This  exists  ,  is  unique  ,  and  is  well_defined  .  
+  Theorem  .    There  exists  a  Sylow    p    subgroup  of    G    .  
+  Theorem  .    If    P  ,  P'    are  Sylow    p    subgroups  of    G    ,  then  there  exists    (  g  :  G  )    
+  such  that    P'  =  \conj {  g  }  {  P  }    .  
+  Theorem  .    Assume  that    \grouporder {  G  }  =  p'  *  \natpow {  p  }  {  \mult {  p  }  {  G  }  }    .  
+  We  have    \SylN {  p  }  {  G  }    divides    p'    .  
+  Theorem  .    We  have    p    divides    (  \SylN {  p  }  {  G  }  -  1  )    .  
+  Theorem  .    We  have    \SylN {  p  }  {  G  }  *  \Nz {  p  }  {  G  }  =  \grouporder {  G  }    .  

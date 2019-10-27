@@ -90,42 +90,14 @@ let rec test_it input  =
        | Nocatch tr ->
            (
              print_endline (show_trace (clean_tr tr)); 
+             print_endline ("\n\nA\n\n");
              ignore(List.map print_endline (List.map show_token 
-                                              (List.map tok (take 30 input))));
+                                              (List.map tok (take 40 input))));
              failwith "my-error"
            ) in
-  test_it input'
-
-let _ = test_it ns
-
-(*
-let (t,(tr,x)) = text x;;
-  print_endline (show_text_node t);;
-  print_endline (show_trace (clean_tr tr));;
+  test_it input';;
 
 
-try 
-  function_def x 
-with Noparse tr | Nocatch tr ->
-       (print_endline (show_trace (clean_tr tr)); failwith "my-error")
- *)
-
-(*
-let vvs = convert_node "test2.ml" "function (  fun  (  \\blank :  V__alpha  )  :  Bool  :=  true  ) .";;
-
-try 
-let (_,(tr,_)) = group "mybalanced" balanced vvs in 
-print_endline (show_trace (clean_tr tr))
-with Noparse tr | Nocatch tr ->
-       (print_endline (show_trace (clean_tr tr)); failwith "error")
- *)
-
-(*
-print_nodes x;;
- *)
-
-
-
-
-
+let _ = 
+  try (test_it ns) with _ -> ();;
 

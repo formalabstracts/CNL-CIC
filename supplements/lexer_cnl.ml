@@ -142,7 +142,7 @@ let controlseq = [%sedlex.regexp? '\\', Plus(alphabet)]
 
 let varlong = [%sedlex.regexp? alphabet, '_', '_', Star(alphanum)] (* mangling *)
 
-let atomic_identifier = [%sedlex.regexp? alphabet, Star(alphanum) ]          
+let atomic_identifier = [%sedlex.regexp? Plus(alphanum) ]          
 
 let hierarchical_identifier = [%sedlex.regexp? atomic_identifier, Plus('.', atomic_identifier) ]  
 
@@ -213,8 +213,9 @@ let identkey =
   let is_word s = 
     Str.string_match (Str.regexp "[a-zA-Z]+$") s 0 in
   fun s -> 
-        if is_var s then VAR s
-        else if is_word s then WORD (s,String.uppercase_ascii s)
+        if (s = "_") then BLANK
+        else if is_var s then VAR s
+        else if is_word s then WORD (s,String.lowercase_ascii s)
         else ATOMIC_IDENTIFIER s
            
 (* open Parser_cnl *)
@@ -269,8 +270,8 @@ let rec lex_node buf =
     | semi -> mk (c SEMI) buf 
     | field_accessor -> mk (fun t -> FIELD_ACCESSOR t) buf
     | hierarchical_identifier -> mk (fun t -> HIERARCHICAL_IDENTIFIER t) buf
-    | symbolseq -> mk symbolkey buf
     | varlong -> mk (fun t -> VAR t) buf
+    | symbolseq -> mk symbolkey buf
     | atomic_identifier -> mk identkey buf
     | eof -> mk (c EOF ) buf
     | any -> mk (fun t -> UNKNOWN t) buf
@@ -317,6 +318,47 @@ let lex_token_to_string = function
   | EOF -> "(EOF)"
   | UNKNOWN s -> s ^ " ?"
 
+let lex_token_to_string_brief = 
+  function 
+  | STRING s -> "\""^s^"\""
+  | CONTROLSEQ s -> "\\"^s
+  | DECIMAL s -> "D:"^s 
+  | INTEGER s -> "I:"^s 
+  | SYMBOL s -> "S:"^s 
+  | SYMBOL_QED -> "(QED)"
+  | L_PAREN -> "("
+  | R_PAREN -> ")"
+  | L_BRACK -> "["
+  | R_BRACK -> "]"
+  | L_BRACE -> "{"
+  | R_BRACE -> "}"
+  | MAPSTO -> "->"
+  | PERIOD -> "."
+  | MID -> "|"
+  | TMID -> "//"
+  | COMMA -> ","
+  | SEMI -> ";"
+  | COLON -> ":"
+  | ASSIGN -> ":="
+  | ARROW -> "->"
+  | BLANK -> "_"
+  | ALT -> "|"
+  | APPLYSUB -> "_"
+  | SLASH -> "/"
+  | SLASHDASH -> "/-"
+  | COERCION -> "^|"
+  | LAMBDA -> ".\\"
+  | PITY -> "PI"
+  | QUANTIFIER s -> "Q:"^s 
+  | VAR s -> "V:"^s 
+  | WORD (s,_) -> "W:"^s 
+  | ATOMIC_IDENTIFIER s -> "A:"^s 
+  | HIERARCHICAL_IDENTIFIER s -> "H:"^s 
+  | FIELD_ACCESSOR s -> "F:"^s 
+  | EOF -> "(EOF)"
+  | UNKNOWN s -> s ^ " ?"
+
+
 let rec lex_nodes acc buf = 
   let t = lex_node buf in 
   if (tok t = EOF) then List.rev (acc) 
@@ -341,7 +383,12 @@ let rec print_nodes = function
       (print_string ("NODE:"^string_pos (fst(t.pos))^" ");
        print_endline(lex_token_to_string t.tok) ; print_nodes ts)
 
+let string_of_toks ts = 
+  let ss = List.map (fun t -> lex_token_to_string_brief t) ts in 
+  String.concat " " ss;;
 
+let print_nodes_brief ns = 
+  print_endline (string_of_toks (List.map (fun n -> n.tok) ns))
 
 let test_lex_string() = print_nodes (lex_string "lexer_cnl.ml" "A B C hello\\alpha33[1]there !ready! \\begin \\\\ \n Riemann-Hilbert %comment \n\n more #4 # 5  $ ))))))))");;
               

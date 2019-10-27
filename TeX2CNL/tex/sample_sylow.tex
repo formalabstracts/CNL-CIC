@@ -286,6 +286,9 @@ urlcolor=blue]{hyperref}
 \def\Syl#1#2{\operatorname{Syl}_{#1}(#2)}
 \def\SylN#1#2{n_{#1}(#2)}
 \def\Nz#1#2{|N(#1,#2)|}
+\def\realabs#1{|#1|}
+\def\grouporder#1{|#1|}
+
 
 \begin{cnl}
 
@@ -319,6 +322,7 @@ urlcolor=blue]{hyperref}
 \CnlCustom\iff{iff}
 \CnlCustom\optarg{}
 \CnlCustom\match{match}
+
 
 
 \CnlCustom\function{function}
@@ -548,7 +552,7 @@ of the same type.
 
 \deflabel{notation in}
 %- structure
-A \h{notation-in} is a notational structure with
+\h{notation-in} is the notational structure with
 \begin{structure}
 \firstitem (parameter) $\beta$ % carrier first, to allow dependency.
 \item (parameter) $\alpha$
@@ -566,7 +570,7 @@ We write $x\notin X$ iff $\h{not}(x\in X)$.
 \end{definition}
 
 \deflabel{notation-subset}
-A \h{notation-subset} is a notational structure with
+\h{notation-subset} is the notational structure with
 \begin{structure}
 \firstitem (parameter, type) $\alpha$
 \item \h{notation-subseteq} : $\alpha \to \alpha \to \Prop$\texstop
@@ -575,7 +579,7 @@ A \h{notation-subset} is a notational structure with
 \end{definition}
 
 \deflabel{subset notation}
-We write $X\subset Y$ (inferring $C : \h{notation-subset})$) iff
+We write $X\subset Y$ (inferring $C : \h{notation-subset})$ iff
 $C\h{.notation-subset}\ X\ Y$.
 \end{definition}
 
@@ -633,7 +637,7 @@ A \h{typical-structure} is a structure with
 \end{definition}
 
 \deflabel{notation zero}
-A \h{notation-zero} is a notational structure with
+\h{notation-zero} is the notational structure with
 \begin{structure}
 \firstitem $\alpha : \Type$
 \item $\h{notation-zero} : \alpha$\texstop
@@ -644,7 +648,7 @@ Let $0$ (inferring
 $C:\h{notation-zero}$) stand for $C\h{.notation-zero}$.
 
 \deflabel{notation one}
-A \h{notation-one} is a notational structure with
+\h{notation-one} is the notational structure with
 \begin{structure}
 \firstitem $\alpha : \Type$
 \item \h{notation-one} $ : \alpha$\texstop
@@ -654,7 +658,7 @@ A \h{notation-one} is a notational structure with
 Let $1$ (inferring $C:\h{notation-one}$) stand for $C\h{.notation-one}$.
 
 \deflabel{notation add}
-A \h{notation-add} is a notational structure with
+\h{notation-add} is the notational structure with
 \begin{structure}
 \firstitem $\alpha : \Type$
 \item \h{notation-add} $ : \alpha\to\alpha\to\alpha$\texstop
@@ -667,7 +671,7 @@ $30$ and left associativity.
 \end{definition}
 
 \deflabel{notation numeral}
-A \h{notation-numeral} is a notational structure with
+\h{notation-numeral} is the notational structure with
 \begin{structure}
 \firstitem notation-one
 \item notation-add\texstop
@@ -682,7 +686,7 @@ has automated support for positive numerals
 \end{remark}
 
 \deflabel{notation mul}
-A \h{notation-mul} is a notational structure with
+\h{notation-mul} is the notational structure with
 \begin{structure}
 \firstitem $\alpha : \Type$
 \item \h{notation-mul} $ : \alpha\to\alpha\to\alpha$\texstop
@@ -703,7 +707,7 @@ Let $\Nat$ be the inductive type
 \end{envMatch}\cnlstop
 
 \smallskip
-$\Nat$ implements
+Moreover, $\Nat$ implements
 \begin{structure}
 \firstitem (notation) notation-zero $\assign \h{zero}$
 \item (notation) notation-one $\assign \h{succ}\ 0$\texstop
@@ -722,7 +726,7 @@ This exists by recursion.
 
 Moreover, $\Nat$ implements
 \begin{structure}
-\firstitem (notation) notation-add $\assign\ \h{add}$.
+\firstitem (notation) notation-add $\assign\ \h{add}$\texstop
 \end{structure}\cnlstop
 
 \deflabel{natural number multiplication}
@@ -737,7 +741,7 @@ This exists by recursion.
 
 Moreover, $\Nat$ implements
 \begin{structure}
-\firstitem (notation) notation-mul $\assign\ \h{mul}$.
+\firstitem (notation) notation-mul $\assign\ \h{mul}$\texstop
 \end{structure}\cnlstop
 
 
@@ -750,7 +754,7 @@ Lists are one of the fundamental inductive types.  This section
 introduces lists, basic operations on lists, and notation.
 \end{remark}
 
-In this section, let $\alpha$ denote a type.
+In this section, let $\alpha$ be a type.
 
 \deflabel{list}
 Let $\h{list}\ \h{(of)}\ \alpha$ be the inductive type
@@ -913,7 +917,7 @@ A \h{duplicate~free~multiset} is a structure with
 \newpage
 \lsection{Finiteness}
 
-In this section, let $\alpha$ stand for a type.
+In this section, let $\alpha$ be a type.
 
 \begin{remark}
 This section relies on results about lists.
@@ -939,10 +943,10 @@ We say that $Y$ is
 such that $Y = \setcomp{x}{x \in \h{support}\ X}$.
 \end{definition}
 
-Let an \df{equivalence} $f:\alpha\to\beta$ stand for a bijection $f$.
+Let an \df{equivalence} $(f:\alpha\to\beta)$ stand for a bijection $f$.
 
 %\deflabel{set of nodup multiset}
-We record an equivalence
+We record as identification
 \begin{align*}
 \funalign
 {\h{duplicate~free~multiset}\ \alpha}
@@ -950,6 +954,7 @@ We record an equivalence
 {\h{finite set}\ \alpha}\\
 {X}&{\ \mapsto\ }{\setcomp{x}{x \in \h{support of}\ X}}.
 \end{align*}
+This exists and is unique.
 
 
 
@@ -958,7 +963,7 @@ We give infrastructure support for bijective functions that have been
 recorded in the form of coercions in both directions between the
 two.
 
-By recording it as an equivalence, definitions involving
+By recording it as an identification, definitions involving
 \h{duplicate~free~multiset} automatically extend to finite sets.
 
 For this reason, size and support are now defined on finite
@@ -970,20 +975,24 @@ sets.
 \begin{remark}
 We extend the preceding notions from sets to types by using the
 universe of a type.  
+
+We must enter a namespace here to avoid conflict in notation.
 \end{remark}
 
+We enter the namespace \h{finite-type}.
+
 %- macro
-We say that $\alpha$ is a \df{\prefix{type~}{finite}} type iff the
+We say that $\alpha$ is a \df{finite type} iff the
 universe of $\alpha$ is finite.
 
 \begin{definition}
-Assume that $\alpha$ is a \prefix{type~}{finite} type.  The
-\df{\prefix{type~}{size}} of $\alpha$ is the size of the universe of
+Assume that $\alpha$ is a finite type.  The
+\df{size} of $\alpha$ is the size of the universe of
 $\alpha$.  This exists and is unique.
 \end{definition}
 
 \begin{definition}
-Assume that $\alpha$ is a finite type.  The \df{\prefix{type~}{support}}
+Assume that $\alpha$ is a finite type.  The \df{support}
 of $\alpha$ is the support of the universe of $\alpha$.  This exists
 and is unique.
 \end{definition}
@@ -996,15 +1005,13 @@ and is unique.
 A \df{binary~relation} is a structure with
 \begin{structure}
 \firstitem (parameter, type) element : \Type
-\item a $relation : element \to element \to \Prop$\texstop
+\item a (map) $relation : element \to element \to \Prop$\texstop
   \end{structure}\cnlstop
 \end{definition}
 
-In this section, fix a binary relation $R$.
-
-In this section, let $(s\ x\ y\ z : R\h{.element})$.
-
-In this section, let $x \le y$ stand for $R\h{.relation}\ x\ y$.
+In this section, fix $(R : \h{binary~relation})$; and 
+ let $(s\ x\ y\ z : R)$; and 
+write $x \le y$ iff $R\ x\ y$.
 
 \deflabel{reflexive} We say $R$ is \df{reflexive} iff for all\ $x,\ x
 \le x$.
@@ -1077,7 +1084,7 @@ all\ $x\ y,\ x < y\ \h{implies that not}\ y < x$.
 \end{definition}
 
 \deflabel{strict partial order} We say that $R$ is a
-\df{strict~partial~order} iff $R$ is irreflexive, transitive, and
+\df{strict partial order} iff $R$ is irreflexive, transitive, and
 asymmetric.
 \end{definition}
 
@@ -1138,7 +1145,7 @@ and a meet semilattice.
 \lsection{Order Notation}
 
 \deflabel{notation le}
-A \h{notation-le} is a notational structure with
+\h{notation-le} is the notational structure with
 \begin{structure}
 \firstitem (type) $\alpha : \Type$
 \item \h{notation-le} : $\alpha \to \alpha \to \Prop$\texstop
@@ -1149,31 +1156,31 @@ A \h{notation-le} is a notational structure with
 \end{structure}\cnlstop
 \end{definition}
 
-Let $x \le y$ (inferring
-$C:\h{notation-le}$) denote $C\h{.notation-le}\ x\ y$.
+We write $x \le y$ (inferring
+$C:\h{notation-le}$) iff $C\h{.notation-le}\ x\ y$.
 
 
-Let $x < y$ stand for $x \le y$ and $x\ne y$.
+We write $x < y$ iff $x \le y$ and $x\ne y$.
 
-Let $x \ge y$ stand for $y \le x$.
+We write $x \ge y$ iff $y \le x$.
 
-Let $x > y$ stand for $y < x$.
+We write $x > y$ iff $y < x$.
 
-Let $m$ is \df{at~most} $n$ stand for $m \le n$.
+We say $m$ is \df{at most} $n$ iff $m \le n$.
 
-Let $n$ is \df{at~least} $m$ stand for $n \ge m$.
+We say $n$ is \df{at least} $m$ iff $n \ge m$.
 
-Let $m$ is \df{less~than} $n$ stand for $m < n$.
+We say $m$ is \df{less than} $n$ iff $m < n$.
 
-Let $n$ is \df{greater~than} $m$ stand for $n > m$.
+We say $n$ is \df{greater than} $m$ iff $n > m$.
 
 \newpage
 \lsection{More on Natural Numbers}
 
-In this section, let $m,\ n,\ d,\ p,\ r$ denote natural numbers.
+In this section, let $m,\ n,\ d,\ p,\ r$ be natural numbers.
 
 \deflabel{nat le}
-  We say that $\h{nat.nat-le}\ m \ n$ iff there exists $d$ such that $m + d = n$.
+  We write that $\h{nat.nat-le}\ m \ n$ iff there exists $d$ such that $m + d = n$.
 \end{definition}
 
 Moreover, $\Nat$ implements
@@ -1205,9 +1212,9 @@ such that $m= d\*r$.
 \end{definition}
 
 
-Let $\natdiv{d}{m}$ stand for $d$ divides $m$.
+We write $\natdiv{d}{m}$ iff $d$ divides $m$.
 
-Let $d$ is a \df{divisor of} $m$ stand for $d$ divides $m$.
+We say that $d$ is a \df{divisor of} $m$ iff $d$ divides $m$.
 
 
 \deflabel{natpow}
@@ -1228,7 +1235,7 @@ $p$.
 \end{definition}
 
 \deflabel{multiplicity}
-Let $n$ be a positive natural number.
+Assume that $n$ is a positive natural number.
 The \df{multiplicity} of $p$ in $n$ is the natural number $m$ such that
 \[
 \natpow{p}{m}\ \h{divides}\ n\quad \h{and}\quad \natpow{p}{m+1}\ %
@@ -1256,7 +1263,7 @@ A \h{magma} is a structure with
 %\begin{align*}
 %\funalign
 %{\h{magma}\ \alpha}{\ \to \ }{\h{notation-in}}
-%{M}{\ \mapsto \ }xxd
+%{M}{\ \mapsto \ }
 %\$(G : group) : \h{notation-in}\assign$
 %{
 %\Make\begin{make}
@@ -1299,7 +1306,7 @@ x \* y \* z = (x \* y) \* z\texstop
 \end{definition}
 
 \deflabel{notation inverse}
-A \h{notation-inverse} is a notational structure with
+\h{notation-inverse} is the notational structure with
 \begin{structure}
 \firstitem (parameter) $\alpha : \Type$
 \item \h{notation-inverse} : $\alpha\to\alpha$\texstop
@@ -1336,7 +1343,7 @@ fields drop out).
 
 
 \deflabel{notation neg}
-A \h{notation-neg} is a notational structure with
+\h{notation-neg} is the notational structure with
 \begin{structure}
 \firstitem $\alpha : \Type$
 \item $\h{notation-neg} : \alpha\to\alpha$\texstop
@@ -1415,7 +1422,7 @@ $(x : R)$.  We say that $x$ is a \df{unit} in $R$ iff there exists $(y
 
 
 \deflabel{notation dot}
-A \h{notation-dot} is a notational structure with
+\h{notation-dot} is the notational structure with
 \begin{structure}
 \firstitem (parameter, type) $\alpha, \beta : \Type$
 \item (notation) \h{notation-dot} : $\alpha \to \beta \to \beta$\texstop
@@ -1509,10 +1516,10 @@ $\h{ordered-field.absolute-value}\assign$
 This exists and is unique and total.
 \end{definition}
 
+In this section, let $(F\ G : \h{complete order field})$.
 
 \deflabel{isomorphism of complete ordered fields} 
-Assume that $F$ and $G$ are complete ordered fields.
-An isomorphism from $F$ to $G$ of complete ordered fields  is a bijection
+An isomorphism of complete ordered fields  from $F$ to $G$  is a bijection
 \[
 f:F\to G
 \]
@@ -1523,27 +1530,13 @@ such that
 \end{align*}
 \end{definition}
 
-For all complete ordered fields $F,\ G$,
-we record a canonical isomorphism $f : F \to G \assign$ 
-the isomorphism from $F$ to $G$ of complete ordered fields.
-This exists and is unique.
-
-%\deflabel{cof canonical} 
-%Let \h{cof-canonical} \parenthetical{short
-%  for complete ordered field} be the \h{canonical-isomorphism} such
-%that
-%\begin{structure}
-%\item $A \assign \h{complete ordered field}$
-%\item $B\ F_1\ F_2 \assign \h{Iso}\ F_1\ F_2$
-%\item $\h{arrow}\ F_1\ F_2 \assign$ the unique element of $\h{Iso}\ F_1\ F_2$
-%\end{structure}\cnlstop
-%This exists and is unique.
-%\end{definition}
+We record as identification
+the isomorphism of complete ordered fields
+from $F$ to $G$.  This exists and is unique.
 
 \begin{remark}
-For all complete ordered fields $F,\ G$, there exists a unique
-isomorphism of complete ordered fields $F,\ G$.  We may transport
-structure across these isomorphisms.
+An identification allows us to automatically transport
+structure from $F$ to $G$.
 \end{remark}
 
 \deflabel{real}
@@ -1553,7 +1546,7 @@ This exists and is canonical.
 
 \lsubsection{norms}
 
-Let $|(x:\Real)|$ denote \h{absolute-value}\ $x$.
+Let $\realabs{(x:\Real)}$ denote \h{absolute-value}\ $x$.
 
 \deflabel{normed commutative ring}
   A \df{normed commutative ring} is a structure with
@@ -1628,16 +1621,18 @@ In the following definition of subgroup order, the parentheses around
 Assume that $G$ is a finite group, let
 the \df{order} of $G$ stand for the size of $G$.
 
+We enter the namespace subgroup.
+
 \deflabel{subgroup order}
 Assume that $H$ is a subgroup over a finite group $G$.
-The \parenthetical{subgroup} \prefix{subgroup~}{order} of $H$ is the size of the support of $H$.
-This exists and is well subtyped \parenthetical{that is, $H$ is finite}.
+The \df{order} of $H$ is the size of the support of $H$.
+This exists and is well propped \parenthetical{that is, $H$ is finite}.
 \end{definition}
 
 
 \lsubsection{statement}
 
-In this section, let $G$ denote a fixed finite group.
+In this section, let $G$ be a fixed finite group.
 
 
 In this section, let $\conj{g}{X}$ stand for
@@ -1659,36 +1654,36 @@ exists and is unique.
 \end{definition}
 
 
-Let $|G|$ denote the order of $G$.
+Let $\grouporder{G}$ denote the order of $G$.
 
-In this section, let $p$ denote a fixed prime number.
+In this section, let $p$ be a fixed prime number.
 
 
 In this section, let $\mult{p}{G}$ denote the multiplicity of $p$ in
-$|G|$.
+$\grouporder{G}$.
 
 
 \deflabel{Sylow}
 A \df{Sylow $p$ subgroup of} $G$ is a subgroup $P$ over $G$ such that
-the \prefix{subgroup~}{order} of $P$ is $\natpow{p}{\mult{p}{G}}$.
+the order of $P$ is $\natpow{p}{\mult{p}{G}}$.
 \end{definition}
 
 
 \begin{definition}
-Let $\Syl{p}{G} = 
+Let $\Syl{p}{G} \assign 
 \setcomp{P}{(P\ \h{is a Sylow}\ p\ \h{subgroup of}\ G)}$.
 \end{definition}
 
 
 
 Let $\SylN{p}{G}$ denote the size of $\Syl{p}{G}$.  This is well
-subtyped \parenthetical{that is, there are finitely many Sylow $p$
+propped \parenthetical{that is, there are finitely many Sylow $p$
   subgroups}.
 
 
 
 \begin{definition}
-Let $\Nz{p}{G}$ be equal to
+Let $\Nz{p}{G}$ denote
 the size of the normalizer of each and every Sylow $p$ subgroup of $G$.
 This exists, is unique, and is well-defined.
 \end{definition}
@@ -1703,7 +1698,7 @@ such that $P' = \conj{g}{P}$.
 \end{theorem}
 
 \begin{theorem}[Sylow 3a]
-Assume that $|G| = p'\*\natpow{p}{\mult{p}{G}}$.
+Assume that $\grouporder{G} = p'\*\natpow{p}{\mult{p}{G}}$.
 We have $\SylN{p}{G}$ divides $p'$.
 \end{theorem}
 
@@ -1712,7 +1707,7 @@ We have $p$ divides $(\SylN{p}{G} - 1)$.
 \end{theorem}
 
 \begin{theorem}[Sylow 3c]
-We have $\SylN{p}{G}\*\Nz{p}{G} = |G|$.
+We have $\SylN{p}{G}\*\Nz{p}{G} = \grouporder{G}$.
 \end{theorem}
 
 \end{cnl}
