@@ -1,0 +1,84 @@
+%% Changelog:
+%  Version 0: Just define all of these so as to ignore the metadata [jac]
+%  Version 0.5 Write the metadata to a file [rsp]
+%  Version 0.6 Include the metadata at the end, like we do with latexml;
+%              also add commands to handle links properly [jac]
+
+%% Link-escaping commands will be ignored.
+%% (These were relevant to an older version of NNexus.)
+
+\newcommand{\PMtextescapelink}[1]{}
+\newcommand{\PMnolink}[1]{}
+\newcommand{\PMescapetext}[1]{}
+\newcommand{\PMescapelinktext}[1]{}
+\newcommand{\PMlinkescape}[1]{}
+\newcommand{\PMescapelinktex}[1]{}
+\newcommand{\PMlinkescapeword}[1]{}
+\newcommand{\pmlinkescapetext}[1]{}
+\newcommand{\PMtextignorelink}[1]{}
+\newcommand{\PMnolinkphrase}[1]{}
+\newcommand{\PMnolinktext}[1]{}
+\newcommand{\pmescapetext}[1]{}
+\newcommand{\pmlinkescapeword}[1]{}
+\newcommand{\PMLinkEscape}[1]{}
+\newcommand{\PMEscapeLink}[1]{}
+\newcommand{\PMescapelink}[1]{}
+\newcommand{\PMlinkescapetext}[1]{}
+\newcommand{\pmlinkescapesequence}[1]{}
+\newcommand{\PMlinkescapesequence}[1]{}
+
+% Legacy link commands will be routed appropriately.
+
+\RequirePackage{hyperref}
+
+\newcommand{\PMlinkexternal}[2]{\href{#2}{#1}}
+\newcommand{\PMlinkname}[2]{\href{http://planetmath.org/#2}{#1}}
+\newcommand{\PMlinkid}[2]{\href{http://planetmath.org/node/#2}{#1}}
+\newcommand{\pln}[2]{\PMlinkname{#1}{#2}}
+
+%% File-level metadata will be written to an external file, then the
+%% contents of this file will appear at the end of the generated PDF
+%% document.
+
+\newwrite\front
+\immediate\openout\front=front.tex
+\immediate\write\front{\unexpanded{\begin{tabular}{ll}}}
+
+\newcommand{\pmcanonicalname}[1]{
+  \immediate\write\front{\unexpanded{Canonical name & \PMlinkname{#1}{#1} \\}}}
+\newcommand{\pmcreated}[1]{
+  \immediate\write\front{\unexpanded{Date of creation & #1\\}}}
+\newcommand{\pmmodified}[1]{
+  \immediate\write\front{\unexpanded{Last modified on & #1\\}}}
+\newcommand{\pmowner}[2]{\author{#1}
+  \immediate\write\front{\unexpanded{Owner & #1\\}}}
+\newcommand{\pmmodifier}[2]{
+  \immediate\write\front{\unexpanded{Last modified by & #1\\}}}
+\newcommand{\pmtitle}[1]{\title{#1}
+  \immediate\write\front{\unexpanded{Title & #1\\}}}
+\newcommand{\pmrecord}[2]{
+ \immediate\write\front{\unexpanded{Numerical id & #1\\}}}
+\newcommand{\pmprivacy}[1]{}
+\newcommand{\pmauthor}[2]{
+ \immediate\write\front{\unexpanded{Author & #1\\}}}
+\newcommand{\pmtype}[1]{
+ \immediate\write\front{\unexpanded{Entry type & #1\\}}}
+\newcommand{\pmcomment}[1]{}
+\newcommand{\pmclassification}[2]{
+  \immediate\write\front{\unexpanded{Classification & #1 #2\\}}}
+\newcommand{\pmrelated}[1]{
+\immediate\write\front{\unexpanded{Related topic & #1\\}}}
+\newcommand{\pmsynonym}[2]{
+\immediate\write\front{\unexpanded{Synonym & #1\\}}}
+\newcommand{\pmdefines}[1]{
+\immediate\write\front{\unexpanded{Defines & #1\\}}}
+%\newcommand{\PMlinkexternal}[2]{#1}
+
+\newcommand{\writemetadata}{
+  \immediate\write\front{\unexpanded{\end{tabular}}}
+  \immediate\closeout\front}
+\let\endmetadata\writemetadata
+
+\newsavebox{\FRONTbox}
+\AtBeginDocument{\maketitle\savebox{\FRONTbox}{\input{front.tex}}}
+\AtEndDocument{\framebox{\usebox{\FRONTbox}\par}}
