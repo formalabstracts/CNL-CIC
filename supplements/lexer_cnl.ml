@@ -40,6 +40,64 @@ The longest match rule holds (following sedlex).
 
  *)
 
+(* Singularization Rules (applied in order)
+   * Do not change a word not ending in s.
+   * Do not change a word with at most 3 characters. 
+   * Do not change a word if it would result in a word of 2 characters or fewer.
+   * Do not change a word ending in -ss or -ous. 
+   * C + oes -> C + o
+   * C + ies -> C + y
+   * Drop the final s in words ending in ize/ise + s
+   * Drop the final es in words ending in ch/ss/sh/x/z + es 
+   * Otherwise, drop the final s. 
+
+   The rules are not intended to give the correct singularization in all cases.
+   They are intended to capture most singular forms in regular use in mathematics,
+   while not creating false singulars that would collide with another word
+   in common use. 
+
+   Synonyms may be used wherever these rules fail.
+ *)
+
+let singularize  =
+  let rexp = Str.regexp in 
+  let smatch r s = Str.string_match r s 0 in
+  let group  = Str.matched_group in 
+  let reg_ss = rexp ".*ss$" in 
+  let reg_ous = rexp ".*ous$" in 
+  let reg_oes = rexp "\\(.*[^aeiou]o\\)es$" in 
+  let reg_ies = rexp "\\(.*[^aeiou]\\)ies$" in 
+(*  let reg_ves = rexp "\\(.*\\)ves$" in too many exceptions *)
+  let reg_ize = rexp "\\(.*ize\\)s$" in 
+  let reg_ise = rexp "\\(.*ise\\)s$" in 
+  let reg_xes = rexp "\\(.*\\)\\(ch\\|ss\\|sh\\|x\\|z\\)es$" in
+  let reg_s = rexp "\\(.*\\)s$" in 
+  let i s = s in
+  let mm = [(smatch reg_ss,i);
+            (smatch reg_ous,i);
+            (smatch reg_oes,fun s -> group 1 s);
+            (smatch reg_ies,fun s -> group 1 s^"y");
+(*            (smatch reg_ves,fun s -> group 1 s^ "f"); *)
+            (smatch reg_ize,fun s -> group 1 s);
+            (smatch reg_ise,fun s -> group 1 s);
+            (smatch reg_xes,fun s -> group 1 s ^ group 2 s);
+            (smatch reg_s,fun s -> group 1 s)
+    ] in 
+  fun s ->
+        if String.length s <= 3 || not(s.[String.length s -1] = 's') then s 
+        else  
+          let s' = match List.find_opt (fun (m,_) -> m s) mm with
+          | None -> failwith "singularize: matching pattern expected"
+          | Some (_,r) -> r s in 
+          if String.length s' <= 2 then s else s';;
+
+(*
+let _ = List.map (fun t -> (print_endline (t ^" "^singularize t)))
+[
+"has";"rat";"does";"obsess";"flux";"busses";"industrious";"pianos";"heroes";"tries";"plays";"elves";"twelves";"foxes";"lives";"breeches";"rushes";"fluxes";"lashes";
+"dazes";"series";"porous";"realizes";"actualizes";"incises";"utilises";"tractrixes";"ruins";"collides";"solves";"curves";"carves";"motives";"motifs";"bodies";"measures";"cases";"courses";"transverses"
+];;
+ *)
 
 (* module Sedlexing = Lexbuffer *)
 
@@ -215,7 +273,7 @@ let identkey =
   fun s -> 
         if (s = "_") then BLANK
         else if is_var s then VAR s
-        else if is_word s then WORD (s,String.lowercase_ascii s)
+        else if is_word s then WORD (s,singularize(String.lowercase_ascii s))
         else ATOMIC_IDENTIFIER s
            
 (* open Parser_cnl *)
