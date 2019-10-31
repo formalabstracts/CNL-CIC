@@ -46,7 +46,7 @@ For example, MSC gives
 ``` 
 This corresponds with a Colada file `11M-ZetaAndLFunctionsAnalyticTheory`.
 
-%
+
 ## Missing Definitions 
 
 Definitions that are not supplied by PlanetMath can in rare cases be
@@ -105,12 +105,7 @@ dependencies on definitions.
 
 ## Linking 
 
-The package XX should be used, and each section should link by a
-reference back to the PlanetMath html document using the canonical
-name (for example,
-[PoliteNumber](https://planetmath.org/PoliteNumber)).  Other
-PlanetMath metadata does not need to be included (we will generate
-this automatically).
+Links should follow PlanetMath conventions.  
 
 ## What to translate 
 
