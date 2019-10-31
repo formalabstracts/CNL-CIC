@@ -90,8 +90,8 @@ opt_paren(X) : X | paren(X) {}
 
 comma_nonempty_list(X) : separated_nonempty_list(COMMA,X) {}
 comma_list(X) : separated_list(COMMA,X) {}
-opt_comma_nonempty_list(X) : separated_nonempty_list(option(COMMA),X) {}
-sep_list(X) : separated_list(sep_and_comma,X) {}
+(* opt_comma_nonempty_list(X) : separated_nonempty_list(option(COMMA),X) {} *)
+and_comma_nonempty_list(X) : separated_list(and_comma,X) {}
 
 cs_brace(X) : X list(brace(expr) {}) {} (* control sequence args *)
 
@@ -114,7 +114,7 @@ identifier : atomic | HIERARCHICAL_IDENTIFIER {}
 
 lit_a : LIT_A | LIT_AN {}
 article : lit_a | LIT_THE {}
-sep_and_comma : LIT_AND | COMMA {}
+and_comma : LIT_AND | COMMA {}
 lit_binder_comma : COMMA {}
 
 lit_defined_as : LIT_SAID LIT_TO LIT_BE
@@ -458,10 +458,11 @@ args : option( opt_args {}) required_args {}
 
  (* unambiguous boundaries of terms needed here *)
  (* This allows too much. We should restrict further to admissible patterns. *)
-generalized_args : opt_args list(generalized_arg) {}
+tightest_type_args : opt_args list(tightest_type_arg) {}
 
-  generalized_arg : 
-  | tightest_term
+  tightest_type_arg : 
+  | tightest_type
+  | paren(var_or_atomic var_or_atomics opt_colon_type colon_sort {})
   | paren(var_or_atomic var_or_atomics opt_colon_type {})
   {}  
 
@@ -522,8 +523,8 @@ tightest_type :
 | subtype
 | inductive_type
 | mutual_inductive_type
-| structure
-| prim_structure 
+| structure (* declaration *)
+| prim_structure (* identifier *)
 {}
 
 paren_type : paren(general_type) {}
@@ -545,7 +546,7 @@ app_type : tightest_type app_args {}
 
 binder_type : 
 | app_type 
-| prim_pi_binder generalized_args lit_binder_comma binder_type 
+| prim_pi_binder tightest_type_args lit_binder_comma binder_type 
 {}
 
 (** binop_type *)
@@ -770,15 +771,15 @@ opentail_term :
 {}
 
 lambda_term : 
-| prim_lambda_binder generalized_args lit_binder_comma opentail_term
-| generalized_arg MAPSTO opentail_term (* Can we make this generalized_args? *)
+| prim_lambda_binder tightest_type_args lit_binder_comma opentail_term
+| tightest_type_arg MAPSTO opentail_term (* Can we make this tightest_type_args? *)
 {}
 
-lambda_fun : LIT_FUN generalized_args 
+lambda_fun : LIT_FUN tightest_type_args 
   opt_colon_type ASSIGN opentail_term {}
 
   (* let includes destructuring*)
-let_term : LIT_LET plain_term ASSIGN plain_term LIT_IN opentail_term {}
+let_term : LIT_LET tightest_prefix ASSIGN plain_term LIT_IN opentail_term {}
 
 if_then_else_term : LIT_IF prop LIT_THEN plain_term LIT_ELSE opentail_term {}
 
@@ -797,7 +798,7 @@ term :
 | option(prim_classifier) definite_term 
 | any_name {}  
 
-terms : sep_list(term) {}
+terms : and_comma_nonempty_list(term) {}
 
 (** plain term *)
  (*
@@ -829,8 +830,8 @@ attribute(X) : list(left_attribute) X option(right_attribute) {}
   | prim_simple_adjective_multisubject {}
 
   right_attribute : 
-  | sep_list(is_pred) {}
-  | LIT_THAT sep_list(does_pred) {}
+  | and_comma_nonempty_list(is_pred) {}
+  | LIT_THAT and_comma_nonempty_list(does_pred) {}
   | LIT_SUCH LIT_THAT statement {}
 
 attribute_pseudoterm : attribute(typed_name_without_attribute) {}
@@ -859,7 +860,7 @@ pseudoterm :
   | attribute_pseudoterm
   | predicate_pseudoterm {} 
 
-pseudoterms : sep_list(option(lit_a) pseudoterm {}) {}
+pseudoterms : and_comma_nonempty_list(option(lit_a) pseudoterm {}) {}
 
 any_name : 
   | lit_any comma_nonempty_list(any_arg) 
@@ -943,7 +944,7 @@ binder_prop :
 | prim_binder_prop args lit_binder_comma binder_prop {}
 
 lambda_predicate : 
-| LIT_FUN generalized_args COLON ID_PROP ASSIGN tightest_prop {}
+| LIT_FUN tightest_type_args COLON ID_PROP ASSIGN tightest_prop {}
 
 
 prop : 
@@ -958,8 +959,8 @@ prop :
 does_pred : option(lit_do) option(LIT_NOT) prim_verb {}
 | option(lit_do) option(LIT_NOT) prim_verb_multisubject
 | lit_has has_pred
-| lit_is sep_list(is_pred)
-| lit_is sep_list(is_aPred {}) {}
+| lit_is and_comma_nonempty_list(is_pred)
+| lit_is and_comma_nonempty_list(is_aPred {}) {}
 
 is_pred : option(LIT_NOT) prim_adjective {}
 | option(LIT_NOT) option(LIT_PAIRWISE) prim_adjective_multisubject
@@ -969,7 +970,7 @@ is_aPred : option(LIT_NOT) option(lit_a) general_type {}
 | option(LIT_NOT) definite_term {}
 
 has_pred : 
-| sep_list(article possessed_noun {}) {}
+| and_comma_nonempty_list(article possessed_noun {}) {}
 | LIT_NO possessed_noun {}
 
   possessed_noun : attribute(prim_possessed_noun) {}
@@ -981,7 +982,7 @@ has_pred :
 statement : head_statement | chain_statement {}
 
   head_statement : 
-  | LIT_FOR sep_list(any_name {}) option(COMMA) statement {}
+  | LIT_FOR and_comma_nonempty_list(any_name {}) COMMA statement {}
   | LIT_IF statement COMMA LIT_THEN statement (* != if-then-else *)
   | lit_its_wrong statement {}
 
@@ -990,11 +991,14 @@ statement : head_statement | chain_statement {}
   | paren(and_or_chain) LIT_IFF statement 
   {}
 
+  comma_and : COMMA LIT_AND {}
+  comma_or : COMMA LIT_OR {}
+
   and_or_chain : and_chain | or_chain | primary_statement {}
-  and_chain : separated_nonempty_list(LIT_AND, primary_statement {}) 
-    LIT_AND head_primary {}
-  or_chain : separated_nonempty_list(LIT_OR, primary_statement {}) 
-    LIT_OR head_primary {}
+  and_chain : separated_nonempty_list(comma_and, primary_statement {}) 
+    COMMA LIT_AND head_primary {}
+  or_chain : separated_nonempty_list(comma_or, primary_statement {}) 
+    COMMA LIT_OR head_primary {}
   head_primary : head_statement | primary_statement {}
 
 (** primary statement *)
@@ -1091,7 +1095,7 @@ proof_script : proof_preamble option(list(canned_prefix proof_body {})
 
   proof_tail : affirm_proof | canned_proof | case | choose  {}
 
-  canned_prefix : sep_list(phrase_list_transition) option(COMMA) {}
+  canned_prefix : and_comma_nonempty_list(phrase_list_transition) option(COMMA) {}
 
   canned_proof : phrase_list_proof_statement {}
 
@@ -1108,13 +1112,13 @@ proof_script : proof_preamble option(list(canned_prefix proof_body {})
     | LIT_CASE LIT_ANALYSIS
     | LIT_INDUCTION option(LIT_ON plain_term {}) {}
   by_ref : option(paren(LIT_BY ref_item {})) {}
-  ref_item : sep_list(option(lit_location) label {}) {}
+  ref_item : and_comma_nonempty_list(option(lit_location) label {}) {}
 
 (** This exists and is well-defined. *)
 this_exists : LIT_THIS
-  sep_list(this_directive_pred) PERIOD {}
+  and_comma_nonempty_list(this_directive_pred) PERIOD {}
   this_directive_pred : LIT_IS
-    sep_list(this_directive_adjective)
+    and_comma_nonempty_list(this_directive_adjective)
     | this_directive_verb {}
   this_directive_adjective :
     | LIT_UNIQUE
@@ -1155,8 +1159,8 @@ definition_statement :
   macro_inferring : paren(LIT_INFERRING nonempty_list(VAR) opt_colon_type {}) {}
 
 
-  classifier_def : LIT_LET class_words lit_is option(lit_a) lit_classifier {}
-    class_words : comma_nonempty_list(WORD) {}
+  classifier_def : LIT_LET classifier_words lit_is option(lit_a) lit_classifier {}
+    classifier_words : comma_nonempty_list(WORD) {}
 
   type_def : 
   | opt_define type_head COLON ID_TYPE copula option(lit_a) general_type
@@ -1255,10 +1259,13 @@ macro : option(insection) macro_bodies {}
 
   *)
 
+  let_annotation_prefix :
+  LIT_LET comma_nonempty_list(VAR) LIT_BE option(lit_a) option(LIT_FIXED) {}
+
   let_annotation : 
   | lit_fix comma_nonempty_list(annotated_vars) {}
-  | LIT_LET comma_nonempty_list(VAR) LIT_BE option(lit_a) general_type {} 
-  | LIT_LET comma_nonempty_list(VAR) LIT_BE option(lit_a) type_or_prop {}
+  | let_annotation_prefix general_type {} 
+  | let_annotation_prefix type_or_prop {}
   type_or_prop : lit_type | lit_proposition {}
 
   we_record_def : lit_we_record comma_nonempty_list(plain_term) {}

@@ -11,186 +11,9 @@ Primes for still unparsed/unprocessed material.
  *)
 
 open Lexer_cnl
-
-type term = 
-  | TVar of node*(typ option)
-  | TVarAtomic of node*(typ option)
-  | Annotated of term*typ 
-  | Decimal of node
-  | Error'
-  | Integer of int (* XX should be BigInt *)
-  | String of node
-  | Blank
-  | Id of node* typ option
-  | Unparsed' of node list
-  | ControlSeq of node*expr list
-  | Make of (node * typ * node list) list 
-  | Plain' of node list
-  | List of term list
-  | Tuple of term list
-  | SetEnum of term list
-  | Case of (prop*term) list
-  | Match of (term list) * (term list * term) list
-  | MatchFunction of (node list list) * (node * typ) list * typ * (term list * term) list
-  | Comprehension of term * term list * statement
-  | FieldAccessor of term * node 
-  | ApplySub of term * term list
-
-and typ = 
-  | TyVar of node
-  | Colon' of node list 
-  | Type' of node list
-  | TyControlSeq of node * node list list
-  | TyId of node 
-  | Subtype of term * term list * statement 
-
-and prop = 
-  | PVar of node
-  | Prop' of node list
-
-and statement = 
-  | Statement' of node list 
-  | LetAnnotation' of node list
-
-and proof = 
-  | Proof
-
-and expr = 
-  | Eterm of term
-  | Etyp of typ
-  | Eprop of prop
-  | Expr' of node list
-[@@deriving show]
-
-type associativity = 
-  | AssocLeft
-  | AssocRight
-  | AssocNone
-[@@deriving show]
-
-type this_adj =
-  | ThisUnique
-  | ThisCanonical
-  | ThisWelldefined
-  | ThisWellpropped
-  | ThisTotal
-  | ThisExhaustive 
-  | ThisRecursion
-  | ThisExist
-[@@deriving show]
-
-
-type wordpattern = 
-  | Wp_wd of node
-  | Wp_sym of node 
-  | Wp_syn of node list 
-  | Wp_opt of node 
-  | Wp_var of node* typ
-  | Wp_fix of node* typ
-  | Wp_ty_word of wordpattern list
-  | Wp_bin_cs of wordpattern*(node*(wordpattern list))*wordpattern
-  | Wp_ty_identifier of node* node list list * ((node * typ) list)
-  | Wp_ty_cs of node * wordpattern list
-  | Wp_cs of node * wordpattern list
-  | Wp_sympat of wordpattern list * int option  * associativity
-  | Wp_sympatP of wordpattern list * int option  * associativity
-  | Wp_sympatT of wordpattern list
-  | Wp_identifier of node* node list list * ((node * typ) list)
-  | Wp_identifierP of node* node list list * ((node * typ) list)
-  | Wp_fun_word of wordpattern list
-  | Wp_notion of wordpattern list
-  | Wp_adj of wordpattern list
-  | Wp_adjM of wordpattern list
-  | Wp_verb of wordpattern list
-  | Wp_verbM of wordpattern list
-  | Wp_inferring of wordpattern * node list * typ
-  | Wp_classifier of node list list
-  | Wp_record of node list list * this_adj list
-  | Wp_implement of node list * node list list
-  | Wp_namespace of node
-[@@deriving show]
-
-type scope = string list
-[@@deriving show]
-
-type pos = (Lexing.position * Lexing.position) [@opaque]
-[@@deriving show]
-
-(* let show_pos _ _ = "" *)
-
-
-type prim = 
-
-  | Prim_classifier of scope * string (* phrase *)
-  (* all cs primitives are 0-ary or 2-ary *)
-  (* cs token, braceargs, precedence, assoc, def, free vars  -- always binary *)
-  | Prim_term_op_controlseq of scope * token * int * int * associativity * term * term list
-  (* cs token, braceargs, def, frees *)
-  | Prim_binary_relation_controlseq of scope * token * int * prop * term * term list
-  (* cs token, braceargs, prec, assoc, def, frees *)
-  | Prim_propositional_op_controlseq of 
-      scope * token * int * int * associativity * prop * term list 
-  (* cs token, braceargs, def, frees -- alway binary, fixed prec, right assoc. *)
-  | Prim_type_op_controlseq of scope * token * int * term * term list
-  (* cs token, brace args, def, frees -- only brace args *)
-  | Prim_term_controlseq of scope * token * int * term * term list 
-  (* cs token, brace args, def, frees *)
-  | Prim_type_controlseq of scope * token * int * typ * expr list 
-  (* token, def -- binders *)
-  | Prim_lambda_binder of scope * token * term 
-  | Prim_pi_binder of scope * token * typ 
-  | Prim_binder_prop of scope * token * prop 
-
-  (* -- non cs *)
-  (* pattern, def, frees *)                             
-  | Prim_typed_name of scope * wordpattern * typ * expr list 
-  | Prim_adjective of scope * wordpattern * prop * expr list
-  | Prim_adjective_multisubject of scope * wordpattern * prop * expr list
-  | Prim_simple_adjective of scope * wordpattern * prop * expr list
-  | Prim_simple_adjective_multisubject of scope * wordpattern * prop * expr list
-  | Prim_definite_noun of scope * wordpattern * term * expr list
-  | Prim_identifier_term of scope * token * term * expr list
-  | Prim_identifier_type of scope * token * typ * expr list
-  | Prim_possessed_noun of scope * wordpattern * term * expr list
-  | Prim_verb of scope * wordpattern * prop * expr list 
-  | Prim_verb_multisubject of scope * wordpattern * prop * expr list
-  | Prim_structure of scope * wordpattern * typ * expr list 
-  | Prim_type_op of scope * token * typ * typ list
-  | Prim_term_op of scope * wordpattern * term * expr list
-  | Prim_binary_relation_op of scope * token * prop * (term * term)
-  | Prim_propositional_op of scope * token * int * associativity * prop * prop list 
-  | Prim_relation of scope * wordpattern * typ * term list 
-
-  (* variables *)
-  | Prim_type_var of scope * string 
-  | Prim_term_var of scope * string * typ option
-  | Prim_prop_var of scope * string 
-[@@deriving show]
-
-type text_node = 
-  | Section_preamble of pos*int*string (* new current section *)
-  | Instruction of pos*string (* keyword *)
-  | Axiom of pos*string*string * (statement list)*statement  (* kind,label,statements,conclusion *)
-  | Definition of pos*string * (statement list)* (wordpattern * node list) list * this_adj list (* label,statements,conclusion *)
-  | Theorem of pos*string * (statement list)*statement  (* label, statements,conclusion *)
-  | Synonym of pos
-  | Implement of pos*wordpattern
-  | Macro of pos* int * (wordpattern * node list) list
-  | Namespace
-[@@deriving show]
-
-(* exceptions and positions *)
-
-type trace = 
-  | TrMany of trace list
-  | TrAdd of trace list
-  | TrOr of trace list
-  | TrGroup of string * trace
-  | TrFail of int*int*token 
-  | TrData of token list
-  | TrString of string 
-  | TrEmpty
-[@@deriving show]
+open Type
+open Lib
+open Primitive
 
 let rec get_trace_data =
   function 
@@ -314,63 +137,6 @@ let group msg parser input  =
   | Nocatch t -> raise (Nocatch (TrGroup(msg,t)))
 
 
-(* a few lines from HOL Light lib.ml *)
-
-let report s =
-  Format.print_string s; Format.print_newline();;
-
-let warn cond s =
-  if cond then report ("Warning: "^s) else ();;
-
-let curry f x y = f(x,y);;
-
-let uncurry f(x,y) = f x y;;
-
-let rec assocd a l d =
-  match l with
-    [] -> d
-  | (x,y)::t -> if Pervasives.compare x a = 0 then y else assocd a t d;;
-
-let rec rev_assocd a l d =
-  match l with
-    [] -> d
-  | (x,y)::t -> if Pervasives.compare y a = 0 then x else rev_assocd a t d;;
-
-let rec zip l1 l2 =
-  match (l1,l2) with
-        ([],[]) -> []
-      | (h1::t1,h2::t2) -> (h1,h2)::(zip t1 t2)
-      | _ -> failwith "zip";;
-
-let rec unzip =
-  function [] -> [],[]
-         | ((a,b)::rest) -> let alist,blist = unzip rest in
-                            (a::alist,b::blist);;
-
-let rec itlist2 f l1 l2 b =
-  match (l1,l2) with
-    ([],[]) -> b
-  | (h1::t1,h2::t2) -> f h1 h2 (itlist2 f t1 t2 b)
-  | _ -> failwith "itlist2";;
-
-let rec butlast l =
-  match l with
-    [_] -> []
-  | (h::t) -> h::(butlast t)
-  | [] -> failwith "butlast";;
-
-let rec last l =
-  match l with
-    [x] -> x
-  | (_::t) -> last t
-  | [] -> failwith "last";;
-
-let rec chop_list n l =
-  if n = 0 then [],l else
-  try let m,l' = chop_list (n-1) (List.tl l) in (List.hd l)::m,l'
-  with Failure _ -> failwith "chop_list";;
-
-let _ = chop_list 3 [5;6;7;8;9;10;11;12];;
 
 
 (* Here are a few lines adapted from HOL Light parser.ml *)
@@ -468,15 +234,6 @@ let someX p =
 
 (* let someXt p f = someX p (f -| tok) *)
 
-let some_nodeX p = 
-  function
-    [] -> raise failEof
-  | h :: t -> let (b,x) = p h.tok in
-              if b then 
-                let tr = TrData [h.tok] in 
-                (mk (x,h.pos),(tr,t)) 
-              else raise (Noparse(trPos[h]))
-
 let a tok input = 
   try 
     some (fun item -> item = tok) input
@@ -485,9 +242,7 @@ let a tok input =
 
 let pair x y = (x,y)
 
-let string_sort = List.sort_uniq String.compare
 
-let _ = string_sort ["the";"THE";"that";"a";"z"]
 
 let consume parser input = 
   let ((a,_),_) = (parser ++ finished) input in a
@@ -510,18 +265,87 @@ let must f parser input =
   let _ = f r || raise (Noparse (TrGroup("must",trPos input))) in 
   (r,(TrGroup("must",tr),rest))
 
-(*
-let ( <|> ) (test,parser1) parser2 input = 
-  if canparse test input then 
-    parser1 input 
-  else parser2 input
- *)
- (* commitment test *)
-
 let commit err test parse input = 
   if canparse test input then 
     fix err parse input  
   else raise (Noparse (TrGroup ("bad header in "^err,trPos input)))
+
+let some_nodeX p = 
+  function
+    [] -> raise failEof
+  | h :: t -> let (b,x) = p h.tok in
+              if b then 
+                let tr = TrData [h.tok] in 
+                (mk (x,h.pos),(tr,t)) 
+              else raise (Noparse(trPos[h]))
+
+let rec parse_all ps input = 
+  match ps with
+  | [] -> ([],(TrMany[],input))
+  | p::ps' -> let (result,(t,rest)) = group "parse_all" p input in 
+              let (result',(tr,rest')) = parse_all ps' rest in
+              let tr' = match tr with
+              | TrMany ts -> TrMany (t :: ts)
+              | _ -> failwith "many:unreachable state" in 
+              (result :: result'),(tr',rest')
+
+let rec parse_some ps input = 
+  match ps with 
+  | [] -> raise (Noparse (TrGroup ("parse_some",trPos input)))
+  | p :: ps' -> try (p input) with Noparse _ -> parse_some ps' input 
+  
+let rec somecomb parser = 
+  function
+  | [] -> failparse 
+  | t :: ts -> parser t ||| somecomb parser ts
+
+
+
+(* words *)
+
+let is_word v = 
+  let u = String.lowercase_ascii v in 
+  let isword = String.length u = 1 && 'a' <= u.[0] && u.[0] <= 'z' in
+  (isword,u)
+
+
+let word s input = 
+  let u = String.lowercase_ascii s in
+  try 
+    let (a,(_,rest)) = 
+      some_nodeX 
+        (function 
+         | WORD (_,w) as w' -> 
+             ((w = u),w')
+         | VAR v -> 
+             let (b,v') = is_word v in 
+             (b && u=v'),WORD(v,v')
+         | t -> (false,t)) input in 
+    (a,(TrString ("matched:"^u),rest))
+  with 
+    Noparse _ -> raise (Noparse (TrGroup (("expected:"^u),trPos input)))
+
+let anyword = some(function | WORD _ -> true | VAR v -> fst(is_word v) | _ -> false)
+
+let anywordexcept banned = 
+  let banned' = List.map String.lowercase_ascii banned in 
+  some(function 
+      | WORD(_,w) -> not(List.mem w banned') 
+      | VAR v -> let (b,v') = is_word v in b && not(List.mem v' banned')
+      | _ -> false)
+
+(* let anyphrase = plus(anyword)  *)
+
+let phrase s = 
+  let ps = List.map word (String.split_on_char ' ' s) in 
+  parse_all ps
+
+let someword s = 
+  let s' = List.map word (String.split_on_char ' ' s) in
+  parse_some s'
+
+
+
 
 (*
 let commit_head err parse1 parse2 input = 
@@ -591,14 +415,6 @@ let rec balancedB accept input =
         brace(balanced)) >> List.flatten  ) input
 and balanced input = balancedB (fun _ -> true) input
 
-(*
-let separated p = 
-  let sep p =
-    nonbrack p >> (fun x -> [x]) ||| 
-      paren(balanced) ||| bracket(balanced) ||| brace(balanced) in
-  (many(sep p) >> List.flatten)
- *)
-
 let brace_semi = 
   let semisep = balancedB (function | SEMI -> false | _ -> true) in
   brace(semisep ++ many(a(SEMI) ++ semisep)) >>
@@ -609,13 +425,10 @@ let comma = a COMMA
 let comma_nonempty_list parser = 
   separated_list parser comma 
 
-(* 
-let comma_list err parser = 
-  eseparated_list err parser comma
- *)
+let  and_comma = (* no Oxford comma allowed, which is reserved for sentence conjunction *)
+  word "and" ||| comma
 
-let opt_comma_nonempty_list parser = 
-  separated_list parser (possibly comma) 
+let and_comma_nonempty_list parser = separated_list parser and_comma
 
 let lit_binder_comma = comma
 
@@ -624,82 +437,8 @@ let cs_brace parser1 parser2 =
 
 (* set up synonym hashtable *)
 
-let synonym = Hashtbl.create 200;;
 
-let syn_add1 (key,value) = 
-  let benign = 
-    not(Hashtbl.mem synonym key) || 
-    (let value' = Hashtbl.find synonym key in 
-     (value = value') || failwith ("synonym already declared "^key^" "^value')) in 
-      if benign then Hashtbl.add synonym key value
-
- (* multiword synonyms are stored by hyphenating words together *)
-
-let hyphen = String.concat "-"
-
-let syn_add ts = 
-  let ts' = List.map hyphen ts in 
-  let ts' = string_sort (List.map String.lowercase_ascii ts') in
-  if ts' = [] then ()
-  else 
-    let value = List.hd ts' in
-    ignore (List.map (fun t -> syn_add1 (t,value)) ts')
-
-let find_syn key = 
-  try Hashtbl.find synonym key 
-  with Not_found -> key
-
-
-let frozen = 
-  List.map syn_add (List.map (fun t -> [[t]]) 
-[
-"a";"an";"all";"and";"any";"are";"as";"assume";"be";"by";
-"case";"classifier";"classifiers"; 
-"coercion";"conjecture";"contradiction";"contrary";"corollary";"def";
-"define";"defined";"definition";"denote";"division";"do";"document";
-"does";"dump";"each";"else";"end";"enddivision";"endsection";
-"endsubdivision";"endsubsection";"endsubsubsection";"equal";
-"equation";"error";"enter";"every";"exhaustive";"exist";"exists";"exit";
-"false";"fix";"fixed";"for";"forall";"formula";"fun";"function";"has";"have";
-"having";"hence";"holding";"hypothesis";"if";"iff";"implements";"in";"inferring";
-"indeed";"induction";"inductive";"introduce";"is";"it";"left";"lemma";
-"let";"library";"make";"map";"match";"moreover";"namespace";
-"no";"not";"notational";"notation";
-"notationless";"obvious";"of";"off";"on";"only";"ontored";"or";"over";
-"pairwise";"parameter";"parameters";"precedence";"predicate";"printgoal";
-"proof";"prop";"properties";"property";"prove";"proposition";"propositions";
-"propped";"qed";"quotient";"read";"record";"register";"recursion";"right";
-"said";"say";"section";"show";"some";"stand";"structure";"subdivision";
-"subsection";"subsubsection";"such";"suppose";"synonyms";"take";"that";
-"the";"then";"theorem";"there";"therefore";"thesis";"this";"timelimit";
-"to";"total";"trivial";"true";"type";"types";"unique";"us";
-"warning";"we";"well";"welldefined";"well_defined";"well_propped";
-"where";"with";"write";"wrong";"yes";
-])
-
-let rec parse_all ps input = 
-  match ps with
-  | [] -> ([],(TrMany[],input))
-  | p::ps' -> let (result,(t,rest)) = group "parse_all" p input in 
-              let (result',(tr,rest')) = parse_all ps' rest in
-              let tr' = match tr with
-              | TrMany ts -> TrMany (t :: ts)
-              | _ -> failwith "many:unreachable state" in 
-              (result :: result'),(tr',rest')
-
-let rec parse_some ps input = 
-  match ps with 
-  | [] -> raise (Noparse (TrGroup ("parse_some",trPos input)))
-  | p :: ps' -> try (p input) with Noparse _ -> parse_some ps' input 
-  
-let rec somecomb parser = 
-  function
-  | [] -> failparse 
-  | t :: ts -> parser t ||| somecomb parser ts
-
-
-(* words *)
-let word s input = 
+let expanded_word s input = 
   let u = find_syn (String.lowercase_ascii s) in 
   try 
     let (a,(_,rest)) = some_nodeX 
@@ -707,29 +446,13 @@ let word s input =
        | WORD (w,wu) -> 
            let wsyn = find_syn wu in
            ((wsyn = u),WORD (w,wsyn))
-       | VAR s -> 
-           let s' = String.lowercase_ascii s in 
-           (s'=u,WORD(s,s'))
+       | VAR v -> 
+           let (b,v') = is_word v in 
+           (b && v'=u),WORD(v,v')
        | t -> (false,t)) input in 
     (a,(TrString ("matched:"^u),rest))
   with 
     Noparse _ -> raise (Noparse (TrGroup (("expected:"^u),trPos input)))
-
-let anyword = some(function | WORD _ -> true | _ -> false)
-
-let anywordexcept banned = 
-  let banned' = List.map String.lowercase_ascii banned in 
-  some(function | WORD(_,w) -> not(List.mem w banned') | _ -> false)
-
-let anyphrase = plus(anyword) 
-
-let phrase s = 
-  let ps = List.map word (String.split_on_char ' ' s) in 
-  parse_all ps
-
-let someword s = 
-  let s' = List.map word (String.split_on_char ' ' s) in
-  parse_some s'
 
 
 let phrase_list_transition = 
@@ -771,11 +494,6 @@ let phrase_list_proof_statement =
        possibly (word "now") ++ word "follows" >> w) |||
     (phrase "the other cases are similar" >> w) |||
     (phrase "the proof is" ++ someword "obvious trivial easy routine" >> w)
-
-let  sep_and_comma = 
-  word "and" ||| (comma ++ possibly(word "and") >> fst)
-
-let sep_list parser = separated_list parser sep_and_comma
 
 let case_sensitive_word = 
   some_nodeX (function 
@@ -948,24 +666,8 @@ let section_tag = lit_document ||| lit_enddocument
 
 let period = some (function | PERIOD -> true | _ -> false)
 
-let current_scope = ref [""]
 
-let string_of_scope = 
-  String.concat "." (List.rev !current_scope)
 
-let is_scope_end =
-  function
-  | "endsection" | "endsubsection" | "endsubsubsection" | "enddivision" -> true
-  | _ -> false
-
-let scope_level = 
-  function
-  | "document" | "article" -> 0
-  | "section" | "endsection" -> 1
-  | "subsection" | "endsubsection" -> 2
-  | "subsubsection" | "endsubsubsection" -> 3
-  | "division" | "subdivision" | "enddivision" | "endsubdivision" -> 4
-  | s -> failwith ("bad scope_level "^s)
 
 let pad k x ls =
     if (k <= List.length ls) then snd(chop_list k ls)
@@ -1010,14 +712,6 @@ let treat_section_preamble =
     Section_preamble(pair_pos(pos,p'.pos),new_level,l))
   | _ -> failwith "bad format: treat_section_preamble")
 
-let inscope scope = 
-  let curscope = !current_scope in
-  let is = List.length scope in
-  let ic = List.length curscope in 
-  if is > ic then false
-  else 
-    let curscope' = snd(chop_list (ic - is) curscope) in 
-    (scope = curscope')
 
 let section_preamble = 
   commit_head "section" section_tag
@@ -1095,15 +789,11 @@ let rec expand_slashdash css cs =
       )
   | _ -> failwith "expand_slashdash: /- must fall between words"
 
-
 let is_syntoken = 
   function 
   | SLASHDASH -> true,SLASHDASH 
   | WORD _ as wd -> true,wd
-  | VAR v as var -> (
-    let u = String.lowercase_ascii v in 
-    let isword = String.length u = 1 && 'a' <= u.[0] && u.[0] <= 'z' in
-    if isword then true,WORD(v,u) else false,var) 
+  | VAR v -> let (b,v') = is_word v in b,WORD(v,v')
   | SLASH -> true,SLASH
   | t -> false,t
 
@@ -1184,13 +874,13 @@ let this_directive_verb =
      fun (_,ts) -> ThisExist :: ts)
 
 let this_directive_pred = 
-  group "this is" (word "is" ++ sep_list(this_directive_adjective) >> snd) 
+  group "this is" (word "is" ++ and_comma_nonempty_list(this_directive_adjective) >> snd) 
   |||
     (group "this_directive_verb" this_directive_verb)
 
 let this_exists = (* no period *)
   commit "this_exists" (word "this" ++ someword "exists is")
-  (getpos ++ word "this" ++ group "sep_list" (sep_list(this_directive_pred)) ++ getpos >>
+  (getpos ++ word "this" ++ group "and_comma_nonempty_list" (and_comma_nonempty_list(this_directive_pred)) ++ getpos >>
      (fun (((p,_),ls),p') -> (pair_pos (p,p'),List.flatten ls)))
 
 (* text *)
@@ -1222,7 +912,7 @@ let axiom =
             Axiom (pair_pos(p,p'),w,labl,ls,Statement' st))))
 
 (* theorem *) 
-let ref_item = sep_list(possibly lit_location ++ label) 
+let ref_item = and_comma_nonempty_list(possibly lit_location ++ label) 
 
 let by_ref = possibly(paren(word "by" ++ ref_item))
 
@@ -1241,7 +931,7 @@ let choose_prefix =
 
 let canned_proof = phrase_list_proof_statement >> discard
 
-let canned_prefix = sep_list(phrase_list_transition) ++ possibly(a(COMMA))
+let canned_prefix = and_comma_nonempty_list(phrase_list_transition) ++ possibly(a(COMMA))
 
 let goal_prefix = 
   possibly(lit_lets) ++ lit_prove ++ 
@@ -1323,7 +1013,7 @@ let any_pattern_word =
 
 let word_in_pattern = 
   any_pattern_word >> (fun s -> [Wp_wd s]) |||   
-  (paren(comma_nonempty_list(word "or" ++ plus(any_pattern_word))) 
+  (paren(comma_nonempty_list(word "or" ++ plus(any_pattern_word))) (* synonym *)
   >> (fun ss -> 
             let ss' = List.map snd ss in 
              List.map (fun s' -> Wp_syn s') ss')) |||
@@ -1552,11 +1242,11 @@ let macro_inferring =
   paren(word "inferring" ++ plus(var) ++ opt_colon_type)
   >> (fun ((_,a),b) -> (a,b))
 
-let class_words = comma_nonempty_list(plus(anywordexcept ["is";"are";"be"]))
+let classifier_words = comma_nonempty_list(plus(anywordexcept ["is";"are";"be"]))
 
  (* XX need to add prim actions *)
 let classifier_def = group "classifier_def"
-  (word "let" ++ class_words ++ lit_is ++ possibly(lit_a) ++ lit_classifier)
+  (word "let" ++ classifier_words ++ lit_is ++ possibly(lit_a) ++ lit_classifier)
   >> (fun ((((_,c),_),_),_) -> [Wp_classifier c,[]])
 
 let type_head = 
@@ -1683,137 +1373,6 @@ let text =
     )
 
 
-(* primitives *)
-
-(* let prim_tbl = Hashtbl.create 1000 *) (* global table *)
-
-(* let prim_add (key,value) =  *)
-  
-
-
-
-
-
-
-
-let prim_scope = 
-  function 
-  | Prim_classifier (scope,_) -> scope 
-  | Prim_term_op_controlseq (scope,_,_,_,_,_,_) -> scope
-  | Prim_binary_relation_controlseq (scope,_,_,_,_,_) -> scope
-  | Prim_propositional_op_controlseq (scope,_,_,_,_,_,_ ) -> scope
-  | Prim_type_op_controlseq (scope,_,_,_,_) -> scope
-  | Prim_term_controlseq (scope,_,_,_,_ ) -> scope
-  | Prim_type_controlseq (scope,_,_,_,_ ) -> scope
-  | Prim_lambda_binder (scope,_,_ ) -> scope
-  | Prim_pi_binder (scope,_,_ ) -> scope
-  | Prim_binder_prop (scope,_,_ ) -> scope
-  | Prim_typed_name (scope,_,_,_ ) -> scope
-  | Prim_adjective (scope,_,_,_) -> scope
-  | Prim_adjective_multisubject (scope,_,_,_) -> scope
-  | Prim_simple_adjective (scope,_,_,_) -> scope
-  | Prim_simple_adjective_multisubject (scope,_,_,_) -> scope
-  | Prim_definite_noun (scope,_,_,_) -> scope
-  | Prim_identifier_term (scope,_,_,_) -> scope
-  | Prim_identifier_type (scope,_,_,_) -> scope
-  | Prim_possessed_noun (scope,_,_,_) -> scope
-  | Prim_verb (scope,_,_,_ ) -> scope
-  | Prim_verb_multisubject (scope,_,_,_) -> scope
-  | Prim_structure (scope,_,_,_ ) -> scope
-  | Prim_type_op (scope,_,_,_) -> scope
-  | Prim_term_op (scope,_,_,_) -> scope
-  | Prim_binary_relation_op (scope,_,_,_) -> scope
-  | Prim_propositional_op (scope,_,_,_,_,_ ) -> scope
-  | Prim_relation (scope,_,_,_ ) -> scope
-  | Prim_term_var (scope,_,_) -> scope
-  | Prim_type_var (scope,_) -> scope 
-  | Prim_prop_var (scope,_) -> scope
-
-let prim_find_inscope tbl key = 
-  let vs = Hashtbl.find_all tbl key in
-  List.filter (fun v -> inscope (prim_scope v)) vs
-
-let prim_add tbl (key,value) = 
-  warn (not (prim_find_inscope tbl key = []))
-    ("primitive already declared: "^key); 
-    Hashtbl.add tbl key value
-
-let prim_node = function
-  | Prim_term_op_controlseq (_,node,_,_,_,_,_) -> node
-  | Prim_binary_relation_controlseq (_,node,_,_,_,_) -> node
-  | Prim_propositional_op_controlseq (_,node,_,_,_,_,_ ) -> node
-  | Prim_type_op_controlseq (_,node,_,_,_) -> node
-  | Prim_term_controlseq (_,node,_,_,_ ) -> node
-  | Prim_type_controlseq (_,node,_,_,_ ) -> node
-  | Prim_lambda_binder (_,node,_ ) -> node
-  | Prim_pi_binder (_,node,_ ) -> node
-  | Prim_binder_prop (_,node,_ ) -> node
-  | Prim_identifier_term (_,node,_,_) -> node
-  | Prim_identifier_type (_,node,_,_) -> node
-  | Prim_type_op (_,node,_,_) -> node
-  | Prim_binary_relation_op (_,node,_,_) -> node
-  | Prim_propositional_op (_,node,_,_,_,_ ) -> node
-  | _ -> failwith "prim_node: node expected" 
-
-let prim_string = function
-  | Prim_term_var (_,s,_) -> s
-  | Prim_type_var (_,s) -> s
-  | Prim_prop_var (_,s) -> s
-  | _ -> failwith "prim_string: string expected" 
-
-let prim_wordpattern = function 
-  | Prim_typed_name (_,wordpattern,_,_) -> wordpattern
-  | Prim_relation (_,wordpattern,_,_ ) -> wordpattern
-  | Prim_adjective_multisubject (_,wordpattern,_,_) -> wordpattern
-  | Prim_simple_adjective (_,wordpattern,_,_) -> wordpattern
-  | Prim_simple_adjective_multisubject (_,wordpattern,_,_) -> wordpattern
-  | Prim_definite_noun (_,wordpattern,_,_) -> wordpattern
-  | Prim_possessed_noun (_,wordpattern,_,_) -> wordpattern
-  | Prim_verb (_,wordpattern,_,_ ) -> wordpattern
-  | Prim_verb_multisubject (_,wordpattern,_,_) -> wordpattern
-  | Prim_structure (_,wordpattern,_,_ ) -> wordpattern
-  | Prim_term_op (_,wordpattern,_,_) -> wordpattern
-  | _ -> failwith "prim_wordpattern: wordpattern expected"
-
-let prim_node_in_scope tbl key =
-  List.mem key 
-  (List.map prim_node (prim_find_inscope tbl key))
-
-let prim_string_in_scope tbl key = 
-  List.mem key
-  (List.map prim_string (prim_find_inscope tbl key))
-
-(*  key=node for prim_node primitives *)
-
-let prim_identifier_term_tbl = Hashtbl.create 200
-
-let prim_identifier_term_exists key =
-  prim_node_in_scope prim_identifier_term_tbl key
-
-let prim_identifier_type_tbl = Hashtbl.create 50
-
-let prim_identifier_type_exists key =
-  prim_node_in_scope prim_identifier_type_tbl key
-
-let prim_type_controlseq_tbl = Hashtbl.create 100
-
-let prim_type_controlseq_exists key = 
-  prim_node_in_scope prim_type_controlseq_tbl key
-
-let prim_term_var_tbl = Hashtbl.create 200
-
-let prim_term_var_exists key = 
-  prim_string_in_scope prim_term_var_tbl key
-
-let prim_type_var_tbl = Hashtbl.create 100
-
-let prim_type_var_exists key = 
-  prim_string_in_scope prim_type_var_tbl key
-
-let prim_prop_var_tbl = Hashtbl.create 100
-
-let prim_prop_var_exists key = 
-  prim_string_in_scope prim_prop_var_tbl key
 
 
 
@@ -2000,32 +1559,53 @@ let var_type =
   ||| (paren(var ++ a COLON ++ the_case_sensitive_word "Type") 
          >> (fun ((v,_),_) -> TyVar ( v)))
 
-let subtype = 
-  brace(commasep ++ holding_var ++ a TMID ++ balanced)
+let subtype = group "subtype"
+  (brace(commasep ++ holding_var ++ a TMID ++ balanced))
   >> (fun (((a,b),_),c) -> Subtype (Plain' a,b,Statement' c))
 
 let colon_sort' = a COLON ++ post_colon_balanced >> snd
 
 let alt_constructor = a ALT ++ identifier ++ args ++ a COLON ++ post_colon_balanced
 
-let opt_alt_constructor = a ALT ++ identifier ++ args ++ opt_colon_type
+let opt_alt_constructor = 
+  a ALT ++ identifier ++ args ++ opt_colon_type
+  >> (fun (((_,i),a),o) -> (i,a,o))
 
-let inductive_type = 
-  word "inductive" ++ identifier ++ args ++ possibly(colon_sort') ++
-    many(opt_alt_constructor) ++ word "end" 
+let inductive_type = group "inductive_type"
+  ((word "inductive" ++ identifier ++ args ++ possibly(colon_sort')
+    ++ many(opt_alt_constructor) ++ word "end")
+   >> (fun (((((_,i),a),p),m),_) -> (i,a,p,m)))
 
-let mutual_inductive_type = 
-  word "inductive" ++ comma_nonempty_list(identifier) ++ args ++
+let mutual_inductive_type = group "mutual_inductive"
+  (word "inductive" ++ comma_nonempty_list(identifier) ++ args ++
     many(word "with" ++ atomic ++ args ++ colon_type ++ many(alt_constructor)) ++
-    word "end"
+    word "end")
 
-(*
-let structure = 
-  possibly(word "notational") ++ word "structure" 
+let satisfying_preds = brace_semi
+                 
+let structure = group "structure"
+  ((possibly(word "notational") ++ word "structure" 
   ++ possibly(phrase("with parameters")) ++ args
-  ++ possibly(word "with") ++ brace_semi(field)
-  ++ possibly(possibly(lit_with_properties) ++ satisfying_preds)
+  ++ possibly(word "with") ++ brace_semi
+  ++ possibly(possibly(lit_with_properties) ++ satisfying_preds >> snd))
+  >> (fun ((((_,a),_),b),b') ->  Structure' (a,b,List.flatten b')))
+
+(* XX
+let tightest_type = 
+  group "tightest_type"
+    (
+      paren_type
+      ||| annotated_type
+      ||| controlseq_type
+      ||| const_type
+      ||| var_type
+      ||| subtype
+      ||| inductive_type
+      ||| mutual_inductive_type
+      ||| structure
+      ||| prim_structure
+    )
+
  *)
 
-        
-    
+(* let sentence =  *)

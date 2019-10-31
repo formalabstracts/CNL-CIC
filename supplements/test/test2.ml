@@ -1,4 +1,5 @@
 open Cnl_parse__Lexer_cnl
+open Cnl_parse__Type
 open Cnl_parse__Parser
 
 
@@ -81,6 +82,7 @@ let test2 = List.map print_endline
              (List.map show_token (List.map tok (ns100)))
 
 let rec test_it input  = 
+  if input = [] then () else
   let input' = 
     try 
       let (t,(_,input')) = text input in

@@ -604,7 +604,7 @@
   .  
   Definition  .    Let    \Nz {  p  }  {  G  }    denote  
   the  size  of  the  normalizer  of  each  and  every  Sylow    p    subgroup  of    G    .  
-  This  exists  ,  is  unique  ,  and  is  well_defined  .  
+  This  exists  ,  is  unique    and  is  well_defined  .  %EDITED
   Theorem  .    There  exists  a  Sylow    p    subgroup  of    G    .  
   Theorem  .    If    P  ,  P'    are  Sylow    p    subgroups  of    G    ,  then  there  exists    (  g  :  G  )    
   such  that    P'  =  \conj {  g  }  {  P  }    .  
