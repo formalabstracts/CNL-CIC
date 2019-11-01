@@ -1,0 +1,291 @@
+\documentclass[12pt]{article}
+
+
+% PACKAGES
+\usepackage{url}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{currfile}
+\usepackage{fancyvrb}
+\usepackage{xparse} % needed for \ellipsis control sequence in cnl-style
+\usepackage{enumitem} % for topsep=0pt
+\usepackage{colonequals}
+
+% for underscores https://texfaq.org/FAQ-underscore
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+\usepackage{lineno}
+
+\usepackage[
+bookmarksopen,
+bookmarksdepth=2,
+%breaklinks=true
+colorlinks=true,
+urlcolor=blue]{hyperref}
+
+% GLOBAL FORMATTING
+%\linenumbers
+\parindent=0pt
+\parskip=0.5\baselineskip
+\raggedbottom
+
+% TITLE AUTHOR DATE
+\title{Writer's Reference Manual for the Colada Language}
+
+\date{November 1, 2019}
+\author{Thomas Hales}
+
+% THEOREMS
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}[definition]{Theorem}
+\newtheorem{lemma}[definition]{Lemma}
+\numberwithin{definition}{section}
+%\newtheorem{specification}[definition]{Specification}
+
+
+% DOCUMENT
+
+\begin{document}
+\maketitle
+
+\setcounter{tocdepth}{2}
+\tableofcontents
+\newpage
+
+\newcommand{\Nat}{{\mathbb N}}
+\newcommand{\Int}{{\mathbb Z}}
+\newcommand{\Real}{{\mathbb R}}
+\newcommand{\tmid}{//}
+
+This is a writer's reference manual for the Colada language, as in Pina Colada.  The name
+stands for {\bf CO}ntrolled {\bf LA}nguage {\bf DA}ta.
+
+\section{Introduction}
+
+
+By a controlled natural language for mathematics (CNL), we mean an
+artificial language for the communication of mathematics that
+\begin{itemize}
+\item is deliberately designed with precise computer-readable syntax
+  and semantics,
+\item is based on a single natural language (which for us will be
+  English),
+\item and is broadly understood at least in an intuitive way by
+  mathematically literate speakers of the natural language.
+\end{itemize}
+
+
+
+
+Here are some design goals.
+\begin{itemize}
+\item The language should narrow the gap between formalization and
+  current mathematical written communication.
+\item Writing documents in this language should be similar to writing
+  \LaTeX.
+\item Reading documents in this language should be similar to reading
+  ordinary mathematical texts typeset in \LaTeX.  A short explanation
+  should be all that is needed to explain the special conventions of
+  the language.
+\item The logical and mathematical foundations of the system are
+  provided by the Calculus of Inductive Constructions (CiC) as
+  implemented in the Lean theorem prover.  Documents written in the
+  language should compile to CiC.
+\end{itemize}
+
+
+This is a manual for writing texts that have been written in the
+Colada controlled natural language.  
+We have tried to design a language that is rather close to current
+conventions of written mathematical communication.  However, an exact
+fit is not possible for various reasons.
+
+\begin{itemize}
+\item Most mathematical writing is imprecise.
+\item The semantics of our language is dependent type theory.
+\end{itemize}
+
+It is easier to read a Colada document than to write one.%
+
+%
+This reference is meant to help mathematicians write the language.
+A shorter separate document (the reader's guide to the Colada language)
+gives a quick orientation to reading documents that have been
+written in Colada.
+
+As a first approximation, the Colada language can be viewed as the
+disjoint union of the syntaxes of \LaTeX, dependent type theory, and
+Forthel, glued together along a common semantic core.%
+%
+\footnote{The intended target semantics of the Colada language is the
+  calculus of inductive constructions, as implemented in the Lean
+  theorem prover.}
+%
+From a slightly simpler perspective, Colada documents are just
+\LaTeX\ documents with precisely described semantics.  Colada documents are
+generally written in \LaTeX, and this reader's guide describes how to
+read the pdf document, as typeset with \LaTeX.
+
+The language has been designed as a language in which mathematical
+definitions and theorem statements can be expressed in a precise,
+yet readable manner.   Stating something precisely in a computer
+readable format is no guarantee of correctness.  The reader be warned!
+
+From here on, it is assumed that the reader has already read the
+reader's guide.
+
+A separate guide also describes the process of writing \LaTeX\ documents
+that are intended to be converted to Colada.  This reference assumes
+that the reader has already read that document as well.
+
+The Colada language was inspired by the Forthel language and its implementation
+in Haskell in the Naproche-SAD repository. 
+
+\section{Lexical Structure}
+
+A Colada file is first converted to a stream of tokens or lexemes.
+This section describes the lexical structure of the language.
+
+The lexical structure can be understood without understanding the
+full grammatical structure of the language.
+
+The ASCII character set is used. Eventually, we will switch to unicode with
+UTF8 encoding.
+
+Comments are as in \TeX.  A comment begins with a \% symbol and continues to the
+end of the line.  White space is ignored, except in establishing token boundaries.
+White space is not needed between tokens, when boundaries can be established
+without them
+\[
+{x,y,z} \quad\text{is equivalent to}\quad {\ x\ ,\ y\ ,\ z\ }
+\]
+The white space characters are the ASCII symbols for
+space \verb!' '!, tab \verb!'\t'!, line feed \verb!'\n'!, and carriage return \verb!'\r'!.  
+They are all interchangeable except
+that only a carriage return ends a comment.
+
+\subsection{delimiters}
+The delimiters are
+\[
+(\quad )\quad [\quad ]\quad \{\quad \}.
+\]
+These characters cannot be combined in any way into a larger lexical unit.
+Each opening delimiter must match with a closing delimiter of the same sort
+in a correctly nested way.  There are no exceptions.
+
+Parentheses $()$ are used for ordered pairs $(x,y)$ and tuples $(x,y,z)$.
+They are used for type annotations $(x : \Nat)$, for grouping
+expressions $x + (y+z)$, for cross-references (by theorem 3.4), for
+describing the precedence of operators (with precedence 50 and left
+associativity), among other purposes.
+
+Square brackets $[]$ are used for lists $[1;2;3]$, and for instructions
+[synonyms~integer/integers].
+
+Braces $\{\}$ are used with control sequences \verb!\binomial{n}{k}!, multiple assignments
+$\{\ x\ := 1;\ y\ := 2\ \}$, labeled arguments to functions, subtypes
+$\{\ x : \Nat \tmid x > 3\}$, set enumerations $\{1,2,3\}$, set
+comprehensions $\{x \mid x > 3\}$, and structure declarations.
+
+\subsection{identifiers}
+
+An alphanumeric character is any of a-z, A-Z, 0-9, \_, '.  
+
+An identifier is a longest match of one or more alphanumeric
+characters that is not part of a decimal number such as $3.14159$.
+An identifier is tokenized as one of: BLANK, INTEGER, VAR,
+WORD, ATOMIC\_IDENTIFIER.
+
+If an identifier consists of a single \_, it is the BLANK token.
+A blank can be used as a wild-card in matching statements, and
+to mark a quantity that the author leaves to the computer to infer.
+
+An INTEGER is an identifier consisting entirely of digits 0-9.
+
+If an identifier consists of a single alphabetic character followed by
+zero or more non-alphabetic characters, it is a VAR (variable) token.
+Additionally (for purposes of mangling), a variable is a single
+alphabetic character, followed by a double blank \_\_ and possibly additional
+alphanumerical characters.  Examples of variables are
+\[
+x\quad x'\quad x\_1\quad A33\quad \text{V\_\_alpha}.
+\]
+
+A variable is used in the patterns in definitions.  In some contexts, a variable
+may be used as the indefinite article 'a', as a word, or as an atomic
+identifier.  
+
+A WORD token is an identifier consisting of one or more alphabetic
+characters that is not a variable.  An atomic identifier is an
+identifier that is not a BLANK, VAR, INTEGER, or WORD.
+
+Variables and atomic identifiers are case sensitive. Words are not.  (In a few
+contexts words may be used as atomic identifiers, and in such contexts,
+they are case sensitive.  For example, the trig function $\cos$ is
+generally used as an atomic identifier, rather than an English word.)
+
+When a word is first tokenized, it is converted to lower case and is
+singularized.  Singularization roughly means that any final '-s' is removed.
+More precisely, the following rules are applied (taking the first rule that
+applies)
+\begin{itemize}
+\item Do not change a word not ending in 's'.
+\item Do not change a word with at most $3$ characters.
+\item Do not change a word if it would result in a word of $2$ characters or fewer.
+\item Do not change a word ending in 'ss' or 'ous'.
+\item Drop the final 'es' from a word ending in consonant + 'oes'.
+\item Change the final 'ies' to 'y' in a word ending in consonant + 'ies'.
+\item Drop the final 's' in words ending in 'izes' or 'ises'
+\item Drop the final 'es' in words ending in 'ches', 'sses', 'shes', 'xes', or 'zes'
+\item Otherwise, drop the final 's'. 
+\end{itemize}
+
+Singularization is applied to all words regardless of their part of
+speech.  Words with the same singularization are treated as the same
+word.  (Writers may introduce additional synonyms whenever
+singularization fails to get it right.)  The point is that English
+contains a great deal of redundant information that may be safely
+ignored.  Correct agreement of subject and verb is done for the sake
+of the reader, but not to assist the controlled natural language.
+
+This simple algorithm is far from perfect, and sometimes the
+singularization produces strange results such as 'series' becoming
+'sery'.  Strange singular forms are generally harmless, as long as the
+writer does not try to assign distinct meanings to 'series' and
+'sery'.
+
+
+
+
+\subsection{special characters}
+
+A longest match rule applies in lexing.  
+
+The punctuation marks are .\ ,\ ;\ .
+
+The period is used to mark the end of statements.  
+
+The period is used in hierarchical
+identifiers (Math.cos), in field accessors ($G.\text{plus}$)
+and in user-defined symbols $1..2$.  It is a decimal point $3.14159$.
+
+Semicolons are used for list $[1;2;3]$, for multiple assignments 
+$\{\ x\ := 1;\ y\ := 2\ \}$, and in place of the comma in certain complex statements.
+
+The comma is used frequently in many contexts.  It is used between
+bound variables and at the end of a bound variable block $\forall\ x,y,\ x + y = y + x$, 
+and almost everywhere that a list of expressions is needed.
+
+
+
+The colon's only use (as a separate token) is to make type annotations $(x : \Nat)$.
+
+
+
+
+
+\end{document}
+
