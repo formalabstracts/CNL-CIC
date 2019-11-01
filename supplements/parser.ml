@@ -15,6 +15,28 @@ open Type
 open Lib
 open Primitive
 
+exception Noparse of trace;;
+
+exception Nocatch of trace;;
+
+let trEof =  TrFail (0,0,EOF);;
+
+let failEof = Noparse(trEof)
+
+let getpos = 
+  function 
+  | [] -> raise failEof
+  | t::_ as input -> t.pos,(TrEmpty,input)
+
+let trPos = 
+  function (* input *)
+    | [] -> trEof
+    | n :: _ -> 
+        let p = fst(n.pos) in 
+        let line = p.pos_lnum in 
+        let col = p.pos_cnum - p.pos_bol in 
+        (TrFail(line,col,n.tok))
+
 let rec get_trace_data =
   function 
   | TrMany t -> List.flatten (List.map get_trace_data t)
@@ -71,28 +93,6 @@ let rec clean_tr ls =
   | TrFail (i,j,tok) -> TrString("unexpected token:'"^string_of_toks [tok]^"' at line="^string_of_int i^" col="^string_of_int j)
   | t -> t
 
-exception Noparse of trace;;
-
-exception Nocatch of trace;;
-
-let trEof =  TrFail (0,0,EOF);;
-
-let failEof = Noparse(trEof)
-
-let getpos = 
-  function 
-  | [] -> raise failEof
-  | t::_ as input -> t.pos,(TrEmpty,input)
-
-let trPos = 
-  function (* input *)
-    | [] -> trEof
-    | n :: _ -> 
-        let p = fst(n.pos) in 
-        let line = p.pos_lnum in 
-        let col = p.pos_cnum - p.pos_bol in 
-        (TrFail(line,col,n.tok))
-
 let mergeOr (t,t') = 
   match t with 
   | TrOr t'' -> TrOr (t'' @ [t'])
@@ -120,14 +120,6 @@ let pair_noparse sep (p1,s1) (p2,s2) =
 
 let par x = if x = "" then "" else "("^x^")"
 
-(* let group fm parser input = 
-  try 
-    parser input 
-  with Noparse (p,m) -> 
-         let p' = fst(getpos input) in 
-         raise (Noparse (pair_pos (p,p'),fm m))
- *)
-
 let group msg parser input  = 
   try 
     let (a,(t,ins)) = parser input in 
@@ -135,9 +127,6 @@ let group msg parser input  =
   with 
   | Noparse t -> raise (Noparse (TrGroup(msg,t)))
   | Nocatch t -> raise (Nocatch (TrGroup(msg,t)))
-
-
-
 
 (* Here are a few lines adapted from HOL Light parser.ml *)
 
@@ -186,6 +175,7 @@ let empty input = ((),(TrEmpty,input))
 let eseparated_list prs sep =
   separated_list prs sep ||| nothing;;
 
+(*
 let leftbin prs sep cons err =
   prs ++ many (sep ++ fix err prs) >>
   (fun (x,opxs) -> let ops,xs = unzip opxs in
@@ -197,6 +187,7 @@ let rightbin prs sep cons err =
                    let ops,xs = unzip opxs in
                    itlist2 cons ops (x::butlast xs) (last xs));;
 
+ *)
 let possibly prs input =
   try let x,rest = prs input in [x],rest
   with Noparse _ -> [],(TrEmpty,input);;
@@ -310,7 +301,7 @@ let is_word v =
 
 
 let word s input = 
-  let u = String.lowercase_ascii s in
+  let u = singularize s in
   try 
     let (a,(_,rest)) = 
       some_nodeX 
@@ -328,7 +319,7 @@ let word s input =
 let anyword = some(function | WORD _ -> true | VAR v -> fst(is_word v) | _ -> false)
 
 let anywordexcept banned = 
-  let banned' = List.map String.lowercase_ascii banned in 
+  let banned' = List.map singularize banned in 
   some(function 
       | WORD(_,w) -> not(List.mem w banned') 
       | VAR v -> let (b,v') = is_word v in b && not(List.mem v' banned')
@@ -343,9 +334,6 @@ let phrase s =
 let someword s = 
   let s' = List.map word (String.split_on_char ' ' s) in
   parse_some s'
-
-
-
 
 (*
 let commit_head err parse1 parse2 input = 
@@ -435,9 +423,6 @@ let lit_binder_comma = comma
 let cs_brace parser1 parser2 = 
   parser1 ++ many (brace parser2) 
 
-(* set up synonym hashtable *)
-
-
 let expanded_word s input = 
   let u = find_syn (String.lowercase_ascii s) in 
   try 
@@ -453,7 +438,6 @@ let expanded_word s input =
     (a,(TrString ("matched:"^u),rest))
   with 
     Noparse _ -> raise (Noparse (TrGroup (("expected:"^u),trPos input)))
-
 
 let phrase_list_transition = 
   let w _ = "phrase list transition" in
@@ -667,17 +651,6 @@ let section_tag = lit_document ||| lit_enddocument
 let period = some (function | PERIOD -> true | _ -> false)
 
 
-
-
-let pad k x ls =
-    if (k <= List.length ls) then snd(chop_list k ls)
-    else (List.init (k - List.length ls) (fun _ -> x) @ ls)
-
-let rec cutat p =
-  function
-  | [] -> failwith "cutat not found "
-  | t :: ts as ls -> if p t then ls else cutat p ts 
-
 let getlabel =
   function
   | [] -> "" 
@@ -801,8 +774,8 @@ let synlist =
   let synnode = someX (is_syntoken -| tok) in
     many synnode >> (expand_slashdash [] [])
 
-let instruct_synonym = (word "synonyms" ++ synlist) >> 
-                         (fun (_,ls) -> syn_add ls; "synonyms")
+let instruct_synonym = (word "synonyms" ++ comma_nonempty_list(synlist >> syn_add)) >> 
+                         (fun _  ->  "synonyms")
 
 let instruction = 
   commit "instruction" (a L_BRACK)
@@ -821,11 +794,11 @@ let synonym_statement =
 
 (* XX need to add to the namespace of the given structure *)
 let morever_implements = 
-  let except = (function | WORD(_,w) -> not(w = "implements") | _ -> true) in
+  let except = (function | WORD(_,w) -> not(w = "implement") | _ -> true) in
   let head = word "moreover" ++ comma in
   commit_head "moreover_implements" head 
   (fun head ->
-         getpos ++ head ++ balancedB except ++ word "implements" ++ brace_semi
+         getpos ++ head ++ balancedB except ++ word "implement" ++ brace_semi
            ++ getpos ++ a PERIOD
   ) 
   >> (fun ((((((p,_),b),_),b'),p'),_) -> Implement (pair_pos(p,p'),Wp_implement (b,b')))
@@ -886,16 +859,59 @@ let this_exists = (* no period *)
 (* text *)
 
 (* axiom *)
+
+let post_colon_balanced = 
+  balancedB (* true nodes can follow opt_colon_type *)
+    (function | ASSIGN | SEMI | COMMA | ALT | COLON -> false 
+              | WORD (_,s) -> not(s = "end") && not(s = "with")
+              | _ -> true)
+
+let colon_type = 
+  a COLON ++ post_colon_balanced >> snd 
+               
+let opt_colon_type = 
+  possibly(colon_type) 
+  >> (fun bs -> Colon' (List.flatten bs))
+
+let annotated_var = paren(var ++ opt_colon_type)
+
+let annotated_vars = paren(plus(var) ++ opt_colon_type) >>
+                       (fun (vs,o) -> List.map (fun v -> (v,o)) vs)
+
+let let_annotation_prefix = 
+  (word("let") ++ comma_nonempty_list(var) ++ word "be" ++ possibly(lit_a) 
+   ++ possibly(word "fixed")) >>
+    fun ((((_,a),_),_),w) -> (a,not(w = []))
+
+let fix_var (v,o,fix) = if fix then Wp_fix(v,o) else Wp_var(v,o)
+
+(* don't commit to let_annotation, because lit_then might not lie ahead *)
+
+let let_annotation = group  "let_annotation" 
+  (((word "fix" >> (fun _ -> true) ||| (word "let" >> (fun _ -> false))) ++ 
+    comma_nonempty_list(annotated_vars) 
+   >>
+     (fun (t,bs) -> List.map (fun (v,o) -> (v,o,t)) (List.flatten bs))
+     )
+  |||
+    ((let_annotation_prefix ++ post_colon_balanced)
+     >>
+       (fun ((vs,t),b) -> List.map (fun v -> (v,Colon' b,t)) vs 
+    )))
+
 let then_prefix = possibly (lit_then)
 
 let assumption_prefix = 
   possibly(lit_lets) ++ group "assume" lit_assume ++ possibly (word "that")
 
-let assumption = 
-  (assumption_prefix ++ balanced ++ (a PERIOD) >> 
-     (fun ((_,b),_) -> Statement' b)) (* |||
-    (* XXX This accepts too much *)
-    (balanced ++ (a PERIOD) >> (fun (b,_) -> LetAnnotation' b)) *)
+let assumption = group "assumption"
+  ((assumption_prefix ++ balanced ++ (a PERIOD) >> 
+     (fun ((_,b),_) -> Statement' b)) 
+  |||
+    (let_annotation >> (fun t -> LetAnnotation' t)))
+
+let possibly_assumption = 
+  (possibly (many assumption ++ lit_then >> fst)) >> List.flatten
 
 let axiom_preamble = 
   lit_axiom ++ possibly (label) ++ (a PERIOD) >>
@@ -906,9 +922,11 @@ let axiom_preamble =
 let axiom = 
   commit_head "axiom" axiom_preamble
   (fun head -> 
-         (getpos ++ head ++ many(assumption) 
-          ++ then_prefix ++ balanced ++ getpos ++ a(PERIOD) 
-          >> (fun ((((((p,(w,labl)),ls),_),st),p'),_) -> 
+         (getpos 
+          ++ head 
+          ++ possibly_assumption
+          ++ balanced ++ getpos ++ a(PERIOD) 
+          >> (fun (((((p,(w,labl)),ls),st),p'),_) -> 
             Axiom (pair_pos(p,p'),w,labl,ls,Statement' st))))
 
 (* theorem *) 
@@ -978,15 +996,6 @@ and choose_justify input =
 
 (* end big recursion *)
 
-let theorem_preamble = 
-  (word "theorem" ++ possibly(label) ++ a(PERIOD) >>
-     (fun ((t,ls),p) -> (pair_pos(t.pos,p.pos),getlabel ls)))
-
-let theorem = 
-  commit_head "theorem" theorem_preamble 
-  (fun head -> (head ++ many(assumption) ++ affirm_proof >>
-    (fun (((p,l),ls),(p',st)) -> Theorem(pair_pos (p,p'),l,ls,Statement' st))))
-
 
 (* patterns *)
  (* XX need to process multiword synonyms *)
@@ -1023,19 +1032,6 @@ let words_in_pattern =
   (any_pattern_word ++ many(word_in_pattern)) 
   >> (fun (a,b) -> Wp_wd a :: List.flatten b)
 
-let post_colon_balanced = 
-  balancedB (* true nodes can follow opt_colon_type *)
-    (function | ASSIGN | SEMI | COMMA | ALT | COLON -> false 
-              | WORD (_,s) -> not(s = "end") && not(s = "with")
-              | _ -> true)
-
-let colon_type = 
-  a COLON ++ post_colon_balanced >> snd 
-               
-let opt_colon_type = 
-  possibly(colon_type) 
-  >> (fun bs -> Colon' (List.flatten bs))
-                         
 let tvarpat = 
   (paren(var ++ opt_colon_type) >>
     (fun (v,bs) -> Wp_var (v,bs))) 
@@ -1180,34 +1176,6 @@ let we_record_def = group "we_record_def"
   possibly(a PERIOD ++ this_exists >> snd)
   >> (fun (a,b) -> [Wp_record (snd a,List.flatten (List.map snd b)),[]]))
 
-let annotated_var = paren(var ++ opt_colon_type)
-
-let annotated_vars = paren(plus(var) ++ opt_colon_type) >>
-                       (fun (vs,o) -> List.map (fun v -> Wp_var(v,o)) vs)
-
-let let_annotation_prefix = 
-  (word("let") ++ comma_nonempty_list(var) ++ word "be" ++ possibly(lit_a) 
-   ++ possibly(word "fixed")) >>
-    fun ((((_,a),_),_),w) -> (a,not(w = []))
-
-let fix_var fix v = if fix then 
-                      (match v with
-                       | Wp_var(v,o) -> Wp_fix(v,o)
-                       | _ -> v)
-                    else v
-
-let let_annotation = commit  "let_annotation" (phantom (someword "fix let"))
-  (((word "fix" >> (fun _ -> true) ||| (word "let" >> (fun _ -> false))) ++ 
-    comma_nonempty_list(annotated_vars) 
-   >>
-     (fun (t,bs) -> List.map (fun b -> (fix_var t b,[])) (List.flatten bs))
-     )
-  |||
-    ((let_annotation_prefix ++ post_colon_balanced)
-     >>
-       (fun ((vs,t),b) -> List.map (fun v -> (fix_var t (Wp_var (v,Colon' b)),[])) vs 
-    )))
-
 (* macro end *)
 
 
@@ -1314,7 +1282,7 @@ let macro_body =
   ||| function_def 
   ||| predicate_def
   ||| classifier_def
-  ||| let_annotation
+  ||| (let_annotation >> List.map (fun vot -> (fix_var vot,[])))
 
 let macro_bodies = 
   we_record_def 
@@ -1354,9 +1322,22 @@ let definition_affirm =
 
 let definition = 
   commit_head "definition" definition_preamble 
-  (fun t -> t ++ group "assumption" (many assumption) 
+  (fun t -> t ++ group "assumption" possibly_assumption
   ++ group "affirm" definition_affirm 
   >> (fun (((p,l),ma),(p',w,ex)) -> Definition (pair_pos (p,p'),l,ma,w,ex)))
+
+let theorem_preamble = 
+  (word "theorem" ++ possibly(label) ++ a(PERIOD) >>
+     (fun ((t,ls),p) -> (pair_pos(t.pos,p.pos),getlabel ls)))
+
+let theorem = 
+  commit_head "theorem" theorem_preamble 
+  (fun head -> 
+         (head 
+          ++ possibly_assumption
+          ++ affirm_proof 
+          >>
+            (fun (((p,l),ls),(p',st)) -> Theorem(pair_pos (p,p'),l,ls,Statement' st))))
 
 let text = 
   group "text" 
@@ -1379,8 +1360,11 @@ let text =
 (* proof_expr *)
 
 let proof_expr = 
-  a SYMBOL_QED 
-  ||| paren(a SYMBOL_QED) >> (fun _ ->Proof)
+  (a SYMBOL_QED >> discard)
+  ||| 
+  (paren(a SYMBOL_QED 
+         ++ possibly(a COLON ++ the_case_sensitive_word "Proof") >> discard))
+  >> (fun _ ->Proof)
 
 (* variables *)
 

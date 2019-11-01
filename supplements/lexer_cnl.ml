@@ -42,7 +42,7 @@ The longest match rule holds (following sedlex).
 
 (* Singularization Rules (applied in order)
    * Do not change a word not ending in s.
-   * Do not change a word with at most 3 characters. 
+   * Do not change a word with at most 4 characters. 
    * Do not change a word if it would result in a word of 2 characters or fewer.
    * Do not change a word ending in -ss or -ous. 
    * C + oes -> C + o
@@ -84,7 +84,8 @@ let singularize  =
             (smatch reg_s,fun s -> group 1 s)
     ] in 
   fun s ->
-        if String.length s <= 3 || not(s.[String.length s -1] = 's') then s 
+        let s = String.lowercase_ascii s in 
+        if String.length s <= 4 || not(s.[String.length s -1] = 's') then s 
         else  
           let s' = match List.find_opt (fun (m,_) -> m s) mm with
           | None -> failwith "singularize: matching pattern expected"
@@ -200,11 +201,11 @@ let controlseq = [%sedlex.regexp? '\\', Plus(alphabet)]
 
 let varlong = [%sedlex.regexp? alphabet, '_', '_', Star(alphanum)] (* mangling *)
 
-let atomic_identifier = [%sedlex.regexp? Plus(alphanum) ]          
+let identifier = [%sedlex.regexp? Plus(alphanum) ]          
 
-let hierarchical_identifier = [%sedlex.regexp? atomic_identifier, Plus('.', atomic_identifier) ]  
+let hierarchical_identifier = [%sedlex.regexp? identifier, Plus('.', identifier) ]  
 
-let field_accessor = [%sedlex.regexp? Plus('.', atomic_identifier)]
+let field_accessor = [%sedlex.regexp? Plus('.', identifier)]
 
 
 let lparen = [%sedlex.regexp? '(' ]  
@@ -273,7 +274,7 @@ let identkey =
   fun s -> 
         if (s = "_") then BLANK
         else if is_var s then VAR s
-        else if is_word s then WORD (s,singularize(String.lowercase_ascii s))
+        else if is_word s then WORD (s,singularize s)
         else ATOMIC_IDENTIFIER s
            
 (* open Parser_cnl *)
@@ -330,7 +331,7 @@ let rec lex_node buf =
     | hierarchical_identifier -> mk (fun t -> HIERARCHICAL_IDENTIFIER t) buf
     | varlong -> mk (fun t -> VAR t) buf
     | symbolseq -> mk symbolkey buf
-    | atomic_identifier -> mk identkey buf
+    | identifier -> mk identkey buf
     | eof -> mk (c EOF ) buf
     | any -> mk (fun t -> UNKNOWN t) buf
     | _  -> failwith (string_lexeme buf)

@@ -55,3 +55,14 @@ let rec chop_list n l =
   with Failure _ -> failwith "chop_list";;
 
 let _ = chop_list 3 [5;6;7;8;9;10;11;12];;
+
+(* end HOL Light *)
+
+let pad k x ls =
+    if (k <= List.length ls) then snd(chop_list k ls)
+    else (List.init (k - List.length ls) (fun _ -> x) @ ls)
+
+let rec cutat p =
+  function
+  | [] -> failwith "cutat not found "
+  | t :: ts as ls -> if p t then ls else cutat p ts 

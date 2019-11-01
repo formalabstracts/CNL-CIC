@@ -36,7 +36,7 @@ urlcolor=blue]{hyperref}
 % TITLE AUTHOR DATE
 \title{Sample Controlled Natural Language text,\\ including real numbers and Sylows theorems}
 
-\date{September 14, 2019}
+\date{November 1, 2019}
 \author{Thomas Hales}
 
 %- THEOREMS
@@ -986,13 +986,13 @@ We say that $\alpha$ is a \df{finite type} iff the
 universe of $\alpha$ is finite.
 
 \begin{definition}
-Assume that $\alpha$ is a finite type.  The
+Assume that $\alpha$ is a finite type.  Then the
 \df{size} of $\alpha$ is the size of the universe of
 $\alpha$.  This exists and is unique.
 \end{definition}
 
 \begin{definition}
-Assume that $\alpha$ is a finite type.  The \df{support}
+Assume that $\alpha$ is a finite type.  Then the \df{support}
 of $\alpha$ is the support of the universe of $\alpha$.  This exists
 and is unique.
 \end{definition}
@@ -1037,7 +1037,7 @@ and transitive.
 all\ $x, y,\ x \le y\ \h{and}\ y \le x\ \h{imply}\ x = y$.
 \end{definition}
 
-\deflabel{total} Assume that $R$ is a preorder.  We say that $R$ is
+\deflabel{total} Assume that $R$ is a preorder.  Then we say that $R$ is
 \df{total} iff for all\ $x,y,\ x \le y \ \h{or}\ y \le x$.
 \end{definition}
 
@@ -1127,12 +1127,12 @@ for every $x, y$, there exists a greatest lower bound of $\setenum{x,y}$ in
 $R$.
 \end{definition}
 
-\deflabel{join} Assume $R$ is a join semilattice.  Let
+\deflabel{join} Assume $R$ is a join semilattice.  Then let
 $\h{\df{join}}\ x\ y$ be the least upper bound of $\setenum{x,y}$ in $R$.
 This exists and is unique.
 \end{definition}
 
-\deflabel{meet} Assume $R$ is a meet semilattice.  Let
+\deflabel{meet} Assume $R$ is a meet semilattice.  Then let
 $\h{\df{meet}}\ x\ y$ be the greatest lower bound of $\setenum{x,y}$ in $R$.
 This exists and is unique.
 \end{definition}
@@ -1218,7 +1218,7 @@ We say that $d$ is a \df{divisor of} $m$ iff $d$ divides $m$.
 
 
 \deflabel{natpow}
-Assume that $b,n$ are natural numbers.  We define
+Assume that $b,n$ are natural numbers.  Then we define
 $\natpow{b}{n}\assign$
 \par$\match\ n$ with
 \begin{envMatch}
@@ -1229,14 +1229,14 @@ This exists by recursion.
 \end{definition}
 
 \deflabel{prime}
-Assume that $p$ is a natural number greater than $1$.  We say that $p$
+Assume that $p$ is a natural number greater than $1$.  Then we say that $p$
 is a \df{prime} iff each divisor of $p$ is equal to $1$ or is equal to
 $p$.
 \end{definition}
 
 \deflabel{multiplicity}
-Assume that $n$ is a positive natural number.
-The \df{multiplicity} of $p$ in $n$ is the natural number $m$ such that
+Assume that $n$ is a positive natural number. Then
+the \df{multiplicity} of $p$ in $n$ is the natural number $m$ such that
 \[
 \natpow{p}{m}\ \h{divides}\ n\quad \h{and}\quad \natpow{p}{m+1}\ %
 \h{does not divide}\ n.
@@ -1275,8 +1275,8 @@ A \h{magma} is a structure with
 
 
 \deflabel{abelian}
-Assume that $M$ is a magma.
-M is \df{abelian} iff for all $(x\ y : M)$, $x \* y = y \* x$.
+Assume that $M$ is a magma. Then
+$M$ is \df{abelian} iff for all $(x\ y : M)$, $x \* y = y \* x$.
 \end{definition}
 
 \deflabel{semigroup}
@@ -1403,20 +1403,20 @@ Let $\h{monoid-of-ring}\ ($R$ : \h{ring}) : \h{monoid} \assign$
 
 
 \deflabel{commutative} 
-Assume that $R$ is a ring.  We say that $R$ is
+Assume that $R$ is a ring.  Then we say that $R$ is
 \df{commutative} iff for every $(x\ y : R),\ x\*y = y\*x$.
 \end{definition}
 
 
 \deflabel{nontrivial}
-Assume that $R$ is a ring.
-We say that $R$ is \df{nontrivial} iff $(0 : R) \ne (1 : R)$.
+Assume that $R$ is a ring. Then
+we say that $R$ is \df{nontrivial} iff $(0 : R) \ne (1 : R)$.
 \end{definition}
 
 
 \deflabel{unit} 
 Assume that $R$ is a commutative ring.  Assume that
-$(x : R)$.  We say that $x$ is a \df{unit} in $R$ iff there exists $(y
+$(x : R)$.  Then we say that $x$ is a \df{unit} in $R$ iff there exists $(y
 : R)$ such that $x \* y = y \* x = 1$.
 \end{definition}
 
@@ -1491,8 +1491,8 @@ An \df{ordered field} is a a structure with
 \end{definition}
 
 \deflabel{complete}
-Assume that $F$ is an ordered field.
-We say that $F$ is \df{complete} iff
+Assume that $F$ is an ordered field. Then
+we say that $F$ is \df{complete} iff
 for every subset $S$ of the universe of $F$,
   if $S \ne \emptyset$ and $S$ has an upper bound in $F$, then $S$ has a least upper bound in $F$.
 \end{definition}
@@ -1618,14 +1618,16 @@ In the following definition of subgroup order, the parentheses around
 \LaTeX\ file, but is not displayed in the pdf.
 \end{remark}
 
-Assume that $G$ is a finite group, let
+\deflabel{order}
+Assume that $G$ is a finite group. Then let
 the \df{order} of $G$ stand for the size of $G$.
+\end{definition}
 
 We enter the namespace subgroup.
 
 \deflabel{subgroup order}
-Assume that $H$ is a subgroup over a finite group $G$.
-The \df{order} of $H$ is the size of the support of $H$.
+Assume that $H$ is a subgroup over a finite group $G$. Then 
+the \df{order} of $H$ is the size of the support of $H$.
 This exists and is well propped \parenthetical{that is, $H$ is finite}.
 \end{definition}
 
@@ -1642,12 +1644,12 @@ In this section, let $\conj{g}{X}$ stand for
 \where\ $(g : G)$ $(X : \h{set}\ G)$.
 
 \deflabel{conjugate}
-Assume that $(g : G)$.  Assume that $H$ is a subgroup over $G$.  The
+Assume that $(g : G)$.  Assume that $H$ is a subgroup over $G$.  Then the
 \df{conjugate} of $H$ by $g$ in $G$ is the subgroup $\conj{g}{H}$ over $G$.
 \end{definition}
 
 \deflabel{normalizer}
-Assume that $H$ is a subgroup over $G$.  The \df{normalizer of} $H$
+Assume that $H$ is a subgroup over $G$.  Then the \df{normalizer of} $H$
 \df{in} $G$ is the subgroup $N$ over $G$ such that for all $x$, $x \in N
 \iff \conj{x}{H}=H$. This
 exists and is unique.
@@ -1699,7 +1701,7 @@ such that $P' = \conj{g}{P}$.
 
 \begin{theorem}[Sylow 3a]
 Assume that $\grouporder{G} = p'\*\natpow{p}{\mult{p}{G}}$.
-We have $\SylN{p}{G}$ divides $p'$.
+Then we have $\SylN{p}{G}$ divides $p'$.
 \end{theorem}
 
 \begin{theorem}[Sylow 3b]

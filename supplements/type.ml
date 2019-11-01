@@ -39,7 +39,7 @@ and prop =
 
 and statement = 
   | Statement' of node list 
-  | LetAnnotation' of node list
+  | LetAnnotation' of (node*typ*bool) list (* true = fixed variable *)
   | StateIfThen of statement*statement
   | StateAnd of statement list
   | StateOr of statement list

@@ -235,10 +235,10 @@
   %- macro  
   We  say  that    V__alpha    is  a  finite  type  iff  the  
   universe  of    V__alpha    is  finite  .  
-  Definition  .    Assume  that    V__alpha    is  a  finite  type  .  The  
+  Definition  .    Assume  that    V__alpha    is  a  finite  type  .  Then  the  
   size  of    V__alpha    is  the  size  of  the  universe  of  
     V__alpha    .  This  exists  and  is  unique  .  
-  Definition  .    Assume  that    V__alpha    is  a  finite  type  .  The  support  
+  Definition  .    Assume  that    V__alpha    is  a  finite  type  .  Then  the  support  
   of    V__alpha    is  the  support  of  the  universe  of    V__alpha    .  This  exists  
   and  is  unique  .  
   Section  Order  .  
@@ -263,7 +263,7 @@
   equivalence  relation  iff    R    is  reflexive  ,  symmetric  and  transitive  .  
   Definition  Label_antisymmetric  .    We  say    R    is  antisymmetric  iff  for  
   all    x  ,  y  ,  x  \le y  and  y  \le x  imply  x  =  y    .  
-  Definition  Label_total  .    Assume  that    R    is  a  preorder  .  We  say  that    R    is  
+  Definition  Label_total  .    Assume  that    R    is  a  preorder  .  Then  we  say  that    R    is  
   total  iff  for  all    x  ,  y  ,  x  \le y  or  y  \le x    .  
   Definition  Label_poset  .    We  say  that    R    is  a  poset  iff    R    is  an  
   antisymmetric  preorder  .  
@@ -311,10 +311,10 @@
   Definition  Label_meet_semilattice  .    We  say    R    is  a  meet  semilattice  iff  
   for  every    x  ,  y    ,  there  exists  a  greatest  lower  bound  of    \setenum {  x  ,  y  }    in  
     R    .  
-  Definition  Label_join  .    Assume    R    is  a  join  semilattice  .  Let  
+  Definition  Label_join  .    Assume    R    is  a  join  semilattice  .  Then  let  
     join  x  y    be  the  least  upper  bound  of    \setenum {  x  ,  y  }    in    R    .  
   This  exists  and  is  unique  .  
-  Definition  Label_meet  .    Assume    R    is  a  meet  semilattice  .  Let  
+  Definition  Label_meet  .    Assume    R    is  a  meet  semilattice  .  Then  let  
     meet  x  y    be  the  greatest  lower  bound  of    \setenum {  x  ,  y  }    in    R    .  
   This  exists  and  is  unique  .  
   Definition  Label_lattice  .      R    is  a  lattice  iff    R    is  a  join  semilattice  
@@ -351,7 +351,7 @@
   We  write    \natdiv {  d  }  {  m  }    iff    d    divides    m    .  
   We  say  that    d    is  a  divisor  of    m    iff    d    divides    m    .  
   Definition  Label_natpow  .    
-  Assume  that    b  ,  n    are  natural  numbers  .  We  define  
+  Assume  that    b  ,  n    are  natural  numbers  .  Then  we  define  
     \natpow {  b  }  {  n  }  :=    
     match  n    with  
   \alt   0      :=      1    
@@ -359,12 +359,12 @@
   end  .  
   This  exists  by  recursion  .  
   Definition  Label_prime  .    
-  Assume  that    p    is  a  natural  number  greater  than    1    .  We  say  that    p    
+  Assume  that    p    is  a  natural  number  greater  than    1    .  Then  we  say  that    p    
   is  a  prime  iff  each  divisor  of    p    is  equal  to    1    or  is  equal  to  
     p    .  
   Definition  Label_multiplicity  .    
-  Assume  that    n    is  a  positive  natural  number  .  
-  The  multiplicity  of    p    in    n    is  the  natural  number    m    such  that  
+  Assume  that    n    is  a  positive  natural  number  .  Then  
+  the  multiplicity  of    p    in    n    is  the  natural  number    m    such  that  
   \natpow {  p  }  {  m  }  divides  n  and  \natpow {  p  }  {  m  +1  }  
   does  not  divide  n  .  
   This  exists  and  is  unique  .  
@@ -378,8 +378,8 @@
   ;  (  notation  )    notation_mul  :=  op    
   }  .  
   Definition  Label_abelian  .    
-  Assume  that    M    is  a  magma  .  
-  M  is  abelian  iff  for  all    (  x  y  :  M  )    ,    x  *  y  =  y  *  x    .  
+  Assume  that    M    is  a  magma  .  Then  
+    M    is  abelian  iff  for  all    (  x  y  :  M  )    ,    x  *  y  =  y  *  x    .  
   Definition  Label_semigroup  .    
   A  semigroup  is  a  structure  with  
   {  
@@ -452,14 +452,14 @@
   ;  _  
   }  .  
   Definition  Label_commutative  .    
-  Assume  that    R    is  a  ring  .  We  say  that    R    is  
+  Assume  that    R    is  a  ring  .  Then  we  say  that    R    is  
   commutative  iff  for  every    (  x  y  :  R  )  ,  x  *  y  =  y  *  x    .  
   Definition  Label_nontrivial  .    
-  Assume  that    R    is  a  ring  .  
-  We  say  that    R    is  nontrivial  iff    (  0  :  R  )  \ne (  1  :  R  )    .  
+  Assume  that    R    is  a  ring  .  Then  
+  we  say  that    R    is  nontrivial  iff    (  0  :  R  )  \ne (  1  :  R  )    .  
   Definition  Label_unit  .    
   Assume  that    R    is  a  commutative  ring  .  Assume  that  
-    (  x  :  R  )    .  We  say  that    x    is  a  unit  in    R    iff  there  exists    (  y  
+    (  x  :  R  )    .  Then  we  say  that    x    is  a  unit  in    R    iff  there  exists    (  y  
   :  R  )    such  that    x  *  y  =  y  *  x  =  1    .  
   Definition  Label_notation_dot  .    
   notation_dot  is  the  notational  structure  with  
@@ -509,8 +509,8 @@
   ;  a  field  
   }  .  
   Definition  Label_complete  .    
-  Assume  that    F    is  an  ordered  field  .  
-  We  say  that    F    is  complete  iff  
+  Assume  that    F    is  an  ordered  field  .  Then  
+  we  say  that    F    is  complete  iff  
   for  every  subset    S    of  the  universe  of    F    ,  
   if    S  \ne \emptyset   and    S    has  an  upper  bound  in    F    ,  then    S    has  a  least  upper  bound  in    F    .  
   Definition  Label_absolute_value  .    
@@ -570,12 +570,13 @@
   ;  _  
   }  .  
   This  exists  and  is  unique  .  
-  Assume  that    G    is  a  finite  group  ,  let  
+  Definition  Label_order  .    
+  Assume  that    G    is  a  finite  group  .  Then  let  
   the  order  of    G    stand  for  the  size  of    G    .  
   We  enter  the  namespace  subgroup  .  
   Definition  Label_subgroup_order  .    
-  Assume  that    H    is  a  subgroup  over  a  finite  group    G    .  
-  The  order  of    H    is  the  size  of  the  support  of    H    .  
+  Assume  that    H    is  a  subgroup  over  a  finite  group    G    .  Then  
+  the  order  of    H    is  the  size  of  the  support  of    H    .  
   This  exists  and  is  well  propped  .  
   Subsection  statement  .  
   In  this  section  ,  let    G    be  a  fixed  finite  group  .  
@@ -583,10 +584,10 @@
   \setcomp {  g  *  x  *  \inv {  g  }  }  {  x  \in X  }  ,  
   where    (  g  :  G  )      (  X  :  set  G  )    .  
   Definition  Label_conjugate  .    
-  Assume  that    (  g  :  G  )    .  Assume  that    H    is  a  subgroup  over    G    .  The  
+  Assume  that    (  g  :  G  )    .  Assume  that    H    is  a  subgroup  over    G    .  Then  the  
   conjugate  of    H    by    g    in    G    is  the  subgroup    \conj {  g  }  {  H  }    over    G    .  
   Definition  Label_normalizer  .    
-  Assume  that    H    is  a  subgroup  over    G    .  The  normalizer  of    H    
+  Assume  that    H    is  a  subgroup  over    G    .  Then  the  normalizer  of    H    
   in    G    is  the  subgroup    N    over    G    such  that  for  all    x    ,    x  \in N  
   iff  \conj {  x  }  {  H  }  =  H    .  This  
   exists  and  is  unique  .  
@@ -604,11 +605,11 @@
   .  
   Definition  .    Let    \Nz {  p  }  {  G  }    denote  
   the  size  of  the  normalizer  of  each  and  every  Sylow    p    subgroup  of    G    .  
-  This  exists  ,  is  unique    and  is  well_defined  .  %EDITED
+  This  exists  ,  is  unique  and  is  well_defined  .  
   Theorem  .    There  exists  a  Sylow    p    subgroup  of    G    .  
   Theorem  .    If    P  ,  P'    are  Sylow    p    subgroups  of    G    ,  then  there  exists    (  g  :  G  )    
   such  that    P'  =  \conj {  g  }  {  P  }    .  
   Theorem  .    Assume  that    \grouporder {  G  }  =  p'  *  \natpow {  p  }  {  \mult {  p  }  {  G  }  }    .  
-  We  have    \SylN {  p  }  {  G  }    divides    p'    .  
+  Then  we  have    \SylN {  p  }  {  G  }    divides    p'    .  
   Theorem  .    We  have    p    divides    (  \SylN {  p  }  {  G  }  -  1  )    .  
   Theorem  .    We  have    \SylN {  p  }  {  G  }  *  \Nz {  p  }  {  G  }  =  \grouporder {  G  }    .  
