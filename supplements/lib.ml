@@ -66,3 +66,8 @@ let rec cutat p =
   function
   | [] -> failwith "cutat not found "
   | t :: ts as ls -> if p t then ls else cutat p ts 
+
+let rec take k =
+  function 
+  | t :: ts -> if (k <=0) then [] else t :: take (k - 1) ts
+  | _ -> []

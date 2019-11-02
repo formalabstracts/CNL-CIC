@@ -417,6 +417,44 @@ let lex_token_to_string_brief =
   | EOF -> "(EOF)"
   | UNKNOWN s -> s ^ " ?"
 
+(*
+let token_to_string = 
+function
+| STRING s ->  "\""^s^"\""
+| CONTROLSEQ s -> "\\"^s
+| DECIMAL s -> s
+| INTEGER s ->  s
+| SYMBOL s -> s
+| SYMBOL_QED -> "[QED]"
+| L_PAREN -> "("
+| R_PAREN -> ")"
+| L_BRACE -> "{"
+| R_BRACE -> "}"
+| MAPSTO -> "\\mapsto"
+| PERIOD -> "."
+| MID -> "|"
+| TMID -> "//"
+| COMMA -> ","
+| SEMI -> ";"
+| COLON -> ":"
+| ASSIGN -> ":="
+| ARROW -> "\to"
+| BLANK -> "_"
+| ALT -> "|"
+| APPLYSUB -> "\\sb"
+| SLASH -> "/"
+| SLASHDASH -> "/-"
+| COERCION -> "^"
+| LAMBDA -> "\\"
+| PITY -> "[PI]"
+| QUANTIFIER s -> s
+| ATOMIC_IDENTIFIER s -> s
+| FIELD_ACCESSOR s -> s
+| EOF -> "EOF"
+| UNKNOWN s -> s^"?"
+| _ -> failwith "token_to_string: not found"
+ *)
+
 
 let rec lex_nodes acc buf = 
   let t = lex_node buf in 
@@ -436,6 +474,8 @@ let string_pos (p : Lexing.position) =
     " line=" ^string_of_int p.pos_lnum^
       " col="^string_of_int (p.pos_cnum-p.pos_bol)
 
+(* printing *)
+
 let rec print_nodes = function
   | [] -> ()
   | t :: ts -> 
@@ -445,6 +485,11 @@ let rec print_nodes = function
 let string_of_toks ts = 
   let ss = List.map (fun t -> lex_token_to_string_brief t) ts in 
   String.concat " " ss;;
+
+let rec print_tok = function
+  | [] -> ()
+  | t :: ts -> 
+      print_string(lex_token_to_string t ^ " ") ; print_tok ts
 
 let print_nodes_brief ns = 
   print_endline (string_of_toks (List.map (fun n -> n.tok) ns))

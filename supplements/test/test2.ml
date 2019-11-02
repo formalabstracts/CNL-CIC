@@ -2,17 +2,9 @@ open Cnl_parse__Lexer_cnl
 open Cnl_parse__Type
 open Cnl_parse__Parser
 
+let take = Cnl_parse__Lib.take
 
-let rec print_tok = function
-  | [] -> ()
-  | t :: ts -> 
-      print_string(Cnl_parse.Lexer_cnl.lex_token_to_string t ^ " ") ; print_tok ts
-
-let convert_node s = 
-(* let _ = print_endline "*" in *)
- let toks = Cnl_parse.Lexer_cnl.lex_string s in
-(* let _ = print_tok toks in *)
- toks
+let convert_node = Cnl_parse.Lexer_cnl.lex_string 
 
 let token_to_string = 
 function
@@ -50,10 +42,6 @@ function
 | UNKNOWN s -> s^"?"
 | _ -> failwith "token_to_string: not found"
 
-let rec take k =
-  function 
-  | t :: ts -> if (k <=0) then [] else t :: take (k - 1) ts
-  | _ -> []
 
 
 let myt = (convert_node "test2.ml" "++0--9;3/-")

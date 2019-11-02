@@ -284,6 +284,93 @@ and almost everywhere that a list of expressions is needed.
 The colon's only use (as a separate token) is to make type annotations $(x : \Nat)$.
 
 
+\section{Parsing}
+
+\subsection{synonyms}
+
+The syntax of a synonym declaration is
+\[
+\text{[synonyms dodecahedron/dodecahedra]}
+\]
+or when several synonyms are declared:
+
+[synonyms analysis/analyses,
+annulus/annuli,
+appendix/appendices,
+automaton/automata,
+axis/axes,
+calculus/calculi,
+cicatrix/cicatrices,
+continuum/continua
+]
+\]
+
+If one of the synonyms adds a suffix to a word,
+then an abbreviated style can be used.
+
+[synonyms schema/schemata]
+
+is equivalent to
+
+[synonyms schema/-ta]
+
+The synonym declaration can also be put into a sentence.
+
+{\it We introduce synonyms matrix/matrices.}
+
+Multiword synonyms are permitted.
+
+[synonyms least upper bound/supremum/sup]
+
+Phrases declared as synonyms become completely interchangeable in the
+text.  Synonyms can be defined both for words and for case-sensitive
+identifiers that have the form of a word (that is, consisting entirely
+of alphabetic characters). For example, the functions $\acos$ and
+$\arccos$ are treated as case-sensitive identifiers rather than words,
+but we can still make them synonyms.
+
+Synonyms cannot be formed with symbols.
+
+[synonyms acos/arccos]
+
+Synonym expansion occurs after singularization and after coarse parsing.
+Synonym expansion occurs in a single linear pass beginning to end 
+without overlap.  That is, the substituted text cannot be reused
+as part of another synonym expansion.  For example.
+if we declare synonyms
+
+[synonyms AB CD EF/XY, CD/UV, EF GH/JK, XY GH/ST, GH/WX]
+
+Then the phrase AB CD EF GH IJ is equivalent to XY GH and to XY WX,
+because of the synonyms
+AB CD EF/XY and GH/WX.  But it is not synonyms with
+ST, nor with AB UV EF GH IJ.
+
+
+
+Synonyms are implemented in an efficient way.  Synonyms have global scope.
+Synonyms must be declared before the definition or macro using the words.
+Synonyms cannot be redefined.  Synonyms cannot involve certain key words
+of the grammar (such as {\it and}, {\it or}, {\it if}, and {\it the}.
+They cannot begin with an even larger set of key words such as 
+common articles and prepositions {\it a}, {\it of},
+{\it in}, etc.
+
+Synonyms cannot cross certain grammatical boundaries.
+For example, assume we are in a context with a synonym instruction
+
+[synonyms real number/reals]
+
+and an adjective {\it totally real} and noun {\it number field}.
+In the pharse {\it totally real number field}, the adjacent words {\it real number}
+are not a candidate for synonym substitution with {\it reals}, because 
+the two words are grammatically separate??
+
+
+
+
+
+
 
 
 

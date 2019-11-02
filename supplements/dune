@@ -1,4 +1,5 @@
 (dirs :standard \ chaff)
+(data_only_dirs scripts)
 
 (library
 (name cnl_parse)
@@ -6,7 +7,15 @@
 (wrapped true)
 (modules (:standard 
 	 parser
-	 lexer_cnl))
+	 lexer_cnl \ main))
 (libraries sedlex batteries) ; menhirlib)
 (preprocess (pps ppx_deriving.std  sedlex.ppx))
 )
+
+(executable
+(name main)
+(libraries sedlex batteries cnl_parse)
+(modules main)
+(preprocess (pps ppx_deriving.std sedlex.ppx))
+)
+
