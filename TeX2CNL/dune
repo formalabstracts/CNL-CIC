@@ -6,7 +6,16 @@
 (public_name tex2cnl)
 (wrapped true)
 (libraries sedlex batteries)
+(modules lexer_tex tex2cnl type)
 (preprocess (pps ppx_deriving.std  sedlex.ppx))
 )
+
+(executable
+(name main)
+(libraries sedlex batteries tex2cnl)
+(modules main)
+(preprocess (pps ppx_deriving.std sedlex.ppx))
+)
+
 
 
