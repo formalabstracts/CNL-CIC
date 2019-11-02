@@ -13,12 +13,12 @@ let uncurry f(x,y) = f x y;;
 let rec assocd a l d =
   match l with
     [] -> d
-  | (x,y)::t -> if Pervasives.compare x a = 0 then y else assocd a t d;;
+  | (x,y)::t -> if Stdlib.compare x a = 0 then y else assocd a t d;;
 
 let rec rev_assocd a l d =
   match l with
     [] -> d
-  | (x,y)::t -> if Pervasives.compare y a = 0 then x else rev_assocd a t d;;
+  | (x,y)::t -> if Stdlib.compare y a = 0 then x else rev_assocd a t d;;
 
 let rec zip l1 l2 =
   match (l1,l2) with
