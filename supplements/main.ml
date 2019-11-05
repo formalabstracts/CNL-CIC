@@ -4,7 +4,6 @@ open Cnl_parse__Lexer_cnl
 open Cnl_parse__Type
 open Cnl_parse__Parser
 
-
 let take = Cnl_parse__Lib.take
 
 let convert_node = Cnl_parse.Lexer_cnl.lex_string 
@@ -43,7 +42,26 @@ let rec test_it input  =
 
 
 (* main *)
-let usage_help_string = "main.exe filename" 
+
+(* Uses JaneStret Command.Param *)
+
+let command = 
+  let open Core_kernel in 
+  let open Command.Let_syntax in 
+    Command.basic ~summary:"Coarse parsing of a  Colada file"
+    [%map_open
+    let filename = anon("filename" %: string) in 
+        fun () -> 
+              let () = print_endline ("Reading "^filename) in 
+              let ns = mk_nodes filename in 
+              let () = print_endline ("Tokenization of "^filename^" is complete.") in 
+              try (test_it ns) with _ -> ()
+    ];;
+   
+
+Core.Command.run ~version:"0.1" command
+(*
+let usage_help_string = "main.exe filename"               
 
 let _ = 
   let args = Sys.argv in 
@@ -54,6 +72,8 @@ let _ =
     let _ = print_endline ("reading "^filename) in 
     let ns = mk_nodes filename in 
     try (test_it ns) with _ -> ();;
+
+ *)
 
 
 

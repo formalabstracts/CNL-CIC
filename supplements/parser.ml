@@ -423,13 +423,15 @@ let lit_binder_comma = comma
 let cs_brace parser1 parser2 = 
   parser1 ++ many (brace parser2) 
 
+(* 
 let expanded_word s input = 
-  let u = find_syn (String.lowercase_ascii s) in 
+  let u = find_syn (singularize s) in 
   try 
     let (a,(_,rest)) = some_nodeX 
       (function 
-       | WORD (w,wu) -> 
-           let wsyn = find_syn wu in
+       | WORD (w,wu) as w' -> 
+           let wsyns = find_all_syn wu in
+           if wsyns = [] then (
            ((wsyn = u),WORD (w,wsyn))
        | VAR v -> 
            let (b,v') = is_word v in 
@@ -438,33 +440,28 @@ let expanded_word s input =
     (a,(TrString ("matched:"^u),rest))
   with 
     Noparse _ -> raise (Noparse (TrGroup (("expected:"^u),trPos input)))
+ *)
+
+let rec match_syn f ss input = (* syn expanded word *)
+  if ss = [] then (f,(TrEmpty,input))
+  else 
+    let ss_null,ss_pos = partition (fun t -> fst t = []) ss in 
+    let f = (match ss_null with 
+             | [] -> f
+             | (_,r):: _ -> Some r) in 
+    let ({ tok = w'; _ },(_,input')) = anyword input in 
+    match w' with 
+    | WORD (_,v') ->
+        let ss'_pos = List.filter (fun (ws,_) -> v' = List.hd ws) ss_pos in 
+        if ss'_pos = [] then (f,(TrEmpty,input))
+        else match_syn f (List.map (fun (ws,h) -> List.tl ws,h) ss'_pos) input' 
+    | _ -> (f,(TrEmpty,input))
+    
 
 let phrase_list_transition = 
   let w _ = "phrase list transition" in
-  (somecomb phrase
-     [
-"a basic fact is";"accordingly";"additionally";"again";"also";"and yet";"as a result";
-"as usual";"as we have seen";"as we see";"at the same time";"besides";"but";
-"by definition";"certainly";"clearly";"computations show";"consequently";
-"conversely";"equally important";"explicitly";"finally";"first";"for example";
-"for instance";"for simplicity";"for that reason";"for this purpose";"further";
-"furthermore";"generally";"hence";"here";"however";"importantly";"in addition";
-"in any event";"in brief";"in consequence";"in contrast";"in contrast to this";
-"in each case";"in fact";"in general";"in other words";"in particular";"in short";
-"in sum";"in summary";"in the present case";"in the same way";"in this computation";
-"in this sense";"indeed";"it follows";"it is clear";"it is enough to show";
-"it is known";"it is routine";"it is trivial to see";"it is understood";
-"it turns out";"last";"likewise";"more precisely";"moreover";"most importantly";
-"neverthess";"next";"nonetheless";"note";
-"notice";"now";"observe";"obviously";"of course";"on the contrary";"on the other hand";
-"on the whole";"otherwise";"second";"similarly";"so";"specifically";"still";
-"that is";"the point is";"then";"therefore";"third";"this gives";"this implies";
-"this means";"this yields";"thus";"thus far";"to begin with";"to this end";
-"trivially";"we claim";"we emphasize";"we first show";"we get";"we have seen";
-"we have";"we know";"we check";"we may check";"we obtain";"we remark";"we say";"we see";
-"we show";"we understand";"we write";"recall";"we recall";
-"without loss of generality";"yet";
-     ] ++ possibly (word "that") >> w)
+  (somecomb phrase phrase_list_transition_words 
+   ++ possibly (word "that") >> w)
 
 let phrase_list_filler = 
   let w _ = "phrase_list_filler" in 
@@ -543,22 +540,24 @@ let lit_defined_as =
     phrase "defined as" |||
     phrase "defined to be"
 
+let mk_word s = WORD(s,singularize s)
+
 let lit_is = 
-  let wbe = WORD ("be",find_syn "be") in
+  let wbe = mk_word "be" in 
   let w = (fun _ -> wbe) in
   (word "is" >> w) |||
     (word "are" >> w) |||
     ((possibly (word "to") ++ word "be") >> w)
 
 let lit_iff = 
-  let wiff = WORD ("iff",find_syn "iff") in
+  let wiff = mk_word "iff" in 
   let w = (fun _ -> wiff) in
   (phrase "iff" >> w) |||
     (phrase "if and only if" >> w)  |||
     ((lit_is ++ possibly (word "the") ++ word "predicate") >> w)
 
 let lit_denote = 
-  let wd = WORD ("denote",find_syn "denote") in
+  let wd = mk_word "denote" in 
   let w = (fun _ -> wd) in
   (phrase "stand for" >> w) |||
     (word "denote" >> w) 
@@ -659,22 +658,6 @@ let getlabel =
 
  (* XX do scoping of variables etc. *)
 
-let set_current_scope (label,scope_end,new_level) = 
-    if not(scope_end) then 
-      if (4 <= new_level) then 
-        current_scope := label :: !current_scope
-      else 
-        current_scope := label :: (pad (new_level) "" !current_scope)
-    else (* scope_end *) 
-      if (4 <= new_level) then 
-        current_scope := List.tl (cutat (fun s -> (label="" || label = s)) !current_scope)
-      else 
-        let _ = new_level < List.length !current_scope || 
-                  failwith "ending division that was not started" in 
-        let ts = pad (new_level + 1) "" !current_scope in 
-        let _ = (List.hd ts = label) || failwith "ending division does not match start" in
-        current_scope := List.tl ts 
-
 let treat_section_preamble =
   (function
   | (({ tok = WORD(_,sec); pos },ls),p') -> (
@@ -705,9 +688,18 @@ let instruct_ints = ref []
 
 
 
-let put_commands = 
+let run_commands = 
   function 
-  | { tok = WORD (_,w); _ } -> (instruct_commands := (w :: !instruct_commands) ; w )
+  | { tok = WORD (_,w); _ } -> 
+      ( 
+        match w with 
+        |  "exit" -> raise Exit
+        | _ -> 
+            (
+              instruct_commands := (w :: !instruct_commands);
+              raise (failwith "instruct_command: unreachable state")
+            )
+      )
   | _ -> ""
 
 let put_strings = function 
@@ -727,7 +719,8 @@ let instruct_keyword_command = someword "exit"
 let instruct_keyword_int = someword "timelimit"
 let instruct_keyword_bool = someword "printgoal dump ontored"
 let instruct_keyword_string = someword "read library error warning"
-let instruct_command = instruct_keyword_command >> put_commands
+
+let instruct_command = instruct_keyword_command >> run_commands
 
 let integer = someX ((function | INTEGER x -> true,int_of_string x | _ -> false,0)-| tok)
 
@@ -1006,7 +999,7 @@ let pattern_banned =
    "said";"defined";"or";"fix";"fixed";"and";"inferring"]
 
 let not_banned =
-  let u = String.lowercase_ascii in 
+  let u = singularize in 
   let p s = not(List.mem (u s) pattern_banned) in
   (function
   | WORD(_,s) -> p s
@@ -1079,11 +1072,11 @@ let verb_multisubject_pattern =
   >> fun ((a,a'),b) -> Wp_verbM (a::a'::b)
 
 let predicate_word_pattern =
-  notion_pattern ||| 
-  adjective_pattern |||
-    adjective_multisubject_pattern |||
-    verb_pattern |||
-    verb_multisubject_pattern
+  notion_pattern 
+  ||| adjective_pattern
+  ||| adjective_multisubject_pattern
+  ||| verb_pattern
+  ||| verb_multisubject_pattern
 
 let opt_args_pat = 
   brace_semi
@@ -1091,15 +1084,15 @@ let opt_args_pat =
  (* XX When we distribute an empty type, we should require that
    the types are all the same through a metavariable.  *)
 
-let required_arg_pat = 
+let required_arg_template_pat = 
   paren(var_or_atomics ++ opt_colon_type) 
   >> (fun (vs,bs) -> List.map (fun v -> v,bs) vs)
   |||
-    group "required_arg_pat2" 
+    group "required_arg_template_pat2" 
       (must (not_banned -| tok) var_or_atomic  >> fun a -> [a,Colon' []])
 
 let args = 
-  (possibly opt_args_pat >> List.flatten) ++ (many(required_arg_pat) >> List.flatten)
+  (possibly opt_args_pat >> List.flatten) ++ (many(required_arg_template_pat) >> List.flatten)
 
 let identifier_pattern = group "identifier_pattern"
   (possibly(lit_a) ++ (must (not_banned -| tok)  identifier ||| a(BLANK)) ++
@@ -1148,6 +1141,15 @@ let symbol_pattern = group "symbol_pattern"
                      | [] -> (None,AssocNone)
                      | (i,a) :: _ -> (Some i,a)) e in
            ((a @ (b :: cs' @ ds)),fst e',snd e'))
+
+let binary_symbol_pattern = group "binary_symbol_pattern"
+  (tvarpat ++ symbol ++ tvarpat ++ possibly(paren_precedence_level) 
+   >>
+    (fun (((a,b),d),e) -> 
+           let e' = (function 
+                     | [] -> (None,AssocNone)
+                     | (i,a) :: _ -> (Some i,a)) e in
+           ((a :: b :: [d]),fst e',snd e')))
 
 
 
@@ -1258,9 +1260,10 @@ let function_def = group "function_def"
            in [(h',b)])
 
 let predicate_head = 
-  predicate_word_pattern |||
-  (symbol_pattern >> (fun (a,b,c) -> Wp_sympatP (a,b,c))) |||
-    (identifier_pattern >> (fun ((_,a),(b,c)) -> Wp_identifierP (a,b,c)))
+  (identifier_pattern >> (fun ((_,a),(b,c)) -> Wp_identifierP (a,b,c)))
+  ||| predicate_word_pattern 
+  ||| (symbol_pattern >> (fun (a,b,c) -> Wp_sympatP (a,b,c)))
+
 
 let predicate_def = group "predicate_def"
   (opt_say ++ predicate_head ++ possibly(macro_inferring) ++ iff_junction
@@ -1379,11 +1382,11 @@ let pre_expr = (balancedB (function | COMMA | SEMI | PERIOD -> false | _ -> true
 let assign_expr = a ASSIGN ++ pre_expr >> snd
 
 let record_assign_item = 
-  var_or_atomic ++ opt_colon_type ++ assign_expr >>
-    (fun ((a,b),c) -> 
-           (TVarAtomic(a,Some b),Expr' c))
+  var_or_atomic ++ assign_expr >>
+    (fun (a,c) -> 
+           (Expr' [a]),Expr' c)
 
-let record_assign_term = 
+let record_assign = 
   brace_semi >> (fun ts -> List.map (consume record_assign_item) ts)
 
 (* tightest terms *)
@@ -1517,13 +1520,15 @@ let rec tightest_term input =
        )
   ) input
 
+ (* to continue to app_term we need app_args, hence tightest_expr *)
+
 and tightest_terms input = 
   paren(plus(tightest_term)) input
 
 (* tightest types *)
 
-let paren_type = (* XX need to know a priori that balanced is a type *)
-  paren(balanced) >> (fun t -> Type' t)
+let paren_expr = (* need to know a priori that balanced is an expr *)
+  paren(balanced)
 
 let annotated_type = 
   paren(post_colon_balanced ++ a COLON ++ the_case_sensitive_word "Type") 
@@ -1555,15 +1560,20 @@ let opt_alt_constructor =
   a ALT ++ identifier ++ args ++ opt_colon_type
   >> (fun (((_,i),a),o) -> (i,a,o))
 
-let inductive_type = group "inductive_type"
-  ((word "inductive" ++ identifier ++ args ++ possibly(colon_sort')
-    ++ many(opt_alt_constructor) ++ word "end")
-   >> (fun (((((_,i),a),p),m),_) -> (i,a,p,m)))
+let inductive_type = 
+  group "inductive_type"
+    ((word "inductive" ++ identifier ++ args ++ possibly(colon_sort')
+      ++ many(opt_alt_constructor) ++ word "end")
+     >> (fun (((((_,i),a),p),m),_) -> Inductive' (i,a,p,m)))
 
-let mutual_inductive_type = group "mutual_inductive"
-  (word "inductive" ++ comma_nonempty_list(identifier) ++ args ++
-    many(word "with" ++ atomic ++ args ++ colon_type ++ many(alt_constructor)) ++
-    word "end")
+let mutual_inductive_type = 
+  group "mutual_inductive"
+    ((word "inductive" ++ comma_nonempty_list(identifier) >> snd) 
+     ++ args 
+     ++ many((word "with" ++ atomic >> snd) ++ args ++ colon_type ++ many(alt_constructor))
+     ++ word "end" 
+     >> fst
+    ) >> (fun ((i1,i2),i3) -> Mutual' (i1,i2,i3))
 
 let satisfying_preds = brace_semi
                  
@@ -1574,11 +1584,10 @@ let structure = group "structure"
   ++ possibly(possibly(lit_with_properties) ++ satisfying_preds >> snd))
   >> (fun ((((_,a),_),b),b') ->  Structure' (a,b,List.flatten b')))
 
-(* XX
 let tightest_type = 
   group "tightest_type"
     (
-      paren_type
+      (paren_expr  >> (fun t -> Type' t))
       ||| annotated_type
       ||| controlseq_type
       ||| const_type
@@ -1587,9 +1596,58 @@ let tightest_type =
       ||| inductive_type
       ||| mutual_inductive_type
       ||| structure
-      ||| prim_structure
     )
+
+(* must wait until app_args tightest_expr is defined. At that point we can do better with over_args. *)
+(* XX 
+let over_args = 
+  (word "over" ++ brace_semi >> snd >> (fun t -> Some t,None,None))  (* record *)
+  ||| (word "over" ++ tightest_expr >> snd >> (fun t -> None,Some t,None))
+  ||| (paren(word "over" 
+            ++ comma_nonempty_list 
+                 (balancedB (function | COMMA | SEMI | PERIOD -> false | _ -> true)) >> snd)
+      >> (fun t -> None,None,Some t))
+
+let overstructure_type = 
+  some(fun t -> prim_structure_exists t) 
+  ++ app_args 
+  ++ possibly(over_args) 
+  >> (fun ((t,a),o) -> TyOver (t,a,o))
 
  *)
 
-(* let sentence =  *)
+(* now start on tightest_prop *) 
+
+let identifier_prop = 
+  someX(fun t -> prim_relation_exists t.tok,PRel t)
+
+let precolon_sep = balancedB (function | COLON -> false | _ -> true)
+
+let annotated_prop = 
+  paren(precolon_sep ++ a COLON ++ the_case_sensitive_word "Prop" >> (fun ((p,_),_) -> Prop' p))
+
+let tightest_prop = 
+  group "tightest_prop" 
+    (
+      (paren_expr >> (fun t -> PStatement' t))
+      ||| identifier_prop
+      ||| (var >> (fun t -> PVar t))
+      ||| annotated_prop 
+    )
+
+let tightest_expr = 
+  group "tightest_expr"
+  (
+    (paren_expr >> (fun t -> Expr' t))
+   ||| (tightest_term >> (fun t -> Eterm t))
+   ||| (tightest_prop >> (fun t -> Eprop t))
+   ||| (tightest_type >> (fun t -> Etyp t))
+   ||| (proof_expr >> (fun _ -> Eproof))
+  )
+
+let app_args = 
+  (possibly(record_assign) >> List.flatten) ++ many(tightest_expr)
+
+
+
+

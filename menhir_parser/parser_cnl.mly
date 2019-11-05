@@ -230,16 +230,16 @@ prim_classifier : PA0 {}
    "operator" "binary operator" "pair" "pairs" "result" 
    *)
 
- (* from function_def.binary_controlseq_pattern, prec > 0 *)
+ (* from function_def.binary_symbol_pattern, prec > 0 *)
 prim_term_op_controlseq : PA1 {}
 
- (* from predicate_def.binary_controlseq_pattern, binary, prec=0 or none *)
+ (* from predicate_def.binary_symbol_pattern, binary, prec=0 or none *)
 prim_binary_relation_controlseq : PA1a {}
 
- (* from predicate_def.binary_controlseq_pattern, prec < 0 *)
+ (* from predicate_def.binary_symbol_pattern, prec < 0 *)
 prim_propositional_op_controlseq : PA1b {}
 
- (* from type_head.binary_controlseq_pattern, binary prec < 0 *)
+ (* from type_head.binary_symbol_pattern, binary prec < 0 *)
 prim_type_op_controlseq : PA1c {}
 
  (* from function_def.controlseq_pattern, no prec *)
@@ -314,15 +314,18 @@ prim_structure : PA18 {}
  (* from type_def symbol pattern  *)
 prim_type_op : PA18a {} (* A + B, A * B on types, etc.  *) 
 
+ (* from type_def word pattern  *)
+prim_type_word : PA18b {} (* natural numbers etc.  *) 
+
  (* from function_head.symbol_pattern *)
 prim_term_op : PA19 {} (* + - * / etc. *)
 
- (* from predicate_def.symbol_pattern, binary infix with prec=0 or none  *)
+ (* from predicate_def.binary_symbol_pattern, binary infix with prec=0 or none  *)
 prim_binary_relation_op : 
     | EQUAL
     | PA20 {} (* = < > etc. *)
 
- (* from predicate_def.symbol_pattern, with prec < 0 *)
+ (* from predicate_def.binary_symbol_pattern, with prec < 0 *)
 prim_propositional_op : PA21 {} (* logical connectives *)
 
  (* from predicate_def.identifier_pattern *)
@@ -399,45 +402,45 @@ LIT_MOREOVER COMMA general_type LIT_IMPLEMENTS brace_semi(field) PERIOD {}
   *)
 
 (* var_modifier : option(LIT_INFERRING) {} *)
-annotated_var : paren(VAR opt_colon_type {}) {}
-annotated_vars : paren(nonempty_list(VAR) opt_colon_type {}) {}
+annotated_var : paren(VAR opt_colon_type {}) {()}
+annotated_vars : paren(nonempty_list(VAR) opt_colon_type {}) {()}
 
 
-tvar : VAR | annotated_var {}
+tvar : VAR | annotated_var {()} 
 
-assign_expr : ASSIGN expr {}
+assign_expr : ASSIGN expr {()} 
 
-record_assign_term :
-  brace_semi(var_or_atomic opt_colon_type assign_expr {})  {}
+record_assign :
+  brace_semi(var_or_atomic (* opt_colon_type - not needed *) assign_expr {})  {()} 
+
+record_args_template : 
+  brace_semi(var_or_atomics opt_colon_type {}) {}
 
 app_args :  (* can be empty *)
-  option( record_assign_term {}) list(tightest_expr) {}
+  option( record_assign {}) list(tightest_expr) {}
 
 
 (* function and binder parameters. *)
 
-args : option( opt_args {}) required_args {}
+args_template : option( record_args_template {}) required_args_template {}
 
          (* A brace_semi as the first argument to a function is
-            ambiguious: it could be either a opt_args or a required
+            ambiguious: it could be either a record_args_template or a required
             arg that takes the form of a make_term.  The convention is
-            that the principal interpretation is opt_args.  But if it
+            that the principal interpretation is record_args_template.  But if it
             contains a field name that is not an optional argument,
             then it is interpreted as a make_term. *)
 
-  opt_args : 
-    brace_semi(var_or_atomics opt_colon_type {}) {}
-
-  required_args : list(required_arg) {}
+  required_args_template : list(required_arg_template) {}
 
   (* convention - all types are the same within parentheses *)
-    required_arg :
+    required_arg_template :
     | paren(var_or_atomics opt_colon_type {})
     | var_or_atomic {}
 
 
-  var_or_atomic : VAR | atomic {}
-  var_or_atomics : nonempty_list(var_or_atomic) {}   
+  var_or_atomic : VAR | atomic {()}
+  var_or_atomics : nonempty_list(var_or_atomic) {()}   
 
  (*
   Consider 
@@ -458,10 +461,11 @@ args : option( opt_args {}) required_args {}
 
  (* unambiguous boundaries of terms needed here *)
  (* This allows too much. We should restrict further to admissible patterns. *)
-tightest_type_args : opt_args list(tightest_type_arg) {}
 
-  tightest_type_arg : 
-  | tightest_type
+tightest_args : record_args_template list(tightest_arg) {}
+
+  tightest_arg : 
+  | tightest_expr
   | paren(var_or_atomic var_or_atomics opt_colon_type colon_sort {})
   | paren(var_or_atomic var_or_atomics opt_colon_type {})
   {}  
@@ -500,7 +504,7 @@ tightest_expr : (* what is allowed as an arg to function calls *)
 | tightest_prop
 | tightest_type
 | proof_expr
-{}
+{()}
 
 (* sorts *)
 
@@ -524,29 +528,40 @@ tightest_type :
 | inductive_type
 | mutual_inductive_type
 | structure (* declaration *)
-| prim_structure (* identifier *)
-{}
+{()}
 
-paren_type : paren(general_type) {}
+paren_type : paren(general_type) {()} (* -> paren_expr in implementation *)
 
-annotated_type : paren(general_type COLON ID_TYPE {}) {}
+annotated_type : paren(general_type COLON ID_TYPE {}) {()}
 
-controlseq_type : cs_brace(prim_type_controlseq) {}
+controlseq_type : cs_brace(prim_type_controlseq) {()}
 
-const_type : prim_identifier_type {}
+const_type : prim_identifier_type {()}
+
+overstructure_type :
+| prim_structure app_args option(LIT_OVER over_args {}) {}
+
+  over_args :
+  | LIT_OVER brace_semi(var_or_atomic assign_expr {})
+  | LIT_OVER tightest_term 
+  | paren(LIT_OVER comma_nonempty_list(tightest_expr {}) {})
+      {}
 
  (* if not annotated here, the VAR should be previously annotated in the context. *)
 var_type : 
 | VAR 
-| paren(VAR COLON ID_TYPE {}) {}
+| paren(VAR COLON ID_TYPE {}) {()}
 
-subtype :  brace(term holding_var TMID statement {}) {}
+subtype :  brace(term holding_var TMID statement {}) {()}
 
-app_type : tightest_type app_args {}
+app_type : 
+| tightest_type app_args 
+| overstructure_type (* identifier *)
+{}
 
 binder_type : 
 | app_type 
-| prim_pi_binder tightest_type_args lit_binder_comma binder_type 
+| prim_pi_binder tightest_args lit_binder_comma binder_type 
 {}
 
 (** binop_type *)
@@ -565,16 +580,15 @@ binop_type :
 
   type_operand :
   | binder_type
-  | dependent_vars {} (* for Agda style dependent typing *)
+  | agda_dependent_vars {} (* for Agda style dependent typing *)
 
-  dependent_vars : option( opt_args {})
+  agda_dependent_vars : option( record_args_template {})
     nonempty_list(annotated_vars) {}
 
 opentail_type :
 | binop_type
 | quotient_type
 | coercion_type
-| overstructure_type
 {}
 
  (* agda_pi_type : nonempty_list(annotated_vars) ARROW opentail_type {} *)
@@ -584,14 +598,6 @@ quotient_type : LIT_QUOTIENT option(LIT_OF) general_type LIT_BY term {}
 coercion_type : 
 | COERCION term (* explicit coercion *)
 {}
-
-overstructure_type :
-| prim_structure LIT_OVER over_args {}
-
-  over_args :
-  | brace_semi(var_or_atomic assign_expr {})
-  | comma_nonempty_list(tightest_expr) {}
-
 
 general_type : attribute(opentail_type) {}
 
@@ -611,17 +617,18 @@ opt_colon_type : option(colon_type) {}
 
 (** inductive types *)
 
-inductive_type : LIT_INDUCTIVE identifier args 
-  opt_colon_sort list(opt_alt_constructor) LIT_END {}
+inductive_type : LIT_INDUCTIVE identifier args_template 
+  opt_colon_sort list(opt_alt_constructor) LIT_END {()}
 
-  opt_alt_constructor : ALT identifier args opt_colon_type {}
-  alt_constructor : ALT identifier args colon_type {}
+  opt_alt_constructor : ALT identifier args_template opt_colon_type {}
+  alt_constructor : ALT identifier args_template colon_type {}
 
 mutual_inductive_type : LIT_INDUCTIVE
-  comma_nonempty_list(identifier) args 
-  list(LIT_WITH atomic args colon_type
+  comma_nonempty_list(identifier) args_template 
+  list(LIT_WITH atomic args_template colon_type
        list(alt_constructor) {}) 
-  LIT_END{}
+  LIT_END
+  {()}
 
 (** structure *)
 
@@ -631,7 +638,7 @@ mutual_inductive_type : LIT_INDUCTIVE
   *)
 
 structure : option(LIT_NOTATIONAL) LIT_STRUCTURE 
-  option(lit_param) args
+  option(lit_param) args_template
   option(LIT_WITH) brace_semi(extended_field)
   option(option(lit_with_properties) satisfying_preds {}) {}
 
@@ -662,7 +669,7 @@ structure : option(LIT_NOTATIONAL) LIT_STRUCTURE
 proof_expr : 
 | SYMBOL_QED 
 | paren(proof_expr)
-{}
+{()}
 
 (* APPLYSUB handles subscripts coming from a TeX file.
 
@@ -754,7 +761,7 @@ match_term : LIT_MATCH match_seq LIT_WITH
   match_pats : comma_nonempty_list(match_pat) {}
   match_pat : plain_term {} (* Variables that do not appear in match_seq are assumed fresh. *)
 
-match_function : LIT_FUNCTION args 
+match_function : LIT_FUNCTION args_template 
   opt_colon_type nonempty_list(ALT match_pats ASSIGN plain_term {})
   LIT_END {}
 
@@ -771,11 +778,13 @@ opentail_term :
 {}
 
 lambda_term : 
-| prim_lambda_binder tightest_type_args lit_binder_comma opentail_term
-| tightest_type_arg MAPSTO opentail_term (* Can we make this tightest_type_args? *)
+| prim_lambda_binder tightest_args lit_binder_comma opentail_term
+(* MAPSTO takes a single arg, but the argument can be a more general pattern than other
+   function specifications.  *)
+| tdop_term  MAPSTO opentail_term 
 {}
 
-lambda_fun : LIT_FUN tightest_type_args 
+lambda_fun : LIT_FUN tightest_args 
   opt_colon_type ASSIGN opentail_term {}
 
   (* let includes destructuring*)
@@ -941,10 +950,10 @@ binder_prop :
 | app_prop
 | tdop_rel_prop 
 | lambda_predicate 
-| prim_binder_prop args lit_binder_comma binder_prop {}
+| prim_binder_prop args_template lit_binder_comma binder_prop {}
 
 lambda_predicate : 
-| LIT_FUN tightest_type_args COLON ID_PROP ASSIGN tightest_prop {}
+| LIT_FUN tightest_args COLON ID_PROP ASSIGN tightest_prop {}
 
 
 prop : 
@@ -1174,7 +1183,7 @@ definition_statement :
     {} 
 
   function_def : opt_define function_head option(macro_inferring {})
-    copula option(lit_equal) option(LIT_THE) plain_term {}
+    function_copula option(lit_equal) option(LIT_THE) plain_term {}
 
     function_head :
     | function_word_pattern
@@ -1183,9 +1192,10 @@ definition_statement :
 
   predicate_def : opt_say predicate_head option(macro_inferring {}) iff_junction statement {}
     predicate_head :
+    | identifier_pattern (* before word pattern *)
     | predicate_word_pattern
     | symbol_pattern 
-    | identifier_pattern {}
+        {}
 
  (*
   structure_def : option(lit_a) identifier_pattern LIT_IS 
@@ -1217,9 +1227,9 @@ definition_statement :
   (*
   Disambiguation:
   predicates use iff_junction.
-  predicates word patterns start with tvar.
   identifier patterns start with an identifier.
-  symbol patterns contain a symbol.
+  predicate word patterns contains words
+  binary symbol patterns contain start with tvar then a symbol.
 
   Functions use the copula.
   word patterns starts with LIT_THE word ...
@@ -1336,12 +1346,12 @@ predicate_word_pattern :
   | paren(VAR COMMA VAR colon_type {}) {}
 
 identifier_pattern :
-| identifier args {}
-| BLANK args {} (* instance can be anonymous *)
+| identifier args_template {}
+| BLANK args_template {} (* instance can be anonymous *)
 
 controlseq_pattern : CONTROLSEQ list(brace(tvar)) {} (* subsumed by symbol_pattern *)
 
-binary_controlseq_pattern : tvar controlseq_pattern tvar {} (* subsumed by symbol_pattern *)
+binary_symbol_pattern : tvar symbol tvar option(paren_precedence_level) {} (* subsumed by symbol_pattern *)
 
 symbol_pattern : option(tvar) symbol list(tvar symbol {}) 
   option(tvar) option(paren_precedence_level) {}

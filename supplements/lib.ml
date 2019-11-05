@@ -31,6 +31,13 @@ let rec unzip =
          | ((a,b)::rest) -> let alist,blist = unzip rest in
                             (a::alist,b::blist);;
 
+let rec partition p l =
+  match l with
+    [] -> [],l
+  | h::t -> let yes,no = partition p t in
+            if p(h) then (if yes == t then l,[] else h::yes,no)
+            else (if no == t then [],l else yes,h::no);;
+
 let rec itlist2 f l1 l2 b =
   match (l1,l2) with
     ([],[]) -> b

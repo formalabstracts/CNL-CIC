@@ -612,4 +612,4 @@
   Theorem  .    Assume  that    \grouporder {  G  }  =  p'  *  \natpow {  p  }  {  \mult {  p  }  {  G  }  }    .  
   Then  we  have    \SylN {  p  }  {  G  }    divides    p'    .  
   Theorem  .    We  have    p    divides    (  \SylN {  p  }  {  G  }  -  1  )    .  
-  Theorem  .    We  have    \SylN {  p  }  {  G  }  *  \Nz {  p  }  {  G  }  =  \grouporder {  G  }    .  
+  Theorem [TeX2CnlWarning "inserted for testing"] . We  have    \SylN {  p  }  {  G  }  *  \Nz {  p  }  {  G  }  =  \grouporder {  G  }    .  

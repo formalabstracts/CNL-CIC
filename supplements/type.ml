@@ -32,10 +32,20 @@ and typ =
   | TyId of node 
   | Subtype of term * term list * statement 
   | Structure' of ((node list list * (node * typ) list) * node list list * node list list) 
+  | Inductive' of (node * (node list list * (node * typ) list) * node list list *
+                     (node * (node list list * (node * typ) list) * typ) list)
+  | Mutual' of (node list * 
+                  (node list list * (node * typ) list) *
+                    ((((node * (node list list * (node * typ) list)) * node list) *
+                        ((((node * node) * (node list list * (node * typ) list)) * node) *
+                           node list)
+                          list) list))
 
 and prop = 
   | PVar of node
   | Prop' of node list
+  | PStatement' of node list 
+  | PRel of node 
 
 and statement = 
   | Statement' of node list 
@@ -54,6 +64,7 @@ and expr =
   | Eterm of term
   | Etyp of typ
   | Eprop of prop
+  | Eproof
   | Expr' of node list
 [@@deriving show]
 
@@ -117,7 +128,7 @@ type pos = (Lexing.position * Lexing.position) [@opaque]
 type prim = 
 
   | Prim_classifier of scope * string (* phrase *)
-  (* all cs primitives are 0-ary or 2-ary *)
+  (* all cs primitives are 0-ary or 2-ary (as infix, not referring to braceargs) *)
   (* cs token, numbraceargs, precedence, assoc, def, free vars  -- always binary *)
   | Prim_term_op_controlseq of scope * token * int * int * associativity * term * term list
   (* cs token, numbraceargs, def, frees *)
@@ -151,6 +162,7 @@ type prim =
   | Prim_verb_multisubject of scope * wordpattern * prop * expr list
   | Prim_structure of scope * wordpattern * typ * expr list 
   | Prim_type_op of scope * token * typ * typ list
+  | Prim_type_word of scope * wordpattern * typ * typ list
   | Prim_term_op of scope * wordpattern * term * expr list
   | Prim_binary_relation_op of scope * token * prop * (term * term)
   | Prim_propositional_op of scope * token * int * associativity * prop * prop list 

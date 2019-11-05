@@ -207,6 +207,10 @@ let hierarchical_identifier = [%sedlex.regexp? identifier, Plus('.', identifier)
 
 let field_accessor = [%sedlex.regexp? Plus('.', identifier)]
 
+let tex2cnl_error = [%sedlex.regexp? "[TeX2CnlError", Star(white), string, Star(white), "]"]
+
+let tex2cnl_warning = [%sedlex.regexp? "[TeX2CnlWarning", Star(white), string, Star(white), "]"]
+
 
 let lparen = [%sedlex.regexp? '(' ]  
 let rparen = [%sedlex.regexp? ')' ]
@@ -311,6 +315,8 @@ let c tok = (fun _ -> tok)
 let rec lex_node buf =
   match%sedlex buf with
   | Plus(white) -> (lex_node buf)
+  | tex2cnl_error -> (print_endline(string_lexeme buf); lex_node buf)
+  | tex2cnl_warning -> (print_endline(string_lexeme buf); lex_node buf)
 (*  | eol -> (Sedlexing.new_line buf; lex_node buf) *)
   | comment -> (lex_node buf)
     | string -> mk (fun t -> STRING t) buf 

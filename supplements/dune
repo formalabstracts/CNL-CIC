@@ -8,14 +8,14 @@
 (modules (:standard 
 	 parser
 	 lexer_cnl \ main))
-(libraries sedlex batteries) ; menhirlib)
-(preprocess (pps ppx_deriving.std  sedlex.ppx))
+(libraries sedlex batteries core)
+(preprocess (pps ppx_deriving.std ppx_let sedlex.ppx))
 )
 
 (executable
 (name main)
-(libraries sedlex batteries cnl_parse)
+(libraries sedlex batteries core cnl_parse)
 (modules main)
-(preprocess (pps ppx_deriving.std sedlex.ppx))
+(preprocess (pps ppx_deriving.std ppx_let sedlex.ppx))
 )
 
