@@ -146,6 +146,7 @@ type token =
   | PITY
   | QUANTIFIER of string
   | VAR of string
+  | METAVAR of string
   | WORD of string*string
   | ATOMIC_IDENTIFIER of string
   | HIERARCHICAL_IDENTIFIER of string
@@ -160,9 +161,12 @@ type node =
  tok : token
 }
 
+let empty_pos = 
+  let open Lexing in 
+  { pos_fname = ""; pos_lnum = 0; pos_bol = 0; pos_cnum = 0 }
+
 let pp_node f n = 
   pp_token f n.tok
-
 
 let tok n = n.tok
 
@@ -376,6 +380,7 @@ let lex_token_to_string = function
   | PITY -> "(PITY)"
   | QUANTIFIER s -> s ^ " (QUANTIFIER)"
   | VAR s -> s ^ " (VAR)"
+  | METAVAR s -> s ^ " (METAVAR)"
   | WORD (s,_) -> s ^ " (WORD)"
   | ATOMIC_IDENTIFIER s -> s ^ " (ATOMIC)"
   | HIERARCHICAL_IDENTIFIER s -> s ^ " (HIERARCHICAL)"
@@ -416,6 +421,7 @@ let lex_token_to_string_brief =
   | PITY -> "PI"
   | QUANTIFIER s -> "Q:"^s 
   | VAR s -> "V:"^s 
+  | METAVAR s -> "?"^s 
   | WORD (s,_) -> "W:"^s 
   | ATOMIC_IDENTIFIER s -> "A:"^s 
   | HIERARCHICAL_IDENTIFIER s -> "H:"^s 

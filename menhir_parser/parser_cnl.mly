@@ -388,11 +388,11 @@ LIT_MOREOVER COMMA general_type LIT_IMPLEMENTS brace_semi(field) PERIOD {}
  macros and definitions without appearing explicitly on the left-hand side. 
 
  For example, we can write
- We say that (X : set over alpha) is finite iff ..., inferring (alpha : Type).
+ We say that (X : set over alpha), (inferring alpha : Type) is finite iff ..., 
  Then the alpha is not required to appear to the left of the iff.
 
  For example, 
- Let x in X stand for C.notation_in x X inferring (C : has_in).
+ Let x in X, (inferring C : has_in) stand for C.notation_in x X.
 
  If a section introduces an inferred variable into the context, then 
  the "CNL elaborator" inserts the corresponding where clause into every
@@ -414,15 +414,15 @@ record_assign :
   brace_semi(var_or_atomic (* opt_colon_type - not needed *) assign_expr {})  {()} 
 
 record_args_template : 
-  brace_semi(var_or_atomics opt_colon_type {}) {}
+  brace_semi(var_or_atomics opt_colon_type {}) {()}
 
 app_args :  (* can be empty *)
-  option( record_assign {}) list(tightest_expr) {}
+  option( record_assign {}) list(tightest_expr) {()}
 
 
 (* function and binder parameters. *)
 
-args_template : option( record_args_template {}) required_args_template {}
+args_template : option( record_args_template {}) required_args_template {()}
 
          (* A brace_semi as the first argument to a function is
             ambiguious: it could be either a record_args_template or a required
@@ -462,11 +462,11 @@ args_template : option( record_args_template {}) required_args_template {}
  (* unambiguous boundaries of terms needed here *)
  (* This allows too much. We should restrict further to admissible patterns. *)
 
-tightest_args : record_args_template list(tightest_arg) {}
+tightest_args : record_args_template list(tightest_arg) {()}
 
   tightest_arg : 
   | tightest_expr
-  | paren(var_or_atomic var_or_atomics opt_colon_type colon_sort {})
+  | paren(var_or_atomic var_or_atomics opt_colon_sort {})
   | paren(var_or_atomic var_or_atomics opt_colon_type {})
   {}  
 
@@ -539,7 +539,7 @@ controlseq_type : cs_brace(prim_type_controlseq) {()}
 const_type : prim_identifier_type {()}
 
 overstructure_type :
-| prim_structure app_args option(LIT_OVER over_args {}) {}
+| prim_structure app_args option(LIT_OVER over_args {}) {()}
 
   over_args :
   | LIT_OVER brace_semi(var_or_atomic assign_expr {})
@@ -557,7 +557,7 @@ subtype :  brace(term holding_var TMID statement {}) {()}
 app_type : 
 | tightest_type app_args 
 | overstructure_type (* identifier *)
-{}
+{()}
 
 binder_type : 
 | app_type 
@@ -690,9 +690,9 @@ tightest_term :
 | tightest_prefix
 | tightest_term FIELD_ACCESSOR
 | tightest_term APPLYSUB tightest_terms
-{}
+{()}
 
-  tightest_terms : paren(nonempty_list(tightest_term)) {}
+  tightest_terms : paren(nonempty_list(tightest_term)) {()}
 
   tightest_prefix :
   | DECIMAL
@@ -704,10 +704,10 @@ tightest_term :
   | controlseq_term
   | delimited_term
   | alt_term
-  {}
+  {()}
 
 
-controlseq_term : cs_brace(prim_term_controlseq) {}
+controlseq_term : cs_brace(prim_term_controlseq) {()}
 
 (** delimited term *)
 
@@ -721,22 +721,22 @@ delimited_term :
 | set_comprehension_term
 {}
 
-annotated_term : paren(term colon_type {}) {}
+annotated_term : paren(term colon_type {}) {()}
 
 make_term : LIT_MAKE brace_semi(var_or_atomic_or_blank opt_colon_type
-  option(assign_expr {}) {}) {}
+  option(assign_expr {}) {}) {()}
 
   var_or_atomic_or_blank : 
   | var_or_atomic
   | BLANK {}
 
-list_term : bracket(separated_list(SEMI,plain_term) {}) {}
+list_term : bracket(separated_list(SEMI,plain_term) {}) {()}
 
-tuple_term : paren(plain_term COMMA comma_nonempty_list(plain_term) {}) {}
+tuple_term : paren(plain_term COMMA comma_nonempty_list(plain_term) {}) {()}
 
-set_enum_term : brace(comma_list(plain_term) {}) {}
+set_enum_term : brace(comma_list(plain_term) {}) {()}
 
-set_comprehension_term : brace(plain_term holding_var MID statement {}) {} 
+set_comprehension_term : brace(plain_term holding_var MID statement {}) {()} 
 
 (** alt_term *)
 
@@ -752,10 +752,10 @@ alt_term : (* These bind tightly because of terminating END *)
   *)
 case_term : LIT_CASE (* term LIT_OF  *)
   nonempty_list(alt_case) LIT_END {}
-  alt_case : ALT prop ASSIGN plain_term {}
+  alt_case : ALT prop ASSIGN plain_term {()}
 
 match_term : LIT_MATCH match_seq LIT_WITH 
-  nonempty_list(ALT match_pats ASSIGN plain_term {}) LIT_END {}
+  nonempty_list(ALT match_pats ASSIGN plain_term {}) LIT_END {()}
 
   match_seq : comma_nonempty_list(plain_term) {}
   match_pats : comma_nonempty_list(match_pat) {}
@@ -763,9 +763,9 @@ match_term : LIT_MATCH match_seq LIT_WITH
 
 match_function : LIT_FUNCTION args_template 
   opt_colon_type nonempty_list(ALT match_pats ASSIGN plain_term {})
-  LIT_END {}
+  LIT_END {()}
 
-app_term : tightest_term app_args {}
+app_term : tightest_term app_args {()}
 
 (** opentail term *)               
 
@@ -775,32 +775,32 @@ opentail_term :
 | let_term
 | if_then_else_term
 | tdop_term
-{}
+{()}
 
 lambda_term : 
 | prim_lambda_binder tightest_args lit_binder_comma opentail_term
 (* MAPSTO takes a single arg, but the argument can be a more general pattern than other
    function specifications.  *)
 | tdop_term  MAPSTO opentail_term 
-{}
+{()}
 
 lambda_fun : LIT_FUN tightest_args 
-  opt_colon_type ASSIGN opentail_term {}
+  opt_colon_type ASSIGN opentail_term {()}
 
   (* let includes destructuring*)
-let_term : LIT_LET tightest_prefix ASSIGN plain_term LIT_IN opentail_term {}
+let_term : LIT_LET tightest_prefix ASSIGN plain_term LIT_IN opentail_term {()}
 
-if_then_else_term : LIT_IF prop LIT_THEN plain_term LIT_ELSE opentail_term {}
+if_then_else_term : LIT_IF prop LIT_THEN plain_term LIT_ELSE opentail_term {()}
 
-symbolic_term : opentail_term option(where_suffix) {}
+where_term : opentail_term option(where_suffix) {()}
 
 definite_term : 
-| symbolic_term
+| where_term
 | option(LIT_THE) prim_definite_noun {}
-    (* | paren(option(LIT_THE) prim_definite_noun {}) {} subsumed by paren(symbolic_term) tightest_term *)
+    (* | paren(option(LIT_THE) prim_definite_noun {}) {} subsumed by paren(where_term) tightest_term *)
 
  (* where (Haskell style) *)
-  where_suffix : LIT_WHERE brace_semi(option(LIT_INFERRING) 
+  where_suffix : LIT_WHERE brace_semi(   (* deprecated option(LIT_INFERRING)  *)
                  VAR opt_colon_type option(assign_expr) {}) {}
 
 term : 
@@ -843,12 +843,13 @@ attribute(X) : list(left_attribute) X option(right_attribute) {}
   | LIT_THAT and_comma_nonempty_list(does_pred) {}
   | LIT_SUCH LIT_THAT statement {}
 
+(* XX something is wrong here.  We don't want attributes around tvar?? *)
 attribute_pseudoterm : attribute(typed_name_without_attribute) {}
   typed_name_without_attribute : 
   | prim_typed_name
   | tvar
   | prim_classifier tvar 
-  | VAR lit_with ID_TYPE general_type
+  | VAR lit_with ID_TYPE opentail_type (* don't include nested attribute in general_type *)
   | paren(typed_name_without_attribute)
 {}
 
@@ -898,7 +899,7 @@ tdop_term :
 | ioption(app_term) term_ops
     list(app_term term_ops {}) option(app_term)
 | app_term
-{}
+{()}
 
   term_ops : nonempty_list(term_op) {}
 
@@ -910,19 +911,23 @@ tdop_term :
  (* We allow x,y < z < w. The first arg can be a list. *)
 tdop_rel_prop : 
   tdop_terms
-  nonempty_list(binary_relation_op tdop_term {}) {}
+  nonempty_list(binary_relation_op tdop_term {}) {()}
 
   binary_relation_op :
   | prim_binary_relation_op
   | cs_brace(prim_binary_relation_controlseq)
-  {}
+  {()}
 
   tdop_terms : comma_nonempty_list(tdop_term) {}
 
- (* prec < 0 *)
+ (* prec < 0, must be infix (possibly with multiple ops), subsumes binder_prop  *)
 tdop_prop :
+  binder_prop list(prop_ops binder_prop {}) {()}
+
+(*    
   option(binder_prop) prop_ops
   list(binder_prop prop_ops {}) option(binder_prop) {}
+ *)
 
   prop_ops : nonempty_list(prop_op) {}
 
@@ -938,28 +943,25 @@ tightest_prop :
 | identifier_prop 
 | VAR
 | annotated_prop
-{}
+{()}
 
-identifier_prop : prim_relation {} (* *)
+identifier_prop : prim_relation {()} (* *)
 
-annotated_prop : paren(prop COLON ID_PROP {}) {}
+annotated_prop : paren(prop COLON ID_PROP {}) {()}
 
-app_prop : tightest_prop app_args {} 
+app_prop : tightest_prop app_args {()} 
 
 binder_prop :
 | app_prop
 | tdop_rel_prop 
 | lambda_predicate 
-| prim_binder_prop args_template lit_binder_comma binder_prop {}
+| prim_binder_prop args_template lit_binder_comma binder_prop {()}
 
 lambda_predicate : 
-| LIT_FUN tightest_args COLON ID_PROP ASSIGN tightest_prop {}
+| LIT_FUN tightest_args COLON ID_PROP ASSIGN tightest_prop {()}
 
 
-prop : 
-| option(lit_classifier) binder_prop
-| option(lit_classifier) tdop_prop
-{}
+prop : option(lit_classifier) tdop_prop {()}
 
 
 (* statements *)

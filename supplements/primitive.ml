@@ -236,6 +236,51 @@ let prim_prop_var_tbl = Hashtbl.create 100
 let prim_prop_var_exists key = 
   prim_string_in_scope prim_prop_var_tbl key
 
+let prim_lambda_binder_tbl = Hashtbl.create 100
+
+let prim_lambda_binder_exists key = 
+  prim_string_in_scope prim_lambda_binder_tbl key
+
+let prim_term_op_tbl = Hashtbl.create 100
+
+let prim_term_op_exists key = 
+  prim_string_in_scope prim_term_op_tbl key
+
+let prim_term_op_controlseq_tbl = Hashtbl.create 100
+
+let prim_term_op_controlseq_exists key = 
+  prim_string_in_scope prim_term_op_controlseq_tbl key
+
+let prim_binary_relation_tbl = Hashtbl.create 100
+
+let prim_binary_relation_exists key = 
+  prim_string_in_scope prim_binary_relation_tbl key
+
+let prim_binary_relation_controlseq_tbl = Hashtbl.create 100
+
+let prim_binary_relation_controlseq_exists key = 
+  prim_string_in_scope prim_binary_relation_controlseq_tbl key
+
+let prim_propositional_op_tbl = Hashtbl.create 100
+
+let prim_propositional_op_exists key = 
+  prim_string_in_scope prim_propositional_op_tbl key
+
+let prim_propositional_op_controlseq_tbl = Hashtbl.create 100
+
+let prim_propositional_op_controlseq_exists key = 
+  prim_string_in_scope prim_propositional_op_controlseq_tbl key
+
+let prim_binder_prop_tbl = Hashtbl.create 100
+
+let prim_binder_prop_exists key = 
+  prim_string_in_scope prim_binder_prop_tbl key
+
+let prim_pi_binder_tbl = Hashtbl.create 100
+
+let prim_pi_binder_exists key = 
+  prim_string_in_scope prim_pi_binder_tbl key
+
 
 
 

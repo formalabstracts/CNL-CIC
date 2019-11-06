@@ -11,7 +11,7 @@ type term =
   | Blank
   | Id of node* typ option
   | Unparsed' of node list
-  | ControlSeq of node*expr list
+  | ControlSeq of node* expr list
   | Make of (node * typ * node list) list 
   | Plain' of node list
   | List of term list
@@ -23,10 +23,19 @@ type term =
   | Comprehension of term * term list * statement
   | FieldAccessor of term * node 
   | ApplySub of term * term list
+  | App' of term * (expr * expr * expr) list * expr list
+  | TermOp' of node
+  | Tdop' of term list
+  | MapsTo of term*term 
+  | Lambda' of node * (node list list * expr list) * term
+  | LambdaFun' of (node list list * expr list) * typ * term
+  | Let' of term * node list * term 
+  | IfThenElse' of node list * node list * term
+  | Where' of term * (expr * expr * expr) list
 
 and typ = 
   | TyVar of node
-  | Colon' of node list 
+  | Colon' of node list
   | Type' of node list
   | TyControlSeq of node * node list list
   | TyId of node 
@@ -40,12 +49,23 @@ and typ =
                         ((((node * node) * (node list list * (node * typ) list)) * node) *
                            node list)
                           list) list))
+  | Over' of node * 
+               (expr * expr * expr) list * 
+                 expr list *
+                   ((expr * expr * expr) list option * expr option * node list list option) list
+  | TApp' of typ * (expr * expr * expr) list * expr list
+  | TBinder' of node * node list list * expr list * typ 
 
 and prop = 
   | PVar of node
   | Prop' of node list
   | PStatement' of node list 
   | PRel of node 
+  | Ptdopr' of (term * term * term) list
+  | PApp' of prop * (expr * expr * expr) list * expr list
+  | PLambda' of node list list * expr list * prop
+  | PBinder' of node * node list list * (node * typ) list * prop
+  | P_ops' of term list 
 
 and statement = 
   | Statement' of node list 
@@ -66,6 +86,7 @@ and expr =
   | Eprop of prop
   | Eproof
   | Expr' of node list
+  | ETightest' of node * node list (* expr, its type info *)
 [@@deriving show]
 
 type associativity = 
