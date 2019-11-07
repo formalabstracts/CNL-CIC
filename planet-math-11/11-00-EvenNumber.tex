@@ -1,0 +1,458 @@
+
+\documentclass[12pt]{article}
+
+
+%- PACKAGES
+\usepackage{url}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{currfile}
+\usepackage{fancyvrb}
+\usepackage{xparse} % needed for \ellipsis control sequence in cnl-style
+\usepackage{enumitem} % for topsep=0pt
+\usepackage{colonequals}
+
+% for underscores https://texfaq.org/FAQ-underscore
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+\usepackage{lineno}
+
+\usepackage[
+bookmarksopen,
+bookmarksdepth=2,
+%breaklinks=true
+colorlinks=true,
+urlcolor=blue]{hyperref}
+
+% GLOBAL FORMATTING
+%\linenumbers
+\parindent=0pt
+\parskip=0.5\baselineskip
+\raggedbottom
+
+% TITLE AUTHOR DATE
+\title{Number Theory,\\ Even and odd number}
+
+\date{October 18, 2019}
+\author{My Nguyen (miinguyen)}
+
+%- THEOREMS
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}[definition]{Theorem}
+\newtheorem{lemma}[definition]{Lemma}
+\numberwithin{definition}{section}
+%\newtheorem{specification}[definition]{Specification}
+
+
+%- DOCUMENT
+
+\begin{document}
+\maketitle
+
+\setcounter{tocdepth}{1}
+\tableofcontents
+\newpage
+
+
+%\renewcommand\labelitemi{\normalfont|}}
+
+
+%% ELLIPSIS, 
+% based on Luis Berlioz's query
+% https://tex.stackexchange.com/questions/503731/how-to-define-a-macro-that-takes-the-definition-of-a-macro-as-an-argument
+% \usepackage{amsmath}
+% \usepackage{xparse}
+
+\ExplSyntaxOn
+\NewDocumentCommand{\ellipsis}{mmmm}
+ {% #1 = main term
+  % #2 = first index
+  % #3 = last index
+  % #4 = operation
+  \group_begin:
+  \lucas_ellipsis:nnnn { #1 } { #2 } { #3 } { #4 }
+  \group_end:
+ }
+\cs_new:Nn \lucas_ellipsis:nnnn
+ {
+  \cs_set:Nn \__lucas_ellipsis_term:n { #1 }
+  \__lucas_ellipsis_term:n { #2 }
+  #4 \dots #4
+  \__lucas_ellipsis_term:n { #3 }
+ }
+\ExplSyntaxOff
+
+%\begin{document}
+
+%$\ellipsis{x^{#1}}{0}{5}{+}$
+
+%$\ellipsis{x_{#1}}{0}{5}{+}$
+
+%$\ellipsis{(x_{#1}+y_{#1}i)}{1}{n}{}$
+
+%\end{document}
+%
+
+%% SUSPEND itemize
+% https://tex.stackexchange.com/questions/135726/intertext-like-command-in-enumerate-environment
+
+
+%% CNL CONTROL SEQUENCES
+
+\def\ignoreOptionAndCS[#1]#2{}
+
+\def\onearg#1{(onearg:#1)} % for debugging.
+
+\ignoreOptionAndCS[3]\onearg
+
+
+\def\ignoreOne#1{}
+
+%\ignoreOne\onearg C
+
+\def\ignoreOptionOrCS{%
+\futurelet\nextToken\chooseBranch}
+
+
+\def\chooseBranch{%
+\let\next=\relax
+\ifx\nextToken [%
+ \let\next=\ignoreOptionAndCS%
+\else%
+ \let\next=\ignoreOne%
+\fi%
+\next%
+}
+\ignoreOne{]}
+
+\def\ignoreOptionAndCSS[#1]#2#3{}
+\def\ignoreTwo#1#2{}
+\def\ignoreOptionOrCSS{%
+\futurelet\nextToken\chooseBranchTwo%
+}
+\def\chooseBranchTwo{%
+\let\next=\relax
+\ifx\nextToken [%
+ \let\next=\ignoreOptionAndCSS%
+\else%
+ \let\next=\ignoreTwo%
+\fi%
+\next%
+}
+
+\let\CnlExpand=\ignoreOptionOrCS
+\let\CnlNoExpand=\ignoreOptionOrCS
+\let\CnlDelete=\ignoreOptionOrCS
+\let\CnlCustom=\ignoreOptionOrCSS
+\let\CnlDef=\ignoreOptionOrCSS
+\let\CnlError=\ignoreOptionOrCS
+\def\CnlEnvirDelete#1{}
+
+
+%% ENVIRONMENTS
+
+\newenvironment{cnl}{\centerline{\bf CNL text starts here.}}
+{\centerline{\bf CNL text ends here.}}
+% \leavevmode\par is to make remark work 
+% when it is the first item in a subsection.
+
+\newenvironment{remark}%{}{} %temp debug
+{\leavevmode\par\begin{tabular}{|p{13cm}}\parskip=\baselineskip{\bf Remark.}}
+{\end{tabular}}
+
+\newenvironment{envMatch}%
+               {\par\begin{tabular}{@{\quad\normalfont| }lll}}%
+               {\end{tabular}\par}
+
+\newenvironment{structure}%
+{\begin{itemize}[topsep=0pt]}
+{\end{itemize}}
+
+\newcommand{\interitem}[1]{\end{itemize}#1\begin{itemize}[topsep=0pt]}
+
+
+\newenvironment{make}%                             
+{\begin{itemize}[topsep=0pt]}
+{\end{itemize}}
+
+%\newenvironment{format}%
+%{\begin{align*}}{\end{align*}}
+
+% ENVIRONMENT ITEMS
+\renewcommand\labelitemi{--}
+\newcommand{\matchitem}{\\}
+\newcommand{\firstmatchitem}{}
+\newcommand{\firstitem}{\item}
+
+% LABELS
+\def\lsection#1{\section{#1}\label{#1}}
+\def\lsubsection#1{\subsection{#1}\label{#1}}
+\def\lsubsubsection#1{\subsubsection{#1}\label{#1}}
+\def\deflabel#1{\begin{definition}[#1]\label{#1}}
+\def\thmlabel#1{\begin{theorem}[#1]\label{#1}}
+\def\namelabel#1{[#1]\label{#1}}
+
+% SPECIALS
+\newcommand{\var}[1]{#1}
+\newcommand{\id}[1]{#1}
+\newcommand{\prefix}[1]{}
+\newcommand{\app}[1]{#1}
+\newcommand{\CnlList}[1]{#1} % was list
+\newcommand{\parenI}[1]{#1}
+\newcommand{\df}[1]{\text{\bf #1}}
+\newcommand{\h}[1]{\text{\color{red} #1}}
+\newcommand{\Mid}{\mathrel{\|}}
+\newcommand{\ignore}[1]{}
+\newcommand{\parenthetical}[1]{(#1)}
+\newcommand{\funmapsto}[2]{#1\mapsto #2}
+\newcommand{\funalign}{}
+\newcommand{\setcomp}[2]{\{#1 \mid #2\}}
+\newcommand{\setenum}[1]{\{#1\}}
+\newcommand{\wherearg}[1]{\where\ $\{#1\}$}
+\newcommand{\optarg}[1]{\{#1\}}
+\newcommand{\texstop}{.}
+\newcommand{\texcomma}{,}
+\newcommand{\cnlstop}{}
+\newcommand{\plural}{/-}
+\newcommand\caseif[2]{#1 & \ifcond\ #2}
+\newcommand\caseotherwise[1]{#1&\otherwise}
+\newcommand\onlyTeX[1]{#1}
+
+% SYMBOLS
+\newcommand{\join}{\lor}
+\newcommand{\blank}{\h{\_}}
+\renewcommand{\qed}{\ensuremath{\square}}
+\newcommand{\inv}[1]{{#1}^{-1}}
+\newcommand{\nullbrack}{[]}
+\renewcommand{\*}{\,}
+\renewcommand{\iff}{\leftrightarrow}
+\newcommand{\Prop}{\text{\tt Prop}}
+\newcommand{\Type}{\text{\tt Type}}
+\newcommand{\Bool}{\text{\tt Bool}}
+\newcommand{\assign}{\colonequals} % {colonequals}
+\newcommand{\cons}{\mathrel{\coloncolon}} % {colonequals}
+\newcommand{\Nat}{\ensuremath{{\mathbb N}}}
+\newcommand{\Real}{\ensuremath{{\mathbb R}}}
+
+% KEYWORDS
+\newcommand{\keyword}[1]{{\text{\bf{#1}}}}
+\newcommand{\Make}{\keyword{make}}
+\newcommand{\fun}{\keyword{fun}}
+\newcommand{\match}{\keyword{match}}
+\newcommand{\ifcond}{\keyword{if}}
+\newcommand{\thencond}{\keyword{then}}
+\newcommand{\elsecond}{\keyword{else}}
+\newcommand{\otherwise}{\keyword{otherwise}}
+\newcommand{\function}{\keyword{function}}
+\newcommand{\quot}{\keyword{quot}}
+\newcommand{\etc}{\keyword{etc}}
+\newcommand{\where}{\keyword{where}}
+
+% ACCENTS
+% Use these versions to fuse with variable name in CNL image.
+% \mathcheck{c} --> V__c_mathcheck
+% \check{c} --> \check{c} (function application)
+\newcommand{\mathhat}{\hat}
+\newcommand{\mathwidehat}{\widehat}
+\newcommand{\mathcheck}{\check}
+\newcommand{\mathtilde}{\tilde}
+\newcommand{\mathwidetilde}{\widetilde}
+\newcommand{\mathacute}{\acute}
+\newcommand{\mathgrave}{\grave}
+\newcommand{\mathdot}{\dot}
+\newcommand{\mathddot}{\ddot}
+\newcommand{\mathbreve}{\breve}
+\newcommand{\mathbar}{\bar}
+\newcommand{\mathvec}{\vec}
+
+%\renewcommand{\_}{\textunderscore}
+%\newcommand{\comment}[1]{\%- \nobreak{#1}}
+%\renewcommand{\~}{\ }
+%\newcommand{\Bool}{\ensuremath{{\mathbb {B}}}}
+%\newcommand{\cons}{\mathrel{{\bf :\hskip-1.1pt:}}}
+%\newcommand{\fld}{.} %use \h{. }
+%\newcommand{\assign}{\mathrel{:=}} %{\mathrel{:\equiv}}
+%\newcommand{\caseif}{{\bf if}}
+%\newcommand{\caseotherwise{{\bf otherwise}}
+
+% Local Defs for Sylows Theorems
+\def\natdiv#1#2{{#1}\mathrel{|}{#2}}
+\def\natpow#1#2{{#1}^{#2}}
+\def\conj#1#2{{#1}{#2}{#1}^{-1}}
+\def\mult#1#2{m}
+\def\Syl#1#2{\operatorname{Syl}_{#1}(#2)}
+\def\SylN#1#2{n_{#1}(#2)}
+\def\Nz#1#2{|N(#1,#2)|}
+
+\begin{cnl}
+
+
+%% We start with some that will eventually be moved to a standard library.
+
+\CnlCustom[1]\parenI{ (#1) }
+\CnlCustom\*{*}
+\CnlCustom[1]\lsection{Section \concat{}{#1} .}
+\CnlCustom[1]\lsubsection{Subsection \concat{}{#1} .}
+\CnlCustom[1]\lsubsubsection{Subsubsection \concat{}{#1} .}
+\CnlCustom[1]\deflabel{\begin{definition}\label{#1}}
+\CnlCustom[1]\df{ #1 }
+\CnlCustom[1]\h{ #1 }
+\CnlCustom\where{where}
+\CnlCustom\ifcond{if}
+\CnlCustom\otherwise{true}
+\CnlCustom\elsecond{else}
+\CnlCustom\where{where}
+\CnlCustom\assign{ \concat{}{:=} }
+\CnlCustom\cons{\concat{}{::}} 
+\CnlCustom\plural{\concat{}{/-}}
+\CnlCustom\wherearg{where}
+\CnlCustom\fun{fun}
+\CnlCustom[2]\funmapsto{(fun #1 \assign #2)}
+%\funalign{A}&{\to}{B}\\{a}{\mapsto}{b}
+\CnlCustom[6]\funalign{(fun (#4 : #1) \assign (#6 : #3))}
+\CnlCustom\Prop{Prop}
+\CnlCustom\Type{Type}
+\CnlCustom\Bool{Bool}
+\CnlCustom\iff{iff}
+\CnlCustom\optarg{}
+\CnlCustom\match{match}
+
+
+\CnlCustom\function{function}
+\CnlCustom\Make{make}
+\CnlCustom\etc{\_}
+\CnlCustom\Nat{Nat}
+\CnlCustom\Real{Real}
+\CnlCustom\quot{quot}
+\CnlCustom\alpha{V--alpha}
+\CnlCustom\beta{V--beta}
+\CnlCustom\prefix{\concat}
+\CnlCustom\cnlstop{.}
+%\CnlCustom\nullbrack{\concat{}{[]}}
+\CnlCustom\matchitem{\alt}
+\CnlCustom\firstmatchitem{\alt}
+\CnlCustom[2]\caseif{#2 \assign #1}
+\CnlCustom[1]\caseotherwise{true \assign #1}
+\CnlCustom\rightarrow{\imply}
+%\CnlNoExpand[1]\section
+
+
+% Prohibited control sequences. 
+% That is, they should remain outside the cnl environment.
+% We should list many TeX primitive control sequences here.
+
+% CNLERROR
+\CnlError\if
+\CnlError\else
+\CnlError\fi
+\CnlError\let
+\CnlError\futurelet
+\CnlError\afterassignment
+\CnlError\usepackage
+% etc. 
+
+% CNLDELETE
+\CnlDelete\expandafter
+\CnlDelete[1]\interitem
+\CnlDelete\texstop
+\CnlDelete[1]\onlyTeX
+\CnlDelete[1]\phantom
+\CnlDelete\firstitem
+\CnlDelete\texstop
+\CnlDelete\texcomma
+% math modes and space
+\CnlDelete\ensuremath
+\CnlDelete\text
+\CnlDelete\thinmuskip
+\CnlDelete\medmuskip
+\CnlDelete\thickmuskip
+\CnlDelete\quad
+\CnlDelete\qquad
+\CnlDelete\,
+\CnlDelete\:
+\CnlDelete\;
+\CnlDelete\!
+\CnlDelete\ %space
+\CnlDelete\enspace
+\CnlDelete[1]\hspace
+\CnlDelete\hfil
+\CnlDelete\hfill
+\CnlDelete\thinspace
+\CnlDelete\left
+\CnlDelete\right
+\CnlDelete\big
+\CnlDelete\Big
+\CnlDelete\bigg
+\CnlDelete\Bigg
+\CnlDelete\allowdisplaybreaks
+%other  spacing
+\CnlDelete\noindent
+\CnlDelete\indent
+\CnlDelete[1]\vspace
+\CnlDelete\null
+\CnlDelete\break
+\CnlDelete\newline
+\CnlDelete\newpage
+\CnlDelete\vfil
+\CnlDelete\vfill
+\CnlDelete\smallskip
+\CnlDelete\medskip
+\CnlDelete\bigskip
+\CnlDelete[2]\rule
+\CnlDelete[1]\parenthetical
+
+%\CnlDelete\par
+
+\CnlEnvirDelete{remark}
+\CnlEnvirDelete{summary}
+\CnlEnvirDelete{tikzpicture}
+\CnlEnvirDelete{fancyvrb}
+
+
+
+
+%-% BEGIN
+\lsection{Even Number}
+
+In this section, let $k,\ r$ be integers.
+
+%-% Definition
+\deflabel{even number}
+Assume that $k$ is an integer number.  We say that $k$
+is a \df{even number} iff there exists $r$ such that $k=2\*r$
+\end{definition}
+
+\deflabel{odd number}
+Assume that $k$ is an integer number.  We say that $k$
+is a \df{odd number} iff there exists $r$ such that $k=2\*r+1$
+\end{definition}
+
+\begin{remark}
+The numbers
+The concept of \h{even number} and \h{odd numbers} are most easily understood in 
+the binary base. Then the above definition simply that even numbers end
+with a $0$, and odd numbers end with a $1$.
+\end{remark}
+
+\begin{theorem}[Prop1]
+Every integer is either even or odd.
+\end{theorem}
+
+\begin{remark}
+This theorem above can be proven using induction, or using the fundamental theorem of arithmetic.
+\end{remark}
+
+\begin{theorem}[Prop2]
+An integer $k$ is even iff $\natpow{p}{2}$ is even.
+\end{theorem}
+
+
+\end{cnl}
+
+
+
+
+\end{document}
