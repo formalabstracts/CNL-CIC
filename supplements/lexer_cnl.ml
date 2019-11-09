@@ -429,8 +429,8 @@ let lex_token_to_string_brief =
   | EOF -> "(EOF)"
   | UNKNOWN s -> s ^ " ?"
 
-(*
-let token_to_string = 
+
+let token_to_string_plain = 
 function
 | STRING s ->  "\""^s^"\""
 | CONTROLSEQ s -> "\\"^s
@@ -442,7 +442,7 @@ function
 | R_PAREN -> ")"
 | L_BRACE -> "{"
 | R_BRACE -> "}"
-| MAPSTO -> "\\mapsto"
+| MAPSTO -> "|->"
 | PERIOD -> "."
 | MID -> "|"
 | TMID -> "//"
@@ -450,10 +450,10 @@ function
 | SEMI -> ";"
 | COLON -> ":"
 | ASSIGN -> ":="
-| ARROW -> "\to"
+| ARROW -> "->"
 | BLANK -> "_"
 | ALT -> "|"
-| APPLYSUB -> "\\sb"
+| APPLYSUB -> "_"
 | SLASH -> "/"
 | SLASHDASH -> "/-"
 | COERCION -> "^"
@@ -462,10 +462,10 @@ function
 | QUANTIFIER s -> s
 | ATOMIC_IDENTIFIER s -> s
 | FIELD_ACCESSOR s -> s
-| EOF -> "EOF"
+| EOF -> "[EOF]"
 | UNKNOWN s -> s^"?"
 | _ -> failwith "token_to_string: not found"
- *)
+
 
 
 let rec lex_nodes acc buf = 
@@ -495,6 +495,10 @@ let rec print_nodes = function
        print_endline(lex_token_to_string t.tok) ; print_nodes ts)
 
 let string_of_toks ts = 
+  let ss = List.map (fun t -> lex_token_to_string_brief t) ts in 
+  String.concat " " ss;;
+
+let string_of_toks_plain ts = 
   let ss = List.map (fun t -> lex_token_to_string_brief t) ts in 
   String.concat " " ss;;
 

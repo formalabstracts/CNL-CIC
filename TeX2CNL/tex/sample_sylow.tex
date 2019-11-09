@@ -36,7 +36,7 @@ urlcolor=blue]{hyperref}
 % TITLE AUTHOR DATE
 \title{Sample Controlled Natural Language text,\\ including real numbers and Sylows theorems}
 
-\date{November 1, 2019}
+\date{November 9, 2019}
 \author{Thomas Hales}
 
 %- THEOREMS
@@ -268,9 +268,14 @@ urlcolor=blue]{hyperref}
 \newcommand{\mathbar}{\bar}
 \newcommand{\mathvec}{\vec}
 
+% WORD-LIKE control characters removed by lexer. 
+\renewcommand{\~}{\ } 
+\renewcommand{\-}{-} % for Riemann\-Roch -> CNL:RiemannRoch 
+\renewcommand{\'}{'} % for Hilbert\'s\~Nullstellensatz -> CNL:HilbertsNullstellensatz
+
+
 %\renewcommand{\_}{\textunderscore}
 %\newcommand{\comment}[1]{\%- \nobreak{#1}}
-%\renewcommand{\~}{\ }
 %\newcommand{\Bool}{\ensuremath{{\mathbb {B}}}}
 %\newcommand{\cons}{\mathrel{{\bf :\hskip-1.1pt:}}}
 %\newcommand{\fld}{.} %use \h{. }
@@ -876,7 +881,7 @@ Here we get
 \h{multiset} : \h{list}\ \alpha \to \h{multiset}\ \alpha.
 \]
 
-A duplicate~free~multiset over $\alpha$ is an enumeration of a
+A duplicate\~free\~multiset over $\alpha$ is an enumeration of a
 finite set.
 \end{remark}
 
@@ -899,7 +904,7 @@ Let \h{multiset.nodup} $(X : \h{multiset}\ \alpha) : \Prop \assign$
 We introduce synonyms element/point/carrier.
 
 \deflabel{duplicate free multiset}
-A \h{duplicate~free~multiset} is a structure with
+A \h{duplicate\~free\~multiset} is a structure with
 \begin{structure}
 \firstitem (parameter) element : \Type
 \item support : multiset element
@@ -925,13 +930,13 @@ This section relies on results about lists.
 Every list is constructed by a finite process of cons'ing.  This
 finite process leads to the notion of finite sets and types.
 
-We can specify a bijection from \h{duplicate~free~multiset} to finite sets.
+We can specify a bijection from \h{duplicate\~free\~multiset} to finite sets.
 
 The function takes a simple form, thanks to our notation $\in$ for
 multisets, and curly bracket notation for sets.
 
 Once we have a bijection, there are two ways to interpret $\in$ for
-\h{duplicate~free~multisets}.  We need compatibility. %XX
+\h{duplicate\~free\~multisets}.  We need compatibility. %XX
 \end{remark}
 
 In this section, let $X$ be a duplicate free multiset $\alpha$;
@@ -949,7 +954,7 @@ Let an \df{equivalence} $(f:\alpha\to\beta)$ stand for a bijection $f$.
 We record as identification
 \begin{align*}
 \funalign
-{\h{duplicate~free~multiset}\ \alpha}
+{\h{duplicate\~free\~multiset}\ \alpha}
 & {\ \xrightarrow{\sim}\ } 
 {\h{finite set}\ \alpha}\\
 {X}&{\ \mapsto\ }{\setcomp{x}{x \in \h{support of}\ X}}.
@@ -964,7 +969,7 @@ recorded in the form of coercions in both directions between the
 two.
 
 By recording it as an identification, definitions involving
-\h{duplicate~free~multiset} automatically extend to finite sets.
+\h{duplicate\~free\~multiset} automatically extend to finite sets.
 
 For this reason, size and support are now defined on finite
 sets.
@@ -1002,14 +1007,14 @@ and is unique.
 \lsection{Order}
 
 \deflabel{binary relation}
-A \df{binary~relation} is a structure with
+A \df{binary\~relation} is a structure with
 \begin{structure}
 \firstitem (parameter, type) element : \Type
 \item a (map) $relation : element \to element \to \Prop$\texstop
   \end{structure}\cnlstop
 \end{definition}
 
-In this section, fix $(R : \h{binary~relation})$; and 
+In this section, fix $(R : \h{binary\~relation})$; and 
  let $(s\ x\ y\ z : R)$; and 
 write $x \le y$ iff $R\ x\ y$.
 

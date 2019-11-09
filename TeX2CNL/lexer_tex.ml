@@ -115,7 +115,7 @@ let sub = [%sedlex.regexp? '_']
 let symbol = [%sedlex.regexp? punct | '|' | '<' | '>' | '^' | '+' | '-' | '=' | '/' | '*']
 
 (* handle foreign accents in words *)
-let accent_char = [%sedlex.regexp? '\'' | '`' | '^' | '"' | '~' | '=' | '.']
+let accent_char = [%sedlex.regexp?  '`' | '^' | '"' | '=' | '.' (* dash '\'' | '~' | *) ]
 
 let accent_letter = [%sedlex.regexp? 'c' | 'v' | 'u' | 'H']
 
@@ -126,7 +126,14 @@ let accent_cluster = [%sedlex.regexp? "\\", accent_char, alphabet
  | '{', "\\", accent_chars, '}' 
 ]
 
-let word = [%sedlex.regexp? Plus(alphabet | accent_cluster) ]
+let dash_char = [%sedlex.regexp? '-' | '~' | '\'' ]
+
+let dash_cluster = [%sedlex.regexp? '\\', dash_char]
+
+let word = [%sedlex.regexp? Plus(alphabet | accent_cluster | dash_cluster) ]
+
+let wordbrace = [%sedlex.regexp? "{~", 
+                 Plus(alphabet | accent_cluster | dash_cluster | white), '}'  ]
 
 
 let dot_id = [%sedlex.regexp? '.', alphabet, Star(alphanum) ]
@@ -211,7 +218,7 @@ let rec lex_token buf =
     | lbrace -> LBrace
     | rbrace -> RBrace
     | id -> Tok(trim_ends(convert_hyphen(string_lexeme buf)))
-    | word -> Tok(strip_nonalpha(string_lexeme buf))
+    | word | wordbrace -> Tok(strip_nonalpha(string_lexeme buf))
     | unmarked_id -> Tok(convert_hyphen(string_lexeme buf))
     | symbol -> Tok(string_lexeme buf)
     | comma -> Comma 
@@ -229,7 +236,6 @@ let lex_string s : token list =
   let buf = Sedlexing.Latin1.from_string s in 
   lex_tokens [] buf;;
 
-let test_lex_string() = List.map print_endline (List.map lex_token_to_string (lex_string "A B C hello\\alpha33[1]there !ready! \\begin{ cnl } Riemann-Hilbert Poincar\\\'e {\\ae} { \\ae} (xx) \\input{file} \\mathfrak{C}33 [$] {yy} %comment \n more #4 # 5  $ ))))))))"));;
+let test_lex_string() = List.map print_endline (List.map lex_token_to_string (lex_string "A B C hello\\alpha33[1]there !ready! \\begin{ cnl } Riemann-Hilbert Riemann\\-Hilbert Poincar\\\'e {\\ae} { \\ae} (xx) \\input{file} \\mathfrak{C}33 [$] {yy} %comment \n more #4 # 5  $ )))))))) {~less than or equal to}"));;
               
-
 

@@ -210,7 +210,7 @@
   list.nodup    Y    for  each  and  every    X  =  multiset  Y    .  
   We  introduce  synonyms  element  /  point  /  carrier  .  
   Definition  Label_duplicate_free_multiset  .    
-  A  duplicate_free_multiset  is  a  structure  with  
+  A  duplicatefreemultiset  is  a  structure  with  
   {  
   (  parameter  )  element  :  Type  
   ;  support  :  multiset  element  
@@ -228,7 +228,7 @@
   such  that    Y  =  \setcomp {  x  }  {  x  \in support  X  }    .  
   Let  an  equivalence    (  f  :  V__alpha  \to V__beta  )    stand  for  a  bijection    f    .  
   We  record  as  identification  
-  (  fun  (  X  :  duplicate_free_multiset  V__alpha  )  :=  (  \setcomp {  x  }  {  x  \in support  of  X  }  :  finite  set  V__alpha  )  )  .  
+  (  fun  (  X  :  duplicatefreemultiset  V__alpha  )  :=  (  \setcomp {  x  }  {  x  \in support  of  X  }  :  finite  set  V__alpha  )  )  .  
   This  exists  and  is  unique  .  
   Subsection  finitetypes  .  
   We  enter  the  namespace  finite_type  .  
@@ -243,12 +243,12 @@
   and  is  unique  .  
   Section  Order  .  
   Definition  Label_binary_relation  .    
-  A  binary_relation  is  a  structure  with  
+  A  binaryrelation  is  a  structure  with  
   {  
   (  parameter  ,  type  )  element  :  Type  
   ;  a  (  map  )    relation  :  element  \to element  \to Prop    
   }  .  
-  In  this  section  ,  fix    (  R  :  binary_relation  )    ;  and  
+  In  this  section  ,  fix    (  R  :  binaryrelation  )    ;  and  
   let    (  s  x  y  z  :  R  )    ;  and  
   write    x  \le y    iff    R  x  y    .  
   Definition  Label_reflexive  .    We  say    R    is  reflexive  iff  for  all    x  ,  x  
@@ -612,4 +612,4 @@
   Theorem  .    Assume  that    \grouporder {  G  }  =  p'  *  \natpow {  p  }  {  \mult {  p  }  {  G  }  }    .  
   Then  we  have    \SylN {  p  }  {  G  }    divides    p'    .  
   Theorem  .    We  have    p    divides    (  \SylN {  p  }  {  G  }  -  1  )    .  
-  Theorem [TeX2CnlWarning "inserted for testing"] . We  have    \SylN {  p  }  {  G  }  *  \Nz {  p  }  {  G  }  =  \grouporder {  G  }    .  
+  Theorem  .    We  have    \SylN {  p  }  {  G  }  *  \Nz {  p  }  {  G  }  =  \grouporder {  G  }    .  

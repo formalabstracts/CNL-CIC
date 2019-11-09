@@ -8,6 +8,7 @@ let convert_toks s =
   let toks = Tex2cnl__Lexer_tex.lex_string s in
   toks;;
 
+(* Tex2cnl__Lexer_tex.test_lex_string ();; *)
 
 
 Tex2cnl.process_doc convert_toks  "../tex/sample_sylow.tex";;

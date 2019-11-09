@@ -28,14 +28,22 @@ let getpos =
   | [] -> raise failEof
   | t::_ as input -> t.pos,(TrEmpty,input)
 
+let line_col n = 
+  let p = fst(n.pos) in 
+  let line = p.pos_lnum in 
+  let col = p.pos_cnum - p.pos_bol in 
+  (line,col)
+
+let line_col_string (line,col) = 
+  "line="^string_of_int line^" col="^string_of_int col
+
 let trPos = 
   function (* input *)
     | [] -> trEof
     | n :: _ -> 
-        let p = fst(n.pos) in 
-        let line = p.pos_lnum in 
-        let col = p.pos_cnum - p.pos_bol in 
+        let (line,col)=line_col n in 
         (TrFail(line,col,n.tok))
+
 
 let rec get_trace_data =
   function 
@@ -49,6 +57,29 @@ let rec get_trace_data =
   | TrString _ -> []
   | TrEmpty -> []
 
+let rec pick_best_tr = 
+  function
+  | [] -> (0,0),TrEmpty 
+  | [x] -> x
+  | ((i,j),t) :: ((i',j'),t') :: rest -> 
+      (let ijt  = 
+        if (i > i' || (i=i' && j > j')) then (i,j),t else (i',j'),t' in 
+      pick_best_tr (ijt :: rest));;
+
+
+let rec get_best_trace = 
+  function
+  | TrFail (i,j,_) as tr -> (i,j),tr
+  | TrEmpty -> (0,0),TrEmpty
+  | TrString _ as tr -> (0,0),tr
+  | TrData _  as tr ->  (0,0),tr
+  | TrGroup(s,tr) -> let (i,j),tr' = get_best_trace tr in (i,j),TrGroup(s,tr')
+  | TrOr trs -> let trs' = List.map get_best_trace trs in pick_best_tr trs' 
+  | TrAdd trs-> let trs' = List.map get_best_trace trs in 
+                let (i,j),_ =  pick_best_tr trs' in 
+                (i,j),TrAdd(List.map snd trs')
+  | TrMany _ as t -> (0,0),t 
+
 let filter_nonempty = 
   List.filter (fun t -> not (t = TrEmpty))
 
@@ -60,6 +91,11 @@ let is_trstring =
   function
   | TrString _ -> true
   | _ -> false
+
+let rec join_string sep =
+  function
+  | TrString s :: TrString s' :: t -> join_string sep (TrString ("("^s ^ sep ^ s'^")") :: t)
+  | t -> t 
 
 let rec clean_tr ls = 
   let d def ts' = 
@@ -75,13 +111,9 @@ let rec clean_tr ls =
                    else ts' in 
                  d (TrMany ts') ts'
   | TrAdd ts -> 
-      let ts' = filter_nonempty (List.map clean_tr ts) in 
-      let ts' = 
-        if List.for_all is_trstring ts' 
-        then [TrString ("("^(String.concat " ++ " (List.map (function | TrString s -> s | _ -> failwith "trString expected") ts'))^")")]
-        else ts' in 
+      let ts' = join_string " ++ " (filter_nonempty (List.map clean_tr ts)) in 
       d (TrAdd ts') ts' 
-  | TrOr ts -> let ts' = filter_nonempty (List.map clean_tr ts) in 
+  | TrOr ts -> let ts' = (filter_nonempty (List.map clean_tr ts)) in 
                 d (TrOr ts') ts' 
   | TrGroup (s,TrGroup(s',t')) -> 
       let sep = if endswithplus s then "" else "/" in
@@ -90,8 +122,15 @@ let rec clean_tr ls =
   | TrGroup (s,t) as trg  -> let t' = clean_tr t in 
                      if (t = t') then trg else clean_tr (TrGroup(s,t'))
   | TrData ts -> TrString (string_of_toks ts)
-  | TrFail (i,j,tok) -> TrString("unexpected token:'"^string_of_toks [tok]^"' at line="^string_of_int i^" col="^string_of_int j)
+  | TrFail (i,j,tok)-> TrString("unexpected token:'"^string_of_toks [tok]^"' failed at "^line_col_string (i,j))
+  | TrEmpty -> TrString("empty")
   | t -> t
+
+let show_trace = 
+  function
+  |  TrString s -> s
+  | t -> show_trace t
+
 
 let mergeOr (t,t') = 
   match t with 
@@ -1366,7 +1405,7 @@ let text =
       (group "section_preamble" section_preamble)
       ||| (group "instruction" instruction)
       ||| (group "axiom" axiom)
-      ||| (group "definition" definition)
+      ||| (definition)
       ||| (group "theorem" theorem)
       ||| (group "macro" macro)
       ||| (group "synonym_statement" synonym_statement)
@@ -1374,9 +1413,11 @@ let text =
       ||| (group "namespace" namespace >> (fun _ -> Namespace))
     )
 
-
-
-
+let text_to_period = 
+  getpos ++ many(some (function |PERIOD -> false | _ -> true)) ++ getpos ++ a PERIOD 
+  >>
+    (fun (((p1,m),p2),p3) -> pair_pos (p1,p2), (m @ [p3]))
+                          
 
 (* proof_expr *)
 
