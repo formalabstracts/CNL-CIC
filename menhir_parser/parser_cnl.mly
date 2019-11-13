@@ -248,13 +248,13 @@ prim_term_controlseq : PA1d {}
  (* from type_head.controlseq_pattern, no prec *)
 prim_type_controlseq : PA2 {}
 
- (* from NOT_IMPLEMENTED. We need rules to extend these primitives. *)
+ (* from binder_def *)
 prim_lambda_binder : LAMBDA {} (* lambda term binders *)
 prim_pi_binder : PITY {} (* Pi type binders *)
 prim_binder_prop : QUANTIFIER {}  (* forall, exists, etc. *)
 
 
- (* derived from declarations of prim_identifier_type, 
+ (* derived from declarations of prim_identifier_type,  that is (type_def.identifier_type_pattern).
     structures, quotients, 
     inductive types, mutual inductive types  
 
@@ -286,13 +286,13 @@ prim_simple_adjective_multisubject : PA11 {}
  (* from function_def *)
 prim_definite_noun : PA12 {} (* functions and terms *)
 
- (* from function_def *)
+ (* from function_def identifier_term_pattern  *)
 prim_identifier_term : PA13 {} (* all identifiers that are terms *)
 
  (* from type_def *)
-prim_identifier_type : PA7 {} (* all identifiers that are terms *)
+prim_identifier_type : PA7 {} (* all identifiers that are types *)
 
- (* derived as in Forthel *)
+ (* derived from prim_definite_noun or XX as in Forthel *)
 prim_possessed_noun : PA15 {} 
 
  (* from verb_pattern *)
@@ -562,7 +562,7 @@ app_type :
 binder_type : 
 | app_type 
 | prim_pi_binder tightest_args lit_binder_comma binder_type 
-{}
+{()}
 
 (** binop_type *)
  (* for product types A * B, sum types A + B, 
@@ -571,7 +571,8 @@ binder_type :
     all type operators are right assoc with the same precedence
     N.B. binder_types is tighter than binop_type, which might be non-intuitive.  *)
 binop_type : 
-| list(type_operand type_op {}) binder_type  {}
+    option( record_args_template {})
+      list(type_operand type_op {}) binder_type  {()}
 
   type_op :
   | prim_type_op 
@@ -582,7 +583,7 @@ binop_type :
   | binder_type
   | agda_dependent_vars {} (* for Agda style dependent typing *)
 
-  agda_dependent_vars : option( record_args_template {})
+  agda_dependent_vars : 
     nonempty_list(annotated_vars) {}
 
 opentail_type :
@@ -793,15 +794,14 @@ let_term : LIT_LET tightest_prefix ASSIGN plain_term LIT_IN opentail_term {()}
 if_then_else_term : LIT_IF prop LIT_THEN plain_term LIT_ELSE opentail_term {()}
 
 where_term : opentail_term option(where_suffix) {()}
+ (* where (Haskell style) *)
+  where_suffix : LIT_WHERE brace_semi(   (* deprecated option(LIT_INFERRING)  *)
+                 VAR opt_colon_type option(assign_expr) {}) {}
 
 definite_term : 
 | where_term
 | option(LIT_THE) prim_definite_noun {}
     (* | paren(option(LIT_THE) prim_definite_noun {}) {} subsumed by paren(where_term) tightest_term *)
-
- (* where (Haskell style) *)
-  where_suffix : LIT_WHERE brace_semi(   (* deprecated option(LIT_INFERRING)  *)
-                 VAR opt_colon_type option(assign_expr) {}) {}
 
 term : 
 | option(prim_classifier) definite_term 
@@ -835,7 +835,7 @@ plain_term : plain(term) {}
 attribute(X) : list(left_attribute) X option(right_attribute) {}
 
   left_attribute : 
-  | prim_simple_adjective 
+  | option(LIT_NON) prim_simple_adjective 
   | prim_simple_adjective_multisubject {}
 
   right_attribute : 
@@ -843,7 +843,8 @@ attribute(X) : list(left_attribute) X option(right_attribute) {}
   | LIT_THAT and_comma_nonempty_list(does_pred) {}
   | LIT_SUCH LIT_THAT statement {}
 
-(* XX something is wrong here.  We don't want attributes around tvar?? *)
+(* XX something is wrong here.  We don't want attributes around tvar?? 
+   Doch! n that is positive.  G with finite order. *)
 attribute_pseudoterm : attribute(typed_name_without_attribute) {}
   typed_name_without_attribute : 
   | prim_typed_name
@@ -971,64 +972,64 @@ does_pred : option(lit_do) option(LIT_NOT) prim_verb {}
 | option(lit_do) option(LIT_NOT) prim_verb_multisubject
 | lit_has has_pred
 | lit_is and_comma_nonempty_list(is_pred)
-| lit_is and_comma_nonempty_list(is_aPred {}) {}
+| lit_is and_comma_nonempty_list(is_aPred {}) {()}
 
 is_pred : option(LIT_NOT) prim_adjective {}
 | option(LIT_NOT) option(LIT_PAIRWISE) prim_adjective_multisubject
-| lit_with has_pred {}
+| lit_with has_pred {()}
 
 is_aPred : option(LIT_NOT) option(lit_a) general_type {}
-| option(LIT_NOT) definite_term {}
+| option(LIT_NOT) definite_term {()}
 
 has_pred : 
-| and_comma_nonempty_list(article possessed_noun {}) {}
-| LIT_NO possessed_noun {}
+| and_comma_nonempty_list(article possessed_noun {})
+| LIT_NO possessed_noun {()}
 
-  possessed_noun : attribute(prim_possessed_noun) {}
+  possessed_noun : attribute(prim_possessed_noun) {()}
 
 
 
 (** statement *)
 
-statement : head_statement | chain_statement {}
+statement : head_statement | chain_statement {()}
 
   head_statement : 
   | LIT_FOR and_comma_nonempty_list(any_name {}) COMMA statement {}
   | LIT_IF statement COMMA LIT_THEN statement (* != if-then-else *)
-  | lit_its_wrong statement {}
+  | lit_its_wrong statement {()}
 
   chain_statement : 
   | and_or_chain
   | paren(and_or_chain) LIT_IFF statement 
-  {}
+  {()}
 
   comma_and : COMMA LIT_AND {}
   comma_or : COMMA LIT_OR {}
 
-  and_or_chain : and_chain | or_chain | primary_statement {}
+  and_or_chain : and_chain | or_chain | primary_statement {()}
   and_chain : separated_nonempty_list(comma_and, primary_statement {}) 
-    COMMA LIT_AND head_primary {}
+    COMMA LIT_AND head_primary {()}
   or_chain : separated_nonempty_list(comma_or, primary_statement {}) 
-    COMMA LIT_OR head_primary {}
-  head_primary : head_statement | primary_statement {}
+    COMMA LIT_OR head_primary {()}
+  head_primary : head_statement | primary_statement {()}
 
 (** primary statement *)
 primary_statement :
   | simple_statement {}
   | there_is_statement
   | filler symbol_statement
-  | filler const_statement {}
+  | filler const_statement {()}
 
   filler : PL2a option(phrase_list_filler) {}
 
-  simple_statement : terms separated_nonempty_list(LIT_AND, does_pred) {}
+  simple_statement : terms separated_nonempty_list(LIT_AND, does_pred) {()}
 
   there_is_statement : LIT_THERE lit_exist pseudoterms {}
-  | LIT_THERE lit_exist LIT_NO pseudoterm {}
+  | LIT_THERE lit_exist LIT_NO pseudoterm {()}
 
   const_statement : option(LIT_THE) LIT_THESIS {}
   | option(LIT_THE) LIT_CONTRARY
-  | lit_a LIT_CONTRADICTION {}
+  | lit_a LIT_CONTRADICTION {()}
 
   symbol_statement :
   | LIT_FORALL predicate_pseudoterm lit_binder_comma
@@ -1038,7 +1039,7 @@ primary_statement :
   | LIT_NOT symbol_statement
   | paren(statement)
   | prop
-  {}
+  {()}
 
 
 
@@ -1061,7 +1062,9 @@ declaration : axiom | definition | theorem  {}
 
 (** axiom *)
 axiom : axiom_preamble list(assumption) 
-  then_prefix statement PERIOD {}
+  then_prefix statement PERIOD 
+  list(LIT_MOREOVER statement PERIOD {})
+  {}
 
   axiom_preamble : lit_axiom option(label) PERIOD {}
 
@@ -1086,6 +1089,7 @@ affirm_proof :
 {}
  
   statement_proof : then_prefix statement by_ref PERIOD
+    list(LIT_MOREOVER statement by_ref PERIOD {})
     option(proof_script {}) {}
 
   goal_proof : goal_prefix statement by_ref PERIOD 
@@ -1127,7 +1131,8 @@ proof_script : proof_preamble option(list(canned_prefix proof_body {})
 
 (** This exists and is well-defined. *)
 this_exists : LIT_THIS
-  and_comma_nonempty_list(this_directive_pred) PERIOD {}
+  and_comma_nonempty_list(this_directive_pred) PERIOD {()}
+
   this_directive_pred : LIT_IS
     and_comma_nonempty_list(this_directive_adjective)
     | this_directive_verb {}
@@ -1157,7 +1162,7 @@ definition_statement :
 | type_def
 | function_def
 | predicate_def
-{}
+{()}
 
   copula : lit_is option(lit_defined_as) | lit_denote {}
   function_copula : copula | opt_colon_type ASSIGN {}
@@ -1245,7 +1250,7 @@ definition_statement :
 
 (* macro *)
 
-macro : option(insection) macro_bodies {}
+macro : option(insection) macro_bodies {()}
 
   insection : LIT_IN LIT_THIS lit_document {}
 
@@ -1257,6 +1262,7 @@ macro : option(insection) macro_bodies {}
   | function_def  
   | predicate_def  
   | let_annotation 
+  | binder_def 
   | we_record_def
   | enter_namespace
   {}
@@ -1283,6 +1289,10 @@ macro : option(insection) macro_bodies {}
   we_record_def : lit_we_record comma_nonempty_list(plain_term) {}
 
   enter_namespace : LIT_WE LIT_ENTER LIT_THE LIT_NAMESPACE identifier {}                    
+
+  binder_def : LIT_LET LIT_THE LIT_BINDER symbol paren(VAR opt_colon_type {})
+                 lit_denote plain_term {}
+
 
  (* subsumed by type_def, function_def, etc. 
 

@@ -1,5 +1,11 @@
 open Lexer_cnl
 
+type qany = 
+  | QAll
+  | QSome
+  | QNo
+[@@deriving show]
+
 type term = 
   | TVar of node*(typ option)
   | TVarAtomic of node*(typ option)
@@ -32,6 +38,10 @@ type term =
   | Let' of term * node list * term 
   | IfThenElse' of node list * node list * term
   | Where' of term * (expr * expr * expr) list
+  | TPat of pattern 
+  | TAnyName of predicate 
+  | TPossessedNoun of predicate list * pattern * predicate list 
+  | TPrimTypedName of pattern 
 
 and typ = 
   | TyVar of node
@@ -53,8 +63,14 @@ and typ =
                (expr * expr * expr) list * 
                  expr list *
                    ((expr * expr * expr) list option * expr option * node list list option) list
-  | TApp' of typ * (expr * expr * expr) list * expr list
-  | TBinder' of node * node list list * expr list * typ 
+  | TyApp' of typ * (expr * expr * expr) list * expr list
+  | TyBinder' of node * node list list * expr list * typ 
+  | TyAgda' of (node*typ) list
+  | TyOp' of node 
+  | TyBinop' of node list list * typ list 
+  | TyCoerce of term 
+  | TyQuotient of typ * term
+  | TyGeneral of predicate list * typ * predicate list 
 
 and prop = 
   | PVar of node
@@ -66,16 +82,50 @@ and prop =
   | PLambda' of node list list * expr list * prop
   | PBinder' of node * node list list * (node * typ) list * prop
   | P_ops' of term list 
+  | Ptdop' of prop list
 
 and statement = 
   | Statement' of node list 
   | LetAnnotation' of (node*typ*bool) list (* true = fixed variable *)
+  | StateForAny of predicate list * statement 
   | StateIfThen of statement*statement
   | StateAnd of statement list
   | StateOr of statement list
   | StatePrimary' of node list
-  | StateWrong of statement
   | StateIff of statement*statement
+  | StateNot of statement 
+  | StateThereExist of bool* predicate list  
+  | StateTrue
+  | StateFalse 
+  | StateProp of prop
+  | StateForall of predicate * statement
+  | StateExist of predicate * statement
+  | StateSimple of term list * predicate list
+
+and predicate = 
+  | PredPrimAdj of pattern 
+  | PredPrimSimpleAdj of string 
+  | PredPrimAdjMulti of pattern 
+  | PredPrimSimpleAdjMulti of string
+  | PredPrimVerb of pattern 
+  | PredPrimVerbMulti of pattern 
+  | PredNeg of predicate 
+  | PredPairwise of predicate 
+  | PredWith of predicate 
+  | PredIsA of predicate list
+  | PredIs of predicate list
+  | PredType of typ 
+  | PredNoun of term
+  | PredPossessed of term list
+  | PredRightStatement of statement
+  | PredRightThat of predicate list
+  | PredRight of predicate list
+  | PredAnyArg of qany * term list
+  | PredAnyPseudo of qany * predicate 
+  | PredAnyGeneral of qany * typ
+  | PredAttributePseudo of predicate list * term * predicate list 
+  | PredPseudo of predicate list * prop * term list * predicate list 
+(*  | PredName of term  *)
 
 and proof = 
   | Proof
@@ -87,6 +137,22 @@ and expr =
   | Eproof
   | Expr' of node list
   | ETightest' of node * node list (* expr, its type info *)
+
+and pattern = (* what wordpattern get translated to for parsing *)
+  | Pat_var_term
+  | Pat_var_type 
+  | Pat_var_prop
+  | Pat_var_names 
+  | Pat_term of term 
+  | Pat_type of typ
+  | Pat_prop of prop
+  | Pat_proof
+  | Pat_option of pattern 
+  | Pat_sequence of pattern list
+  | Pat_word of string
+  | Pat_symbol of string 
+  | Pat_controlseq of string * pattern list 
+  | Pat_names of pattern list
 [@@deriving show]
 
 type associativity = 
@@ -133,9 +199,11 @@ type wordpattern =
   | Wp_inferring of wordpattern * node list * typ
   | Wp_classifier of node list list
   | Wp_record of node list list * this_adj list
-  | Wp_implement of node list * node list list
+(*  | Wp_implement of node list * node list list *)
   | Wp_namespace of node
+  | Wp_binder of wordpattern * node * node list (* wp, var, ty *)
 [@@deriving show]
+
 
 type scope = string list (* hierarchical identifiers *)
 [@@deriving show]
@@ -170,26 +238,26 @@ type prim =
 
   (* -- non cs *)
   (* pattern, def, frees *)                             
-  | Prim_typed_name of scope * wordpattern * typ * expr list 
-  | Prim_adjective of scope * wordpattern * prop * expr list
-  | Prim_adjective_multisubject of scope * wordpattern * prop * expr list
-  | Prim_simple_adjective of scope * wordpattern * prop * expr list
-  | Prim_simple_adjective_multisubject of scope * wordpattern * prop * expr list
-  | Prim_definite_noun of scope * wordpattern * term * expr list
+  | Prim_typed_name of scope * pattern * typ * expr list 
+  | Prim_adjective of scope * pattern * prop * expr list
+  | Prim_adjective_multisubject of scope * pattern * prop * expr list
+  | Prim_simple_adjective of scope * pattern * prop * expr list
+  | Prim_simple_adjective_multisubject of scope * pattern * prop * expr list
+  | Prim_definite_noun of scope * pattern * term * expr list
   | Prim_identifier_term of scope * token * term * expr list
   | Prim_identifier_type of scope * token * typ * expr list
-  | Prim_possessed_noun of scope * wordpattern * term * expr list
-  | Prim_verb of scope * wordpattern * prop * expr list 
-  | Prim_verb_multisubject of scope * wordpattern * prop * expr list
-  | Prim_structure of scope * wordpattern * typ * expr list 
+  | Prim_possessed_noun of scope * pattern * term * expr list
+  | Prim_verb of scope * pattern * prop * expr list 
+  | Prim_verb_multisubject of scope * pattern * prop * expr list
+  | Prim_structure of scope * pattern * typ * expr list 
   | Prim_type_op of scope * token * typ * typ list
-  | Prim_type_word of scope * wordpattern * typ * typ list
-  | Prim_term_op of scope * wordpattern * term * expr list
+  | Prim_type_word of scope * pattern * typ * typ list
+  | Prim_term_op of scope * pattern * term * expr list
   | Prim_binary_relation_op of scope * token * prop * (term * term)
   | Prim_propositional_op of scope * token * int * associativity * prop * prop list 
-  | Prim_relation of scope * wordpattern * typ * term list 
+  | Prim_relation of scope * pattern * typ * term list 
 
-  (* variables *)
+  (* environment variables *)
   | Prim_type_var of scope * string 
   | Prim_term_var of scope * string * typ option
   | Prim_prop_var of scope * string 
@@ -198,11 +266,12 @@ type prim =
 type text_node = 
   | Section_preamble of pos*int*string (* new current section *)
   | Instruction of pos*string (* keyword *)
-  | Axiom of pos*string*string * (statement list)*statement  (* kind,label,statements,conclusion *)
-  | Definition of pos*string * (statement list)* (wordpattern * node list) list * this_adj list (* label,statements,conclusion *)
-  | Theorem of pos*string * (statement list)*statement  (* label, statements,conclusion *)
+  | Axiom of pos*string*string * statement list * statement list  (* kind,label,assumptions,conclusions *)
+  | Definition of pos * string * statement list * (wordpattern * node list) list * this_adj list (* label, assumptions, word patterns and definitions.  *)
+  | Theorem of pos * string * statement list * statement list  (* label, assumptions ,conclusions *)
   | Synonym of pos
-  | Implement of pos*wordpattern
+  | Fiat of wordpattern list
+  | Implement of pos * node list * node list list (* was wordpattern *)
   | Macro of pos* int * (wordpattern * node list) list
   | Namespace
 [@@deriving show]
@@ -219,3 +288,6 @@ type trace =
   | TrString of string 
   | TrEmpty
 [@@deriving show]
+
+type 'a parsed = 'a * (trace * node list)
+

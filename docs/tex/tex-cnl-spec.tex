@@ -135,6 +135,15 @@ CNL, and
 
 The sequences \verb!\~! and \verb!\'! are no longer available as accents.
 
+Sometimes, one must choose whether to treat an adjective+noun as a
+term with a left attribute, as in \verb!commutative ring! or as a
+multi-word noun, as in \verb!normed\~ring!.  In this case, commutative
+is made into an attribute because it is a predicate on ring. However,
+`normed` adds data (the norm) to the ring, and it is treated as a
+multi-word noun.
+
+
+
 \subsubsection{labels}
 
 Labels are converted to valid CNL identifiers by replacing
@@ -609,7 +618,8 @@ For example, in \eqref{W}, we would write
 
 \href{https://hilton.org.uk/presentations/naming-guidelines}{naming-conventions}
 
-
+\href{https://www.tug.org/TUGboat/tb32-3/tb102verna.pdf}%
+{Towards \LaTeX\ coding standards}
 
 
 \end{document}

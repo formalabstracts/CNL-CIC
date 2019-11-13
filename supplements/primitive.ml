@@ -140,12 +140,12 @@ let prim_scope =
   | Prim_type_var (scope,_) -> scope 
   | Prim_prop_var (scope,_) -> scope
 
-let prim_find_inscope tbl key = 
+let prim_find_all_inscope tbl key = 
   let vs = Hashtbl.find_all tbl key in
   List.filter (fun v -> inscope (prim_scope v)) vs
 
 let prim_add tbl (key,value) = 
-  warn (not (prim_find_inscope tbl key = []))
+  warn (not (prim_find_all_inscope tbl key = []))
     ("primitive already declared: "^key); 
     Hashtbl.add tbl key value
 
@@ -172,27 +172,27 @@ let prim_string = function
   | Prim_prop_var (_,s) -> s
   | _ -> failwith "prim_string: string expected" 
 
-let prim_wordpattern = function 
-  | Prim_typed_name (_,wordpattern,_,_) -> wordpattern
-  | Prim_relation (_,wordpattern,_,_ ) -> wordpattern
-  | Prim_adjective_multisubject (_,wordpattern,_,_) -> wordpattern
-  | Prim_simple_adjective (_,wordpattern,_,_) -> wordpattern
-  | Prim_simple_adjective_multisubject (_,wordpattern,_,_) -> wordpattern
-  | Prim_definite_noun (_,wordpattern,_,_) -> wordpattern
-  | Prim_possessed_noun (_,wordpattern,_,_) -> wordpattern
-  | Prim_verb (_,wordpattern,_,_ ) -> wordpattern
-  | Prim_verb_multisubject (_,wordpattern,_,_) -> wordpattern
-  | Prim_structure (_,wordpattern,_,_ ) -> wordpattern
-  | Prim_term_op (_,wordpattern,_,_) -> wordpattern
-  | _ -> failwith "prim_wordpattern: wordpattern expected"
+let prim_pattern = function 
+  | Prim_typed_name (_,pattern,_,_) -> pattern
+  | Prim_relation (_,pattern,_,_ ) -> pattern
+  | Prim_adjective_multisubject (_,pattern,_,_) -> pattern
+  | Prim_simple_adjective (_,pattern,_,_) -> pattern
+  | Prim_simple_adjective_multisubject (_,pattern,_,_) -> pattern
+  | Prim_definite_noun (_,pattern,_,_) -> pattern
+  | Prim_possessed_noun (_,pattern,_,_) -> pattern
+  | Prim_verb (_,pattern,_,_ ) -> pattern
+  | Prim_verb_multisubject (_,pattern,_,_) -> pattern
+  | Prim_structure (_,pattern,_,_ ) -> pattern
+  | Prim_term_op (_,pattern,_,_) -> pattern
+  | _ -> failwith "prim_pattern: pattern expected"
 
 let prim_node_in_scope tbl key =
   List.mem key 
-  (List.map prim_node (prim_find_inscope tbl key))
+  (List.map prim_node (prim_find_all_inscope tbl key))
 
 let prim_string_in_scope tbl key = 
   List.mem key
-  (List.map prim_string (prim_find_inscope tbl key))
+  (List.map prim_string (prim_find_all_inscope tbl key))
 
 (*  key=node for prim_node primitives *)
 
@@ -281,6 +281,45 @@ let prim_pi_binder_tbl = Hashtbl.create 100
 let prim_pi_binder_exists key = 
   prim_string_in_scope prim_pi_binder_tbl key
 
+let prim_type_op_tbl = Hashtbl.create 100
+
+let prim_type_op_exists key = 
+  prim_string_in_scope prim_type_op_tbl key
+
+let prim_type_op_controlseq_tbl = Hashtbl.create 100
+
+let prim_type_op_controlseq_exists key = 
+  prim_string_in_scope prim_type_op_controlseq_tbl key
+
+let prim_classifier_tbl = Hashtbl.create 100
+
+let prim_classifier_exists key = 
+  prim_string_in_scope prim_classifier_tbl key
+
+let prim_simple_adjective_tbl = Hashtbl.create 100
+
+let prim_simple_adjective_exists key = 
+  prim_string_in_scope prim_simple_adjective_tbl key
+
+let prim_simple_adjective_multisubject_tbl = Hashtbl.create 100
+
+let prim_simple_adjective_multisubject_exists key = 
+  prim_string_in_scope prim_simple_adjective_multisubject_tbl key
+
+let prim_verb_tbl : (string,prim) Hashtbl.t  = Hashtbl.create 100
+
+let prim_verb_multisubject_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
+
+let prim_possessed_noun_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
+
+let prim_definite_noun_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
+
+let prim_adjective_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
+
+let prim_adjective_multisubject_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
+
+let prim_typed_name_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
+
 
 
 
@@ -288,27 +327,31 @@ let frozen =
   List.map syn_add (List.map (fun t -> [[t]]) 
 [
 "a";"an";"all";"and";"any";"are";"as";"assume";"be";"by";
-"case";"classifier";"classifiers"; 
+"case";"classifier";
 "coercion";"conjecture";"contradiction";"contrary";"corollary";"def";
 "define";"defined";"definition";"denote";"division";"do";"document";
 "does";"dump";"each";"else";"end";"enddivision";"endsection";
 "endsubdivision";"endsubsection";"endsubsubsection";"equal";
-"equation";"error";"enter";"every";"exhaustive";"exist";"exists";"exit";
+"equation";"error";"enter";"every";"exhaustive";"exist";"exit";
 "false";"fix";"fixed";"for";"forall";"formula";"fun";"function";"has";"have";
-"having";"hence";"holding";"hypothesis";"if";"iff";"implements";"in";"inferring";
+"having";"hence";"holding";"hypothesis";"if";"iff";"in";"inferring";
 "indeed";"induction";"inductive";"introduce";"is";"it";"left";"lemma";
 "let";"library";"make";"map";"match";"moreover";"namespace";
 "no";"not";"notational";"notation";
 "notationless";"obvious";"of";"off";"on";"only";"ontored";"or";"over";
-"pairwise";"parameter";"parameters";"precedence";"predicate";"printgoal";
-"proof";"prop";"properties";"property";"prove";"proposition";"propositions";
+"pairwise";"parameter";"precedence";"predicate";"printgoal";
+"proof";"prop";"property";"prove";"proposition";
 "propped";"qed";"quotient";"read";"record";"register";"recursion";"right";
 "said";"say";"section";"show";"some";"stand";"structure";"subdivision";
-"subsection";"subsubsection";"such";"suppose";"synonyms";"take";"that";
+"subsection";"subsubsection";"such";"suppose";"synonym";"take";"that";
 "the";"then";"theorem";"there";"therefore";"thesis";"this";"timelimit";
-"to";"total";"trivial";"true";"type";"types";"unique";"us";
+"to";"total";"trivial";"true";"type";"unique";"us";
 "warning";"we";"well";"welldefined";"well_defined";"well_propped";
 "where";"with";"write";"wrong";"yes";
+
+(* plural handled by desing "classifiers"; "exists";"implement";
+   "parameters";"properties";"propositions";"synonyms";"types";
+ *)
 ])
 
 let phrase_list_transition_words =
@@ -335,3 +378,59 @@ let phrase_list_transition_words =
 "we show";"we understand";"we write";"recall";"we recall";
 "without loss of generality";"yet";
      ]
+
+let preposition_list = 
+[
+  "aboard";"about";"above";"according\\~to"; "across"; "against"; "ahead\\~of";
+  "along";"alongside";"amid";"amidst";"among";"around";"at";"atop";"away\\~from";
+  "before";
+  "behind";"below";"beneath";"beside";"between";"beyond";"by";"concerning";"despite";
+  "except";"except\\~at";"excluding";"following";
+  "from";"in";"in\\~addition\\~to";"in\\~place\\~of";"in\\~regard\\~to";
+  "inside";"instead\\~of";"into";"near";"next\\~to";"of";
+  "off";"on";"on\\~behalf\\~of";"on\\~top\\~of";"onto";"opposite";"out";"out\\~of";
+  "outside";"outside\\~of";
+  "over";"owing\\~to";"per";"prior\\~to";"regarding";"save";"through";
+  "throughout";"till";"to";"towards";"under";"until";
+  "up";"up\\~to";"upon";"with";"with\\~respect\\~to";"within";"without"
+
+(* 
+   "for"; "as"; "like"; "after"; "round"; "plus"; "since"; "than"; "past"; 
+   "during"; 
+
+  synonyms with\~respect\~to/wrt 
+
+ *)
+]
+
+let prim_list = 
+  [
+  "prim_classifier";
+  "prim_term_op_controlseq";
+  "prim_binary_relation_controlseq";
+  "prim_propositional_op_controlseq";
+  "prim_type_op_controlseq";
+  "prim_term_controlseq";
+  "prim_type_controlseq";
+  "prim_lambda_binder";
+  "prim_pi_binder";
+  "prim_binder_prop";
+  "prim_typed_name";
+  "prim_adjective";
+  "prim_adjective_multisubject";
+  "prim_simple_adjective";
+  "prim_simple_adjective_multisubject";
+  "prim_definite_noun";
+  "prim_identifier_term";
+  "prim_identifier_type";
+  "prim_possessed_noun";
+  "prim_verb";
+  "prim_verb_multisubject";
+  "prim_structure";
+  "prim_type_op";
+  "prim_type_word";
+  "prim_term_op";
+  "prim_binary_relation_op";
+  "prim_propositional_op";
+  "prim_relation"
+  ]
