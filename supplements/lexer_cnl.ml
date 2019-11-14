@@ -199,13 +199,18 @@ let string = [%sedlex.regexp? '"', Star(string_item), '"']
 
 let alphabet = [%sedlex.regexp? 'a'..'z' | 'A'..'Z']
 
+let alphanum_nonblank = [%sedlex.regexp? alphabet | digit | "'"]
+
 let alphanum = [%sedlex.regexp? alphabet | digit | '_' | "'"]
              
 let controlseq = [%sedlex.regexp? '\\', Plus(alphabet)]
 
 let varlong = [%sedlex.regexp? alphabet, '_', '_', Star(alphanum)] (* mangling *)
 
-let identifier = [%sedlex.regexp? Plus(alphanum) ]          
+(* 
+   initial blank is reserved for internal use 
+*)
+let identifier = [%sedlex.regexp? alphanum_nonblank, Star(alphanum) ]          
 
 let hierarchical_identifier = [%sedlex.regexp? identifier, Plus('.', identifier) ]  
 
@@ -510,7 +515,7 @@ let rec print_tok = function
 let print_nodes_brief ns = 
   print_endline (string_of_toks (List.map (fun n -> n.tok) ns))
 
-let test_lex_string() = print_nodes (lex_string "lexer_cnl.ml" "A B C hello\\alpha33[1]there !ready! \\begin \\\\ \n Riemann-Hilbert %comment \n\n more #4 # 5  $ ))))))))");;
+let test_lex_string() = print_nodes (lex_string "lexer_cnl.ml" "A B C hello\\alpha33[1]there !ready! \\begin \\\\ \n Riemann-Hilbert %comment \n\n more #4 # 5  $ _id ))))))");;
               
 
 

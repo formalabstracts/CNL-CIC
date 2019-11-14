@@ -9,20 +9,36 @@ let string_sort = List.sort_uniq String.compare
 
 let _ = string_sort ["the";"THE";"that";"a";"z"]
 
- (* canonical forms of synonyms are stored by hyphenating words together *)
-
-let hyphen = String.concat "-"
 
 let synonym = Hashtbl.create 200;;
 
-let syn_add1 (key,value) = (* key = first word, value = ([remaining],canonical-hyphen) *)
+let find_all_syn key = 
+  Hashtbl.find_all synonym key 
+
+
+ (* Now, only single-word synonyms are allowed.
+
+   DEPRECATED: canonical forms of synonyms are stored by hyphenating words together.
+
+   let hyphen = String.concat "-"  
+  *)
+
+let syn_add1 (key,value) = (* key = string , value = canonical , was [remaining],hyphen-canonical *)
   let ls = Hashtbl.find_all synonym key in 
-  let ls' = List.filter (fun l -> fst value = fst l) ls in 
-  if not(ls' = []) 
-  then warn 
-         (not(snd(List.hd ls') = snd value)) 
-         ("synonym "^snd value^" already exists for "^hyphen( key :: fst value))
+(*  let ls = List.filter (fun l -> fst value = fst l) ls in *)
+  if not(ls = [])
+  then warn true 
+(*         (not(snd(List.hd ls') = snd value))  *)
+         (Printf.sprintf "synonym %s already exists for %s" (List.hd ls)   key)
   else Hashtbl.add synonym key value
+
+let syn_add ts = 
+  let hs = (* List.map hyphen *) List.map singularize ts in 
+  let hs = List.sort_uniq String.compare hs in
+  if hs = [] then ()
+  else 
+    let value = List.hd hs in
+    ignore (List.map (fun key -> syn_add1 (key,value)) hs)
 
 (*
   let benign = 
@@ -32,22 +48,43 @@ let syn_add1 (key,value) = (* key = first word, value = ([remaining],canonical-h
       if benign then 
  *)
 
+(* 
+let expanded_word s input = 
+  let u = find_syn (singularize s) in 
+  try 
+    let (a,(_,rest)) = some_nodeX 
+      (function 
+       | WORD (w,wu) as w' -> 
+           let wsyns = find_all_syn wu in
+           if wsyns = [] then (
+           ((wsyn = u),WORD (w,wsyn))
+       | VAR v -> 
+           let (b,v') = is_word v in 
+           (b && v'=u),WORD(v,v')
+       | t -> (false,t)) input in 
+    (a,(TrString ("matched:"^u),rest))
+  with 
+    Noparse _ -> raise (Noparse (TrGroup (("expected:"^u),trPos input)))
+ *)
 
-let syn_add ts = 
-  let hs = List.map hyphen (List.map (List.map singularize) ts) in 
-  let zs = zip hs ts in 
-  let zs = List.sort_uniq (fun (t,_) (t',_) -> String.compare t t') zs in
-  let hs,ts = unzip zs in
-  if hs = [] then ()
+(*
+let rec match_syn f ss input = (* syn expanded word *)
+  if ss = [] then (f,(TrEmpty,input))
   else 
-    let v2 = List.hd hs in
-    ignore (List.map (fun t -> 
-                            if t = [] 
-                            then (warn true ("empty synonym for "^v2))
-                            else syn_add1 (List.hd t,(List.tl t,v2))) ts)
+    let ss_null,ss_pos = partition (fun t -> fst t = []) ss in 
+    let f = (match ss_null with 
+             | [] -> f
+             | (_,r):: _ -> Some r) in 
+    let ({ tok = w'; _ },(_,input')) = anyword input in 
+    match w' with 
+    | WORD (_,v') ->
+        let ss'_pos = List.filter (fun (ws,_) -> v' = List.hd ws) ss_pos in 
+        if ss'_pos = [] then (f,(TrEmpty,input))
+        else match_syn f (map (fun (ws,h) -> List.tl ws,h) ss'_pos) input' 
+    | _ -> (f,(TrEmpty,input))
+ *)
 
-let find_all_syn key = 
-  Hashtbl.find_all synonym key 
+
 
 (* scope *)
 
@@ -320,11 +357,8 @@ let prim_adjective_multisubject_tbl : (string,prim) Hashtbl.t = Hashtbl.create 1
 
 let prim_typed_name_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-
-
-
 let frozen = 
-  List.map syn_add (List.map (fun t -> [[t]]) 
+  List.map syn_add (List.map (fun t -> [t]) 
 [
 "a";"an";"all";"and";"any";"are";"as";"assume";"be";"by";
 "case";"classifier";

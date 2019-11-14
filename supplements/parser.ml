@@ -267,6 +267,9 @@ let (-|) f g x = f(g(x))
 
 let mk (t,p) = { tok = t; pos = p }
 
+let optionally p = 
+  possibly p >> (function | [] -> None | x :: _ -> Some x)
+
 let someX p = 
   function
     [] -> raise failEof
@@ -299,6 +302,8 @@ let failparse =
    | h :: _ -> raise (Noparse (trPos[h]))
 
 let failtr tr _ = raise (Noparse tr)
+
+let has_possibly p = possibly p >> (function | [] -> false | _ -> true)
 
 let canparse f x = try (ignore(f x); true) with Noparse _ -> false
 
@@ -425,8 +430,10 @@ let paren parser  =
 let bracket parser = 
   (a L_BRACK ++ parser ++ a R_BRACK) >> (fun ((_,p),_) -> p) 
 
+(*
 let pos_bracket parser = 
     (a L_BRACK ++ parser ++ a R_BRACK) >> (fun ((p',p),p'') -> (pair_pos(p'.pos,p''.pos),p)) 
+ *)
 
 let brace parser = 
   (a L_BRACE ++ parser ++ a R_BRACE) >> (fun ((_,p),_) -> p) 
@@ -467,42 +474,7 @@ let and_comma_nonempty_list parser = separated_nonempty_list parser and_comma
 let lit_binder_comma = comma
 
 let cs_brace parser1 parser2 = 
-  parser1 ++ many (brace parser2) 
-
-(* 
-let expanded_word s input = 
-  let u = find_syn (singularize s) in 
-  try 
-    let (a,(_,rest)) = some_nodeX 
-      (function 
-       | WORD (w,wu) as w' -> 
-           let wsyns = find_all_syn wu in
-           if wsyns = [] then (
-           ((wsyn = u),WORD (w,wsyn))
-       | VAR v -> 
-           let (b,v') = is_word v in 
-           (b && v'=u),WORD(v,v')
-       | t -> (false,t)) input in 
-    (a,(TrString ("matched:"^u),rest))
-  with 
-    Noparse _ -> raise (Noparse (TrGroup (("expected:"^u),trPos input)))
- *)
-
-let rec match_syn f ss input = (* syn expanded word *)
-  if ss = [] then (f,(TrEmpty,input))
-  else 
-    let ss_null,ss_pos = partition (fun t -> fst t = []) ss in 
-    let f = (match ss_null with 
-             | [] -> f
-             | (_,r):: _ -> Some r) in 
-    let ({ tok = w'; _ },(_,input')) = anyword input in 
-    match w' with 
-    | WORD (_,v') ->
-        let ss'_pos = List.filter (fun (ws,_) -> v' = List.hd ws) ss_pos in 
-        if ss'_pos = [] then (f,(TrEmpty,input))
-        else match_syn f (map (fun (ws,h) -> List.tl ws,h) ss'_pos) input' 
-    | _ -> (f,(TrEmpty,input))
-    
+  parser1 ++ many (brace parser2)     
 
 let phrase_list_transition = 
   let w _ = "phrase list transition" in
@@ -696,6 +668,24 @@ let getlabel =
   | [{ tok = ATOMIC_IDENTIFIER l; _}] -> l 
   | _ -> failwith "bad format: section label"
 
+let stored_string_token = 
+  (function
+  | STRING s -> s
+  | CONTROLSEQ s -> s
+  | DECIMAL s -> s
+  | INTEGER s -> s
+  | SYMBOL s -> s
+  | QUANTIFIER s -> s
+  | VAR s -> s
+  | ATOMIC_IDENTIFIER s -> s
+  | HIERARCHICAL_IDENTIFIER s -> s
+  | FIELD_ACCESSOR s -> s
+  | WORD (_,s) -> s
+  | _ -> warn true "stored string node expected"; "") 
+
+let stored_string = stored_string_token -| tok
+
+
  (* XX do scoping of variables etc. *)
 
 let treat_section_preamble =
@@ -719,15 +709,18 @@ let namespace = failparse
 
 (* instructions *)
 
-let instruct_commands = ref []
-let instruct_strings = ref []
-let instruct_bools = ref []
-let instruct_ints = ref []
 
  (* For now the parser stores instructions without any action *)
 
+(*
+let instruct_commands = ref []
+let instruct_strings = ref [] 
+let instruct_bools = ref []
+let instruct_ints = ref []
+*)
 
 
+(*
 let run_commands = 
   function 
   | { tok = WORD (_,w); _ } -> 
@@ -753,47 +746,74 @@ let put_bools = function
 let put_ints = function 
   | ({ tok = WORD (_,w); _ },i) -> (instruct_ints := ((w,i) :: !instruct_ints); w )
   | _ -> ""
+ *)
 
 
-let instruct_keyword_command = someword "exit"
-let instruct_keyword_int = someword "timelimit"
-let instruct_keyword_bool = someword "printgoal dump ontored"
-let instruct_keyword_string = someword "read library error warning"
 
-let instruct_command = instruct_keyword_command >> run_commands
 
-let integer = someX ((function | INTEGER x -> true,int_of_string x | _ -> false,0)-| tok)
+let integer = someX ((function | INTEGER x -> true,int_of_string x | _ -> false,0)-| tok) 
+
+let instruct_command = 
+  let instruct_keyword_command = someword "exit" in 
+  instruct_keyword_command 
+  >> fun s -> InstructCommand (stored_string s)
 
 let instruct_int = 
-  (instruct_keyword_int ++ integer) >> put_ints
-
-let bool_tf = (lit_true >> (fun _ -> true)) ||| 
-                (lit_false >> (fun _ -> false))
+  let instruct_keyword_int = someword "timelimit" in 
+  (instruct_keyword_int ++ integer
+  >> fun (s,i) -> InstructInt (stored_string s,i)
+  )
 
 let instruct_bool = 
-  (instruct_keyword_bool ++ bool_tf) >> put_bools
-
-let string = some (function | STRING _ -> true | _ -> false)
+  let bool_tf = (lit_true >> (fun _ -> true)) ||| 
+                  (lit_false >> (fun _ -> false)) in 
+  let instruct_keyword_bool = someword "printgoal dump ontored" in 
+  (instruct_keyword_bool ++ bool_tf
+  >>  fun (s,b) -> InstructBool(stored_string s, b)
+  )
 
 let instruct_string = 
-  (instruct_keyword_string ++ string) >> put_strings
+  let instruct_keyword_string = someword "read library error warning" in 
+  let string = some (function | STRING _ -> true | _ -> false) in 
+  (instruct_keyword_string ++ string
+  >>  (fun (s,s') -> InstructString (stored_string s,stored_string s'))
+  )
 
- (* We depart slightly from the grammar to make SLASHDASH easier to process *)
+ (* 
 
-let rec expand_slashdash css cs =
+  DEPRECATED: 
+  We depart slightly from the grammar to make SLASHDASH easier to process 
+
+let rec deprecated_expand_slashdash css cs =
   function
   | [] -> let css' = List.filter (fun c -> not(c=[])) (cs :: css) in 
           map List.rev css'
-  | WORD(_,w2) :: ts -> expand_slashdash css (w2 :: cs) ts 
-  | SLASH :: ts -> expand_slashdash (cs :: css) [] ts 
+  | WORD(_,w2) :: ts -> deprecated_expand_slashdash css (w2 :: cs) ts 
+  | SLASH :: ts -> deprecated_expand_slashdash (cs :: css) [] ts 
   | SLASHDASH :: WORD(_,w2') :: ts -> 
       (match cs with 
        | [] -> failwith "expand_slashdash: /- must fall between full words"
        | w2 :: hs -> 
            let cs2 = (w2^w2') :: hs in 
-           expand_slashdash (cs2 :: cs :: css) [] ts 
+           deprecated_expand_slashdash (cs2 :: cs :: css) [] ts 
       )
   | _ -> failwith "expand_slashdash: /- must fall between words"
+
+*)
+
+let rec expand_slashdash acc =
+  function
+  | [] -> List.rev acc 
+  | WORD(_,w) :: ts -> expand_slashdash (w :: acc) ts 
+  | SLASH :: WORD(_,w) :: ts -> expand_slashdash (w :: acc) ts 
+  | SLASHDASH :: WORD(_,suffix) :: ts -> 
+      (match acc with 
+       | [] -> failwith "expand_slashdash: /- must fall between full words"
+       | prev :: _ -> 
+           let acc' = (prev^suffix) :: acc  in 
+           expand_slashdash acc' ts
+      )
+  | _ -> failwith "expand_slashdash: / /- must fall between words"
 
 let is_syntoken = 
   function 
@@ -805,18 +825,24 @@ let is_syntoken =
 
 let synlist = 
   let synnode = someX (is_syntoken -| tok) in
-    many synnode >> (expand_slashdash [] [])
+    many synnode >> (expand_slashdash [])
 
-let instruct_synonym = (word "synonyms" ++ comma_nonempty_list(synlist >> syn_add)) >> 
-                         (fun _  ->  "synonyms")
+let instruct_synonym = 
+  (word "synonyms" ++ comma_nonempty_list(synlist)
+   >> (fun (_,ss) -> InstructSyn ss))
 
 let instruction = 
   commit "instruction" (a L_BRACK)
-    (pos_bracket(instruct_synonym |||
-       instruct_command |||
-       instruct_string |||
-       instruct_bool |||
-       instruct_int) >> (fun (a,b) -> Instruction(a,b)))
+    (getpos 
+     ++ (bracket(
+             instruct_synonym |||
+               instruct_command |||
+               instruct_string |||
+               instruct_bool |||
+               instruct_int
+        )
+        )
+     >> (fun (p,i) -> Instruction (p,i)))
 
 let synonym_statement = 
   let head = possibly (word "we") ++ possibly(word "introduce") ++ word "synonyms" in
@@ -825,35 +851,8 @@ let synonym_statement =
            ((getpos ++ head ++ synlist ++ getpos ++ a PERIOD  
             >> (fun ((((p,_),ls),p'),_) -> (syn_add ls;Synonym ( pair_pos (p,p')))))))
 
-(* XX need to add to the namespace of the given structure *)
-let morever_implements = 
-  let except = (function | WORD(_,w) -> not(w = "implement") | _ -> true) in
-  let head = word "moreover" ++ comma in
-  commit_head "moreover_implements" head 
-  (fun head ->
-         getpos ++ head ++ balancedB except ++ word "implement" ++ brace_semi
-           ++ getpos ++ a PERIOD
-  ) 
-  >> (fun ((((((p,_),b),_),b'),p'),_) -> Implement (pair_pos(p,p'),b,b'))
-
 (* end of instructions *)
 
-let stored_string_token = 
-  (function
-  | STRING s -> s
-  | CONTROLSEQ s -> s
-  | DECIMAL s -> s
-  | INTEGER s -> s
-  | SYMBOL s -> s
-  | QUANTIFIER s -> s
-  | VAR s -> s
-  | ATOMIC_IDENTIFIER s -> s
-  | HIERARCHICAL_IDENTIFIER s -> s
-  | FIELD_ACCESSOR s -> s
-  | WORD (_,s) -> s
-  | _ -> warn true "stored string node expected"; "") 
-
-let stored_string = stored_string_token -| tok
 
 
 (* this_exists *)
@@ -899,12 +898,12 @@ let post_colon_balanced =
               | WORD (_,s) -> not(s = "end") && not(s = "with")
               | _ -> true)
 
-let colon_type = 
-  a COLON ++ post_colon_balanced >> snd 
                
 let opt_colon_type = 
+  let colon_type = 
+    a COLON ++ post_colon_balanced >> snd in 
   possibly(colon_type) 
-  >> (fun bs -> Colon' (flatten bs))
+  >> (fun bs -> RawPostColon (flatten bs))
 
 let mk_meta =
   let i = ref 0 in 
@@ -918,10 +917,16 @@ let meta_node() =
 let opt_colon_type_meta = 
   opt_colon_type 
   >> (function 
-      | Colon' [] -> Colon' [meta_node()]
+      | RawPostColon [] -> RawPostColon [meta_node()]
       | _ as t -> t)
 
-let colon_sortish' = a COLON ++ post_colon_balanced >> snd
+let colon_sortish = 
+  possibly(a COLON ++ post_colon_balanced >> snd) 
+  >> (fun t -> Raw_Colon_Sortish (flatten t))
+
+let colon_sortish_meta = 
+  possibly(a COLON ++ post_colon_balanced >> snd) 
+  >> (fun t -> if t = [] then Raw_Colon_Sortish [meta_node()] else Raw_Colon_Sortish (flatten t))
 
 let annotated_var = paren(var ++ opt_colon_type)
 
@@ -930,10 +935,11 @@ let annotated_vars = paren(plus(var) ++ opt_colon_type_meta) >>
 
 let let_annotation_prefix = 
   (word("let") ++ comma_nonempty_list(var) ++ word "be" ++ possibly(lit_a) 
-   ++ possibly(word "fixed")) >>
-    fun ((((_,a),_),_),w) -> (a,not(w = []))
+   ++ has_possibly(word "fixed")) >>
+    fun ((((_,a),_),_),bw) -> (a,bw)
 
-let fix_var (v,o,fix) = if fix then Wp_fix(v,o) else Wp_var(v,o)
+(* let fix_var e = Wp_env e *)
+(* if fix then Wp_fix(v,o) else Wp_var(v,o) *)
 
 (* don't commit to let_annotation, because lit_then might not lie ahead *)
 
@@ -941,24 +947,24 @@ let let_annotation = group  "let_annotation"
   (((word "fix" >> (fun _ -> true) ||| (word "let" >> (fun _ -> false))) ++ 
     comma_nonempty_list(annotated_vars) 
    >>
-     (fun (t,bs) -> map (fun (v,o) -> (v,o,t)) (flatten bs))
+     (fun (t,bs) -> map (fun (v,o) -> EVar (stored_string v,Etyp o,t)) (flatten bs))
      )
   |||
     ((let_annotation_prefix ++ post_colon_balanced)
      >>
-       (fun ((vs,t),b) -> map (fun v -> (v,Colon' b,t)) vs 
+       (fun ((vs,t),b) -> map (fun v -> EVar (stored_string v,Etyp (RawPostColon b),t)) vs 
     )))
 
 let then_prefix = possibly (lit_then)
 
-let assumption_prefix = 
-  possibly(lit_lets) ++ group "assume" lit_assume ++ possibly (word "that")
-
-let assumption = group "assumption"
+let assumption = 
+  let assumption_prefix = 
+    possibly(lit_lets) ++ group "assume" lit_assume ++ possibly (word "that") in 
+  group "assumption"
   ((assumption_prefix ++ balanced ++ (a PERIOD) >> 
-     (fun ((_,b),_) -> Statement' b)) 
+     (fun ((_,b),_) -> RawStatement b)) 
   |||
-    (let_annotation >> (fun t -> LetAnnotation' t)))
+    (let_annotation >> (fun t -> LetAnnotation t)))
 
 let possibly_assumption = 
   (possibly (many assumption ++ lit_then >> fst)) >> flatten
@@ -977,10 +983,10 @@ let axiom =
           ++ possibly_assumption
           ++ balanced ++ getpos ++ a(PERIOD) 
           ++ (many(word "moreover" ++ balanced ++ getpos ++ a (PERIOD)
-               >> (fun (((_,b),p),_) -> (Statement' b,p)))
+               >> (fun (((_,b),p),_) -> (RawStatement b,p)))
              >> Lib.unzip)
           >> (fun ((((((p,(w,labl)),ls),st),p'),_),(sts,ps)) -> 
-            Axiom (merge_pos(p :: p' :: ps),w,labl,ls,Statement' st :: sts))))
+            Axiom (merge_pos(p :: p' :: ps),w,labl,ls,RawStatement st :: sts))))
 
 (* theorem *) 
 let ref_item = and_comma_nonempty_list(possibly lit_location ++ label) 
@@ -1020,15 +1026,15 @@ let rec affirm_proof input =
 and statement_proof input = 
   (getpos ++ then_prefix ++ balanced ++ by_ref ++ a(PERIOD)
    ++ many(word "moreover" ++ balanced ++ a (PERIOD)
-            >> (fun ((_,b),_) -> Statement' b))
+            >> (fun ((_,b),_) -> RawStatement b))
    ++ getpos ++ possibly (proof_script) 
    >> 
-     (fun (((((((p,_),b),_),_),sts),p'),_) -> (pair_pos (p,p'),Statement' b :: sts))) input
+     (fun (((((((p,_),b),_),_),sts),p'),_) -> (pair_pos (p,p'),RawStatement b :: sts))) input
 
 and goal_proof input = 
   (goal_prefix ++ balanced ++ by_ref ++ a(PERIOD) ++ 
      proof_script >> 
-     (fun ((((_,b),_),_),p) -> (p,[Statement' b]))) input
+     (fun ((((_,b),_),_),p) -> (p,[RawStatement b]))) input
 
 and proof_script input = 
   (proof_preamble ++ 
@@ -1096,7 +1102,7 @@ let tvarpat =
   (paren(var ++ opt_colon_type) >>
     (fun (v,bs) -> Wp_var (v,bs))) 
   |||
-    (var >> (fun v -> Wp_var(v,Colon' [])))
+    (var >> (fun v -> Wp_var(v,RawPostColon [])))
 
 let word_pattern = group "word_pattern"
   (words_in_pattern ++ many(tvarpat ++ words_in_pattern) ++ possibly(tvarpat))
@@ -1149,26 +1155,39 @@ let pre_expr = (balancedB (function | COMMA | SEMI | PERIOD -> false | _ -> true
 
 let assign_expr = a ASSIGN ++ pre_expr >> snd
 
-let record_assign_item = 
-  var_or_atomic ++ possibly colon_sortish' ++ possibly assign_expr >>
-    (fun ((a,b),c) -> 
-           (Expr' [a]),Expr' (flatten b),Expr' (flatten c))
+let var_or_atomic_or_blank = 
+  var_or_atomic ||| a(BLANK)
 
-let record_assign = 
-  brace_semi >> (fun ts -> map (consume record_assign_item) ts)
+(* assignments *)
 
-let record_args_template = 
-  brace_semi
+
+let brace_assign = 
+  let brace_assign_item = 
+    var_or_atomic_or_blank ++ colon_sortish ++ possibly assign_expr >>
+      (fun ((a,b),c) -> 
+             (RawExpr [a]),b,RawExpr (flatten c)) in 
+  brace_semi >> (fun ts -> map (consume brace_assign_item) ts)
+
+let brace_noassign = 
+  let brace_noassign_item = 
+    var_or_atomics ++ optionally colon_sortish_meta >> 
+      (fun (vs,o) -> map (fun v -> (RawExpr [v],o)) vs) in 
+  brace_semi >> (fun ts -> map(consume brace_noassign_item) ts) >> flatten
+
+(* nonbrace *)
 
 let required_arg_template_pat = 
   paren(var_or_atomics ++ opt_colon_type_meta) 
   >> (fun (vs,bs) -> map (fun v -> v,bs) vs)
   |||
     group "required_arg_template_pat2" 
-      (must (not_banned -| tok) var_or_atomic  >> fun a -> [a,Colon' []])
+      (must (not_banned -| tok) var_or_atomic  >> fun a -> [a,RawPostColon []])
 
 let args_template = 
-  (possibly record_args_template >> flatten) ++ (many(required_arg_template_pat) >> flatten)
+  (possibly brace_noassign >> flatten) ++ (many(required_arg_template_pat) >> flatten)
+
+
+(* *)
 
 let identifier_pattern = group "identifier_pattern"
   (possibly(lit_a) ++ (must (not_banned -| tok)  identifier ||| a(BLANK)) ++
@@ -1282,7 +1301,7 @@ let copula = group "copula"
   ) >> discard
 
 let function_copula =
-  copula >> (fun _ -> Colon' []) |||
+  copula >> (fun _ -> RawPostColon []) |||
     (opt_colon_type ++ a(ASSIGN) >> fst)
 
 let iff_junction = lit_iff 
@@ -1395,8 +1414,8 @@ let predicate_def = group "predicate_def"
     )
 
 let binder_pattern = 
-  symbol ++ paren(var ++ possibly colon_sortish') (* : Term -> Prop, Term -> Type, Term -> Term, etc. *)
-  >> (fun (s,(v,c)) -> Wp_binder (s,v,flatten c))
+  symbol ++ paren(var ++ colon_sortish) (* : Term -> Prop, Term -> Type, Term -> Term, etc. *)
+  >> (fun (s,(v,c)) -> Wp_binder (s,v,c))
 
 let binder_def = 
   commit_head "binder_def" (phrase "let the binder")
@@ -1418,7 +1437,7 @@ let macro_body =
   ||| predicate_def
   ||| classifier_def
   ||| binder_def 
-  ||| (let_annotation >> map (fun vot -> (fix_var vot,[])))
+  ||| (let_annotation >> map (fun e -> (Wp_env e,[])))
 
 let macro_bodies = 
   we_record_def 
@@ -1474,6 +1493,19 @@ let theorem =
           ++ affirm_proof 
           >>
             (fun (((p,l),ls),(p',sts)) -> Theorem(pair_pos (p,p'),l,ls,sts))))
+
+(* XX need to add to the namespace of the given structure *)
+
+let moreover_implements = 
+  let except = (function | WORD(_,w) -> not(w = "implement") | _ -> true) in
+  let head = word "moreover" ++ comma in
+  commit_head "moreover_implements" head 
+  (fun head ->
+         getpos ++ head ++ balancedB except ++ word "implement" ++ brace_semi
+           ++ getpos ++ a PERIOD
+  ) 
+  >> (fun ((((((p,_),b),_),b'),p'),_) -> 
+            Implement (pair_pos(p,p'),RawGeneralType b,List.map (fun t -> RawNodeList t) b'))
 
 (* fiat *)
 let fiat_preamble = 
@@ -1620,7 +1652,7 @@ let text =
       ||| (group "fiat" fiat)
       ||| (group "macro" macro)
       ||| (group "synonym_statement" synonym_statement)
-      ||| (group "moreover_implements" morever_implements)
+      ||| (group "moreover_implements" moreover_implements)
       ||| (group "namespace" namespace >> (fun _ -> Namespace))
     )
 
@@ -1643,27 +1675,27 @@ let proof_expr =
 
 let tvar = 
   var 
-  >> (fun v -> TVar (v,None))
+  >> (fun v -> TVar (stored_string v,None))
   ||| (annotated_var 
-       >> fun (v,ty) -> TVar (v,Some ty))
+       >> fun (v,ty) -> TVar (stored_string v,Some ty))
 
 (* tightest terms *)
 
-let var_term = var >> fun v -> TVar(v,None)
+let var_term = var >> fun v -> TVar(stored_string v,None)
 
 let decimal = 
   someX
     (function 
-     | { tok = DECIMAL _ ; _ } as t -> true,Decimal t  
-     | _ -> false,Error')
+     | { tok = DECIMAL _ ; _ } as t -> true,Decimal (stored_string t)
+     | _ -> false,RawUnreachable)
 
 let integer_term = integer >> (fun i -> Integer i)
 
 let string_term = 
   someX
     (function 
-     | { tok = STRING _; _ } as s -> true, String s 
-     | _ -> false,Error')
+     | { tok = STRING _; _ } as s -> true, String (stored_string s)
+     | _ -> false,RawUnreachable)
 
 let blank_term = a BLANK >> (fun _ -> Blank)
 
@@ -1671,7 +1703,7 @@ let blank_term = a BLANK >> (fun _ -> Blank)
  (* XX to do - hierarchical identifiers *)
 
 let prim_identifier_term = 
-  someX(fun t -> prim_identifier_term_exists t.tok,Id(t,None))
+  someX(fun t -> prim_identifier_term_exists t.tok,Id(stored_string t,None))
 
 let controlseq1 f = 
   someX
@@ -1681,72 +1713,92 @@ let controlseq1 f =
 
 let controlseq_term f = 
   cs_brace (controlseq1 f) balanced 
-  >> (fun (s,bs) -> ControlSeq (s,(map (fun b -> Expr' b) bs)))
+  >> (fun (s,bs) -> ControlSeq (stored_string s,(map (fun b -> RawExpr b) bs)))
 
 let paren_term = 
-  paren(balanced) >> (fun b -> Unparsed' b)
+  paren(balanced) >> (fun b -> RawTerm b)
 
 let annotated_term = 
   paren(post_colon_balanced ++ opt_colon_type)
-    >> (fun (t,ty) -> Annotated (Unparsed' t,ty))
+    >> (fun (t,ty) -> Annotated (RawTerm t,ty))
 
-let var_or_atomic_or_blank = 
-  var_or_atomic ||| a(BLANK)
+let paren_expr = (* need to know a priori that balanced is an expr *)
+  paren(balanced)
+
+let annotated_type = 
+  paren(post_colon_balanced ++ a COLON ++ the_case_sensitive_word "Type") 
+  >> (fun ((t,_),_) -> RawGeneralType t)
+
+let const_type = 
+  someX(fun t -> prim_identifier_type_exists t.tok,TyId (stored_string t))
+
+let var_type = 
+  let f v = prim_type_var_exists (stored_string v) in 
+  must f var >> (fun v -> TyVar (stored_string v))
+  ||| (paren(var ++ a COLON ++ the_case_sensitive_word "Type") 
+         >> (fun ((v,_),_) -> TyVar (stored_string v)))
+
+let paren_type = 
+  (paren_expr  >> (fun t -> RawGeneralType t))
+  ||| annotated_type
+  ||| const_type
+  ||| var_type
 
 let make_term = 
-  let make_term_item = 
+(*  let make_term_item = 
     var_or_atomic_or_blank ++ opt_colon_type ++ 
       possibly(assign_expr)
     >> fun ((v,ty),ae) -> (v,ty,flatten ae) in 
-  word "make" 
-  ++ (brace_semi 
-      >> (fun ts -> Make (map (consume make_term_item) ts)) )
-  >> snd 
+ *)
+  (word "make" ++ optionally paren_type ++ brace_assign 
+   >> fun ((_,p),ts) -> Make (p,ts) (* (map (consume brace_assign_item) ts)) *)
+  )
+
 
 let list_term =
   let semisep = balancedB (function | SEMI | COMMA -> false | _ -> true) in
   bracket(separated_nonempty_list semisep (a(SEMI))) 
-  >> (fun ts -> List (map (fun t -> Plain' t) ts))
+  >> (fun ts -> List (map (fun t -> RawPlainTerm t) ts))
 
 let commasep = balancedB (function | SEMI | COMMA -> false | _ -> true)
 
 let tuple_term = 
   paren(separated_nonempty_list commasep (a(COMMA))) >>
-    (fun ts -> Tuple (map (fun t -> Plain' t) ts))
+    (fun ts -> Tuple (map (fun t -> RawPlainTerm t) ts))
   
 let set_enum_term = 
   brace(separated_nonempty_list commasep (a(COMMA))) >>
-    (fun ts -> SetEnum (map (fun t -> Plain' t) ts))
+    (fun ts -> SetEnum (map (fun t -> RawPlainTerm t) ts))
 
 let holding_var = (* comma needed for disambiguation *)
   possibly
     (a COMMA ++ paren(word "holding" ++ comma_nonempty_list(var))
-     >> (fun (_,(_,vs)) -> map (fun v -> TVar(v,None)) vs)
+     >> (fun (_,(_,vs)) -> map (fun v -> TVar(stored_string v,None)) vs)
     ) >> flatten
 
 let set_comprehension_term = 
   brace(commasep ++ holding_var ++ a MID ++ balanced) 
-  >> (fun (((a,b),_),c) -> Comprehension (Plain' a,b,Statement' c))
+  >> (fun (((a,b),_),c) -> Comprehension (RawPlainTerm a,b,RawStatement c))
 
 let case_term = 
   let alt_case = 
     a(ALT) ++ post_colon_balanced ++ a(ASSIGN) ++ post_colon_balanced in 
   word "case" ++ plus(alt_case) ++ word "end" 
-  >> (fun ((_,bs),_) -> Case (map (fun (((_,b),_),b') -> (Prop' b,Plain' b')) bs))
+  >> (fun ((_,bs),_) -> Case (map (fun (((_,b),_),b') -> (RawProp b,RawPlainTerm b')) bs))
 
 let match_term = 
-  let csv = separated_nonempty_list (post_colon_balanced >> (fun s -> Plain' s)) (a COMMA) in
+  let csv = separated_nonempty_list (post_colon_balanced >> (fun s -> RawPlainTerm s)) (a COMMA) in
   word "match" ++ csv ++ word "with" 
   ++ plus(a ALT ++ csv ++ a ASSIGN ++ post_colon_balanced
-          >> (fun (((_,ss),_),p)-> (ss,Plain' p)))
+          >> (fun (((_,ss),_),p)-> (ss,RawPlainTerm p)))
   ++ word "end"
   >> (fun ((((_,ss),_),ps),_) -> Match (ss,ps))
 
 let match_function = 
-  let csv = separated_nonempty_list (post_colon_balanced >> (fun s -> Plain' s)) (a COMMA) in
+  let csv = separated_nonempty_list (post_colon_balanced >> (fun s -> RawPlainTerm s)) (a COMMA) in
   word "function" ++ args_template ++ opt_colon_type
   ++ plus(a ALT ++ csv ++ a ASSIGN ++ post_colon_balanced
-          >> (fun (((_,ss),_),p) -> (ss,Plain' p)))
+          >> (fun (((_,ss),_),p) -> (ss,RawPlainTerm p)))
   ++ word "end"
   >> (fun ((((_,(s,s')),ty),ps),_) -> MatchFunction (s,s',ty,ps))
 
@@ -1786,30 +1838,14 @@ and tightest_terms input =
 
 (* tightest types *)
 
-let paren_expr = (* need to know a priori that balanced is an expr *)
-  paren(balanced)
-
-let annotated_type = 
-  paren(post_colon_balanced ++ a COLON ++ the_case_sensitive_word "Type") 
-  >> (fun ((t,_),_) -> Type' t)
-
 let controlseq_type = 
   let controlseq1 = some(fun t -> prim_type_controlseq_exists t) in
   cs_brace controlseq1 balanced 
-  >> fun (t,ts) -> TyControlSeq (t,ts)
-
-let const_type = 
-  someX(fun t -> prim_identifier_type_exists t.tok,TyId t)
-
-let var_type = 
-  let f v = prim_type_var_exists (stored_string v) in 
-  must f var >> (fun v -> TyVar (v))
-  ||| (paren(var ++ a COLON ++ the_case_sensitive_word "Type") 
-         >> (fun ((v,_),_) -> TyVar ( v)))
+  >> fun (t,ts) -> TyControlSeq (stored_string t,map (fun e -> RawExpr e) ts)
 
 let subtype = group "subtype"
   (brace(commasep ++ holding_var ++ a TMID ++ balanced))
-  >> (fun (((a,b),_),c) -> Subtype (Plain' a,b,Statement' c))
+  >> (fun (((a,b),_),c) -> Subtype (RawPlainTerm a,b,RawStatement c))
 
 
 let alt_constructor = a ALT ++ identifier ++ args_template ++ a COLON ++ post_colon_balanced
@@ -1820,7 +1856,7 @@ let opt_alt_constructor =
 
 let inductive_type = 
   group "inductive_type"
-    ((word "inductive" ++ identifier ++ args_template ++ possibly(colon_sortish')
+    ((word "inductive" ++ identifier ++ args_template ++ colon_sortish
       ++ many(opt_alt_constructor) ++ word "end")
      >> (fun (((((_,i),a),p),m),_) -> Inductive' (i,a,p,m)))
 
@@ -1828,7 +1864,8 @@ let mutual_inductive_type =
   group "mutual_inductive"
     ((word "inductive" ++ comma_nonempty_list(identifier) >> snd) 
      ++ args_template 
-     ++ many((word "with" ++ atomic >> snd) ++ args_template ++ colon_type ++ many(alt_constructor))
+     ++ many((word "with" ++ atomic >> snd) ++ args_template 
+             ++ colon_sortish ++ many(alt_constructor))
      ++ word "end" 
      >> fst
     ) >> (fun ((i1,i2),i3) -> Mutual' (i1,i2,i3))
@@ -1844,12 +1881,8 @@ let structure = group "structure"
 
 let tightest_type = 
   group "tightest_type"
-    (
-      (paren_expr  >> (fun t -> Type' t))
-      ||| annotated_type
+    (paren_type
       ||| controlseq_type
-      ||| const_type
-      ||| var_type
       ||| subtype
       ||| inductive_type
       ||| mutual_inductive_type
@@ -1864,7 +1897,7 @@ let identifier_prop =
 let precolon_sep = balancedB (function | COLON -> false | _ -> true)
 
 let annotated_prop = 
-  paren(precolon_sep ++ a COLON ++ the_case_sensitive_word "Prop" >> (fun ((p,_),_) -> Prop' p))
+  paren(precolon_sep ++ a COLON ++ the_case_sensitive_word "Prop" >> (fun ((p,_),_) -> RawProp p))
 
 let tightest_prop = 
   group "tightest_prop" 
@@ -1878,7 +1911,7 @@ let tightest_prop =
 let tightest_expr = 
   group "tightest_expr"
   (
-    (paren_expr >> (fun t -> Expr' t))
+    (paren_expr >> (fun t -> RawExpr t))
    ||| (tightest_term >> (fun t -> Eterm t))
    ||| (tightest_prop >> (fun t -> Eprop t))
    ||| (tightest_type >> (fun t -> Etyp t))
@@ -1886,25 +1919,25 @@ let tightest_expr =
   )
 
 let app_args = 
-  (possibly(record_assign) >> flatten) ++ many(tightest_expr)
+  (possibly(brace_assign) >> flatten) ++ many(tightest_expr)
+
+let app_term = tightest_term ++ app_args 
+             >> (fun (t,(r,e)) -> App (t,r,e))
 
 let tightest_arg = 
   (tightest_expr >> (fun e -> [e]))
-  ||| (paren(var_or_atomics ++ (possibly(colon_sortish') >> flatten)) 
+  ||| (paren(var_or_atomics ++ colon_sortish_meta) 
        >> (fun (ts,ts') -> 
-                 let ts' = if ts' = [] then [meta_node()] else ts' in 
-                 map (fun t -> ETightest'(t,ts')) ts)) 
+                 map (fun t -> ETightest(t,ts')) ts)) 
 
 let tightest_args = 
-  record_args_template ++ (many(tightest_arg) >> flatten)
+  brace_noassign ++ (many(tightest_arg) >> flatten)
 
-let app_term = tightest_term ++ app_args 
-             >> (fun (t,(r,e)) -> App' (t,r,e))
 
 let term_op = 
   let prim_term_op = 
     some(fun t -> prim_term_op_exists (stored_string_token t)) in 
-  (prim_term_op >> (fun t -> TermOp' t))
+  (prim_term_op >> (fun t -> RawTermOp t))
   ||| (controlseq_term prim_term_op_controlseq_exists)
 
 let term_ops = plus(term_op) 
@@ -1915,9 +1948,9 @@ let tdop_term = (* cannot be pure op *)
         >> (fun ts -> map (fun (t,a) -> t@ [a]) ts)
         >> flatten)  
     ++ (possibly(term_ops) >> flatten))
-   >> (fun ((a,b),c) -> Tdop' (a @ b @ c))
+   >> (fun ((a,b),c) -> RawTdop (a @ b @ c))
   ) 
-  ||| ((app_term ++ (possibly(term_ops) >> flatten)) >> (fun (t,ts) -> Tdop' (t :: ts)))
+  ||| ((app_term ++ (possibly(term_ops) >> flatten)) >> (fun (t,ts) -> RawTdop (t :: ts)))
   ||| (term_ops >> (fun _ -> failwith "tdop_term: term must contain at least one non-symbol"))
 
 let tdop_terms = comma_nonempty_list tdop_term
@@ -1953,22 +1986,22 @@ let else_balanced =
 
 let rec lambda_term input = 
   (prim_lambda_binder ++ (tightest_args ++ lit_binder_comma >> fst) ++ opentail_term
-  >> (fun ((i,j),k) -> Lambda' (i,j,k))) input
+  >> (fun ((i,j),k) -> Lambda (stored_string i,j,k))) input
 
 and mapsto_term input = 
   ((tdop_term ++ a MAPSTO >> fst) ++ opentail_term >> (fun (i,j) -> MapsTo (i,j) )) input
 
 and lambda_fun input = 
   ((word "fun" ++ tightest_args >> snd) ++ (opt_colon_type ++ a ASSIGN >> fst) ++ opentail_term
-  >> (fun ((i,j),k) -> LambdaFun' (i,j,k))) input 
+  >> (fun ((i,j),k) -> LambdaFun (i,j,k))) input 
 
 and let_term input = 
   (word "let" ++ tightest_prefix ++ a ASSIGN ++ in_balanced ++ word "in" ++ opentail_term
-  >> (fun (((((_,t),_),i),_),t') ->  Let' (t,i,t')))  input 
+  >> (fun (((((_,t),_),i),_),t') ->  Let (t,RawTerm i,t')))  input 
 
 and if_then_else_term input = 
   (word "if" ++ then_balanced ++ word "then" ++ else_balanced ++ word "else" ++ opentail_term 
-  >> (fun ((((((_,b),_),b'),_),t)) -> IfThenElse' (b,b',t))) input
+  >> (fun ((((((_,b),_),b'),_),t)) -> IfThenElse (RawProp b,RawTerm b',t))) input
   
 and  opentail_term input = 
   (lambda_term
@@ -1980,17 +2013,17 @@ and  opentail_term input =
 
 (* end recursion *)
 
-let where_suffix = record_assign
+let where_suffix = brace_assign
 
 let where_term = 
-  opentail_term ++ possibly where_suffix >> (fun (i,w) -> Where' (i,flatten w))
+  opentail_term ++ possibly where_suffix >> (fun (i,w) -> Where (i,flatten w))
 
 (* now return to props *)
 
 let binary_relation_op = 
   let prim_binary_relation_op = 
     some(fun t -> prim_binary_relation_exists (stored_string_token t)) in 
-  (prim_binary_relation_op >> (fun t -> TermOp' t))
+  (prim_binary_relation_op >> (fun t -> RawTermOp t))
   ||| (controlseq_term prim_binary_relation_controlseq_exists)
 
 
@@ -2028,7 +2061,7 @@ let rec binder_prop input =
 let prop_op = 
   let prim_propositional_op = 
     some(fun t -> prim_propositional_op_exists (stored_string_token t)) in 
-  (prim_propositional_op >> (fun t -> TermOp' t))
+  (prim_propositional_op >> (fun t -> RawTermOp t))
   ||| (controlseq_term prim_propositional_op_controlseq_exists)
 
 let prop_ops = plus(prop_op) >> (fun ts -> P_ops' ts)
@@ -2043,7 +2076,7 @@ let prop = tdop_prop
 (* return to loose types *)
 
 let over_args = 
-  (word "over" ++ record_assign >> snd >> (fun t -> Some t,None,None))  (* record *)
+  (word "over" ++ brace_assign >> snd >> (fun t -> Some t,None,None))  (* record *)
   ||| (word "over" ++ tightest_expr >> snd >> (fun t -> None,Some t,None))
   ||| (paren(word "over" 
             ++ comma_nonempty_list 
@@ -2071,11 +2104,11 @@ let rec binder_type input =
   ) input
 
 let agda_dependent_vars = 
-  (plus(annotated_vars) >> flatten)
+  (plus(annotated_vars >> map (fun (v,o) -> TVar(stored_string v,Some o))) >> flatten)
 
 let type_operand = 
   binder_type 
-  ||| (agda_dependent_vars >> (fun x -> TyAgda' x))
+  ||| (agda_dependent_vars >> (fun x -> TyAgda x))
 
 let prim_type_op = 
     some(fun t -> prim_type_op_exists (stored_string_token t))
@@ -2085,14 +2118,14 @@ let prim_type_op_controlseq =
 
 let controlseq_type_op  = 
   cs_brace prim_type_op_controlseq balanced 
-  >> fun (t,ts) -> TyControlSeq (t,ts)
+  >> fun (t,ts) -> TyControlSeq (stored_string t,map (fun e -> RawExpr e) ts)
 
 let type_op = 
   (prim_type_op >> (fun n -> TyOp' n))
   ||| controlseq_type_op
 
 let binop_type = 
-  (possibly(record_args_template) >> flatten)
+  (possibly(brace_noassign) >> flatten)
     ++ many(type_operand ++ type_op >> (fun (a,b)-> [a;b])) ++ binder_type 
   >> (fun ((r,ts),t) -> TyBinop' (r,flatten ts @ [t]))
 
@@ -2171,7 +2204,7 @@ let comma_or = a COMMA ++ word "or" ;;
 
 let filler = possibly(phrase_list_filler) 
 
-let has_possibly p = possibly p >> (function | [] -> false | _ -> true)
+
 
 
 let any_of_node n = 
@@ -2189,7 +2222,7 @@ let lit_any =
   (someword "every each all any some no" >> any_of_node) |||
     (phrase "some and every" >> (fun _ -> QAll))
 
-let any_arg = (var >> (fun t -> [(t,Colon' [])])) ||| annotated_vars
+let any_arg = (var >> (fun t -> [(t,RawPostColon [])])) ||| annotated_vars
 
 let attribute left (x : node list -> 'a parsed) right =
   many(left) ++ x ++ possibly(right)
@@ -2332,7 +2365,7 @@ and has_pred input : predicate parsed =
 
 and possessed_noun input : term parsed = 
   (attribute left_attribute (prim_possessed_noun (term,general_type)) right_attribute 
-   >> fun (l,x,r) -> TPossessedNoun (l,x,r)) input 
+   >> fun (l,x,r) -> TPossessedNoun (l,RawTermPattern x,r)) input 
 
 (* terms *)
 
@@ -2392,12 +2425,12 @@ and attribute_pseudoterm input : predicate parsed =
 
 and typed_name_without_attribute input : term parsed = 
   ((prim_typed_name (term,general_type)
-   >> fun p -> TPrimTypedName p               
+   >> fun p -> TPrimTypedName (RawTermPattern p)
   )
    ||| (tvar)
    ||| (prim_classifier ++ tvar >> snd)
    ||| (var ++ (lit_with ++ the_case_sensitive_word "Type") ++ opentail_type
-       >> (fun ((v,_),ty) -> TVar (v,Some ty))
+       >> (fun ((v,_),ty) -> TVar (stored_string v,Some ty))
        )
    ||| paren(typed_name_without_attribute)
   ) input
@@ -2422,7 +2455,7 @@ and any_name input : predicate parsed =
   ((lit_any 
     ++ 
       (comma_nonempty_list (any_arg) >> List.flatten
-      >> (List.map (fun (n,ty) -> TVar (n,Some ty)))
+      >> (List.map (fun (n,ty) -> TVar (stored_string n,Some ty)))
       )
     >> fun (a,c) -> PredAnyArg (a,c))
    ||| (lit_any ++ pseudoterm

@@ -6,95 +6,108 @@ type qany =
   | QNo
 [@@deriving show]
 
-type term = 
-  | TVar of node*(typ option)
-  | TVarAtomic of node*(typ option)
-  | Annotated of term*typ 
-  | Decimal of node
-  | Error'
+type raw = (* raw unprocessed data *)
+  | RawNodeList of node list
+
+
+and term = 
+  | RawTerm of node list
+  | RawPlainTerm of node list
+  | RawTermOp of node
+  | RawTdop of term list
+  | RawUnreachable
+  | RawTermPattern of pattern
+
+  | TVar of string * (typ option)
+  | Annotated of term * typ 
+  | Decimal of string
   | Integer of int (* XX should be BigInt *)
-  | String of node
+  | String of string 
   | Blank
-  | Id of node* typ option
-  | Unparsed' of node list
-  | ControlSeq of node* expr list
-  | Make of (node * typ * node list) list 
-  | Plain' of node list
+  | Id of string * typ option
+  | ControlSeq of string * expr list
+  | Make of typ option * (expr * expr * expr) list
   | List of term list
   | Tuple of term list
   | SetEnum of term list
-  | Case of (prop*term) list
+  | Case of (prop * term) list
   | Match of (term list) * (term list * term) list
-  | MatchFunction of (node list list) * (node * typ) list * typ * (term list * term) list
+
+  | MatchFunction of (expr * expr option) list * (node * typ) list * typ * (term list * term) list
   | Comprehension of term * term list * statement
   | FieldAccessor of term * node 
+
   | ApplySub of term * term list
-  | App' of term * (expr * expr * expr) list * expr list
-  | TermOp' of node
-  | Tdop' of term list
-  | MapsTo of term*term 
-  | Lambda' of node * (node list list * expr list) * term
-  | LambdaFun' of (node list list * expr list) * typ * term
-  | Let' of term * node list * term 
-  | IfThenElse' of node list * node list * term
-  | Where' of term * (expr * expr * expr) list
+  | App of term * (expr * expr * expr) list * expr list
+  | Lambda of string * ((expr * expr option) list * expr list) * term
+  | LambdaFun of ((expr * expr option) list * expr list) * typ * term
+  | MapsTo of term * term 
+  | Let of term * term * term 
+  | IfThenElse of prop * term * term
+  | Where of term * (expr * expr * expr) list
   | TPat of pattern 
   | TAnyName of predicate 
-  | TPossessedNoun of predicate list * pattern * predicate list 
-  | TPrimTypedName of pattern 
+  | TPossessedNoun of predicate list * term * predicate list 
+  | TPrimTypedName of term 
+(*  | TVarAtomic of string * (typ option) *) 
 
 and typ = 
-  | TyVar of node
-  | Colon' of node list
-  | Type' of node list
-  | TyControlSeq of node * node list list
-  | TyId of node 
+  | RawGeneralType of node list
+  | RawPostColon of node list 
+  | TyVar of string
+  | TyId of string
+  | TyControlSeq of string * expr list
   | Subtype of term * term list * statement 
-  | Structure' of ((node list list * (node * typ) list) * node list list * node list list) 
-  | Inductive' of (node * (node list list * (node * typ) list) * node list list *
-                     (node * (node list list * (node * typ) list) * typ) list)
+  | TyQuotient of typ * term
+  | TyGeneral of predicate list * typ * predicate list 
+  | TyCoerce of term 
+  | TyAgda of term list 
+
+  | Structure' of (((expr * expr option) list * (node * typ) list) * node list list * node list list) 
+  | Inductive' of node * ((expr * expr option) list * (node * typ) list) * expr * 
+                     (node * ((expr * expr option) list * (node * typ) list) * typ) list
   | Mutual' of (node list * 
-                  (node list list * (node * typ) list) *
-                    ((((node * (node list list * (node * typ) list)) * node list) *
-                        ((((node * node) * (node list list * (node * typ) list)) * node) *
+                  ((expr * expr option) list * (node * typ) list) * 
+                    ((((node * ((expr * expr option) list * (node * typ) list)) * expr) * 
+                        ((((node * node) * ((expr * expr option) list * (node * typ) list)) * node) * 
                            node list)
                           list) list))
   | Over' of node * 
                (expr * expr * expr) list * 
-                 expr list *
+                 expr list * 
                    ((expr * expr * expr) list option * expr option * node list list option) list
   | TyApp' of typ * (expr * expr * expr) list * expr list
-  | TyBinder' of node * node list list * expr list * typ 
-  | TyAgda' of (node*typ) list
+  | TyBinder' of node * (expr * expr option) list * expr list * typ 
   | TyOp' of node 
-  | TyBinop' of node list list * typ list 
-  | TyCoerce of term 
-  | TyQuotient of typ * term
-  | TyGeneral of predicate list * typ * predicate list 
+  | TyBinop' of (expr * expr option) list * typ list 
+
 
 and prop = 
+  | RawProp of node list 
   | PVar of node
-  | Prop' of node list
   | PStatement' of node list 
   | PRel of node 
   | Ptdopr' of (term * term * term) list
   | PApp' of prop * (expr * expr * expr) list * expr list
-  | PLambda' of node list list * expr list * prop
-  | PBinder' of node * node list list * (node * typ) list * prop
+  | PLambda' of (expr * expr option) list * expr list * prop
+  | PBinder' of node * (expr * expr option) list * (node * typ) list * prop
   | P_ops' of term list 
   | Ptdop' of prop list
 
+and environment = 
+  | EVar of string * expr * bool (* name, type-expr, fixed? *)
+
 and statement = 
-  | Statement' of node list 
-  | LetAnnotation' of (node*typ*bool) list (* true = fixed variable *)
+  | RawStatement of node list 
+  | LetAnnotation of environment list 
   | StateForAny of predicate list * statement 
-  | StateIfThen of statement*statement
+  | StateIfThen of statement * statement
   | StateAnd of statement list
   | StateOr of statement list
   | StatePrimary' of node list
-  | StateIff of statement*statement
+  | StateIff of statement * statement
   | StateNot of statement 
-  | StateThereExist of bool* predicate list  
+  | StateThereExist of bool * predicate list  
   | StateTrue
   | StateFalse 
   | StateProp of prop
@@ -131,12 +144,15 @@ and proof =
   | Proof
 
 and expr = 
+  | RawExpr of node list 
+  | Raw_Colon_Sortish of node list  
+
   | Eterm of term
   | Etyp of typ
   | Eprop of prop
   | Eproof
-  | Expr' of node list
-  | ETightest' of node * node list (* expr, its type info *)
+  | ETightest of node * expr (* expr, its type info *)
+
 
 and pattern = (* what wordpattern get translated to for parsing *)
   | Pat_var_term
@@ -153,6 +169,13 @@ and pattern = (* what wordpattern get translated to for parsing *)
   | Pat_symbol of string 
   | Pat_controlseq of string * pattern list 
   | Pat_names of pattern list
+
+and instruct = 
+  | InstructSyn of string list list 
+  | InstructCommand of string
+  | InstructString of string * string
+  | InstructBool of string * bool
+  | InstructInt of string * int 
 [@@deriving show]
 
 type associativity = 
@@ -178,18 +201,21 @@ type wordpattern =
   | Wp_sym of node 
   | Wp_syn of node list 
   | Wp_opt of node 
-  | Wp_var of node* typ
-  | Wp_fix of node* typ
+(*  | Wp_var of node * typ
+  | Wp_fix of node * typ
+ *)
+  | Wp_var of node * typ 
+  | Wp_env of environment
   | Wp_ty_word of wordpattern list
-  | Wp_bin_cs of wordpattern*(node*(wordpattern list))*wordpattern
-  | Wp_ty_identifier of node* node list list * ((node * typ) list)
+  | Wp_bin_cs of wordpattern * (node * (wordpattern list)) * wordpattern
+  | Wp_ty_identifier of node * (expr * expr option) list * ((node * typ) list)
   | Wp_ty_cs of node * wordpattern list
   | Wp_cs of node * wordpattern list
   | Wp_sympat of wordpattern list * int option  * associativity
   | Wp_sympatP of wordpattern list * int option  * associativity
   | Wp_sympatT of wordpattern list
-  | Wp_identifier of node* node list list * ((node * typ) list)
-  | Wp_identifierP of node* node list list * ((node * typ) list)
+  | Wp_identifier of node * (expr * expr option) list * ((node * typ) list)
+  | Wp_identifierP of node * (expr * expr option) list * ((node * typ) list)
   | Wp_fun_word of wordpattern list
   | Wp_notion of wordpattern list
   | Wp_adj of wordpattern list
@@ -201,8 +227,11 @@ type wordpattern =
   | Wp_record of node list list * this_adj list
 (*  | Wp_implement of node list * node list list *)
   | Wp_namespace of node
-  | Wp_binder of wordpattern * node * node list (* wp, var, ty *)
+  | Wp_binder of wordpattern * node * expr (* wp, var, ty *)
 [@@deriving show]
+
+
+
 
 
 type scope = string list (* hierarchical identifiers *)
@@ -264,15 +293,15 @@ type prim =
 [@@deriving show]
 
 type text_node = 
-  | Section_preamble of pos*int*string (* new current section *)
-  | Instruction of pos*string (* keyword *)
-  | Axiom of pos*string*string * statement list * statement list  (* kind,label,assumptions,conclusions *)
+  | Section_preamble of pos * int * string (* new current section *)
+  | Instruction of pos * instruct (* keyword *)
+  | Axiom of pos * string * string * statement list * statement list  (* kind,label,assumptions,conclusions *)
   | Definition of pos * string * statement list * (wordpattern * node list) list * this_adj list (* label, assumptions, word patterns and definitions.  *)
   | Theorem of pos * string * statement list * statement list  (* label, assumptions ,conclusions *)
   | Synonym of pos
   | Fiat of wordpattern list
-  | Implement of pos * node list * node list list (* was wordpattern *)
-  | Macro of pos* int * (wordpattern * node list) list
+  | Implement of pos * typ * raw list (* was wordpattern *)
+  | Macro of pos * int * (wordpattern * node list) list
   | Namespace
 [@@deriving show]
 
@@ -283,7 +312,7 @@ type trace =
   | TrAdd of trace list
   | TrOr of trace list
   | TrGroup of string * trace
-  | TrFail of int*int*token 
+  | TrFail of int * int * token 
   | TrData of token list
   | TrString of string 
   | TrEmpty

@@ -410,24 +410,24 @@ tvar : VAR | annotated_var {()}
 
 assign_expr : ASSIGN expr {()} 
 
-record_assign :
+brace_assign :
   brace_semi(var_or_atomic (* opt_colon_type - not needed *) assign_expr {})  {()} 
 
-record_args_template : 
+brace_noassign : 
   brace_semi(var_or_atomics opt_colon_type {}) {()}
 
 app_args :  (* can be empty *)
-  option( record_assign {}) list(tightest_expr) {()}
+  option( brace_assign {}) list(tightest_expr) {()}
 
 
 (* function and binder parameters. *)
 
-args_template : option( record_args_template {}) required_args_template {()}
+args_template : option( brace_noassign {}) required_args_template {()}
 
          (* A brace_semi as the first argument to a function is
-            ambiguious: it could be either a record_args_template or a required
+            ambiguious: it could be either a brace_noassign or a required
             arg that takes the form of a make_term.  The convention is
-            that the principal interpretation is record_args_template.  But if it
+            that the principal interpretation is brace_noassign.  But if it
             contains a field name that is not an optional argument,
             then it is interpreted as a make_term. *)
 
@@ -462,7 +462,7 @@ args_template : option( record_args_template {}) required_args_template {()}
  (* unambiguous boundaries of terms needed here *)
  (* This allows too much. We should restrict further to admissible patterns. *)
 
-tightest_args : record_args_template list(tightest_arg) {()}
+tightest_args : brace_noassign list(tightest_arg) {()}
 
   tightest_arg : 
   | tightest_expr
@@ -571,7 +571,7 @@ binder_type :
     all type operators are right assoc with the same precedence
     N.B. binder_types is tighter than binop_type, which might be non-intuitive.  *)
 binop_type : 
-    option( record_args_template {})
+    option( brace_noassign {})
       list(type_operand type_op {}) binder_type  {()}
 
   type_op :
@@ -610,7 +610,12 @@ general_type : attribute(opentail_type) {}
 colon_type :
   | COLON general_type
   | COLON prim_relation app_args
+  | COLON coerced_type 
 {}
+
+coerced_type :
+      coercion_type
+      | term {}
 
 opt_colon_type : option(colon_type) {}
 
@@ -626,7 +631,7 @@ inductive_type : LIT_INDUCTIVE identifier args_template
 
 mutual_inductive_type : LIT_INDUCTIVE
   comma_nonempty_list(identifier) args_template 
-  list(LIT_WITH atomic args_template colon_type
+  list(LIT_WITH atomic args_template opt_colon_type
        list(alt_constructor) {}) 
   LIT_END
   {()}
@@ -724,7 +729,7 @@ delimited_term :
 
 annotated_term : paren(term colon_type {}) {()}
 
-make_term : LIT_MAKE brace_semi(var_or_atomic_or_blank opt_colon_type
+make_term : LIT_MAKE option(tightest_type) brace_semi(var_or_atomic_or_blank opt_colon_type
   option(assign_expr {}) {}) {()}
 
   var_or_atomic_or_blank : 

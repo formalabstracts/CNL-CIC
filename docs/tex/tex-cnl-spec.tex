@@ -489,7 +489,7 @@ namespaces.  The real absolute value would probably be found in the real numbers
 and the absolute value on integers would probably be found in the integer namespace.
 As hierarchical identifiers for namespaces, 
 we would have \verb!real.abs! and \verb!int.abs!.  
-Thus, \verb!\realabs! and \verb!intabs! should be the macro names
+Thus, \verb!\realabs! and \verb!\intabs! should be the macro names
 (rather than say, \verb!\absreal!). 
 
 Complete correctly-spelled words are better than abbreviations.  
@@ -526,7 +526,8 @@ Limit name length to at most 20 characters, and limit the word count in the
 name to 4.  Generally avoid plural nouns in names. 
 
 
-Name qualifiers should be suffixes (not prefixes). (Give examples.)
+Name qualifiers should be suffixes (not prefixes). For example,
+\verb!\sumBig! and \verb!\sumSmall!
 
 Do not redefine existing macros.
 
@@ -546,12 +547,13 @@ Different macros should differ in more than word order.
 We make an exception when the ordering aligns with the semantics.
 
 \begin{tabular}{lll}
- incorrect: &\verb!sumfromto{a}{b}{f}!\\ &\verb!sumtofrom{a}{b}{f}!\\
+ incorrect: &\verb!\sumfromto{a}{b}{f}!\\ &\verb!\sumtofrom{a}{b}{f}!\\
  permissible: &\verb!\realintervalopenclosed{a}{b}! for $(a,b]$\\
     &\verb!\realintervalclosedopen{a}{b}! for $[a,b)$.
 \end{tabular} 
 
 Users can always define their own abbreviated macro names for local use.
+Those will not become part of the shared libraries.
 
 
 \section{outstanding issues}
