@@ -97,6 +97,11 @@ let endseq = [%sedlex.regexp? "\\end", Star(white), "{", Star(white),
 let inputseq = [%sedlex.regexp? "\\input", Star(white), "{", Star(white), 
                 Plus(alphanum), Star(white), "}"] 
 
+let alphafile = [%sedlex.regexp? alphabet | numeral10 | '_' | '-' | '.' | '/' ]
+
+let cnlinputseq = [%sedlex.regexp? "\\Cnlinput", Star(white), "{", Star(white), 
+                Plus(alphafile), Star(white), "}"] 
+
 let cnlenvdel = [%sedlex.regexp? "\\CnlEnvirDelete", 
                  Star(white), "{", Star(white), 
                 Plus(alphabet) ,  Opt("*"), Star(white), "}"] 
@@ -206,6 +211,7 @@ let rec lex_token buf =
     | endseq -> EndSeq(strip_to_brace(string_lexeme buf))
     | cnlenvdel -> Cnlenvdel(strip_to_brace(string_lexeme buf))
     | inputseq -> Input(strip_to_brace(string_lexeme buf))
+    | cnlinputseq -> Input(strip_to_brace(string_lexeme buf))
     | format_eol -> FormatEol
     | format_col -> FormatCol
     | controlseq -> ControlSeq(drop (string_lexeme buf) 1) (* was 2 *)

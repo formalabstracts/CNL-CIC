@@ -129,14 +129,6 @@ let rec concat_toks =
     | [Tok t] -> Tok t
     | _ -> Error "concat_toks must be nonempty token list";;
 
-let debug = true;;
-
-let print_debug_endline s = if debug then print_endline s else ();;
-let print_debug s = if debug then print_string s else ();;
-
-let print_debug_token tok = 
-  if debug then print_string ((token_to_string_output tok)^" ") else ();;
-
 let mk_label toks = 
   let t = "Label_"^(tokens_to_clean_string toks) in (* force initial letter *)
   Label t ;;
@@ -187,13 +179,29 @@ let toks = List.map f rs in
   {
     infile = infile; 
     outfile = outfile;
-    outc = open_out outfile;
+    outc = stdout (* open_out outfile XX DEBUG *);
     intoks = List.flatten toks;
   };;
 
-let output_token ios tok = 
-  let _ = print_debug_token tok in 
-  output_string (ios.outc) (token_to_string_output tok);;
+let close_out _ = ();; (* XX DEBUG *)
+
+let debug = true;;
+
+let print_token tok = print_string ((token_to_string_output tok)^" ")
+
+let print_endline_debug s = if debug then print_endline ("\n%--"^s) else ();;
+
+let print_string_debug s = if debug then print_string s else ();;
+
+let print_token_debug tok = 
+  if debug then print_token tok else ();;
+
+let output_token_debug ios (* ios *) tok = 
+  let _ = print_token_debug tok in
+  output_string ios.outc (token_to_string_output tok);;
+
+let output_token _ tok = 
+  print_token tok ;;
 
 let output_token_list ios toks = 
   ignore(List.map (output_token ios) toks);;
@@ -457,7 +465,6 @@ let debug_show_macrotable () =
 
 let setmacro f = 
   let _ = (macrotable := f :: !macrotable) in
-(*  let _ = print_debug (debug_macro_to_string f) in *)
   ();;
 
 let envdeltable = ref []  ;;
@@ -488,7 +495,6 @@ let nopar ios toks s =
   toks';;
 
 let process_controlseq ios cs_string =
-(*  let _ = print_debug ("[process-cs:"^cs_string^"]") in *)
   match cs_string with
   | "CnlDelete" -> 
       let i = input_brack_num ios in
@@ -530,14 +536,13 @@ let process_controlseq ios cs_string =
   | _ -> let otoks = opt_assoc !macrotable cs_string in
          (match otoks with
          | Some (k,pat) -> 
-(*             let _ = if (k>0) then print_debug "[expanding macro," else () in  *)
              let skip = [FormatCol;FormatEol] in
              let args = (input_matched_brace_list ios [] skip k) in 
              let repl_text = macroexpand [] pat args in 
 (*             let _ = if (k>0) then 
-                       (print_debug "expanded macro:";
-                        ignore(List.map print_debug_token repl_text);
-                        print_debug "]") in  *)
+                       (print_string_debug "expanded macro:";
+                        ignore(List.map print_token_debug repl_text);
+                        print_string_debug "]") in  *)
              (return_input ios repl_text;[])
          | None ->
              if is_math_font(cs_string) then (* \mathfrak{C} -> C__mathfrak *)
@@ -775,44 +780,56 @@ let rec process_environ ios e_stack =
 let rec debug_process_environ ios e  = 
   let tok = input ios NoTrackPar in 
   match tok with
-  | EndCnl | Input _ | Eof -> (tok) 
+  | EndCnl | Input _  | Eof -> (tok) 
     | _ ->          (transcribe_token ios false (fun _ -> true) [] tok;
             debug_process_environ ios e)
 ;;
 
 let rec seek_cnl_block ios = 
   match (input ios NoTrackPar) with
-  | BeginCnl -> BeginCnl 
+  | BeginCnl -> (print_endline_debug "found cnl block"; 
+                    BeginCnl) 
   | Eof -> Eof 
   | _ -> seek_cnl_block ios;;
 
-  (* returns Eof, or Input *)
-let rec process_cnl_block ios = 
-  match seek_cnl_block ios with
+let rec continue_cnl_block ios = 
+  match (process_environ ios [null_env]) with
+  | EndCnl -> seek_and_continue_cnl_block ios 
   | Eof -> Eof
-  | _ -> (match (process_environ ios [null_env]) with
-         | EndCnl -> process_cnl_block ios 
-         | Eof -> Eof
-         | Input _ as t -> t
-         | _ -> (output_error ios "fatal, ending file"; Eof));;  
+  | Input _ as t -> t
+  | _ -> (output_error ios "fatal, ending file"; Eof)
 
-let rec process_ios convert_toks io_stack = 
+  (* returns Eof or Input *)
+and seek_and_continue_cnl_block ios = 
+  match seek_cnl_block ios with
+  | BeginCnl -> continue_cnl_block ios
+  | t -> t ;;  
+
+let process_cnl_block continue ios = 
+  if continue then continue_cnl_block ios else seek_and_continue_cnl_block ios;;
+
+let rec process_ios continue convert_toks io_stack = 
   if io_stack = [] then true 
   else
     try 
       let ios = List.hd io_stack in
-      match (process_cnl_block ios) with
-      | Eof -> let _ = close_out ios.outc in process_ios convert_toks (List.tl io_stack)
+      match (process_cnl_block continue ios) with
+      | Eof -> let _ = close_out ios.outc in 
+               let _ = print_endline_debug (" closing "^ios.infile) in 
+               let _ = print_endline_debug (" returning to previous file") in
+               let io_stack' = List.tl io_stack in 
+               process_ios true convert_toks (io_stack')
       | Input filename -> (let ios' = mk_iochannels convert_toks filename in
-                           process_ios convert_toks (ios' :: io_stack))
+                           let _  = print_endline_debug (" opening:" ^ filename) in 
+                           process_ios true convert_toks (ios' :: io_stack))
       | _ -> (output_error ios ("fatal file error, closing: "^ios.outfile); close_out(ios.outc);
-              process_ios convert_toks (List.tl io_stack))
+              process_ios continue convert_toks (List.tl io_stack))
     with Failure _ ->
            let _ = List.map (fun x -> close_out(x.outc)) io_stack in
            false;;
   
 let process_doc convert_toks filename = 
-  process_ios convert_toks [mk_iochannels convert_toks filename];;
+  process_ios false convert_toks [mk_iochannels convert_toks filename];;
 
 
 (* fin *)
