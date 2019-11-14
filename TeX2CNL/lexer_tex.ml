@@ -236,6 +236,6 @@ let lex_string s : token list =
   let buf = Sedlexing.Latin1.from_string s in 
   lex_tokens [] buf;;
 
-let test_lex_string() = List.map print_endline (List.map lex_token_to_string (lex_string "A B C hello\\alpha33[1]there !ready! \\begin{ cnl } Riemann-Hilbert Riemann\\-Hilbert Poincar\\\'e {\\ae} { \\ae} (xx) \\input{file} \\mathfrak{C}33 [$] {yy} %comment \n more #4 # 5  $ )))))))) {~less than or equal to}"));;
+let test_lex_string() = List.map print_endline (List.map lex_token_to_string (lex_string "A B C hello\\alpha33[1]there !ready! \\begin{ cnl } Riemann-Hilbert Riemann\\-Hilbert Poincar\\\'e {\\ae} { \\ae} (xx) \\input{file} \\mathfrak{C}33 [$] {yy} %comment \n more #4 # 5  $ )))))))) {~less than or equal to} is \\df{well\\-founded} xx"));;
               
 

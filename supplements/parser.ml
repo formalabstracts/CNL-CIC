@@ -346,15 +346,12 @@ let rec somecomb parser =
   | [] -> failparse 
   | t :: ts -> parser t ||| somecomb parser ts
 
-
-
 (* words *)
 
 let is_word v = 
   let u = String.lowercase_ascii v in 
   let isword = String.length u = 1 && 'a' <= u.[0] && u.[0] <= 'z' in
   (isword,u)
-
 
 let word s input = 
   let u = singularize s in
@@ -975,6 +972,10 @@ let axiom_preamble =
      | (({ tok = WORD (_,w); _ },ls),_) -> (w,getlabel ls) 
      | _ -> failwith "axiom_preamble:unreachable-state")
 
+let moreover_statement = 
+  (word "moreover" ++ balanced ++ getpos ++ a (PERIOD)
+   >> (fun (((_,b),p),_) -> (RawStatement b,p)))
+
 let axiom = 
   commit_head "axiom" axiom_preamble
   (fun head -> 
@@ -982,8 +983,7 @@ let axiom =
           ++ head 
           ++ possibly_assumption
           ++ balanced ++ getpos ++ a(PERIOD) 
-          ++ (many(word "moreover" ++ balanced ++ getpos ++ a (PERIOD)
-               >> (fun (((_,b),p),_) -> (RawStatement b,p)))
+          ++ (many moreover_statement
              >> Lib.unzip)
           >> (fun ((((((p,(w,labl)),ls),st),p'),_),(sts,ps)) -> 
             Axiom (merge_pos(p :: p' :: ps),w,labl,ls,RawStatement st :: sts))))
@@ -1025,11 +1025,10 @@ let rec affirm_proof input =
 
 and statement_proof input = 
   (getpos ++ then_prefix ++ balanced ++ by_ref ++ a(PERIOD)
-   ++ many(word "moreover" ++ balanced ++ a (PERIOD)
-            >> (fun ((_,b),_) -> RawStatement b))
-   ++ getpos ++ possibly (proof_script) 
+   ++ (many moreover_statement >> unzip)
+   ++ possibly (proof_script) 
    >> 
-     (fun (((((((p,_),b),_),_),sts),p'),_) -> (pair_pos (p,p'),RawStatement b :: sts))) input
+     (fun ((((((p,_),b),_),_),(sts,ps)),_) -> (merge_pos (p :: ps),RawStatement b :: sts))) input
 
 and goal_proof input = 
   (goal_prefix ++ balanced ++ by_ref ++ a(PERIOD) ++ 
@@ -1648,7 +1647,7 @@ let text =
       ||| (group "instruction" instruction)
       ||| (group "axiom" axiom)
       ||| (definition)
-      ||| (group "theorem" theorem)
+      ||| theorem
       ||| (group "fiat" fiat)
       ||| (group "macro" macro)
       ||| (group "synonym_statement" synonym_statement)

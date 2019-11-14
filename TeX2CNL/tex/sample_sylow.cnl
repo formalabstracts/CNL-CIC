@@ -418,6 +418,11 @@
  
  
  
+ 
+ 
+ 
+ 
+ 
  %-% BEGIN 
  
  
@@ -560,7 +565,7 @@
  } . 
   
  
- Definition Label_in .  
+ Definition Label_set_in .  
  We write  x \inX  ( inferring C : 
  notation_in ) iff  C .notation_in x X  . 
   
@@ -640,7 +645,7 @@
  notation_zero is the notational structure with 
  { 
   V__alpha : Type  
- ;  notation_zero : V__alpha  
+ ; notation_zero  : V__alpha  
  } . 
   
  
@@ -715,11 +720,11 @@
   
  
  Definition Label_natural_number_addition .  
- We define  add ( m n : Nat ) :=  
+ We define add  ( m n : Nat ) :=  
   match n  with 
   
  \alt 0   :=   m  
- \alt succ k   :=   succ ( add m k )  
+ \altsucc  k   :=  succ  ( add m k )  
  end . 
  This exists by recursion . 
   
@@ -730,11 +735,11 @@
  } . 
  
  Definition Label_natural_number_multiplication .  
- We define  mul ( m n : Nat ) :=  
+ We define mul  ( m n : Nat ) :=  
   match n  with 
   
  \alt 0   :=   0  
- \alt k +1   :=   succ ( mul m k + m )  
+ \alt k +1   :=  succ  ( mul m k + m )  
  end . 
  This exists by recursion . 
   
@@ -757,9 +762,9 @@
  In this section , let  V__alpha  be a type . 
  
  Definition Label_list .  
- Let  list ( of ) V__alpha  be the inductive type 
+ Let list  ( of ) V__alpha  be the inductive type 
   
- \alt null { }   :   list  
+ \altnull  { }   :   list  
  \alt cons   :   V__alpha \tolist \tolist  
  end . 
   
@@ -781,7 +786,7 @@
  We introduce synonyms size / length . 
  
  Definition Label_length .  
- Let  length : list V__alpha \toNat :=  function 
+ Let length  : list V__alpha \toNat :=  function 
   
  \alt \nullbrack  :=   0  
  \alt a :: A   :=  1 + length A 
@@ -789,18 +794,18 @@
  This exists by recursion . 
   
  
- Definition Label_in .  
- Let  in ( x : V__alpha ) : list V__alpha \toProp :=  function 
+ Definition Label_list_in .  
+ Let list_in  ( x : V__alpha ) : list V__alpha \toProp :=  function 
   
  \alt \nullbrack  :=  false 
- \alt a :: A   :=   ( x = a ) \lor( in x A )  
+ \alt a :: A   :=   ( x = a ) \lor( list_in x A )  
  end . 
  This exists by recursion . 
   
  
  Moreover , list implements 
  { 
- ( notation ) notation_in  ( x : V__alpha ) ( X : list V__alpha ) := in x X  
+ ( notation ) notation_in  ( x : V__alpha ) ( X : list V__alpha ) := list_in x X  
  } . 
  
  
@@ -809,12 +814,12 @@
  
  
  Definition Label_drop .  
- Let  drop ( x : V__alpha ) : list V__alpha \tolist V__alpha :=  
+ Let drop  ( x : V__alpha ) : list V__alpha \tolist V__alpha :=  
  function 
   
  \alt \nullbrack  :=  \nullbrack
  \alt a :: A   :=  
-  if ( x = a ) then A else a :: ( drop x A )  
+ if  ( x = a ) then A else a :: ( drop x A )  
  end . 
  This exists by recursion . 
   
@@ -822,12 +827,12 @@
  Subsection multiset . 
  
  Definition Label_nodup .  
- Let  nodup : list V__alpha \toProp :=  
+ Let nodup  : list V__alpha \toProp :=  
  function 
   
  \alt \nullbrack  :=  true 
  \alt a :: A   :=  
-  nodup A \landa \not\inA  
+ nodup  A \landa \not\inA  
  end . 
  This exists by recursion . 
   
@@ -842,7 +847,7 @@
  
  
  Definition Label_is_permutation .  
- Let  is_permutation X Y : Prop :=  
+ Let is_permutation  X Y : Prop :=  
  match  ( X , Y )  with 
   
  \alt ( \nullbrack, \nullbrack)   :=  true 
@@ -863,8 +868,8 @@
  
  
  
- Definition Label_multiset .  Let multiset ( of )  V__alpha  denote the quotient 
- of  list V__alpha  by 
+ Definition Label_multiset .  Let multiset of  V__alpha  denote the quotient 
+ of list  V__alpha  by 
  is_permutation . This exists . 
   
  
@@ -899,7 +904,7 @@
  We introduce synonyms element / point / carrier . 
  
  Definition Label_duplicate_free_multiset .  
- A duplicate_free_multiset is a structure with 
+ A duplicatefreemultiset is a structure with 
  { 
  ( parameter ) element : Type 
  ; support : multiset element 
@@ -952,7 +957,7 @@
  
  
  
- ( fun ( X : duplicate_free_multiset V__alpha ) := ( \setcomp{ x } { x \insupport of X } : finite set V__alpha ) ) . 
+ ( fun ( X : duplicatefreemultiset V__alpha ) := ( \setcomp{ x } { x \insupport of X } : finiteset V__alpha ) ) . 
   
  This exists and is unique . 
  
@@ -1002,14 +1007,14 @@
  Section Order . 
  
  Definition Label_binary_relation .  
- A binary_relation is a structure with 
+ A binaryrelation is a structure with 
  { 
  ( parameter , type ) element : Type 
  ; a ( map )  relation : element \toelement \toProp  
  } . 
   
  
- In this section , fix  ( R : binary_relation )  ; and 
+ In this section , fix  ( R : binaryrelation )  ; and 
  let  ( s x y z : R )  ; and 
  write  x \ley  iff  R x y  . 
  
@@ -1045,9 +1050,9 @@
  antisymmetric preorder . 
   
  
- Let partially ordered set stand for poset . 
+ Let partiallyorderedset stand for poset . 
  
- Definition Label_linear_order .  We say that  R  is a linear order iff  R  
+ Definition Label_linear_order .  We say that  R  is a linearorder iff  R  
  is a total poset . 
   
  
@@ -1056,22 +1061,22 @@
  We introduce synonyms greatest / maximum / top . 
  
  Definition Label_greatest_element .  We say that  y  is a 
- greatest element in  R  iff for all  x , x \ley  . 
+ greatestelement in  R  iff for all  x , x \ley  . 
   
  
  We introduce synonyms least / minimum / bottom . 
  
- Definition Label_least_element .  We say that  y  is a least element in 
+ Definition Label_least_element .  We say that  y  is a leastelement in 
   R  iff for all  x , y \lex  . 
   
  
  Let  x < y  stand for  x \ley  and  x \ney  . 
  
- Definition Label_maximal_element .  We say that  y  is a maximal element 
+ Definition Label_maximal_element .  We say that  y  is a maximalelement 
  in  R  iff there exists no  x  such that  y < x  . 
   
  
- Definition Label_minimal_element .  We say that  y  is a minimal element 
+ Definition Label_minimal_element .  We say that  y  is a minimalelement 
  in  R  iff there exists no  x  such that  x < y  . 
   
  
@@ -1080,7 +1085,7 @@
   
  
  Definition Label_asymmetric .  We say that  R  is asymmetric iff for 
- all  x y , x < y implies that not y < x  . 
+ all  x y , x < y implies not y < x  . 
   
  
  Definition Label_strict_partial_order .  We say that  R  is a 
@@ -1090,11 +1095,11 @@
  
  Let  S  be a set of  R  . 
  
- Definition Label_upper_bound .  We say  x  is an upper bound of  S  in  R  
+ Definition Label_upper_bound .  We say  x  is an upperbound of  S  in  R  
  iff  s \lex for all s \inS  . 
   
  
- Definition Label_lower_bound .  We say  x  is a lower bound of  S  in  R  
+ Definition Label_lower_bound .  We say  x  is a lowerbound of  S  in  R  
  iff  x \les  for all  s \inS  . 
   
  
@@ -1103,42 +1108,42 @@
   S  in  R  such that  s \inS  . 
   
  
- We introduce synonyms least upper bound / join / supremum . 
+ We introduce synonyms leastupperbound / join / supremum / suprema / sup . 
  
- We introduce synonyms greatest lower bound / meet / infimum . 
+ We introduce synonyms greatestlowerbound / meet / infimum / infima / inf . 
  
- Definition Label_least_upper_bound .  We say  x  is a least upper bound of 
+ Definition Label_least_upper_bound .  We say  x  is a leastupperbound of 
   S  in  R  iff  x  is an upper bound of  S  such that for every upper 
  bound  y  of  S  we have  x \ley  . 
   
  
  Definition Label_greatest_lower_bound .  We say  x  is a 
- greatest lower bound of  S  in  R  iff  x  is a lower bound of  S  such that for 
- every lower bound  y  of  S  we have  y \lex  . 
+ greatestlowerbound of  S  in  R  iff  x  is a lowerbound of 
+  S  such that for every lower bound  y  of  S  we have  y \lex  . 
   
  
- Definition Label_join_semilattice .  We say  R  is a join semilattice iff 
+ Definition Label_join_semilattice .  We say  R  is a joinsemilattice iff 
  for every  x , y  , there exists a least upper bound of  \setenum{ x , y }  in 
   R  . 
   
  
- Definition Label_meet_semilattice .  We say  R  is a meet semilattice iff 
- for every  x , y  , there exists a greatest lower bound of  \setenum{ x , y }  in 
+ Definition Label_meet_semilattice .  We say  R  is a meetsemilattice iff 
+ for every  x , y  , there exists a greatestlowerbound of  \setenum{ x , y }  in 
   R  . 
   
  
- Definition Label_join .  Assume  R  is a join semilattice . Then let 
-  join x y  be the least upper bound of  \setenum{ x , y }  in  R  . 
+ Definition Label_join .  Assume  R  is a joinsemilattice . Then let 
+  join x y  be the leastupperbound of  \setenum{ x , y }  in  R  . 
  This exists and is unique . 
   
  
- Definition Label_meet .  Assume  R  is a meet semilattice . Then let 
+ Definition Label_meet .  Assume  R  is a meetsemilattice . Then let 
   meet x y  be the greatest lower bound of  \setenum{ x , y }  in  R  . 
  This exists and is unique . 
   
  
- Definition Label_lattice .   R  is a lattice iff  R  is a join semilattice 
- and a meet semilattice . 
+ Definition Label_lattice .   R  is a lattice iff  R  is a joinsemilattice 
+ and a meetsemilattice . 
   
  
  
@@ -1177,7 +1182,7 @@
  
  Section MoreonNaturalNumbers . 
  
- In this section , let  m , n , d , p , r  be natural numbers . 
+ In this section , let  m , n , d , p , r  be naturalnumbers . 
  
  Definition Label_nat_le .  
  We write that  nat.nat_le m n  iff there exists  d  such that  m + d = n  . 
@@ -1202,9 +1207,9 @@
  
  
  
- We introduce synonyms number /- s . 
  
- Let natural number stand for Nat . 
+ 
+ Let naturalnumber stand for Nat . 
  
  Definition Label_divides .  
  We say that  d  divides  m  iff  d \ne0  and there exists  r  
@@ -1218,7 +1223,7 @@
  
  
  Definition Label_natpow .  
- Assume that  b , n  are natural numbers . Then we define 
+ Assume that  b , n  are naturalnumbers . Then we define 
   \natpow{ b } { n } :=  
   match n  with 
   
@@ -1229,14 +1234,14 @@
   
  
  Definition Label_prime .  
- Assume that  p  is a natural number greater than  1  . Then we say that  p  
+ Assume that  p  is a naturalnumber greater than  1  . Then we say that  p  
  is a prime iff each divisor of  p  is equal to  1  or is equal to 
   p  . 
   
  
  Definition Label_multiplicity .  
- Assume that  n  is a positive natural number . Then 
- the multiplicity of  p  in  n  is the natural number  m  such that 
+ Assume that  n  is a positive naturalnumber . Then 
+ the multiplicity of  p  in  n  is the naturalnumber  m  such that 
   
  \natpow{ p } { m } divides n and \natpow{ p } { m +1 } 
  does not divide n . 
@@ -1253,8 +1258,8 @@
  A magma is a structure with 
  { 
  ( type , parameter ) element : Type 
- ; an  op : element \toelement \toelement  
- ; ( notation )  notation_mul := op  
+ ; an op  : element \toelement \toelement  
+ ; ( notation ) notation_mul  := op  
  } . 
   
  
@@ -1299,7 +1304,7 @@
  { 
  a semigroup 
  ; a unit : element 
- ; ( notation )  notation_one := unit  
+ ; ( notation ) notation_one  := unit  
  
  ; for all  x , x * 1 = 1 * x = x  
  } . 
@@ -1324,7 +1329,7 @@
  a monoid 
  ; an inv :  C \toC  
  
- ; ( notation )  notation_inverse := inv  
+ ; ( notation ) notation_inverse  := inv  
  ;  \forall( x : C ) , x * \inv{ x } = \inv{ x } * x = 1  
  } 
  where { C := element } . 
@@ -1346,7 +1351,7 @@
  notation_neg is the notational structure with 
  { 
   V__alpha : Type  
- ;  notation_neg : V__alpha \toV__alpha  
+ ; notation_neg  : V__alpha \toV__alpha  
  } . 
   
  
@@ -1359,9 +1364,9 @@
  An additive group is a structure with 
  { 
  ( notationless ) group 
- ; ( notation )  notation_zero := unit  
- ; ( notation )  notation_add := op  
- ; ( notation )  notation_neg := inv  
+ ; ( notation ) notation_zero  := unit  
+ ; ( notation ) notation_add  := op  
+ ; ( notation ) notation_neg  := inv  
  } . 
   
  
@@ -1372,8 +1377,8 @@
  an abelian additive group 
  ; an  op' : C \toC \toC  
  ; a  unit' : C  
- ; ( notation )  notation_mul := op'  
- ; ( notation )  notation_one := unit'  
+ ; ( notation ) notation_mul  := op'  
+ ; ( notation ) notation_one  := unit'  
  
  ;  \forall( x : C ) , 1 * x = x * 1 = x  
  ;  \forall( x y z : C ) , x * y * z = x * ( y * z )  
@@ -1392,7 +1397,7 @@
  
  
  Definition Label_multiplicative_monoid_of_ring .  
- Let  monoid_of_ring (  R  : ring ) : monoid :=  
+ Let monoid_of_ring  (  R  : ring ) : monoid :=  
  make { 
  
  unit  := R .unit'  
@@ -1440,7 +1445,7 @@
  ; an additive group 
  ; a scalar_multiplication : 
   R .element \to element  \to element 
- ; ( notation )  notation_dot := scalar_multiplication  
+ ; ( notation ) notation_dot  := scalar_multiplication  
  
  ; for all  r , x , y , r \cdot( x + y ) = r \cdotx + r \cdoty  
  ; 
@@ -1454,12 +1459,12 @@
  
  Section Thefieldofrealnumbers . 
  
- Definition Label_field .  
- A field  R  is a nontrivial commutative ring such that for all  x \ne0  ,  x  is a unit in  R  . 
+ Definition Label_field .  A field  R  is a nontrivial commutative ring 
+ such that for all  x \ne0  ,  x  is a unit in  R  . 
   
  
  Definition Label_vector_space .  
- A vector space is a structure with 
+ A vectorspace is a structure with 
  { 
  a left module 
  ; ( parameter )  R  : field 
@@ -1468,12 +1473,12 @@
  
  
  Definition Label_ordered_ring .  
- An ordered ring is a structure with 
+ An orderedring is a structure with 
  { 
  a ring 
  ; a linear order 
  
- ; ( notation )  notation_le :=  relation 
+ ; ( notation ) notation_le  :=  relation 
  ; for all  x , y , z  , if  x \ley  , then  x + z \ley + z  
  ; for all  x , y  , if  0 \lea  and  0 \leb  , then  0 \lea * b  
  } . 
@@ -1483,15 +1488,15 @@
  
  
  Definition Label_ordered_field .  
- An ordered field is a a structure with 
+ An orderedfield is a a structure with 
  { 
- an ordered ring 
+ an orderedring 
  ; a field 
  } . 
   
  
  Definition Label_complete .  
- Assume that  F  is an ordered field . Then 
+ Assume that  F  is an orderedfield . Then 
  we say that  F  is complete iff 
  for every subset  S  of the universe of  F  , 
  if  S \ne\emptyset and  S  has an upper bound in  F  , then  S  has a least upper bound in  F  . 
@@ -1499,7 +1504,7 @@
  
  Definition Label_absolute_value .  
  Let 
-  ordered_field.absolute_value :=  
+  ordered_field.absolute value :=  
  
   
  
@@ -1516,10 +1521,10 @@
  This exists and is unique and total . 
   
  
- In this section , let  ( F G : complete order field )  . 
+ In this section , let  ( F G : completeorderedfield )  . 
  
  Definition Label_isomorphism_of_complete_ordered_fields .  
- An isomorphism of complete ordered fields from  F  to  G  is a bijection 
+ An isomorphism of completeorderedfields from  F  to  G  is a bijection 
   
  f : F \toG 
   
@@ -1531,7 +1536,7 @@
   
  
  We record as identification 
- the isomorphism of complete ordered fields 
+ the isomorphism of completeorderedfields 
  from  F  to  G  . This exists and is unique . 
  
  
@@ -1540,7 +1545,7 @@
  
  
  Definition Label_real .  
- Let Real be the complete ordered field . 
+ Let Real be the completeorderedfield . 
  This exists and is canonical . 
   
  
@@ -1549,7 +1554,7 @@
  Let  \realabs{ ( x : Real ) }  denote absolute_value  x  . 
  
  Definition Label_normed_commutative_ring .  
- A normed commutative ring is a structure with 
+ A normedcommutativering is a structure with 
  { 
  a commutative ring 
  ; an absolute_value : element  \toReal  
@@ -1563,9 +1568,9 @@
   
  
  Definition Label_normed_field .  
- A normed field is a structure with 
+ A normedfield is a structure with 
  { 
- a normed commutative ring 
+ a normedcommutativering 
  ; a field 
  } . 
   
@@ -1602,8 +1607,8 @@
  subgroup_semilattice 
   ( G : group ) : meet_semilattice :=  
  make { 
-  element := subgroup over G  
- ;  relation H_1 H_2 := for all x , x \inH_1 \tox \in
+ element  := subgroup over G  
+ ; relation  H_1 H_2 := for all x , x \inH_1 \tox \in
  H_2  
  ; _ 
  } . 
@@ -1634,17 +1639,17 @@
  
  Subsection statement . 
  
- In this section , let  G  be a fixed finite group . 
+ In this section , let  G  be a fixed finite group ; and let  ( g : G )  . 
  
  
  In this section , let  \conj{ g } { X }  stand for 
   
  \setcomp{ g * x * \inv{ g } } { x \inX } , 
   
- where  ( g : G )   ( X : set G )  . 
+ where  \{X : set G \} . 
  
  Definition Label_conjugate .  
- Assume that  ( g : G )  . Assume that  H  is a subgroup over  G  . Then the 
+ Assume that  H  is a subgroup over  G  . Then the 
  conjugate of  H  by  g  in  G  is the subgroup  \conj{ g } { H }  over  G  . 
   
  
