@@ -12,7 +12,7 @@
 
 
 \NeedsTeXFormat{LaTeX2e}[1994/06/01]
-\ProvidesPackage{cnl}[2019/11/14  Colada Controlled Natural Language Package]
+\ProvidesPackage{cnl}[2019/11/14 -- 2019/11/14a  Colada Controlled Natural Language Package]
 
 \RequirePackage{amsmath}
 \RequirePackage{xparse} % for ellipsis
@@ -126,8 +126,11 @@
 % when it is the first item in a subsection.
 
 \newenvironment{remark}%{}{} %temp debug
-{\leavevmode\par\begin{tabular}{|p{13cm}}\parskip=\baselineskip{\bf Remark.}}
+{\leavevmode\par\begin{tabular}{|p{13cm}}\color{blue}{\bf Remark.}}
 {\end{tabular}}
+
+\newenvironment{demark}%{}{} %temp debug
+{\leavevmode\par\color{blue}\parskip=\baselineskip}{}
 
 \newenvironment{envMatch}%
                {\par\begin{tabular}{@{\quad\normalfont| }lll}}%
@@ -136,6 +139,14 @@
 \newenvironment{structure}%
 {\begin{itemize}[topsep=0pt]}
 {\end{itemize}}
+
+\newenvironoment{itemizetext}%
+{\begin{itemize}}%
+{\end{itemize}}
+
+\newenvironment{enumeratetext}%
+{\begin{enumerate}}%
+{\end{enumerate}}
 
 \newcommand{\interitem}[1]{\end{itemize}#1\begin{itemize}[topsep=0pt]}
 
@@ -197,8 +208,10 @@
 \newcommand{\parenI}[1]{#1}
 \newcommand{\df}[1]{\text{\bf #1}}
 \newcommand{\h}[1]{\text{#1}}
+\newcommand{\dfn}[1]{#1} % def statement.
+\newcommand{\thm}[1]{#1}
 \newcommand{\ignore}[1]{}
-\newcommand{\parenthetical}[1]{(#1)}
+\newcommand{\inmark}[1]{{\color{blue} (#1)}} % was \parenthetical
 \newcommand{\funmapsto}[2]{#1\mapsto #2}
 \newcommand{\funalign}{}
 \newcommand{\setcomp}[2]{\{#1 \mid #2\}}

@@ -7,7 +7,10 @@
 %% Link-escaping commands will be ignored.
 %% (These were relevant to an older version of NNexus.)
 
-\newcommand{\PMtextescapelink}[1]{}
+%% Place this where LaTeX can find it
+%% See, for example, https://latex.org/forum/viewtopic.php?t=32379
+
+\newcommand{\PMtextescapelink}[1]{#1}
 \newcommand{\PMnolink}[1]{}
 \newcommand{\PMescapetext}[1]{}
 \newcommand{\PMescapelinktext}[1]{}
@@ -16,14 +19,14 @@
 \newcommand{\PMlinkescapeword}[1]{}
 \newcommand{\pmlinkescapetext}[1]{}
 \newcommand{\PMtextignorelink}[1]{}
-\newcommand{\PMnolinkphrase}[1]{}
-\newcommand{\PMnolinktext}[1]{}
+\newcommand{\PMnolinkphrase}[1]{#1}
+\newcommand{\PMnolinktext}[1]{#1}
 \newcommand{\pmescapetext}[1]{}
 \newcommand{\pmlinkescapeword}[1]{}
 \newcommand{\PMLinkEscape}[1]{}
 \newcommand{\PMEscapeLink}[1]{}
 \newcommand{\PMescapelink}[1]{}
-\newcommand{\PMlinkescapetext}[1]{}
+\newcommand{\PMlinkescapetext}[1]{#1}
 \newcommand{\pmlinkescapesequence}[1]{}
 \newcommand{\PMlinkescapesequence}[1]{}
 
@@ -54,6 +57,8 @@
   \immediate\write\front{\unexpanded{Owner & #1\\}}}
 \newcommand{\pmmodifier}[2]{
   \immediate\write\front{\unexpanded{Last modified by & #1\\}}}
+\newcommand{\pmformalizer}[2]{
+  \immediate\write\front{\unexpanded{Formalized by & #1\\}}}
 \newcommand{\pmtitle}[1]{\title{#1}
   \immediate\write\front{\unexpanded{Title & #1\\}}}
 \newcommand{\pmrecord}[2]{

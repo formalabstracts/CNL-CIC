@@ -2,9 +2,9 @@
 % This file should be read inside \begin{cnl}...\end{cnl}
 % 
 
-%- cnlinit.tex file 
+%- reading cnlinit.tex file 
 
-%- SECTIONS
+% SECTIONS
 
 \CnlCustom[1]\parenI{ (#1) }
 \CnlCustom\*{*}
@@ -14,8 +14,11 @@
 \CnlCustom[1]\deflabel{\begin{definition}\label{#1}}
 \CnlCustom[1]\df{ #1 }
 \CnlCustom[1]\h{ #1 }
+\CnlCustom[1]\thm{Theorem. #1}
+\CnlCustom[1]\dfn{Definition. #1}
 
-%- CUSTOM WORDS
+
+% CUSTOM WORDS
 
 \CnlCustom\where{where}
 \CnlCustom\ifcond{if}
@@ -60,7 +63,7 @@
 % That is, they should remain outside the cnl environment.
 % We should list many TeX primitive control sequences here.
 
-%- CNLERROR
+% CNLERROR
 
 \CnlError\if
 \CnlError\else
@@ -71,7 +74,7 @@
 \CnlError\usepackage
 
 
-%- CNLDELETE
+% CNLDELETE
 
 \CnlDelete\expandafter
 \CnlDelete[1]\interitem
@@ -120,11 +123,12 @@
 \CnlDelete\medskip
 \CnlDelete\bigskip
 \CnlDelete[2]\rule
-\CnlDelete[1]\parenthetical
+\CnlDelete[1]\inmark
 
-%- IGNORED ENVIRONMENTS 
+% IGNORED ENVIRONMENTS 
 
 \CnlEnvirDelete{remark}
+\CnlEnvirDelete{demark}
 \CnlEnvirDelete{summary}
 \CnlEnvirDelete{tikzpicture}
 \CnlEnvirDelete{fancyvrb}

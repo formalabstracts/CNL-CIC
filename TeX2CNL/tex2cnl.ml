@@ -172,24 +172,28 @@ let read_lines name : string list =
   loop [];;
 
 let mk_iochannels f s = (* f should terminate lines with Eol *)
-let infile = mk_infile s in
-let outfile = mk_outfile s in
-let rs = read_lines infile in 
-let toks = List.map f rs in
+  let infile = mk_infile s in
+  let dirfile = Filename.dirname infile in
+  let print_endline _ = () in 
+  let _ = print_endline ("\n%--"^ Printf.sprintf " opening file dir %s and name %s" dirfile infile) in
+  let _ = print_endline ("\n%-- current dir is "^Sys.getcwd()) in
+  let outfile = mk_outfile s in
+  let rs = read_lines infile in 
+  let toks = List.map f rs in
   {
     infile = infile; 
     outfile = outfile;
-    outc = stdout (* open_out outfile XX DEBUG *);
+    outc = stdout (* open_out outfile XX DEBUG.  All output is now to standard output. *);
     intoks = List.flatten toks;
   };;
 
 let close_out _ = ();; (* XX DEBUG *)
 
-let debug = true;;
+let debug = false;;
 
 let print_token tok = print_string ((token_to_string_output tok)^" ")
 
-let print_endline_debug s = if debug then print_endline ("\n%--"^s) else ();;
+let print_endline_debug s = if debug then print_endline ("\n%--DEBUG: "^s) else ();;
 
 let print_string_debug s = if debug then print_string s else ();;
 
@@ -565,10 +569,6 @@ let transcribe_token ios ifexpand outputif tr tok =
   match tok with
   | ControlSeq s -> if ifexpand then ps(process_controlseq ios s) else p tok
   | Arg _ -> output_error ios "# parameters must appear in macro patterns"
- (*  
-  | FormatEol -> output_error ios "FormatEol must appear in environment"
-  | FormatCol -> output_error ios "FormatCol must appear in environment"
-  *)
   | Eol -> output_error ios "unexpected EOL"
   | Eof -> raise End_of_file
   | _ -> p tok;;
@@ -652,6 +652,17 @@ let mk_matrix_env s is_delete =
     stay_in_par = TrackPar;
   };;
 
+let mk_text_env s is_delete = 
+  {
+    name = s; 
+    begin_token = Ignore;
+    end_token = Ignore;
+    tr_token = [];
+    drop_toks = [ControlSeq "item"];
+    is_delete = is_delete;
+    stay_in_par = TrackPar;
+  };;
+
 let is_prologue_env s =
   match s with
   | "def" | "definition" | "Definition" 
@@ -670,6 +681,7 @@ let mk_e_item s e =
     match s with
     | "itemize" | "structure" | "make"  ->
                                   mk_itemize_env s LBrace (Semi) (e.is_delete)
+    | "itemizetext" | "enumeratetext" -> mk_text_env s e.is_delete
       | "center" -> mk_drop_env s [] Ignore (e.is_delete)
       | "align" | "align*" -> mk_drop_env s [FormatEol;FormatCol] Ignore (e.is_delete)
       | "envMatch" -> mk_drop_env s [FormatEol;FormatCol] (Tok "end") e.is_delete
@@ -730,41 +742,40 @@ let output_prologue ios s =
 
 let rec process_environ ios e_stack =
   let out tok is_delete = if (is_delete) then () else output_token ios tok in 
+  let err = output_error ios in 
+  let err_continue msg = (err msg; process_environ ios e_stack) in 
+  let sp = Printf.sprintf in 
   let par_filter e = 
     let nrp = not(regard_par e.stay_in_par) in
-    let _ = nrp || (output_error ios 
-                      ("illegal paragraph ending in environment "^e.name); true) in
+    let _ = nrp || (err ("illegal paragraph ending in environment "^e.name); true) in
     nrp in
   let rec output_err_stack es = 
     if (List.length e_stack <= 1) then () 
     else 
-      (output_error ios ("expected \\end{"^((List.hd e_stack).name)^"}"); 
+      (err("expected \\end{"^((List.hd e_stack).name)^"}"); 
        output_err_stack (List.tl es)) in
   if (e_stack=[]) 
-  then (output_error ios "unexpected empty environment. ending cnl envir"; EndCnl) else 
+  then (err "unexpected empty environment. ending cnl envir"; EndCnl) 
+  else 
     let e = List.hd e_stack in
     let tok = input ios (e.stay_in_par) in 
     match tok with
     | Cnlenvdel s -> (setdelenv s; process_environ ios e_stack)
-    | Par -> (output_error ios "illegal paragraph ended before envir end."; 
+    | Par -> (err "illegal paragraph ended before envir end."; 
               let ignore_par_stack = 
                 List.filter par_filter  e_stack in 
               process_environ ios ignore_par_stack)
-    | BeginCnl -> (output_error ios "improper nesting of \\begin{cnl}; input ignored"; 
-                   process_environ ios e_stack)
+    | BeginCnl -> err_continue "improper nesting of \\begin{cnl}; input ignored"
     | EndCnl | Input _ | Eof -> (output_err_stack e_stack; tok) 
     | EndSeq s -> if (s = null_env.name) then
-                    let msg = null_env.name^" is an illegal environment name; ignored" in
-                    (output_error ios msg; process_environ ios e_stack)
-                  else if (s = e.name) then
-                    (out e.end_token e.is_delete; process_environ ios (List.tl e_stack))
+                    err_continue (sp "%s is an illegal environment name; ignored" null_env.name)
+                  else if (s <> e.name) then
+                    err_continue (sp "\\end{%s} expected, \\end{%s} found; input ignored."
+                                    e.name s)
                   else 
-                    let msg = "\\end{" ^(e.name)^ "} expected, \\end{" 
-                              ^s^ "} found; input ignored." in
-                    (output_error ios msg; process_environ ios e_stack) 
+                    (out e.end_token e.is_delete; process_environ ios (List.tl e_stack))
     | BeginSeq s -> if (s = null_env.name) then
-                    let msg = null_env.name^" is an illegal environment name; ignored" in
-                    (output_error ios msg; process_environ ios e_stack)
+                      err_continue (sp "%s is an illegal environment name; ignored" null_env.name)
                     else
                       let e' = mk_e_item s e in
                       let _ = if not(e'.is_delete)
