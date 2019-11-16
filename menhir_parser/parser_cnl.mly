@@ -631,7 +631,7 @@ inductive_type : LIT_INDUCTIVE identifier args_template
 
 mutual_inductive_type : LIT_INDUCTIVE
   comma_nonempty_list(identifier) args_template 
-  list(LIT_WITH atomic args_template opt_colon_type
+  list(LIT_WITH identifier args_template opt_colon_type
        list(alt_constructor) {}) 
   LIT_END
   {()}
@@ -653,16 +653,16 @@ structure : option(LIT_NOTATIONAL) LIT_STRUCTURE
   (* If the field identifier is a var, satisfaction ignores its name.
    If the field identifier is a prim_structure, it becomes embedded. 
    *)
+  extended_field : 
+  | field
+  | satisfying_pred {}
 
   field : field_prefix field_identifier option(assign_expr) {}
+
   field_identifier : 
   | prim_structure
   | var_or_atomic opt_colon_sort
   | var_or_atomic opt_colon_type {}
-
-  extended_field : 
-  | field
-  | satisfying_pred {}
 
   field_prefix : option(lit_a) 
                    option(paren(comma_nonempty_list(lit_field_key) {})) {}

@@ -845,8 +845,8 @@ let synonym_statement =
   let head = possibly (word "we") ++ possibly(word "introduce") ++ word "synonyms" in
   commit_head "synonym_statement" head
     (fun head -> 
-           ((getpos ++ head ++ synlist ++ getpos ++ a PERIOD  
-            >> (fun ((((p,_),ls),p'),_) -> (syn_add ls;Synonym ( pair_pos (p,p')))))))
+           ((getpos ++ head ++ comma_nonempty_list synlist ++ getpos ++ a PERIOD  
+            >> (fun ((((p,_),ls),p'),_) -> (Synonym ( pair_pos (p,p'),InstructSyn ls))))))
 
 (* end of instructions *)
 
@@ -856,24 +856,24 @@ let synonym_statement =
 
 
 let this_directive_adjective = 
-  let w a _ = a in
-  (word "unique" >> w ThisUnique) |||
-    (word "canonical" >> w ThisCanonical) |||
-    (word "welldefined" >> w ThisWelldefined) |||
-    (word "wellpropped"  >> w ThisWellpropped) |||
-    (word "total" >> w ThisTotal) |||
-    (word "exhaustive" >> w ThisExhaustive) |||
-    (phrase "well defined" >> w ThisWelldefined) |||
-    (phrase "well propped" >> w ThisWellpropped) |||
-    (the_id "well_propped" >> w ThisWellpropped) |||
-    (the_id "well_defined" >> w ThisWelldefined)
+  let w a _ = This a in
+  (word "unique" >> w "Unique") |||
+    (word "canonical" >> w "Canonical") |||
+    (word "welldefined" >> w "Welldefined") |||
+    (word "wellpropped"  >> w "Wellpropped") |||
+    (word "total" >> w "Total") |||
+    (word "exhaustive" >> w "Exhaustive") |||
+    (phrase "well defined" >> w "Welldefined") |||
+    (phrase "well propped" >> w "Wellpropped") |||
+    (the_id "well_propped" >> w "Wellpropped") |||
+    (the_id "well_defined" >> w "Welldefined")
 
 let this_directive_right_attr = 
-  (phrase "by recursion" >> (fun _ -> ThisRecursion))
+  (phrase "by recursion" >> (fun _ -> This "Recursion"))
 
 let this_directive_verb = 
   (word "exists" ++ possibly(this_directive_right_attr) >>
-     fun (_,ts) -> ThisExist :: ts)
+     fun (_,ts) -> This "Exist" :: ts)
 
 let this_directive_pred = 
   group "this is" (word "is" ++ and_comma_nonempty_list(this_directive_adjective) >> snd) 
@@ -917,11 +917,11 @@ let opt_colon_type_meta =
       | RawPostColon [] -> RawPostColon [meta_node()]
       | _ as t -> t)
 
-let colon_sortish = 
+let opt_colon_sortish = 
   possibly(a COLON ++ post_colon_balanced >> snd) 
   >> (fun t -> Raw_Colon_Sortish (flatten t))
 
-let colon_sortish_meta = 
+let opt_colon_sortish_meta = 
   possibly(a COLON ++ post_colon_balanced >> snd) 
   >> (fun t -> if t = [] then Raw_Colon_Sortish [meta_node()] else Raw_Colon_Sortish (flatten t))
 
@@ -935,7 +935,7 @@ let let_annotation_prefix =
    ++ has_possibly(word "fixed")) >>
     fun ((((_,a),_),_),bw) -> (a,bw)
 
-(* let fix_var e = Wp_env e *)
+(* let fix_var e = Wp_var e *)
 (* if fix then Wp_fix(v,o) else Wp_var(v,o) *)
 
 (* don't commit to let_annotation, because lit_then might not lie ahead *)
@@ -944,12 +944,12 @@ let let_annotation = group  "let_annotation"
   (((word "fix" >> (fun _ -> true) ||| (word "let" >> (fun _ -> false))) ++ 
     comma_nonempty_list(annotated_vars) 
    >>
-     (fun (t,bs) -> map (fun (v,o) -> EVar (stored_string v,Etyp o,t)) (flatten bs))
+     (fun (t,bs) -> map (fun (v,o) -> CVarb (stored_string v,Etyp o,t)) (flatten bs))
      )
   |||
     ((let_annotation_prefix ++ post_colon_balanced)
      >>
-       (fun ((vs,t),b) -> map (fun v -> EVar (stored_string v,Etyp (RawPostColon b),t)) vs 
+       (fun ((vs,t),b) -> map (fun v -> CVarb (stored_string v,Etyp (RawPostColon b),t)) vs 
     )))
 
 let then_prefix = possibly (lit_then)
@@ -1081,27 +1081,33 @@ let not_banned =
   | _ -> true)
 
 let any_pattern_word = 
-  some(function 
-      | WORD (_,_) as w  -> not_banned w
-      | _ -> false)
+  someX((function 
+      | WORD (_,s) as w  -> not_banned w,s
+      | _ -> false,"UNREACHABLE") -| tok)
 
 let word_in_pattern = 
-  any_pattern_word >> (fun s -> [Wp_wd s]) |||   
-  (paren(comma_nonempty_list(word "or" ++ plus(any_pattern_word))) (* synonym *)
-  >> (fun ss -> 
-            let ss' = map snd ss in 
-             map (fun s' -> Wp_syn s') ss')) |||
-  (paren(any_pattern_word) >> (fun s -> [Wp_opt s]))
+  any_pattern_word >> (fun s -> Wp_wd s) 
+  ||| (paren(word "or" ++ any_pattern_word >>snd) 
+       >> (fun s ->  Wp_synonym [s]))
+  ||| (paren(any_pattern_word) >> (fun s -> Wp_option s))
+
+let rec expand_synonym = 
+  function
+  | [] -> []
+  | Wp_wd s :: Wp_synonym [s'] :: ts -> Wp_wd s :: Wp_synonym [s;s'] :: expand_synonym ts
+  | t :: ts -> t :: expand_synonym ts
 
 let words_in_pattern = 
   (any_pattern_word ++ many(word_in_pattern)) 
-  >> (fun (a,b) -> Wp_wd a :: flatten b)
+  >> (fun (a,b) -> expand_synonym(Wp_wd a :: b))
+
+let wp_var (v,e) = Wp_var(CVar(stored_string v,e))
 
 let tvarpat = 
-  (paren(var ++ opt_colon_type) >>
-    (fun (v,bs) -> Wp_var (v,bs))) 
+  (paren(var ++ opt_colon_sortish) >>
+    (fun (v,e) -> wp_var(v,e)))
   |||
-    (var >> (fun v -> Wp_var(v,RawPostColon [])))
+    (var >> (fun v -> wp_var(v,RawExpr[])))
 
 let word_pattern = group "word_pattern"
   (words_in_pattern ++ many(tvarpat ++ words_in_pattern) ++ possibly(tvarpat))
@@ -1127,8 +1133,8 @@ let var_multisubject_pat =
   tvarpat ++ a(COMMA) ++ tvarpat >> (fun ((a,_),c) -> a,c) |||
     (paren(var ++ a(COMMA) ++ var ++ opt_colon_type_meta)
      >>
-       (fun (((v,_),v'),bs) -> 
-              (Wp_var(v,bs),Wp_var(v',bs)))
+       (fun (((v,_),v'),e) -> 
+              (wp_var(v,Etyp e),wp_var(v',Etyp e)))
     )
 
 let adjective_multisubject_pattern =
@@ -1162,14 +1168,14 @@ let var_or_atomic_or_blank =
 
 let brace_assign = 
   let brace_assign_item = 
-    var_or_atomic_or_blank ++ colon_sortish ++ possibly assign_expr >>
+    var_or_atomic_or_blank ++ opt_colon_sortish ++ possibly assign_expr >>
       (fun ((a,b),c) -> 
              (RawExpr [a]),b,RawExpr (flatten c)) in 
   brace_semi >> (fun ts -> map (consume brace_assign_item) ts)
 
 let brace_noassign = 
   let brace_noassign_item = 
-    var_or_atomics ++ optionally colon_sortish_meta >> 
+    var_or_atomics ++ opt_colon_sortish_meta >> 
       (fun (vs,o) -> map (fun v -> (RawExpr [v],o)) vs) in 
   brace_semi >> (fun ts -> map(consume brace_noassign_item) ts) >> flatten
 
@@ -1177,10 +1183,10 @@ let brace_noassign =
 
 let required_arg_template_pat = 
   paren(var_or_atomics ++ opt_colon_type_meta) 
-  >> (fun (vs,bs) -> map (fun v -> v,bs) vs)
+  >> (fun (vs,bs) -> map (fun v -> stored_string v,bs) vs)
   |||
     group "required_arg_template_pat2" 
-      (must (not_banned -| tok) var_or_atomic  >> fun a -> [a,RawPostColon []])
+      (must (not_banned -| tok) var_or_atomic  >> fun a -> [stored_string a,RawPostColon []])
 
 let args_template = 
   (possibly brace_noassign >> flatten) ++ (many(required_arg_template_pat) >> flatten)
@@ -1201,12 +1207,13 @@ let controlseq_pattern =
 
 let binary_controlseq_pattern = 
   tvarpat ++ controlseq_pattern ++ tvarpat >>
-    (fun ((a,b),c) -> Wp_bin_cs (a,b,c))
+    (fun ((a,(b1,b2)),c) -> Wp_bin_cs (a,stored_string b1,b2,c))
 
 let symbol = 
   some(function | SLASH | SLASHDASH -> true | SYMBOL _ -> true | _ -> false) 
-  >> (fun a -> Wp_sym a) |||
-    (controlseq_pattern >> (fun (t,w) -> Wp_cs (t,w)))
+  >> (fun a -> Wp_symbol (stored_string a)) 
+  |||
+    (controlseq_pattern >> (fun (t,w) -> Wp_cs (stored_string t,w)))
 
 let the_symbol s = 
   some
@@ -1275,11 +1282,10 @@ let insection =
                  | _ -> 0)
     ))
 
-
 let we_record_def = group "we_record_def"
   (lit_we_record ++
     comma_nonempty_list 
-      (balancedB (function | COMMA | SEMI | PERIOD -> false | _ -> true)) ++
+      (balancedB (function | COMMA | SEMI | PERIOD -> false | _ -> true) >> (fun e -> RawExpr e)) ++
   possibly(a PERIOD ++ this_exists >> snd)
   >> (fun (a,b) -> [Wp_record (snd a,flatten (map snd b)),[]]))
 
@@ -1307,17 +1313,17 @@ let iff_junction = lit_iff
 
 let opt_say = possibly(lit_we_say)
 
-let opt_record = possibly(lit_we_record) >> discard 
+let opt_record = possibly(lit_we_record) >> discard (* XX Don't discard! *)
 
 let opt_define = 
   (possibly(lit_lets) ++ possibly(word "define") >> discard) 
-  |||     (opt_record) (* creates both a definition and record *)
+  ||| opt_record (* creates both a definition and record *)
 
 let macro_inferring = 
-  paren(word "inferring" ++ plus(var) ++ opt_colon_type)
-  >> (fun ((_,a),b) -> (a,b))
+  paren(word "inferring" ++ plus(var) ++ opt_colon_sortish_meta)
+  >> (fun ((_,vs),e) -> map (fun v -> wp_var(v,e)) vs)
 
-let classifier_words = comma_nonempty_list(plus(anywordexcept ["is";"are";"be"]))
+let classifier_words = comma_nonempty_list(plus(anywordexcept ["is";"are";"be"] >> stored_string))
 
  (* XX need to add prim actions *)
 let classifier_def = group "classifier_def"
@@ -1325,13 +1331,13 @@ let classifier_def = group "classifier_def"
   >> (fun ((((_,c),_),_),_) -> [Wp_classifier c,[]])
 
 let symbol_type_pattern = 
-    (symbol_pattern >> (fun (a,_,_) -> Wp_sympatT (a)))
+    (symbol_pattern >> (fun (a,_,_) -> Wp_symbolpatT (a)))
 
 let identifier_type_pattern = 
-    (identifier_pattern >> (fun ((_,a),(b,c)) -> Wp_ty_identifier (a,b,c)))
+    (identifier_pattern >> (fun ((_,a),(b,c)) -> Wp_ty_identifier (stored_string a,b,c)))
 
 let controlseq_type_pattern =     
-  (controlseq_pattern >> (fun (a,b) -> Wp_ty_cs (a,b)))
+  (controlseq_pattern >> (fun (a,b) -> Wp_ty_cs (stored_string a,b)))
 
 let type_head = 
   group "type_word_pattern" 
@@ -1361,40 +1367,33 @@ let type_def = group "type_def"
     (fun ((((_,a),_),b),_) -> [(a,b)])
 
 let symbol_term_pattern = 
-  (symbol_pattern >> (fun (a,b,c) -> Wp_sympat (a,b,c)))
+  (symbol_pattern >> (fun (a,b,c) -> Wp_symbolpat (a,b,c)))
 
 let identifier_term_pattern = 
-  (identifier_pattern >> (fun ((_,a),(b,c)) -> Wp_identifier (a,b,c)))
+  (identifier_pattern >> (fun ((_,a),(b,c)) -> Wp_identifier (stored_string a,b,c)))
 
 let function_head = 
   function_word_pattern 
    ||| symbol_term_pattern 
    ||| identifier_term_pattern
 
+let wp_infer (h,m) = 
+  if m=[] then h else Wp_inferring(h,m)
+
 let inferring head = 
-  head ++ possibly(macro_inferring) 
-  >> (fun (h,m) -> 
-           let h' = 
-             if m=[] then h 
-             else let (i,i')= List.hd m in Wp_inferring(h,i,i')
-           in h')
+  head ++ (possibly(macro_inferring) >> flatten) >> wp_infer
 
 let function_def head = group "function_def"
   (opt_define ++ inferring head ++ 
      function_copula ++ possibly(lit_equal) ++ possibly(article) ++ 
      group "balanced" balanced  ++ phantom  (a(PERIOD))   ) >>
     (fun ((((((_,h),_),_),_),b),_) -> [(h,b)])
-(*
-           let h' = if m=[] then h 
-                    else let (i,i')= List.hd m in Wp_inferring(h,i,i')
-           in [(h',b)])
- *)
 
 let identifier_predicate_pattern = 
-  (identifier_pattern >> (fun ((_,a),(b,c)) -> Wp_identifierP (a,b,c)))
+  (identifier_pattern >> (fun ((_,a),(b,c)) -> Wp_identifierP (stored_string a,b,c)))
 
 let identifier_symbol_pattern = 
-  (symbol_pattern >> (fun (a,b,c) -> Wp_sympatP (a,b,c)))
+  (symbol_pattern >> (fun (a,b,c) -> Wp_symbolpatP (a,b,c)))
 
 let predicate_head = 
   identifier_predicate_pattern
@@ -1403,18 +1402,14 @@ let predicate_head =
 
 
 let predicate_def = group "predicate_def"
-  (opt_say ++ predicate_head ++ possibly(macro_inferring) ++ iff_junction
+  (opt_say ++ predicate_head ++ (possibly(macro_inferring) >> flatten) ++ iff_junction
   ++ balanced ++ phantom (a(PERIOD)))
-  >>
-    (fun (((((_,h),m),_),b),_) -> 
-           let h' = if m=[] then h 
-                    else let (i,i')= List.hd m in Wp_inferring(h,i,i')
-           in [(h',b)]
-    )
+  >> (fun (((((_,h),m),_),b),_) -> [(wp_infer(h,m),b)])
 
 let binder_pattern = 
-  symbol ++ paren(var ++ colon_sortish) (* : Term -> Prop, Term -> Type, Term -> Term, etc. *)
-  >> (fun (s,(v,c)) -> Wp_binder (s,v,c))
+  symbol ++ paren(var ++ opt_colon_sortish 
+                  >> wp_var) (* : Term -> Prop, Term -> Type, Term -> Term, etc. *)
+  >> (fun (s,wp) -> Wp_binder (s,wp))
 
 let binder_def = 
   commit_head "binder_def" (phrase "let the binder")
@@ -1423,12 +1418,11 @@ let binder_def =
    ++ group "balanced" balanced ++ phantom (a PERIOD)
   )
   >> (fun ((((_,s),_),b),_) -> [s,b])
-                   
 
 let enter_namespace = 
   group "enter_namespace" 
-    (phrase "we enter the namespace" ++ identifier) >> 
-    (fun (_,i) -> [(Wp_namespace i,[])])
+    (phrase "we enter the namespace" ++ identifier
+     >> (fun (_,i) -> [(Wp_namespace (stored_string i),[])]))
 
 let macro_body = 
   type_def    
@@ -1436,7 +1430,7 @@ let macro_body =
   ||| predicate_def
   ||| classifier_def
   ||| binder_def 
-  ||| (let_annotation >> map (fun e -> (Wp_env e,[])))
+  ||| (let_annotation >> map (fun e -> (Wp_var e,[])))
 
 let macro_bodies = 
   we_record_def 
@@ -1449,8 +1443,9 @@ let macro =
   getpos ++ possibly(insection) ++ macro_bodies ++ getpos ++ a(PERIOD)
   >>
     fun ((((p,i),m),p'),_)-> 
+          let m' = map (fun (w,ns) -> (w,RawExpr ns)) m in 
           let sec_level = (match i with | [] -> 0 | i'::_ -> i') in
-          Macro (pair_pos(p,p'),sec_level, m)
+          Macro (pair_pos(p,p'),sec_level,m')
     
 (* end macro *)                 
 
@@ -1478,7 +1473,9 @@ let definition =
   commit_head "definition" definition_preamble 
   (fun t -> t ++ group "assumption" possibly_assumption
   ++ group "affirm" definition_affirm 
-  >> (fun (((p,l),ma),(p',w,ex)) -> Definition (pair_pos (p,p'),l,ma,w,ex)))
+  >> (fun (((p,l),ma),(p',m,ex)) -> 
+            let m' = map (fun (w,ns) -> (w,RawExpr ns)) m in 
+            Definition (pair_pos (p,p'),l,ma,m',ex)))
 
 let theorem_preamble = 
   (word "theorem" ++ possibly(label) ++ a(PERIOD) >>
@@ -1516,19 +1513,19 @@ let fiat_prim_classifier =
 
 let fiat_prim_term_op_controlseq = 
   comma_nonempty_list (binary_symbol_pattern 
-                       >> (fun (a,b,c) -> Wp_sympat (a,b,c)))
+                       >> (fun (a,b,c) -> Wp_symbolpat (a,b,c)))
 
 let fiat_prim_binary_relation_controlseq = 
   comma_nonempty_list (binary_symbol_pattern 
-                       >> (fun (a,b,c) -> Wp_sympatP (a,b,c)))
+                       >> (fun (a,b,c) -> Wp_symbolpatP (a,b,c)))
 
 let fiat_prim_propositional_op_controlseq = 
   comma_nonempty_list (binary_symbol_pattern 
-                       >> (fun (a,b,c) -> Wp_sympatP (a,b,c)))
+                       >> (fun (a,b,c) -> Wp_symbolpatP (a,b,c)))
 
 let fiat_prim_type_op_controlseq = 
   comma_nonempty_list (binary_symbol_pattern 
-                       >> (fun (a,_,_) -> Wp_sympatT a))
+                       >> (fun (a,_,_) -> Wp_symbolpatT a))
 
 let fiat_prim_term_controlseq = 
   comma_nonempty_list symbol_term_pattern
@@ -1591,11 +1588,11 @@ let fiat_prim_type_word =
 
 let fiat_prim_term_op = 
   comma_nonempty_list (binary_symbol_pattern 
-                       >> (fun (a,b,c) -> Wp_sympat (a,b,c)))
+                       >> (fun (a,b,c) -> Wp_symbolpat (a,b,c)))
 
 let fiat_prim_binary_relation_op = 
   comma_nonempty_list (binary_symbol_pattern  
-                       >> (fun (a,b,c) -> Wp_sympatP (a,b,c)))
+                       >> (fun (a,b,c) -> Wp_symbolpatP (a,b,c)))
 
 let fiat_prim_propositional_op = 
   fiat_prim_binary_relation_op
@@ -1823,7 +1820,7 @@ let tightest_prefix =
 let rec tightest_term input = 
   (tightest_prefix
    ||| (tightest_term ++ field_accessor 
-        >> fun (t,f) -> FieldAccessor (t,f)
+        >> fun (t,f) -> FieldAccessor (stored_string f, t)
        )
    ||| (tightest_term ++ a APPLYSUB ++ tightest_terms
        >> (fun ((t,_),ts) -> ApplySub (t,ts))
@@ -1846,37 +1843,64 @@ let subtype = group "subtype"
   (brace(commasep ++ holding_var ++ a TMID ++ balanced))
   >> (fun (((a,b),_),c) -> Subtype (RawPlainTerm a,b,RawStatement c))
 
-
-let alt_constructor = a ALT ++ identifier ++ args_template ++ a COLON ++ post_colon_balanced
+ (*
+  let alt_constructor = 
+  a ALT ++ identifier ++ args_template ++ a COLON ++ post_colon_balanced
+  *)
 
 let opt_alt_constructor = 
-  a ALT ++ identifier ++ args_template ++ opt_colon_type
-  >> (fun (((_,i),a),o) -> (i,a,o))
+  (a ALT ++ identifier >> snd >> stored_string)
+  ++ args_template 
+  ++ opt_colon_type
+  >> (fun ((i,(a,a')),o) -> (i,a,a',o))
 
 let inductive_type = 
   group "inductive_type"
-    ((word "inductive" ++ identifier ++ args_template ++ colon_sortish
-      ++ many(opt_alt_constructor) ++ word "end")
-     >> (fun (((((_,i),a),p),m),_) -> Inductive' (i,a,p,m)))
+    ((word "inductive" ++ 
+        (identifier >> stored_string) >> snd)
+     ++ args_template 
+     ++ opt_colon_sortish
+     ++ many(opt_alt_constructor) 
+     ++ word "end"
+     >> (fun ((((i,(a,a')),p),m),_) ->  Inductive (i,a,a',p,m)))
 
 let mutual_inductive_type = 
+  let header = 
+    (word "inductive" ++ comma_nonempty_list(identifier >> stored_string) >> snd) 
+    ++ args_template in
+  let with_header = 
+    ((word "with" ++ identifier >> snd >> stored_string) 
+    ++ args_template 
+    ++ opt_colon_sortish) >> (fun ((i,(a,a')),c) -> (i,a,a',c))  in 
+     
   group "mutual_inductive"
-    ((word "inductive" ++ comma_nonempty_list(identifier) >> snd) 
-     ++ args_template 
-     ++ many((word "with" ++ atomic >> snd) ++ args_template 
-             ++ colon_sortish ++ many(alt_constructor))
+    (header 
+     ++ many(with_header  ++ many(opt_alt_constructor))
      ++ word "end" 
-     >> fst
-    ) >> (fun ((i1,i2),i3) -> Mutual' (i1,i2,i3))
+    ) >> (fun (((h1,h2),i3),_) -> Mutual (h1,h2,i3))
 
-let satisfying_preds = brace_semi
+let brace_field_assign = 
+  let pre = balancedB(function | COMMA | COLON | ASSIGN | SEMI | PERIOD -> false | _ -> true) in
+  let field_prefix = comma_nonempty_list(lit_field_key >> stored_string) in 
+  let brace_field_assign_item = 
+    (possibly(lit_a) ++ possibly(field_prefix) >> snd >> flatten)
+    ++ pre 
+    ++ possibly( a COLON++ pre >> snd) 
+    ++ possibly assign_expr 
+    >>
+      (fun (((ss,a),b),c) -> 
+             (ss,RawExpr a,RawExpr (flatten b),RawExpr (flatten c))) in 
+  brace_semi >> (fun ts -> map (consume brace_field_assign_item) ts)
+
+let satisfying_preds = 
+  brace_semi >> map (fun t -> RawProp t)
                  
 let structure = group "structure"
   ((possibly(word "notational") ++ word "structure" 
   ++ possibly(phrase("with parameters")) ++ args_template
-  ++ possibly(word "with") ++ brace_semi
+  ++ possibly(word "with") ++ brace_field_assign 
   ++ possibly(possibly(lit_with_properties) ++ satisfying_preds >> snd))
-  >> (fun ((((_,a),_),b),b') ->  Structure' (a,b,flatten b')))
+  >> (fun ((((_,(a,a')),_),b),b') ->  Structure (a,a',b, flatten b')))
 
 let tightest_type = 
   group "tightest_type"
@@ -1891,7 +1915,7 @@ let tightest_type =
 (* now start on tightest_prop *) 
 
 let identifier_prop = 
-  someX(fun t -> prim_relation_exists t.tok,PRel t)
+  someX(fun t -> prim_relation_exists t.tok,PRel (stored_string t))
 
 let precolon_sep = balancedB (function | COLON -> false | _ -> true)
 
@@ -1901,9 +1925,9 @@ let annotated_prop =
 let tightest_prop = 
   group "tightest_prop" 
     (
-      (paren_expr >> (fun t -> PStatement' t))
+      (paren_expr >> (fun t -> PStatement (RawStatement t)))
       ||| identifier_prop
-      ||| (var >> (fun t -> PVar t))
+      ||| (var >> (fun t -> PVar (stored_string t)))
       ||| annotated_prop 
     )
 
@@ -1925,9 +1949,9 @@ let app_term = tightest_term ++ app_args
 
 let tightest_arg = 
   (tightest_expr >> (fun e -> [e]))
-  ||| (paren(var_or_atomics ++ colon_sortish_meta) 
+  ||| (paren(var_or_atomics ++ opt_colon_sortish_meta) 
        >> (fun (ts,ts') -> 
-                 map (fun t -> ETightest(t,ts')) ts)) 
+                 map (fun t -> EVar(stored_string t,ts')) ts)) 
 
 let tightest_args = 
   brace_noassign ++ (many(tightest_arg) >> flatten)
@@ -2034,16 +2058,16 @@ let tdop_rel_prop = (* x,y < z < w < u becomes x < z and y < z and z < w and w <
            | (b,r)::bts' -> 
                let tt = map (fun l -> (l,b,r)) ls in 
                let tt' = snd(List.fold_left (fun (l,acc) (b,t) -> (t,(l,b,t)::acc)) (r,[]) bts') in 
-               Ptdopr' (tt @ List.rev tt')
+               Ptdopr (tt @ List.rev tt')
     )
 
 let app_prop = 
   tightest_prop ++ app_args 
-  >> (fun (i,(j,k)) -> PApp' (i,j,k))
+  >> (fun (i,(j,k)) -> PApp (i,j,k))
 
 let lambda_predicate = 
   word "fun" ++ tightest_args ++ (a COLON ++ the_case_sensitive_word "Prop" ++ a ASSIGN) ++ tightest_prop 
-  >> (fun (((_,(a,a')),_),p) -> PLambda' (a,a',p))
+  >> (fun (((_,(a,a')),_),p) -> PLambda (a,a',p))
 
 let prim_binder_prop = 
     some(fun t -> prim_binder_prop_exists (stored_string_token t))
@@ -2053,7 +2077,7 @@ let rec binder_prop input =
   ||| tdop_rel_prop 
   ||| lambda_predicate
   ||| (prim_binder_prop ++ args_template ++ lit_binder_comma ++ binder_prop
-      >> (fun (((b,(t,t')),_),p) -> PBinder' (b,t,t',p))
+      >> (fun (((b,(t,t')),_),p) -> PBinder (stored_string b,t,t',p))
       )
   ) input
 
@@ -2063,33 +2087,34 @@ let prop_op =
   (prim_propositional_op >> (fun t -> RawTermOp t))
   ||| (controlseq_term prim_propositional_op_controlseq_exists)
 
-let prop_ops = plus(prop_op) >> (fun ts -> P_ops' ts)
+let prop_ops = plus(prop_op) >> (fun ts -> P_ops ts)
 
 let tdop_prop = (* say it must be infix: that is, start and end with a binder_prop *)
   (possibly(lit_classifier) ++ binder_prop >> snd) 
   ++ (many(prop_ops ++ binder_prop >> (fun (i,j) -> [i;j])) >> flatten)
-  >> (fun (b,ts) -> Ptdop' (b :: ts))
+  >> (fun (b,ts) -> Ptdop (b :: ts))
 
 let prop = tdop_prop
 
 (* return to loose types *)
 
 let over_args = 
-  (word "over" ++ brace_assign >> snd >> (fun t -> Some t,None,None))  (* record *)
-  ||| (word "over" ++ tightest_expr >> snd >> (fun t -> None,Some t,None))
+  (word "over" ++ brace_assign >> snd)  (* record *)
+  ||| (word "over" ++ tightest_expr >> snd >> (fun t -> [t,RawExpr[],RawExpr[]]))
   ||| (paren(word "over" 
-            ++ comma_nonempty_list 
-                 (balancedB (function | COMMA | SEMI | PERIOD -> false | _ -> true)) >> snd)
-      >> (fun t -> None,None,Some t))
-
+             ++ comma_nonempty_list 
+                 (balancedB (function | COMMA | SEMI | PERIOD -> false | _ -> true)
+                  >> fun t -> [RawExpr t,RawExpr[],RawExpr[]]
+                 ) >> snd >> flatten)
+      )
 let overstructure_type = 
   some(fun t -> prim_structure_exists t) 
   ++ app_args 
   ++ possibly(over_args) 
-  >> (fun ((t,(a,a')),o) -> Over' (t,a,a',o))
+  >> (fun ((t,(a,a')),o) -> Over (stored_string t,a,a',flatten o))
 
 let app_type = 
-  (tightest_type ++ app_args >> (fun (i,(a,a')) -> TyApp' (i,a,a')))
+  (tightest_type ++ app_args >> (fun (i,(a,a')) -> TyApp (i,a,a')))
   ||| overstructure_type  
 
 let prim_pi_binder = 
@@ -2098,7 +2123,7 @@ let prim_pi_binder =
 let rec binder_type input = 
   (app_type 
    ||| (prim_pi_binder ++ tightest_args ++ lit_binder_comma ++ binder_type 
-        >> (fun (((b,(a,a')),_),t) -> TyBinder' (b,a,a',t))
+        >> (fun (((b,(a,a')),_),t) -> TyBinder (stored_string b,a,a',t))
        )
   ) input
 
@@ -2120,13 +2145,13 @@ let controlseq_type_op  =
   >> fun (t,ts) -> TyControlSeq (stored_string t,map (fun e -> RawExpr e) ts)
 
 let type_op = 
-  (prim_type_op >> (fun n -> TyOp' n))
+  (prim_type_op >> (fun n -> TyOp (stored_string n)))
   ||| controlseq_type_op
 
 let binop_type = 
   (possibly(brace_noassign) >> flatten)
     ++ many(type_operand ++ type_op >> (fun (a,b)-> [a;b])) ++ binder_type 
-  >> (fun ((r,ts),t) -> TyBinop' (r,flatten ts @ [t]))
+  >> (fun ((r,ts),t) -> TyBinop (r,flatten ts @ [t]))
 
 (* prim pattern parsing *)
 
@@ -2180,18 +2205,18 @@ let prim_pattern tbl (tm,ty) input =
   let ps = map (apply_pattern (tm,ty)) ps in 
   parse_some ps input
 
-let prim_verb = prim_pattern prim_verb_tbl
+let prim_verb = prim_pattern prim_verb_tbl 
 
-let prim_verb_multisubject = prim_pattern prim_verb_multisubject_tbl
+let prim_verb_multisubject = prim_pattern prim_verb_multisubject_tbl 
+
+let prim_adjective = prim_pattern prim_adjective_tbl 
+
+let prim_adjective_multisubject = prim_pattern prim_adjective_multisubject_tbl 
 
 let prim_possessed_noun = prim_pattern prim_possessed_noun_tbl
 
 let prim_definite_noun = prim_pattern prim_definite_noun_tbl
 
-let prim_adjective = prim_pattern prim_adjective_tbl
-
-let prim_adjective_multisubject = prim_pattern prim_adjective_multisubject_tbl
-  
 let prim_typed_name = prim_pattern prim_typed_name_tbl
 
 (* *)
@@ -2309,12 +2334,12 @@ and symbol_statement input : statement parsed =
 and does_pred input : predicate parsed = 
   ((possibly(lit_do) ++ has_possibly(word "not") ++ prim_verb (term,general_type)
    >> fun ((_,b),v) -> 
-            let t = PredPrimVerb v in 
+            let t = PredPrimVerb (RawPredPattern v) in 
             if b then PredNeg t else t
    )
    ||| (possibly(lit_do) ++ has_possibly(word "not") ++ prim_verb_multisubject (term,general_type)
        >> fun ((_,b),m) -> 
-                let t = PredPrimVerbMulti m in 
+                let t = PredPrimVerbMulti (RawPredPattern m) in 
                 if b then PredNeg t else t 
        )
    ||| (lit_has ++ has_pred >> snd )
@@ -2326,14 +2351,14 @@ and does_pred input : predicate parsed =
 and is_pred input : predicate parsed = 
   ((has_possibly (word "not") ++ prim_adjective (term,general_type)
    >> (fun (b,p) -> 
-             let t = PredPrimAdj p in
+             let t = PredPrimAdj (RawPredPattern p) in
              if b then PredNeg t else t)
    )
    ||| (has_possibly (word "not") ++ has_possibly(word "pairwise") 
         ++ prim_adjective_multisubject (term,general_type)
         >> 
           (fun ((n,p),a) -> 
-                 let t = PredPrimAdj a in 
+                 let t = PredPrimAdj (RawPredPattern a) in 
                  let t = if p then PredPairwise t else t in 
                  let t = if n then PredNeg t else t in 
                  t
@@ -2371,7 +2396,7 @@ and possessed_noun input : term parsed =
 and definite_term input : term parsed =
   (where_term
    ||| (possibly(word "the") ++ prim_definite_noun (term,general_type) 
-        >> fun (_,p) -> TPat p
+        >> fun (_,p) -> Definite_Term (RawTermPattern p)
        )
   ) input 
 
