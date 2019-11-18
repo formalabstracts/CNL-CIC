@@ -1,0 +1,84 @@
+% Thomas Hales
+% Document started 9/6/2019
+
+\documentclass[12pt]{amsart}
+
+
+% PACKAGES
+\usepackage{url}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+
+% for underscores https://texfaq.org/FAQ-underscore
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+\usepackage{lineno}
+
+\usepackage[
+bookmarksopen,
+bookmarksdepth=2,
+%breaklinks=true
+colorlinks=true,
+urlcolor=blue]{hyperref}
+
+% GLOBAL FORMATTING
+%\linenumbers
+\parindent=0pt
+\parskip=0.5\baselineskip
+\raggedbottom
+
+% TITLE AUTHOR DATE
+\title{Colada Specification and User Manual}
+
+\date{September 9, 2019}                                           % Activate to display a given date or no date
+\author{Thomas Hales}
+
+% THEOREMS 
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}[definition]{Theorem}
+\newtheorem{lemma}[definition]{Lemma}
+\newtheorem{specification}[definition]{Specification}
+
+% COMMANDS
+\renewcommand{\iff}{\leftrightarrow}
+\newcommand{\Prop}{\text{\tt Prop}}
+\newcommand{\Type}{\text{\tt Type}}
+\newcommand{\fld}{\textasciicircum}
+\newcommand{\dequiv}{\mathrel{:=}} %{\mathrel{:\equiv}}
+\newcommand{\Nat}{\ensuremath{{\mathbb N}}}
+\newcommand{\Real}{\ensuremath{{\mathbb R}}}
+\newcommand{\df}[1]{\text{\bf #1}}
+\newcommand{\h}[1]{\text{#1}}
+\newcommand{\join}{\lor}
+\newcommand{\Mid}{\mathrel{\|}}
+\newcommand{\comment}[1]{\%- \nobreak{#1}}
+\renewcommand{\~}{\ }
+\newcommand{\ignore}[1]{}
+\newcommand{\parenthetical}[1]{(#1)}
+\renewcommand{\_}{\textunderscore}
+%\renewcommand\labelitemi{-}
+\renewcommand{\qed}{\ensuremath{\square}}
+
+% ENVIRONMENTS
+
+% \leavevmode\par is to make remark work when it is the first item in a subsection.
+\newenvironment{remark}
+{\leavevmode\par\begin{tabular}{|p{13cm}}\parskip=\baselineskip{\bf Remark.}}
+{\end{tabular}}
+
+\newenvironment{oblongo}{}{}
+
+\newenvironment{prule}%
+               {\begin{itemize}}%
+               {\end{itemize}}
+\newcommand{\ptem}{\item}
+\newcommand{\nt}[1]{{\tt #1}}
+\newcommand{\rw}{$\quad\to\quad$}
+
+\begin{document}
+
+
+\input{user_manual}
+\end{document}
