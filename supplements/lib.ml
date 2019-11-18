@@ -61,20 +61,43 @@ let rec chop_list n l =
   try let m,l' = chop_list (n-1) (List.tl l) in (List.hd l)::m,l'
   with Failure _ -> failwith "chop_list";;
 
-let _ = chop_list 3 [5;6;7;8;9;10;11;12];;
+let _ = chop_list 3 [5;6;7;8;9;10;11;12];; (* gives [5;6;7], [8;9;10;11;12] *)
 
 (* end HOL Light *)
 
-let pad k x ls =
-    if (k <= List.length ls) then snd(chop_list k ls)
-    else (List.init (k - List.length ls) (fun _ -> x) @ ls)
+let pad k x ls =  (* output has length k. Adjust length at head.  *)
+  let r = List.length ls - k in 
+  if (r >= 0) then snd(chop_list r ls)
+    else (List.init (-r) (fun _ -> x) @ ls);;
 
-let rec cutat p =
+let _ = pad 1 'x' ['t';'a';'b';'c';'d'];;  (* ['d'] *)
+
+let _ = pad 3 'x' ['t'] (* ['x'; 'x'; 't'] *)
+
+let take k ls =  if k <= 0 then [] else fst(chop_list k ls) (* retain head part *)
+
+let rec cutat p =  (* head of list satisfies p *)
   function
   | [] -> failwith "cutat not found "
   | t :: ts as ls -> if p t then ls else cutat p ts 
 
-let rec take k =
+let list_opt =
+  function
+  | None -> []
+  | Some t -> [t]
+
+let opt_list = 
   function 
-  | t :: ts -> if (k <=0) then [] else t :: take (k - 1) ts
-  | _ -> []
+  | [] -> None
+  | t :: _ -> Some t
+
+let (-|) f g x = f(g(x))
+
+let pair x y = (x,y)
+
+let discard _ = ();;
+
+let id x = x
+
+
+

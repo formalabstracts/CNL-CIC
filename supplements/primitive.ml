@@ -88,51 +88,81 @@ let rec match_syn f ss input = (* syn expanded word *)
 
 (* scope *)
 
-let current_scope = ref [""]
+let mk_meta =
+  let i = ref 0 in 
+  fun () ->
+        let () = i := !i + 1 in 
+        string_of_int (!i)
+
+let scope_current = ref []
+
+(* Length of scope is the length of this list.
+   With no document, the list is empty. 
+   When the document starts, the first item is the doc name and the list has length 1.
+   When a section starts, the head is the section name, and the list has length 2.
+
+  divisions and subdivisions can be at any position of the list, and are treated
+  as a special case with "length" -1. 
+
+  An import is placed in the document (that is global) scope. 
+  Nonglobal defs from import are flattened (placed at the section scope no matter their actual scope).
+
+  We haven't implemented namespaces in a significant way.
+ *)
+
+let scope_length = List.length !scope_current
+
+ (* an object of given scope is "inscope" if it is a tailing sub scope of scope_current. 
+  *)
 
 let inscope scope = 
-  let curscope = !current_scope in
+  let sc = !scope_current in
   let is = List.length scope in
-  let ic = List.length curscope in 
-  if is > ic then false
-  else 
-    let curscope' = snd(chop_list (ic - is) curscope) in 
-    (scope = curscope')
+  let ic = scope_length in 
+  (is <= ic) && (scope = snd(chop_list (ic - is) sc))
 
 let string_of_scope = 
-  String.concat "." (List.rev !current_scope)
+  String.concat "." (List.rev !scope_current)
 
-let is_scope_end =
-  function
-  | "endsection" | "endsubsection" | "endsubsubsection" | "enddivision" -> true
-  | _ -> false
+let is_scope_end s = 
+  String.sub s 0 3 = "end"
 
-let (doc_scope,sec_scope,sub_scope,subsub_scope,div_scope) = (0,1,2,3,4)
+let (doc_scope,sec_scope,sub_scope,subsub_scope,div_scope) = (1,2,3,4,-1)
 
-let scope_level = 
-  function
+let scope_length = 
+  (function
   | "document" | "article" -> doc_scope
   | "section" | "endsection" -> sec_scope
   | "subsection" | "endsubsection" -> sub_scope
   | "subsubsection" | "endsubsubsection" -> subsub_scope
   | "division" | "subdivision" | "enddivision" | "endsubdivision" -> div_scope
-  | s -> failwith ("bad scope_level "^s)
+  | s -> failwith ("bad scope_length "^s))
 
-let set_current_scope (label,scope_end,new_level) = 
-    if not(scope_end) then 
-      if (div_scope <= new_level) then 
-        current_scope := label :: !current_scope
-      else 
-        current_scope := label :: (pad (new_level) "" !current_scope)
-    else (* scope_end *) 
-      if (div_scope <= new_level) then 
-        current_scope := List.tl (cutat (fun s -> (label="" || label = s)) !current_scope)
-      else 
-        let _ = new_level < List.length !current_scope || 
-                  failwith "ending division that was not started" in 
-        let ts = pad (new_level + 1) "" !current_scope in 
-        let _ = (List.hd ts = label) || failwith "ending division does not match start" in
-        current_scope := List.tl ts 
+let set_end_unlabeled_scope_current new_length = 
+  try 
+    if (new_length < 0) then 
+      scope_current := List.tl !scope_current
+    else 
+      scope_current := pad (new_length) "" !scope_current 
+  with Failure _ -> failwith ("set_end_unlabeled_scope_current:tl")
+
+let set_end_labeled_scope_current (label,new_length) = 
+  try 
+    if (new_length < 0) then (* div_scope *)
+      scope_current := List.tl (cutat (fun s -> (label = s)) !scope_current)
+    else (* both label and new_length must match *)
+      let ts = pad (new_length + 1) "" !scope_current in 
+      let _ = (List.hd ts = label) || failwith "ending division does not match start" in
+      scope_current := List.tl ts 
+  with Failure _ -> failwith ("set_end_labeled_scope_current:tl " ^ string_of_scope)
+
+let set_start_scope_current (new_length,label) = (* label becomes hd of list of new length *)
+  if (div_scope < 0) then 
+    scope_current := label :: !scope_current
+  else 
+    let new_scope = label :: (pad (new_length - 1) "" !scope_current) in 
+    let _ = List.length new_scope = new_length || failwith "set_start_scope_current:length" in
+    scope_current := new_scope
 
 
 
@@ -177,33 +207,21 @@ let prim_scope =
   | Prim_type_var (scope,_) -> scope 
   | Prim_prop_var (scope,_) -> scope
 
-let prim_find_all_inscope tbl key = 
-  let vs = Hashtbl.find_all tbl key in
-  List.filter (fun v -> inscope (prim_scope v)) vs
-
-let prim_add tbl (key,value) = 
-  warn (not (prim_find_all_inscope tbl key = []))
-    ("primitive already declared: "^key); 
-    Hashtbl.add tbl key value
-
-let prim_node = function
-  | Prim_term_op_controlseq (_,node,_,_,_,_,_) -> node
-  | Prim_binary_relation_controlseq (_,node,_,_,_,_) -> node
-  | Prim_propositional_op_controlseq (_,node,_,_,_,_,_ ) -> node
-  | Prim_type_op_controlseq (_,node,_,_,_) -> node
-  | Prim_term_controlseq (_,node,_,_,_ ) -> node
-  | Prim_type_controlseq (_,node,_,_,_ ) -> node
-  | Prim_lambda_binder (_,node,_ ) -> node
-  | Prim_pi_binder (_,node,_ ) -> node
-  | Prim_binder_prop (_,node,_ ) -> node
-  | Prim_identifier_term (_,node,_,_) -> node
-  | Prim_identifier_type (_,node,_,_) -> node
-  | Prim_type_op (_,node,_,_) -> node
-  | Prim_binary_relation_op (_,node,_,_) -> node
-  | Prim_propositional_op (_,node,_,_,_,_ ) -> node
-  | _ -> failwith "prim_node: node expected" 
-
 let prim_string = function
+  | Prim_term_op_controlseq (_,string,_,_,_,_,_) -> string
+  | Prim_binary_relation_controlseq (_,string,_,_,_,_) -> string
+  | Prim_propositional_op_controlseq (_,string,_,_,_,_,_ ) -> string
+  | Prim_type_op_controlseq (_,string,_,_,_) -> string
+  | Prim_term_controlseq (_,string,_,_,_ ) -> string
+  | Prim_type_controlseq (_,string,_,_,_ ) -> string
+  | Prim_lambda_binder (_,string,_ ) -> string
+  | Prim_pi_binder (_,string,_ ) -> string
+  | Prim_binder_prop (_,string,_ ) -> string
+  | Prim_identifier_term (_,string,_,_) -> string
+  | Prim_identifier_type (_,string,_,_) -> string
+  | Prim_type_op (_,string,_,_) -> string
+  | Prim_binary_relation_op (_,string,_,_) -> string
+  | Prim_propositional_op (_,string,_,_,_,_ ) -> string
   | Prim_term_var (_,s,_) -> s
   | Prim_type_var (_,s) -> s
   | Prim_prop_var (_,s) -> s
@@ -223,124 +241,142 @@ let prim_pattern = function
   | Prim_term_op (_,pattern,_,_) -> pattern
   | _ -> failwith "prim_pattern: pattern expected"
 
-let prim_node_in_scope tbl key =
+let prim_find_all_inscope tbl key = 
+  let vs = Hashtbl.find_all tbl key in
+  List.filter (fun v -> inscope (prim_scope v)) vs
+
+let prim_add tbl (key,value) = 
+  warn (not (prim_find_all_inscope tbl key = []))
+    ("primitive already declared: "^key); 
+    Hashtbl.add tbl key value
+
+(*
+let prim_string_in_scope tbl key =
   List.mem key 
-  (List.map prim_node (prim_find_all_inscope tbl key))
-
-let prim_string_in_scope tbl key = 
-  List.mem key
   (List.map prim_string (prim_find_all_inscope tbl key))
+ *)
 
-(*  key=node for prim_node primitives *)
+(* string = key, so there is no need to double check *)
 
-let prim_identifier_term_tbl = Hashtbl.create 200
+let prim_string_in_scope tbl key =
+  opt_list(prim_find_all_inscope tbl key)
 
-let prim_identifier_term_exists key =
-  prim_node_in_scope prim_identifier_term_tbl key
+let prim_string_in_scope_exists tbl key =
+  prim_find_all_inscope tbl key <> []
 
-let prim_identifier_type_tbl = Hashtbl.create 50
+let prim_identifier_term_tbl : (string,prim) Hashtbl.t = Hashtbl.create 200
 
-let prim_identifier_type_exists key =
-  prim_node_in_scope prim_identifier_type_tbl key
+let prim_identifier_term_option key =
+  prim_string_in_scope prim_identifier_term_tbl key
 
-let prim_structure_tbl = Hashtbl.create 50
+let prim_identifier_type_tbl : (string,prim) Hashtbl.t = Hashtbl.create 50
 
-let prim_structure_exists key =
-  prim_node_in_scope prim_structure_tbl key
+let prim_identifier_type_option key =
+  prim_string_in_scope prim_identifier_type_tbl key
 
-let prim_relation_tbl = Hashtbl.create 50
+let prim_structure_tbl : (string,prim) Hashtbl.t = Hashtbl.create 50
 
-let prim_relation_exists key =
-  prim_node_in_scope prim_relation_tbl key
+let prim_structure_option key =
+  prim_string_in_scope prim_structure_tbl key
 
-let prim_type_controlseq_tbl = Hashtbl.create 100
+let prim_relation_tbl : (string,prim) Hashtbl.t = Hashtbl.create 50
 
-let prim_type_controlseq_exists key = 
-  prim_node_in_scope prim_type_controlseq_tbl key
+let prim_relation_option key =
+  prim_string_in_scope prim_relation_tbl key
 
-let prim_term_var_tbl = Hashtbl.create 200
+let prim_term_controlseq_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-let prim_term_var_exists key = 
+let prim_term_controlseq_option key = 
+  prim_string_in_scope prim_term_controlseq_tbl key
+
+let prim_type_controlseq_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
+
+let prim_type_controlseq_option key = 
+  prim_string_in_scope prim_type_controlseq_tbl key
+
+let prim_term_var_tbl : (string,prim) Hashtbl.t = Hashtbl.create 200
+
+let prim_term_var_option key = 
   prim_string_in_scope prim_term_var_tbl key
 
-let prim_type_var_tbl = Hashtbl.create 100
+let prim_type_var_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-let prim_type_var_exists key = 
-  prim_string_in_scope prim_type_var_tbl key
+let prim_type_var_exist key = 
+  prim_string_in_scope_exists prim_type_var_tbl key
 
-let prim_prop_var_tbl = Hashtbl.create 100
+let prim_prop_var_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-let prim_prop_var_exists key = 
+let prim_prop_var_option key = 
   prim_string_in_scope prim_prop_var_tbl key
 
-let prim_lambda_binder_tbl = Hashtbl.create 100
+let prim_lambda_binder_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-let prim_lambda_binder_exists key = 
+let prim_lambda_binder_option key = 
   prim_string_in_scope prim_lambda_binder_tbl key
 
-let prim_term_op_tbl = Hashtbl.create 100
+let prim_term_op_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-let prim_term_op_exists key = 
+let prim_term_op_option key = 
   prim_string_in_scope prim_term_op_tbl key
 
-let prim_term_op_controlseq_tbl = Hashtbl.create 100
+let prim_term_op_controlseq_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-let prim_term_op_controlseq_exists key = 
+let prim_term_op_controlseq_option key = 
   prim_string_in_scope prim_term_op_controlseq_tbl key
 
-let prim_binary_relation_tbl = Hashtbl.create 100
+let prim_binary_relation_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-let prim_binary_relation_exists key = 
+let prim_binary_relation_option key = 
   prim_string_in_scope prim_binary_relation_tbl key
 
-let prim_binary_relation_controlseq_tbl = Hashtbl.create 100
+let prim_binary_relation_controlseq_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-let prim_binary_relation_controlseq_exists key = 
+let prim_binary_relation_controlseq_option key = 
   prim_string_in_scope prim_binary_relation_controlseq_tbl key
 
-let prim_propositional_op_tbl = Hashtbl.create 100
+let prim_propositional_op_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-let prim_propositional_op_exists key = 
+let prim_propositional_op_option key = 
   prim_string_in_scope prim_propositional_op_tbl key
 
-let prim_propositional_op_controlseq_tbl = Hashtbl.create 100
+let prim_propositional_op_controlseq_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-let prim_propositional_op_controlseq_exists key = 
+let prim_propositional_op_controlseq_option key = 
   prim_string_in_scope prim_propositional_op_controlseq_tbl key
 
-let prim_binder_prop_tbl = Hashtbl.create 100
+let prim_binder_prop_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-let prim_binder_prop_exists key = 
+let prim_binder_prop_option key = 
   prim_string_in_scope prim_binder_prop_tbl key
 
-let prim_pi_binder_tbl = Hashtbl.create 100
+let prim_pi_binder_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-let prim_pi_binder_exists key = 
+let prim_pi_binder_option key = 
   prim_string_in_scope prim_pi_binder_tbl key
 
-let prim_type_op_tbl = Hashtbl.create 100
+let prim_type_op_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-let prim_type_op_exists key = 
+let prim_type_op_option key = 
   prim_string_in_scope prim_type_op_tbl key
 
-let prim_type_op_controlseq_tbl = Hashtbl.create 100
+let prim_type_op_controlseq_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-let prim_type_op_controlseq_exists key = 
+let prim_type_op_controlseq_option key = 
   prim_string_in_scope prim_type_op_controlseq_tbl key
 
-let prim_classifier_tbl = Hashtbl.create 100
+let prim_classifier_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-let prim_classifier_exists key = 
+let prim_classifier_option key = 
   prim_string_in_scope prim_classifier_tbl key
 
-let prim_simple_adjective_tbl = Hashtbl.create 100
+let prim_simple_adjective_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-let prim_simple_adjective_exists key = 
+let prim_simple_adjective_option key = 
   prim_string_in_scope prim_simple_adjective_tbl key
 
-let prim_simple_adjective_multisubject_tbl = Hashtbl.create 100
+let prim_simple_adjective_multisubject_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-let prim_simple_adjective_multisubject_exists key = 
+let prim_simple_adjective_multisubject_option key = 
   prim_string_in_scope prim_simple_adjective_multisubject_tbl key
 
 let prim_verb_tbl : (string,prim) Hashtbl.t  = Hashtbl.create 100
@@ -357,8 +393,12 @@ let prim_adjective_multisubject_tbl : (string,prim) Hashtbl.t = Hashtbl.create 1
 
 let prim_typed_name_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-let frozen = 
-  List.map syn_add (List.map (fun t -> [t]) 
+let prim_used_tbl : (string,unit) Hashtbl.t = Hashtbl.create 500
+
+let prim_defined_tbl : (string,unit) Hashtbl.t = Hashtbl.create 500
+
+
+let frozen_list = 
 [
 "a";"an";"all";"and";"any";"are";"as";"assume";"be";"by";
 "case";"classifier";
@@ -386,7 +426,7 @@ let frozen =
 (* plural handled by desing "classifiers"; "exists";"implement";
    "parameters";"properties";"propositions";"synonyms";"types";
  *)
-])
+]
 
 let phrase_list_transition_words =
      [
@@ -415,18 +455,18 @@ let phrase_list_transition_words =
 
 let preposition_list = 
 [
-  "aboard";"about";"above";"according\\~to"; "across"; "against"; "ahead\\~of";
-  "along";"alongside";"amid";"amidst";"among";"around";"at";"atop";"away\\~from";
+  "aboard";"about";"above";"according to"; "across"; "against"; "ahead of";
+  "along";"alongside";"amid";"amidst";"among";"around";"at";"atop";"away from";
   "before";
   "behind";"below";"beneath";"beside";"between";"beyond";"by";"concerning";"despite";
-  "except";"except\\~at";"excluding";"following";
-  "from";"in";"in\\~addition\\~to";"in\\~place\\~of";"in\\~regard\\~to";
-  "inside";"instead\\~of";"into";"near";"next\\~to";"of";
-  "off";"on";"on\\~behalf\\~of";"on\\~top\\~of";"onto";"opposite";"out";"out\\~of";
-  "outside";"outside\\~of";
-  "over";"owing\\~to";"per";"prior\\~to";"regarding";"save";"through";
+  "except";"except at";"excluding";"following";
+  "from";"in";"in addition to";"in place of";"in regard to";
+  "inside";"instead of";"into";"near";"next to";"of";
+  "off";"on";"on behalf of";"on top of";"onto";"opposite";"out";"out of";
+  "outside";"outside of";
+  "over";"owing to";"per";"prior to";"regarding";"save";"through";
   "throughout";"till";"to";"towards";"under";"until";
-  "up";"up\\~to";"upon";"with";"with\\~respect\\~to";"within";"without"
+  "up";"up to";"upon";"with";"with respect to";"wrt";"within";"without"
 
 (* 
    "for"; "as"; "like"; "after"; "round"; "plus"; "since"; "than"; "past"; 
@@ -468,3 +508,19 @@ let prim_list =
   "prim_propositional_op";
   "prim_relation"
   ]
+
+
+let syn_add_frozen() = 
+  List.map syn_add (List.map (fun t -> [t]) frozen_list);;
+
+let add_used_word ls = 
+  let m = List.map (fun s -> String.split_on_char ' ' s) ls in
+  let m = List.flatten m in 
+  let _ = List.map (fun t -> Hashtbl.add prim_defined_tbl t ()) m in 
+  ()
+
+let add_master_list() = 
+    add_used_word (frozen_list @ preposition_list)
+
+
+

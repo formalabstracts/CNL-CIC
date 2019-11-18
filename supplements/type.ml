@@ -9,13 +9,11 @@ type qany =
 type raw = (* raw unprocessed data *)
   | RawNodeList of node list
 
-
 and term = 
   | RawTerm of node list
   | RawPlainTerm of node list
-  | RawTermOp of node
+  | RawTermOp of prim
   | RawTdop of term list
-  | RawUnreachable
   | RawTermPattern of pattern
 
   | TVar of string * (typ option)
@@ -24,8 +22,8 @@ and term =
   | Integer of int (* XX should be BigInt *)
   | String of string 
   | Blank
-  | Id of string * typ option
-  | ControlSeq of string * expr list
+  | PrimId of prim 
+  | ControlSeq of prim * expr list
   | FieldAccessor of string * term 
   | Let of term * term * term 
   | IfThenElse of prop * term * term
@@ -41,7 +39,7 @@ and term =
   | Match of (term list) * (term list * term) list
   | Definite_Term  of term
   | MatchFunction of (expr * expr) list * (string * typ) list * typ * (term list * term) list
-  | Lambda of string * ((expr * expr) list * expr list) * term
+  | Lambda of prim * ((expr * expr) list * expr list) * term
   | LambdaFun of ((expr * expr) list * expr list) * typ * term
   | MapsTo of term * term 
   | TAnyName of predicate 
@@ -53,16 +51,16 @@ and typ =
   | RawPostColon of node list 
 
   | TyVar of string
-  | TyId of string
-  | TyControlSeq of string * expr list
+  | TyId of prim
+  | TyControlSeq of prim * expr list
   | Subtype of term * term list * statement 
   | TyQuotient of typ * term
   | TyGeneral of predicate list * typ * predicate list 
   | TyCoerce of term 
   | TyAgda of term list 
   | TyApp of typ * (expr * expr * expr) list * expr list
-  | TyBinder of string * (expr * expr) list * expr list * typ 
-  | TyOp of string
+  | TyBinder of prim * (expr * expr) list * expr list * typ 
+  | TyOp of prim
   | TyBinop of (expr * expr) list * typ list 
 
   | Structure of 
@@ -85,24 +83,23 @@ and typ =
              (string * (expr * expr) list * (string * typ) list * typ) list)
             list
 
-  | Over of string * 
+  | Over of prim * 
               (expr * expr * expr) list * 
                 expr list * 
                   (expr * expr * expr) list
-
 
 and prop = 
   | RawProp of node list 
 
   | PVar of string
   | PStatement of statement 
-  | PRel of string
+  | PRel of prim
   | P_ops of term list 
   | Ptdop of prop list
   | Ptdopr of (term * term * term) list
   | PApp of prop * (expr * expr * expr) list * expr list
   | PLambda of (expr * expr) list * expr list * prop
-  | PBinder of string * (expr * expr) list * (string * typ) list * prop
+  | PBinder of prim * (expr * expr) list * (string * typ) list * prop
 
 and context = 
   | CVarb of string * expr * bool (* name, type-expr, fixed? *)
@@ -133,8 +130,8 @@ and predicate =
   | PredPrimAdjMulti of predicate 
   | PredPrimVerb of predicate 
   | PredPrimVerbMulti of predicate 
-  | PredPrimSimpleAdj of string 
-  | PredPrimSimpleAdjMulti of string
+  | PredPrimSimpleAdj of prim 
+  | PredPrimSimpleAdjMulti of prim
   | PredNeg of predicate 
   | PredPairwise of predicate 
   | PredWith of predicate 
@@ -166,7 +163,6 @@ and expr =
   | Eproof
   | EVar of string * expr (* var, its type info *)
 
-
 and pattern = (* what wordpattern get translated to for parsing *)
   | Pat_var_term
   | Pat_var_type 
@@ -189,13 +185,75 @@ and instruct =
   | InstructString of string * string
   | InstructBool of string * bool
   | InstructInt of string * int 
-[@@deriving show]
 
-type associativity = 
+and associativity = 
   | AssocLeft
   | AssocRight
   | AssocNone
+
+and scope = string list (* hierarchical identifiers *)
+
+and precedence = int 
+
+and numbracearg = int 
+
+and prim = 
+  (*
+    the string field = the key = name of primitive word, controlseq, or symbol. 
+    the first int = number of controlseq braceargs
+    the second int = precedence level 
+
+    all cs primitives are 0-ary or 2-ary (as infix, not referring to braceargs) 
+
+    Ordering of fields is as follows:
+    scope, cs string, numbraceargs, precedence, assoc, def (term,typ,etc. as appropriate), free vars  
+
+   *)
+
+  (* -- controlseq *)
+  | Prim_classifier of scope * string (* phrase *)
+  | Prim_term_op_controlseq of scope * string * numbracearg * precedence * associativity * term * term list
+  | Prim_binary_relation_controlseq of scope * string * numbracearg * prop * term * term list
+  | Prim_propositional_op_controlseq of 
+      scope * string * numbracearg * precedence * associativity * prop * term list 
+  (* -- 2-ary fixed prec, right assoc. *)
+  | Prim_type_op_controlseq of scope * string * numbracearg * term * term list
+  (* -- 0-ary, i.e. only brace args *)
+  | Prim_term_controlseq of scope * string * numbracearg * term * term list 
+  | Prim_type_controlseq of scope * string * numbracearg * typ * expr list 
+
+  (* -- binders *)
+  | Prim_lambda_binder of scope * string * term 
+  | Prim_pi_binder of scope * string * typ 
+  | Prim_binder_prop of scope * string * prop 
+
+  (* -- non cs *)
+  (* scope, pattern, def, frees *)                             
+  | Prim_typed_name of scope * pattern * typ * expr list 
+  | Prim_adjective of scope * pattern * prop * expr list
+  | Prim_adjective_multisubject of scope * pattern * prop * expr list
+  | Prim_simple_adjective of scope * pattern * prop * expr list
+  | Prim_simple_adjective_multisubject of scope * pattern * prop * expr list
+  | Prim_definite_noun of scope * pattern * term * expr list
+  | Prim_identifier_term of scope * string * term * expr list
+  | Prim_identifier_type of scope * string * typ * expr list
+  | Prim_possessed_noun of scope * pattern * term * expr list
+  | Prim_verb of scope * pattern * prop * expr list 
+  | Prim_verb_multisubject of scope * pattern * prop * expr list
+  | Prim_structure of scope * pattern * typ * expr list 
+  | Prim_type_op of scope * string * typ * typ list
+  | Prim_type_word of scope * pattern * typ * typ list
+  | Prim_term_op of scope * pattern * term * expr list
+  | Prim_binary_relation_op of scope * string * prop * (term * term)
+  | Prim_propositional_op of scope * string * int * associativity * prop * prop list 
+  | Prim_relation of scope * pattern * typ * term list 
+
+  (* context variables *)
+  | Prim_type_var of scope * string
+  | Prim_term_var of scope * string * typ option
+  | Prim_prop_var of scope * string 
 [@@deriving show]
+
 
 type this_adj =
   | This of string 
@@ -232,14 +290,6 @@ type wordpattern =
   | Wp_inferring of wordpattern * wordpattern list
   | Wp_record of expr list * this_adj list
   | Wp_binder of wordpattern * wordpattern (* wp, wp_var *)
-
-[@@deriving show]
-
-
-
-
-
-type scope = string list (* hierarchical identifiers *)
 [@@deriving show]
 
 type pos = (Lexing.position * Lexing.position) [@opaque]
@@ -247,65 +297,15 @@ type pos = (Lexing.position * Lexing.position) [@opaque]
 
 (* let show_pos _ _ = "" *)
 
-
-type prim = 
-
-  | Prim_classifier of scope * string (* phrase *)
-  (* all cs primitives are 0-ary or 2-ary (as infix, not referring to braceargs) *)
-  (* cs token, numbraceargs, precedence, assoc, def, free vars  -- always binary *)
-  | Prim_term_op_controlseq of scope * token * int * int * associativity * term * term list
-  (* cs token, numbraceargs, def, frees *)
-  | Prim_binary_relation_controlseq of scope * token * int * prop * term * term list
-  (* cs token, numbraceargs, prec, assoc, def, frees *)
-  | Prim_propositional_op_controlseq of 
-      scope * token * int * int * associativity * prop * term list 
-  (* cs token, numbraceargs, def, frees -- alway binary, fixed prec, right assoc. *)
-  | Prim_type_op_controlseq of scope * token * int * term * term list
-  (* cs token, numbraceargs, def, frees -- only brace args *)
-  | Prim_term_controlseq of scope * token * int * term * term list 
-  (* cs token, numbraceargs, def, frees *)
-  | Prim_type_controlseq of scope * token * int * typ * expr list 
-  (* token, def -- binders *)
-  | Prim_lambda_binder of scope * token * term 
-  | Prim_pi_binder of scope * token * typ 
-  | Prim_binder_prop of scope * token * prop 
-
-  (* -- non cs *)
-  (* pattern, def, frees *)                             
-  | Prim_typed_name of scope * pattern * typ * expr list 
-  | Prim_adjective of scope * pattern * prop * expr list
-  | Prim_adjective_multisubject of scope * pattern * prop * expr list
-  | Prim_simple_adjective of scope * pattern * prop * expr list
-  | Prim_simple_adjective_multisubject of scope * pattern * prop * expr list
-  | Prim_definite_noun of scope * pattern * term * expr list
-  | Prim_identifier_term of scope * token * term * expr list
-  | Prim_identifier_type of scope * token * typ * expr list
-  | Prim_possessed_noun of scope * pattern * term * expr list
-  | Prim_verb of scope * pattern * prop * expr list 
-  | Prim_verb_multisubject of scope * pattern * prop * expr list
-  | Prim_structure of scope * pattern * typ * expr list 
-  | Prim_type_op of scope * token * typ * typ list
-  | Prim_type_word of scope * pattern * typ * typ list
-  | Prim_term_op of scope * pattern * term * expr list
-  | Prim_binary_relation_op of scope * token * prop * (term * term)
-  | Prim_propositional_op of scope * token * int * associativity * prop * prop list 
-  | Prim_relation of scope * pattern * typ * term list 
-
-  (* context variables *)
-  | Prim_type_var of scope * string 
-  | Prim_term_var of scope * string * typ option
-  | Prim_prop_var of scope * string 
-[@@deriving show]
-
 type text_item = 
-  | Section_preamble of pos * int * string (* new current section *)
+  | Section_preamble of pos * bool * int * string (* new current section *)
   | Instruction of pos * instruct (* keyword *)
   | Axiom of pos * string * string * statement list * statement list  (* kind,label,assumptions,conclusions *)
   | Definition of pos * string * statement list * (wordpattern * expr) list * this_adj list (* label, assumptions, word patterns and definitions.  *)
   | Theorem of pos * string * statement list * statement list  (* label, assumptions ,conclusions *)
   | Synonym of pos * instruct
   | Fiat of wordpattern list
-  | Implement of pos * typ * raw list (* was wordpattern *)
+  | Implement of pos * typ * raw list 
   | Macro of pos * int * (wordpattern * expr) list
   | Namespace
 [@@deriving show]

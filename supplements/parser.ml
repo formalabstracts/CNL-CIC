@@ -30,6 +30,8 @@ let trEof =  TrFail (0,0,EOF);;
 
 let failEof = Noparse(trEof)
 
+let failtr tr _ = raise (Noparse tr)
+
 let getpos = 
   function 
   | [] -> raise failEof
@@ -51,6 +53,10 @@ let trPos =
         let (line,col)=line_col n in 
         (TrFail(line,col,n.tok))
 
+let failparse = 
+  function 
+    [] -> raise failEof 
+   | h :: _ -> raise (Noparse (trPos[h]))
 
 let rec get_trace_data =
   function 
@@ -138,7 +144,6 @@ let show_trace =
   |  TrString s -> s
   | t -> show_trace t
 
-
 let mergeOr (t,t') = 
   match t with 
   | TrOr t'' -> TrOr (t'' @ [t'])
@@ -163,7 +168,9 @@ let pair_pos (a,b) = merge_pos [a;b]
 let pair_noparse sep (p1,s1) (p2,s2) =
 (pair_pos (p1,p2),s1^sep^s2)
 
-let par x = if x = "" then "" else "("^x^")"
+
+
+(* let par x = if x = "" then "" else "("^x^")" *)
 
 let group msg parser input  = 
   try 
@@ -263,8 +270,6 @@ let dependent_plus parser1 parser2 input =
   with | Noparse t2 -> raise(Noparse (mergeAdd(t1,t2)))
        | Nocatch t2 -> raise(Nocatch (TrGroup ("<...> ++",t2)))
 
-let (-|) f g x = f(g(x))
-
 let mk (t,p) = { tok = t; pos = p }
 
 let optionally p = 
@@ -276,8 +281,14 @@ let someX p =
   | h :: t -> let (b,x) = p h in
               if b then 
                 let tr = TrData [h.tok] in 
-                (x,(tr,t)) 
+                (x(),(tr,t)) 
               else raise (Noparse (trPos [h]))
+
+let trueX x = (true,fun _ -> x)
+
+let ifX b x = (b,fun _ -> x)
+
+let falseX = (false, fun () -> failwith "falseX")
 
 (* let someXt p f = someX p (f -| tok) *)
 
@@ -287,21 +298,10 @@ let a tok input =
   with
     Noparse t -> raise (Noparse (TrGroup ("expected:"^string_of_toks [tok],t)))
 
-let pair x y = (x,y)
-
 let consume parser input = 
   let ((a,_),_) = (parser ++ finished) input in a
 
 let plus prs = atleast 1 prs
-
-let discard _ = ();;
-
-let failparse = 
-  function 
-    [] -> raise failEof 
-   | h :: _ -> raise (Noparse (trPos[h]))
-
-let failtr tr _ = raise (Noparse tr)
 
 let has_possibly p = possibly p >> (function | [] -> false | _ -> true)
 
@@ -690,9 +690,8 @@ let treat_section_preamble =
   | (({ tok = WORD(_,sec); pos },ls),p') -> (
     let l = getlabel ls in
     let scope_end = is_scope_end sec in
-    let new_level = scope_level sec in 
-    set_current_scope (l,scope_end,new_level); 
-    Section_preamble(pair_pos(pos,p'.pos),new_level,l))
+    let new_length = scope_length sec in 
+    Section_preamble(pair_pos(pos,p'.pos),scope_end,new_length,l))
   | _ -> failwith "bad format: treat_section_preamble")
 
 
@@ -748,7 +747,9 @@ let put_ints = function
 
 
 
-let integer = someX ((function | INTEGER x -> true,int_of_string x | _ -> false,0)-| tok) 
+let integer = someX ((function 
+                      | INTEGER x -> trueX(int_of_string x)
+                      | _ -> falseX)-| tok) 
 
 let instruct_command = 
   let instruct_keyword_command = someword "exit" in 
@@ -814,11 +815,11 @@ let rec expand_slashdash acc =
 
 let is_syntoken = 
   function 
-  | SLASHDASH -> true,SLASHDASH 
-  | WORD _ as wd -> true,wd
-  | VAR v -> let (b,v') = is_word v in b,WORD(v,v')
-  | SLASH -> true,SLASH
-  | t -> false,t
+  | SLASHDASH -> trueX SLASHDASH 
+  | WORD _ as wd -> trueX wd
+  | VAR v -> let (b,v') = is_word v in ifX b (WORD(v,v'))
+  | SLASH -> trueX SLASH
+  | _ -> falseX
 
 let synlist = 
   let synnode = someX (is_syntoken -| tok) in
@@ -895,18 +896,11 @@ let post_colon_balanced =
               | WORD (_,s) -> not(s = "end") && not(s = "with")
               | _ -> true)
 
-               
 let opt_colon_type = 
   let colon_type = 
     a COLON ++ post_colon_balanced >> snd in 
   possibly(colon_type) 
   >> (fun bs -> RawPostColon (flatten bs))
-
-let mk_meta =
-  let i = ref 0 in 
-  fun () ->
-        let () = i := !i + 1 in 
-        string_of_int (!i)
 
 let meta_node() = 
   {tok = METAVAR (mk_meta()); pos = (empty_pos,empty_pos)}
@@ -1082,8 +1076,8 @@ let not_banned =
 
 let any_pattern_word = 
   someX((function 
-      | WORD (_,s) as w  -> not_banned w,s
-      | _ -> false,"UNREACHABLE") -| tok)
+      | WORD (_,s) as w  -> ifX (not_banned w) s
+      | _ -> falseX) -| tok)
 
 let word_in_pattern = 
   any_pattern_word >> (fun s -> Wp_wd s) 
@@ -1271,16 +1265,17 @@ let binary_symbol_pattern = group "binary_symbol_pattern"
 
 let insection = 
   commit_head "macro" (phrase "in this")
-    (fun head -> (head ++ lit_document ++ possibly(comma)
-     >> 
-       (function | ((_,{ tok = WORD(_,s); _ }),_) -> 
-                     (let i = scope_level s in
-                      let subdivision = (i>3) in
-                      if subdivision 
-                      then max 0 (List.length !current_scope - 1)
-                      else i)
-                 | _ -> 0)
-    ))
+    (fun head -> 
+           (head ++ lit_document ++ possibly(comma)
+            >> 
+              (function | ((_,{ tok = WORD(_,s); _ }),_) -> 
+                            (let i = scope_length s in
+                             let _ = if is_scope_end s then failwith ("insection "^s) in
+                             i)
+                        | _ -> failwith "insection:unreachable"
+              )
+           )
+    )
 
 let we_record_def = group "we_record_def"
   (lit_we_record ++
@@ -1313,7 +1308,7 @@ let iff_junction = lit_iff
 
 let opt_say = possibly(lit_we_say)
 
-let opt_record = possibly(lit_we_record) >> discard (* XX Don't discard! *)
+let opt_record = possibly(lit_we_record) >> discard (* XX Don't discard. *)
 
 let opt_define = 
   (possibly(lit_lets) ++ possibly(word "define") >> discard) 
@@ -1682,34 +1677,38 @@ let var_term = var >> fun v -> TVar(stored_string v,None)
 let decimal = 
   someX
     (function 
-     | { tok = DECIMAL _ ; _ } as t -> true,Decimal (stored_string t)
-     | _ -> false,RawUnreachable)
+     | { tok = DECIMAL _ ; _ } as t -> trueX (Decimal (stored_string t))
+     | _ -> falseX)
 
 let integer_term = integer >> (fun i -> Integer i)
 
 let string_term = 
   someX
     (function 
-     | { tok = STRING _; _ } as s -> true, String (stored_string s)
-     | _ -> false,RawUnreachable)
+     | { tok = STRING _; _ } as s -> trueX (String (stored_string s))
+     | _ -> falseX)
 
 let blank_term = a BLANK >> (fun _ -> Blank)
 
 
  (* XX to do - hierarchical identifiers *)
 
-let prim_identifier_term = 
-  someX(fun t -> prim_identifier_term_exists t.tok,Id(stored_string t,None))
+let matchX ps f = 
+  match ps with 
+  | Some p -> trueX (f p)
+  | None -> falseX 
 
-let controlseq1 f = 
-  someX
-    (function 
-     | { tok = CONTROLSEQ s; _ } as t  -> (f s,t) 
-     | t -> (false,t))
+let some_prim (p : string -> 'a option) f = 
+  someX(fun t -> matchX (p (stored_string t)) f )
+
+let some_prim_id (xf : string -> 'a option)  = 
+  some_prim xf id
+
+let prim_identifier_term = some_prim prim_identifier_term_option (fun p -> PrimId p)
 
 let controlseq_term f = 
-  cs_brace (controlseq1 f) balanced 
-  >> (fun (s,bs) -> ControlSeq (stored_string s,(map (fun b -> RawExpr b) bs)))
+  cs_brace (some_prim_id f) balanced 
+  >> (fun (p,bs) -> ControlSeq (p,(map (fun b -> RawExpr b) bs)))
 
 let paren_term = 
   paren(balanced) >> (fun b -> RawTerm b)
@@ -1726,10 +1725,10 @@ let annotated_type =
   >> (fun ((t,_),_) -> RawGeneralType t)
 
 let const_type = 
-  someX(fun t -> prim_identifier_type_exists t.tok,TyId (stored_string t))
+  some_prim prim_identifier_type_option (fun p -> TyId p)
 
 let var_type = 
-  let f v = prim_type_var_exists (stored_string v) in 
+  let f v = prim_type_var_exist (stored_string v) in 
   must f var >> (fun v -> TyVar (stored_string v))
   ||| (paren(var ++ a COLON ++ the_case_sensitive_word "Type") 
          >> (fun ((v,_),_) -> TyVar (stored_string v)))
@@ -1805,7 +1804,7 @@ let tightest_prefix =
   ||| blank_term 
   ||| var_term
   ||| prim_identifier_term
-  ||| (controlseq_term (fun _ -> true))
+  ||| controlseq_term prim_term_controlseq_option
   ||| paren_term
   ||| annotated_term
   ||| make_term
@@ -1835,9 +1834,9 @@ and tightest_terms input =
 (* tightest types *)
 
 let controlseq_type = 
-  let controlseq1 = some(fun t -> prim_type_controlseq_exists t) in
+  let controlseq1 = some_prim_id prim_type_controlseq_option in 
   cs_brace controlseq1 balanced 
-  >> fun (t,ts) -> TyControlSeq (stored_string t,map (fun e -> RawExpr e) ts)
+  >> fun (p,ts) -> TyControlSeq (p,map (fun e -> RawExpr e) ts)
 
 let subtype = group "subtype"
   (brace(commasep ++ holding_var ++ a TMID ++ balanced))
@@ -1915,7 +1914,7 @@ let tightest_type =
 (* now start on tightest_prop *) 
 
 let identifier_prop = 
-  someX(fun t -> prim_relation_exists t.tok,PRel (stored_string t))
+  some_prim prim_relation_option (fun p -> PRel p)
 
 let precolon_sep = balancedB (function | COLON -> false | _ -> true)
 
@@ -1958,10 +1957,8 @@ let tightest_args =
 
 
 let term_op = 
-  let prim_term_op = 
-    some(fun t -> prim_term_op_exists (stored_string_token t)) in 
-  (prim_term_op >> (fun t -> RawTermOp t))
-  ||| (controlseq_term prim_term_op_controlseq_exists)
+  some_prim prim_term_op_option (fun t -> RawTermOp t)
+  ||| (controlseq_term prim_term_op_controlseq_option)
 
 let term_ops = plus(term_op) 
 
@@ -1979,7 +1976,7 @@ let tdop_term = (* cannot be pure op *)
 let tdop_terms = comma_nonempty_list tdop_term
 
 let prim_lambda_binder =
-  some(fun t -> prim_lambda_binder_exists (stored_string_token t))
+  some_prim_id prim_lambda_binder_option
 
 (* For simplicity, we end the 'let-assignment' clause with the first 
    occurence of the word 'in'.  This means that an 'in' within the 
@@ -2009,7 +2006,7 @@ let else_balanced =
 
 let rec lambda_term input = 
   (prim_lambda_binder ++ (tightest_args ++ lit_binder_comma >> fst) ++ opentail_term
-  >> (fun ((i,j),k) -> Lambda (stored_string i,j,k))) input
+  >> (fun ((p,j),k) -> Lambda (p,j,k))) input
 
 and mapsto_term input = 
   ((tdop_term ++ a MAPSTO >> fst) ++ opentail_term >> (fun (i,j) -> MapsTo (i,j) )) input
@@ -2044,11 +2041,8 @@ let where_term =
 (* now return to props *)
 
 let binary_relation_op = 
-  let prim_binary_relation_op = 
-    some(fun t -> prim_binary_relation_exists (stored_string_token t)) in 
-  (prim_binary_relation_op >> (fun t -> RawTermOp t))
-  ||| (controlseq_term prim_binary_relation_controlseq_exists)
-
+  some_prim prim_binary_relation_option (fun p -> RawTermOp p)
+  ||| (controlseq_term prim_binary_relation_controlseq_option)
 
 let tdop_rel_prop = (* x,y < z < w < u becomes x < z and y < z and z < w and w < u *)
   tdop_terms ++ plus(binary_relation_op ++ tdop_term) >>
@@ -2069,23 +2063,20 @@ let lambda_predicate =
   word "fun" ++ tightest_args ++ (a COLON ++ the_case_sensitive_word "Prop" ++ a ASSIGN) ++ tightest_prop 
   >> (fun (((_,(a,a')),_),p) -> PLambda (a,a',p))
 
-let prim_binder_prop = 
-    some(fun t -> prim_binder_prop_exists (stored_string_token t))
+let prim_binder_prop = some_prim prim_binder_prop_option (fun x -> x)
 
 let rec binder_prop input = 
   (app_prop 
   ||| tdop_rel_prop 
   ||| lambda_predicate
   ||| (prim_binder_prop ++ args_template ++ lit_binder_comma ++ binder_prop
-      >> (fun (((b,(t,t')),_),p) -> PBinder (stored_string b,t,t',p))
+      >> (fun (((b,(t,t')),_),p) -> PBinder (b,t,t',p))
       )
   ) input
 
 let prop_op = 
-  let prim_propositional_op = 
-    some(fun t -> prim_propositional_op_exists (stored_string_token t)) in 
-  (prim_propositional_op >> (fun t -> RawTermOp t))
-  ||| (controlseq_term prim_propositional_op_controlseq_exists)
+  some_prim prim_propositional_op_option (fun t -> RawTermOp t) 
+  ||| (controlseq_term prim_propositional_op_controlseq_option)
 
 let prop_ops = plus(prop_op) >> (fun ts -> P_ops ts)
 
@@ -2107,23 +2098,24 @@ let over_args =
                   >> fun t -> [RawExpr t,RawExpr[],RawExpr[]]
                  ) >> snd >> flatten)
       )
+
 let overstructure_type = 
-  some(fun t -> prim_structure_exists t) 
+  some_prim_id prim_structure_option 
   ++ app_args 
   ++ possibly(over_args) 
-  >> (fun ((t,(a,a')),o) -> Over (stored_string t,a,a',flatten o))
+  >> (fun ((t,(a,a')),o) -> Over (t,a,a',flatten o))
 
 let app_type = 
   (tightest_type ++ app_args >> (fun (i,(a,a')) -> TyApp (i,a,a')))
   ||| overstructure_type  
 
 let prim_pi_binder = 
-    some(fun t -> prim_pi_binder_exists (stored_string_token t))
+    some_prim_id prim_pi_binder_option
 
 let rec binder_type input = 
   (app_type 
    ||| (prim_pi_binder ++ tightest_args ++ lit_binder_comma ++ binder_type 
-        >> (fun (((b,(a,a')),_),t) -> TyBinder (stored_string b,a,a',t))
+        >> (fun (((b,(a,a')),_),t) -> TyBinder (b,a,a',t))
        )
   ) input
 
@@ -2135,17 +2127,17 @@ let type_operand =
   ||| (agda_dependent_vars >> (fun x -> TyAgda x))
 
 let prim_type_op = 
-    some(fun t -> prim_type_op_exists (stored_string_token t))
+    some_prim prim_type_op_option (fun p -> TyOp p)
 
 let prim_type_op_controlseq = 
-    some(fun t -> prim_type_op_controlseq_exists (stored_string_token t))
+    some_prim_id prim_type_op_controlseq_option
 
 let controlseq_type_op  = 
   cs_brace prim_type_op_controlseq balanced 
-  >> fun (t,ts) -> TyControlSeq (stored_string t,map (fun e -> RawExpr e) ts)
+  >> fun (t,ts) -> TyControlSeq (t,map (fun e -> RawExpr e) ts)
 
 let type_op = 
-  (prim_type_op >> (fun n -> TyOp (stored_string n)))
+  prim_type_op 
   ||| controlseq_type_op
 
 let binop_type = 
@@ -2184,19 +2176,14 @@ let rec apply_pattern (tm,ty) pat input =
        >> fun ts -> Pat_names (map (fun t -> Pat_term t) ts)) input
   | p -> (p,(TrEmpty,input));;
 
-
-
 let prim_classifier =
-    some(fun t -> (prim_classifier_exists (stored_string_token t)))
+  some_prim_id prim_classifier_option
 
 let prim_simple_adjective =
-    some(fun t -> 
-               let s = stored_string_token t in 
-               (prim_simple_adjective_exists s)) >> (fun t -> PredPrimSimpleAdj (stored_string t))
+  some_prim prim_simple_adjective_option (fun t -> PredPrimSimpleAdj t)
 
 let prim_simple_adjective_multisubject =
-    some(fun t -> (prim_simple_adjective_multisubject_exists (stored_string_token t)))
-    >> (fun t -> PredPrimSimpleAdjMulti (stored_string t))
+  some_prim prim_simple_adjective_multisubject_option (fun t -> PredPrimSimpleAdjMulti t)
 
 let prim_pattern tbl (tm,ty) input = 
   let (w,_) = anyword input in 
@@ -2491,3 +2478,32 @@ and any_name input : predicate parsed =
   ) input 
 
 (* end of massive recursion *)
+
+(* Next, eliminate raw data from types *)
+
+(*
+let rec is_plain_term =
+  function 
+  | TVar (_,Some t) -> is_plain_type t
+  | Annotated(t,ty) -> is_plain_term t && is_plain_type ty 
+  | Id(_,Some t) -> is_plain_type t
+  | ControlSeq (_,es) -> List.for_all is_plain_expr es
+  | FieldAccessor (_,t) -> is_plain_term t
+  | Let (a,b,c) -> List.for_all is_plain_term [a;b;c]
+  | IfThenElse(p,t,t') -> is_plain_prop p && is_plain_term t && is_plain_term t'
+  | Make(tyo,es)  -> is_plain_type (list_opt tyo) && List.for_all xxd
+
+  | RawTerm | RawPlainTerm _ | RawTermOp _ | RawTdop _  | RawTermPattern _ ->
+    failwith "Must eliminated raw terms first"                                                                            
+  | _ -> true
+    
+
+let rec eliminate_raw_term = 
+  function
+  | RawTerm ns -> consume term ns 
+  | RawPlainTerm ns -> 
+      let t = consume term ns in 
+      let _ =  is_plain_term t || failwith ("plain term expected:"^show_term t) in 
+      t
+  | _ -> failwith "unknown"
+ *)
