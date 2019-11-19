@@ -99,5 +99,47 @@ let discard _ = ();;
 
 let id x = x
 
+let omap f =
+function
+| Some x -> Some (f x)
+| None -> None
+
+let diag2 f (x,y) = (f x,f y)
+
+let diag3 f (x,y,z) = (f x,f y,f z)
+
+let fun2 (f,g) (x,y) = (f x,g y)
+
+let fun3 (f1,f2,f3) (x1,x2,x3) = (f1 x1,f2 x2,f3 x3)
+
+let fun4 (f1,f2,f3,f4) (x1,x2,x3,x4) = (f1 x1,f2 x2,f3 x3,f4 x4)
+
+let fun5 (f1,f2,f3,f4,f5) (x1,x2,x3,x4,x5) = (f1 x1,f2 x2,f3 x3,f4 x4,f5 x5)
+
+let join2 (x,y) = (x @ y)
+
+let join3 (x,y,z) = (x @ y @ z)
+
+let join4 (x1,x2,x3,x4) = (x1 @ x2 @ x3 @ x4)
+
+let join5 (x1,x2,x3,x4,x5) = (x1 @ x2 @ x3 @ x4 @ x5)
+
+let jdiag2 f = join2 -| diag2 f
+
+let jdiag3 f = join3 -| diag3 f
+
+let jfun2 f = join2 -| fun2 f
+
+let jfun3 f = join3 -| fun3 f
+
+let jfun4 f = join4 -| fun4 f
+
+let jfun5 f = join5 -| fun5 f
+
+
+
+
+
+
 
 

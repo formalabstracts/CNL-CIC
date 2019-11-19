@@ -510,11 +510,6 @@ let atomic_identifier =
 let atomic =
   case_sensitive_word ||| atomic_identifier 
 
-let field_accessor = 
-  some (function
-      | FIELD_ACCESSOR _ -> true
-      | _ -> false)
-
 let var = some (function | VAR _ -> true | _ -> false)
 
 let var_or_atomic = var ||| atomic
@@ -1749,21 +1744,22 @@ let make_term =
    >> fun ((_,p),ts) -> Make (p,ts) (* (map (consume brace_assign_item) ts)) *)
   )
 
+let raw_plain_term t = TermClass(PlainTerm,[RawTerm t])
 
 let list_term =
   let semisep = balancedB (function | SEMI | COMMA -> false | _ -> true) in
   bracket(separated_nonempty_list semisep (a(SEMI))) 
-  >> (fun ts -> List (map (fun t -> RawPlainTerm t) ts))
+  >> (fun ts -> TermClass(List, (map (fun t -> raw_plain_term t) ts)))
 
 let commasep = balancedB (function | SEMI | COMMA -> false | _ -> true)
 
 let tuple_term = 
   paren(separated_nonempty_list commasep (a(COMMA))) >>
-    (fun ts -> Tuple (map (fun t -> RawPlainTerm t) ts))
+    (fun ts -> TermClass(Tuple, (map (fun t -> raw_plain_term t) ts)))
   
 let set_enum_term = 
   brace(separated_nonempty_list commasep (a(COMMA))) >>
-    (fun ts -> SetEnum (map (fun t -> RawPlainTerm t) ts))
+    (fun ts -> TermClass(SetEnum, (map (fun t -> raw_plain_term t) ts)))
 
 let holding_var = (* comma needed for disambiguation *)
   possibly
@@ -1773,27 +1769,27 @@ let holding_var = (* comma needed for disambiguation *)
 
 let set_comprehension_term = 
   brace(commasep ++ holding_var ++ a MID ++ balanced) 
-  >> (fun (((a,b),_),c) -> Comprehension (RawPlainTerm a,b,RawStatement c))
+  >> (fun (((a,b),_),c) -> Comprehension (raw_plain_term a,b,RawStatement c))
 
 let case_term = 
   let alt_case = 
     a(ALT) ++ post_colon_balanced ++ a(ASSIGN) ++ post_colon_balanced in 
   word "case" ++ plus(alt_case) ++ word "end" 
-  >> (fun ((_,bs),_) -> Case (map (fun (((_,b),_),b') -> (RawProp b,RawPlainTerm b')) bs))
+  >> (fun ((_,bs),_) -> Case (map (fun (((_,b),_),b') -> (RawProp b,raw_plain_term b')) bs))
 
 let match_term = 
-  let csv = separated_nonempty_list (post_colon_balanced >> (fun s -> RawPlainTerm s)) (a COMMA) in
+  let csv = separated_nonempty_list (post_colon_balanced >> (fun s -> raw_plain_term s)) (a COMMA) in
   word "match" ++ csv ++ word "with" 
   ++ plus(a ALT ++ csv ++ a ASSIGN ++ post_colon_balanced
-          >> (fun (((_,ss),_),p)-> (ss,RawPlainTerm p)))
+          >> (fun (((_,ss),_),p)-> (ss,raw_plain_term p)))
   ++ word "end"
   >> (fun ((((_,ss),_),ps),_) -> Match (ss,ps))
 
 let match_function = 
-  let csv = separated_nonempty_list (post_colon_balanced >> (fun s -> RawPlainTerm s)) (a COMMA) in
+  let csv = separated_nonempty_list (post_colon_balanced >> (fun s -> raw_plain_term s)) (a COMMA) in
   word "function" ++ args_template ++ opt_colon_type
   ++ plus(a ALT ++ csv ++ a ASSIGN ++ post_colon_balanced
-          >> (fun (((_,ss),_),p) -> (ss,RawPlainTerm p)))
+          >> (fun (((_,ss),_),p) -> (ss,raw_plain_term p)))
   ++ word "end"
   >> (fun ((((_,(s,s')),ty),ps),_) -> MatchFunction (s,s',ty,ps))
 
@@ -1816,20 +1812,30 @@ let tightest_prefix =
   ||| match_term
   ||| match_function 
 
-let rec tightest_term input = 
-  (tightest_prefix
-   ||| (tightest_term ++ field_accessor 
-        >> fun (t,f) -> FieldAccessor (stored_string f, t)
-       )
-   ||| (tightest_term ++ a APPLYSUB ++ tightest_terms
-       >> (fun ((t,_),ts) -> ApplySub (t,ts))
-       )
+(* XX need to separate out FieldTypeAccessors, etc. *)
+
+let field_accessor = 
+  some (function
+      | FIELD_ACCESSOR _ -> true
+      | _ -> false)
+
+let rec term_postfix input : term parsed = 
+  (
+    (a APPLYSUB ++ tightest_terms 
+    >> fun (_,ts) -> TermClass(TermPostfix,ts))
+    ||| (phantom(field_accessor) 
+         ++ some_prim prim_field_term_accessor_option (fun p -> FieldTermAccessor p) >> snd)
+  ) input
+
+and tightest_terms input : (term list) parsed = 
+  paren(plus(tightest_term)) input
+
+and tightest_term input : term parsed = 
+  (tightest_prefix ++ many(term_postfix) 
+  >> fun (t,ts) -> TermClass(TightestTerm,(t :: ts))
   ) input
 
  (* to continue to app_term we need app_args, hence tightest_expr *)
-
-and tightest_terms input = 
-  paren(plus(tightest_term)) input
 
 (* tightest types *)
 
@@ -1840,7 +1846,7 @@ let controlseq_type =
 
 let subtype = group "subtype"
   (brace(commasep ++ holding_var ++ a TMID ++ balanced))
-  >> (fun (((a,b),_),c) -> Subtype (RawPlainTerm a,b,RawStatement c))
+  >> (fun (((a,b),_),c) -> Subtype (raw_plain_term a,b,RawStatement c))
 
  (*
   let alt_constructor = 
@@ -1874,9 +1880,10 @@ let mutual_inductive_type =
      
   group "mutual_inductive"
     (header 
-     ++ many(with_header  ++ many(opt_alt_constructor))
+     ++ many(with_header  ++ many(opt_alt_constructor)
+             >> (fun ((i1,i2,i3,i4),m) -> (i1,i2,i3,i4,m)))
      ++ word "end" 
-    ) >> (fun (((h1,h2),i3),_) -> Mutual (h1,h2,i3))
+    ) >> (fun (((ss,(h2,h2')),i3),_) -> Mutual (ss,h2,h2',i3))
 
 let brace_field_assign = 
   let pre = balancedB(function | COMMA | COLON | ASSIGN | SEMI | PERIOD -> false | _ -> true) in
@@ -1901,6 +1908,14 @@ let structure = group "structure"
   ++ possibly(possibly(lit_with_properties) ++ satisfying_preds >> snd))
   >> (fun ((((_,(a,a')),_),b),b') ->  Structure (a,a',b, flatten b')))
 
+let type_postfix =
+  phantom(field_accessor) 
+  ++ some_prim_id prim_field_type_accessor_option >> snd
+
+let field_type = 
+  tightest_term ++ type_postfix 
+  >> (fun (t,p) -> FieldTypeAccessor (t,p))
+
 let tightest_type = 
   group "tightest_type"
     (paren_type
@@ -1909,6 +1924,7 @@ let tightest_type =
       ||| inductive_type
       ||| mutual_inductive_type
       ||| structure
+     ||| field_type
     )
 
 (* now start on tightest_prop *) 
@@ -1921,6 +1937,14 @@ let precolon_sep = balancedB (function | COLON -> false | _ -> true)
 let annotated_prop = 
   paren(precolon_sep ++ a COLON ++ the_case_sensitive_word "Prop" >> (fun ((p,_),_) -> RawProp p))
 
+let prop_postfix =
+  phantom(field_accessor) 
+  ++ some_prim_id prim_field_type_accessor_option >> snd
+
+let field_prop = 
+  tightest_term ++ prop_postfix 
+  >> (fun (t,p) -> FieldPropAccessor (t,p))
+
 let tightest_prop = 
   group "tightest_prop" 
     (
@@ -1928,6 +1952,7 @@ let tightest_prop =
       ||| identifier_prop
       ||| (var >> (fun t -> PVar (stored_string t)))
       ||| annotated_prop 
+      ||| field_prop
     )
 
 let tightest_expr = 
@@ -2006,18 +2031,18 @@ let else_balanced =
 
 let rec lambda_term input = 
   (prim_lambda_binder ++ (tightest_args ++ lit_binder_comma >> fst) ++ opentail_term
-  >> (fun ((p,j),k) -> Lambda (p,j,k))) input
+  >> (fun ((p,(j,j')),k) -> Lambda (p,j,j',k))) input
 
 and mapsto_term input = 
-  ((tdop_term ++ a MAPSTO >> fst) ++ opentail_term >> (fun (i,j) -> MapsTo (i,j) )) input
+  ((tdop_term ++ a MAPSTO >> fst) ++ opentail_term >> (fun (i,j) -> TermClass(MapsTo,[i;j] ))) input
 
 and lambda_fun input = 
   ((word "fun" ++ tightest_args >> snd) ++ (opt_colon_type ++ a ASSIGN >> fst) ++ opentail_term
-  >> (fun ((i,j),k) -> LambdaFun (i,j,k))) input 
+  >> (fun (((i,i'),j),k) -> LambdaFun (i,i',j,k))) input 
 
 and let_term input = 
   (word "let" ++ tightest_prefix ++ a ASSIGN ++ in_balanced ++ word "in" ++ opentail_term
-  >> (fun (((((_,t),_),i),_),t') ->  Let (t,RawTerm i,t')))  input 
+  >> (fun (((((_,t),_),i),_),t') ->  TermClass(Let,[t;RawTerm i;t'])))  input 
 
 and if_then_else_term input = 
   (word "if" ++ then_balanced ++ word "then" ++ else_balanced ++ word "else" ++ opentail_term 
@@ -2174,16 +2199,18 @@ let rec apply_pattern (tm,ty) pat input =
       (possibly(comma_nonempty_list tm) 
        >> flatten 
        >> fun ts -> Pat_names (map (fun t -> Pat_term t) ts)) input
-  | p -> (p,(TrEmpty,input));;
+  | p -> (p,(TrEmpty,input))
 
 let prim_classifier =
   some_prim_id prim_classifier_option
 
 let prim_simple_adjective =
-  some_prim prim_simple_adjective_option (fun t -> PredPrimSimpleAdj t)
+  some_prim prim_simple_adjective_option 
+    (fun t -> PredCombination(PredPrimSimpleAdj,[PredPrim t]))
 
 let prim_simple_adjective_multisubject =
-  some_prim prim_simple_adjective_multisubject_option (fun t -> PredPrimSimpleAdjMulti t)
+  some_prim prim_simple_adjective_multisubject_option 
+    (fun t -> PredCombination(PredPrimSimpleAdjMulti,[PredPrim t]))
 
 let prim_pattern tbl (tm,ty) input = 
   let (w,_) = anyword input in 
@@ -2248,17 +2275,17 @@ let rec statement (input : node list) : statement parsed =
 and head_statement input : statement parsed = 
   (
     (word "for" ++ and_comma_nonempty_list(any_name) ++ a COMMA ++ statement 
-    >> (fun (((_,ts),_),s) -> StateForAny (ts,s)))
+    >> (fun (((_,ts),_),s) -> StateQuantifier(StateForAny,ts,s)))
     ||| (word "if" ++ statement ++ (a COMMA ++ word "then") ++ statement
-        >> (fun (((_,s),_),s') -> StateIfThen (s,s')))
-    ||| (lit_its_wrong ++ statement >> (fun (_,s) -> StateNot s))
+        >> (fun (((_,s),_),s') -> StateCombination(StateIfThen,[s;s'])))
+    ||| (lit_its_wrong ++ statement >> (fun (_,s) -> StateCombination(StateNot,[s])))
   ) input
   
 and chain_statement input : statement parsed = 
   (
     and_or_chain 
     ||| (paren(and_or_chain) ++ word "iff" ++ statement  
-        >> (fun ((p,_),s) -> StateIff (p,s)))
+        >> (fun ((p,_),s) -> StateCombination(StateIff,[p;s])))
   )
     input 
 
@@ -2271,12 +2298,12 @@ and and_or_chain input : statement parsed =
 
 and and_chain input : statement parsed = 
   (separated_nonempty_list primary_statement comma_and ++ comma_and ++ head_primary
-   >> (fun ((ts,_),s) -> StateAnd (ts @ [s])))
+   >> (fun ((ts,_),s) -> StateCombination(StateAndList, (ts @ [s]))))
   input 
 
 and or_chain input : statement parsed = 
   (separated_nonempty_list primary_statement comma_or ++ comma_or ++ head_primary 
-   >> (fun ((ts,_),s) -> StateOr (ts @ [s])))
+   >> (fun ((ts,_),s) -> StateCombination(StateOrList,(ts @ [s]))))
   input 
 
 and head_primary input : statement parsed = 
@@ -2302,17 +2329,17 @@ and there_is_statement input : statement parsed =
   ) input 
 
 and const_statement input : statement parsed = 
-  ((possibly(word "the") ++ word "thesis" >>  (fun _ -> StateTrue))
-   ||| (possibly(word "the") ++ word "contrary" >>  (fun _ -> StateFalse))
-   ||| (lit_a ++ word "contradiction" >> (fun _ -> StateFalse)))
+  ((possibly(word "the") ++ word "thesis" >>  (fun _ -> StateCombination (StateTrue, [])))
+   ||| (possibly(word "the") ++ word "contrary" >>  (fun _ -> StateCombination (StateFalse, [])))
+   ||| (lit_a ++ word "contradiction" >> (fun _ -> StateCombination (StateFalse, []))))
     input 
 
 and symbol_statement input : statement parsed = 
   ((word "forall" ++ predicate_pseudoterm ++ lit_binder_comma ++ symbol_statement 
-    >> (fun (((_,b),_),d) -> StateForall(b,d)))
+    >> (fun (((_,b),_),d) -> StateQuantifier (StateForall,[b],d)))
    ||| (word "exists" ++ predicate_pseudoterm ++ lit_binder_comma ++ symbol_statement
-        >> (fun (((_,p),_),s) -> StateExist (p,s)))
-   ||| (word "not" ++ symbol_statement >> snd >> (fun t -> StateNot t))
+        >> (fun (((_,p),_),s) -> StateQuantifier (StateExist,[p],s)))
+   ||| (word "not" ++ symbol_statement >> snd >> (fun t -> StateCombination(StateNot,[t])))
    ||| (paren statement)
    ||| (prop >> (fun t -> StateProp t))
   ) input
@@ -2321,49 +2348,49 @@ and symbol_statement input : statement parsed =
 and does_pred input : predicate parsed = 
   ((possibly(lit_do) ++ has_possibly(word "not") ++ prim_verb (term,general_type)
    >> fun ((_,b),v) -> 
-            let t = PredPrimVerb (RawPredPattern v) in 
-            if b then PredNeg t else t
+            let t = PredCombination(PredPrimVerb,[RawPredPattern v]) in 
+            if b then PredCombination(PredNeg,[t]) else t
    )
    ||| (possibly(lit_do) ++ has_possibly(word "not") ++ prim_verb_multisubject (term,general_type)
        >> fun ((_,b),m) -> 
-                let t = PredPrimVerbMulti (RawPredPattern m) in 
-                if b then PredNeg t else t 
+                let t = PredCombination(PredPrimVerbMulti,[RawPredPattern m]) in 
+                if b then PredCombination(PredNeg,[t]) else t 
        )
    ||| (lit_has ++ has_pred >> snd )
-   ||| (lit_is ++ and_comma_nonempty_list(is_pred) >> fun (_,t) -> PredIs t)
-   ||| (lit_is ++ and_comma_nonempty_list(is_aPred) >> fun (_,t) -> PredIsA t)
+   ||| (lit_is ++ and_comma_nonempty_list(is_pred) >> fun (_,t) -> PredCombination(PredIs,t))
+   ||| (lit_is ++ and_comma_nonempty_list(is_aPred) >> fun (_,t) -> PredCombination(PredIsA,t))
   ) input 
 
  (* XX not pairwise vs pairwise not *)
 and is_pred input : predicate parsed = 
   ((has_possibly (word "not") ++ prim_adjective (term,general_type)
    >> (fun (b,p) -> 
-             let t = PredPrimAdj (RawPredPattern p) in
-             if b then PredNeg t else t)
+             let t = PredCombination(PredPrimAdj,[RawPredPattern p]) in
+             if b then PredCombination(PredNeg,[t]) else t)
    )
    ||| (has_possibly (word "not") ++ has_possibly(word "pairwise") 
         ++ prim_adjective_multisubject (term,general_type)
         >> 
           (fun ((n,p),a) -> 
-                 let t = PredPrimAdj (RawPredPattern a) in 
-                 let t = if p then PredPairwise t else t in 
-                 let t = if n then PredNeg t else t in 
+                 let t = PredCombination(PredPrimAdj,[RawPredPattern a]) in 
+                 let t = if p then PredCombination(PredPairwise,[t]) else t in 
+                 let t = if n then PredCombination(PredNeg,[t]) else t in 
                  t
           )
        )
-   ||| (lit_with ++ has_pred >> fun (_,h) -> PredWith h)
+   ||| (lit_with ++ has_pred >> fun (_,h) -> PredCombination(PredWith,[h]))
   ) input 
 
 and is_aPred input : predicate parsed = 
   ((has_possibly (word "not") ++ possibly(lit_a) ++ general_type
    >> fun ((b,_),g) -> 
             let t = PredType g in 
-            if b then PredNeg t else t 
+            if b then PredCombination(PredNeg,[t]) else t 
    )
    ||| (has_possibly(word "not") ++ definite_term 
         >> fun (b,d) -> 
                  let t = PredNoun d in 
-                 if b then PredNeg t else t 
+                 if b then PredCombination(PredNeg,[t]) else t 
        )
   ) input
 
@@ -2371,7 +2398,7 @@ and has_pred input : predicate parsed =
   ((and_comma_nonempty_list(article ++ possessed_noun >> snd) 
    >> fun ts -> PredPossessed ts
    )
-   ||| (word "no" ++ possessed_noun >> (fun (_,p) -> PredNeg(PredPossessed [p])))
+   ||| (word "no" ++ possessed_noun >> (fun (_,p) -> PredCombination(PredNeg,[PredPossessed [p]])))
   ) input
 
 and possessed_noun input : term parsed = 
@@ -2383,7 +2410,7 @@ and possessed_noun input : term parsed =
 and definite_term input : term parsed =
   (where_term
    ||| (possibly(word "the") ++ prim_definite_noun (term,general_type) 
-        >> fun (_,p) -> Definite_Term (RawTermPattern p)
+        >> fun (_,p) -> TermClass(DefiniteTerm,[RawTermPattern p])
        )
   ) input 
 
@@ -2419,14 +2446,14 @@ and general_type input : typ parsed =
 
 and left_attribute input : predicate parsed = 
   ((has_possibly(word "non") ++ prim_simple_adjective
-   >> fun (b,p) -> if b then PredNeg p else p 
+   >> fun (b,p) -> if b then PredCombination(PredNeg,[p]) else p 
    )
    ||| (prim_simple_adjective_multisubject)
   ) input 
 
 and right_attribute input : predicate parsed = 
-  ((and_comma_nonempty_list is_pred >> fun t -> PredRight t)
-   ||| (word "that" ++ and_comma_nonempty_list(does_pred) >> fun (_,ls) -> PredRightThat ls)
+  ((and_comma_nonempty_list is_pred >> fun t -> PredCombination(PredRight,t))
+   ||| (word "that" ++ and_comma_nonempty_list(does_pred) >> fun (_,ls) -> PredCombination(PredRightThat, ls))
    ||| (phrase "such that" ++ statement >> fun (_,ls) -> PredRightStatement ls)
   ) input 
 
@@ -2436,7 +2463,7 @@ and attribute_pseudoterm input : predicate parsed =
 
 and typed_name_without_attribute input : term parsed = 
   ((prim_typed_name (term,general_type)
-   >> fun p -> TPrimTypedName (RawTermPattern p)
+   >> fun p -> TermClass(TPrimTypedName,[RawTermPattern p])
   )
    ||| (tvar)
    ||| (prim_classifier ++ tvar >> snd)
@@ -2496,14 +2523,379 @@ let rec is_plain_term =
   | RawTerm | RawPlainTerm _ | RawTermOp _ | RawTdop _  | RawTermPattern _ ->
     failwith "Must eliminated raw terms first"                                                                            
   | _ -> true
-    
-
-let rec eliminate_raw_term = 
-  function
-  | RawTerm ns -> consume term ns 
-  | RawPlainTerm ns -> 
-      let t = consume term ns in 
-      let _ =  is_plain_term t || failwith ("plain term expected:"^show_term t) in 
-      t
-  | _ -> failwith "unknown"
  *)
+
+type transformer = 
+{
+  xterm : term -> term;
+  xtype : typ -> typ;
+  xprop : prop -> prop;
+  xstat : statement -> statement;
+  xpred : predicate -> predicate;
+  xexpr : expr -> expr;
+  xprim : prim -> prim;
+  xpatt : pattern -> pattern; 
+}
+
+type 'a collector = 
+{
+  cterm : term -> 'a list; 
+  ctype : typ -> 'a list;
+  cprop : prop -> 'a list;
+  cstat : statement ->'a list;
+  cpred : predicate -> 'a list;
+  cexpr : expr -> 'a list;
+  cprim : prim -> 'a list;
+  cpatt : pattern -> 'a list
+}
+
+(* recursively apply a transformer *)
+
+let rec xterm xf = 
+function 
+  | RawTermOp t -> xf.xterm (RawTermOp(xprim xf t))
+  | RawTdop ts -> xf.xterm (RawTdop(map (xterm xf) ts))
+  | RawTermPattern p -> xf.xterm(RawTermPattern(xpatt xf p))
+  | TermClass(c,ts) -> xf.xterm(TermClass(c,map(xterm xf) ts))
+  | TVar (s,t) -> xf.xterm(TVar(s,omap(xtype xf) t))
+  | Annotated(t,ty) -> xf.xterm(Annotated(xterm xf t,xtype xf ty))
+  | PrimId p -> xf.xterm(PrimId(xprim xf p))
+  | ControlSeq(p,es) -> xf.xterm(ControlSeq(xprim xf p,map (xexpr xf) es))
+  | FieldTermAccessor p -> xf.xterm(FieldTermAccessor(xprim xf p))
+  | IfThenElse (p,t,t') -> xf.xterm(IfThenElse(xprop xf p,xterm xf t, xterm xf t'))
+  | Make(tyo,es) -> xf.xterm(Make(omap (xtype xf) tyo,map (diag3 (xexpr xf)) es))
+  | Comprehension(t,ts,st) -> xf.xterm(Comprehension(xterm xf t,map (xterm xf) ts,xstat xf st))
+  | Case(pts) -> xf.xterm(Case(map (fun2(xprop xf,xterm xf)) pts))
+  | Match(ts,tts) -> xf.xterm(Match(map (xterm xf) ts,map (fun2(map(xterm xf),xterm xf)) tts))
+  | MatchFunction(ees,sts,ty,tts) -> xf.xterm(MatchFunction(map(diag2 (xexpr xf)) ees,
+                                                            map(fun2(id,xtype xf)) sts,
+                                                            xtype xf ty,
+                                                            map(fun2(map(xterm xf),xterm xf)) tts))
+  | Lambda(p,ees,es,t) -> xf.xterm(Lambda(xprim xf p,map(diag2(xexpr xf)) ees,map(xexpr xf) es,
+                                          xterm xf t))
+  | LambdaFun(ees,es,ty,t) -> xf.xterm(LambdaFun(map(diag2(xexpr xf)) ees,
+                                                 map(xexpr xf) es,
+                                                 xtype xf ty,
+                                                 xterm xf t))
+  | TAnyName p -> xf.xterm(TAnyName(xpred xf p))
+  | TPossessedNoun(ps,t,ps') -> xf.xterm(TPossessedNoun(map(xpred xf) ps,xterm xf t,map(xpred xf) ps'))
+  | tm -> xf.xterm tm
+
+and xtype xf = 
+function
+| TyId p -> xf.xtype(TyId(xprim xf p))
+| TyControlSeq(p,es) -> xf.xtype(TyControlSeq(xprim xf p,map(xexpr xf) es))
+| FieldTypeAccessor(t,p) -> xf.xtype(FieldTypeAccessor(xterm xf t,xprim xf p))
+| Subtype(t,ts,st) -> xf.xtype(Subtype(xterm xf t,map(xterm xf) ts,xstat xf st))
+| TyQuotient(ty,t) -> xf.xtype(TyQuotient(xtype xf ty,xterm xf t))
+| TyGeneral(ps,t,ps') -> xf.xtype(TyGeneral(map (xpred xf) ps,xtype xf t,map(xpred xf) ps'))
+| TyCoerce t -> xf.xtype(TyCoerce(xterm xf t))
+| TyAgda ts -> xf.xtype(TyAgda(map(xterm xf) ts))
+| TyApp (ty,ees,es) -> xf.xtype(TyApp(xtype xf ty,map(diag3(xexpr xf)) ees,map(xexpr xf) es))
+| TyBinder(p,ees,es,ty) -> xf.xtype(TyBinder(
+                                        xprim xf p,
+                                        map(diag2(xexpr xf)) ees,
+                                        map(xexpr xf) es,
+                                        xtype xf ty))
+| TyOp p -> xf.xtype(TyOp(xprim xf p))
+| TyBinop (ees,tys) -> xf.xtype(TyBinop(map(diag2(xexpr xf)) ees,map(xtype xf) tys))
+| Structure(es,sts,sees,ps) -> xf.xtype(Structure(
+                                            map(diag2(xexpr xf)) es,
+                                            map(fun2(id,xtype xf)) sts,
+                                            map(fun4(id,xexpr xf,xexpr xf,xexpr xf)) sees,
+                                            map(xprop xf) ps))
+| Inductive(s,ees,sts,e,sees) -> xf.xtype(Inductive(
+                                              s,
+                                              map(diag2(xexpr xf)) ees,
+                                              map(fun2(id,xtype xf)) sts,
+                                              xexpr xf e,
+                                              map(fun4(id,map(diag2(xexpr xf)),
+                                                       map(fun2(id,xtype xf)),xtype xf)) sees))
+| Mutual(ss,ees,sts,ms) -> xf.xtype(Mutual(
+                                        ss,
+                                        map(diag2(xexpr xf)) ees,
+                                        map(fun2(id,xtype xf)) sts,
+                                        map(fun5(id,map(diag2(xexpr xf)),map(fun2(id,xtype xf)),xexpr xf,
+                                             map(fun4(id,map(diag2(xexpr xf)),
+                                                      map(fun2(id,xtype xf)),xtype xf))))
+                                            ms))
+| ty -> xf.xtype ty 
+
+and xprop xf = 
+function
+| FieldPropAccessor (t,p) -> xf.xprop(FieldPropAccessor(xterm xf t,xprim xf p))
+| PStatement st -> xf.xprop(PStatement(xstat xf st))
+| PRel p -> xf.xprop(PRel(xprim xf p))
+| P_ops ts -> xf.xprop(P_ops(map(xterm xf) ts))
+| Ptdop ps -> xf.xprop(Ptdop(map(xprop xf) ps))
+| Ptdopr ts -> xf.xprop(Ptdopr(map(diag3(xterm xf)) ts))
+| PApp (p,ees,es) -> xf.xprop(PApp(xprop xf p,map(diag3(xexpr xf)) ees,map(xexpr xf) es))
+| PLambda(ees,es,p) -> xf.xprop(PLambda(map(diag2(xexpr xf)) ees,map(xexpr xf) es,xprop xf p))
+| PBinder(p,ees,sts,p') -> xf.xprop(PBinder(xprim xf p,map(diag2(xexpr xf)) ees,map(fun2(id,xtype xf)) sts,xprop xf p'))
+| pr -> xf.xprop pr
+
+and xstat xf = 
+function 
+| StateCombination(o,ss) -> xf.xstat(StateCombination(o,map(xstat xf) ss))
+| StateQuantifier(q,ps,s) -> xf.xstat(StateQuantifier(q,map(xpred xf) ps,xstat xf s))
+| StateThereExist(b,ps) -> xf.xstat(StateThereExist(b,map(xpred xf) ps))
+| StateProp p -> xf.xstat(StateProp(xprop xf p))
+| StateSimple(ts,ps) -> xf.xstat(StateSimple(map(xterm xf) ts,map(xpred xf) ps))
+| st -> xf.xstat st
+
+and xpred xf = 
+function
+| RawPredPattern p -> xf.xpred(RawPredPattern(xpatt xf p))
+| PredPrim p -> xf.xpred(PredPrim(xprim xf p))
+| PredCombination(c,ps) -> xf.xpred(PredCombination(c,map(xpred xf) ps))
+| PredType t -> xf.xpred(PredType(xtype xf t))
+| PredNoun n -> xf.xpred(PredNoun(xterm xf n))
+| PredPossessed ts -> xf.xpred(PredPossessed(map(xterm xf) ts))
+| PredRightStatement s -> xf.xpred(PredRightStatement(xstat xf s))
+| PredAnyArg(q,ts) -> xf.xpred(PredAnyArg(q,map(xterm xf) ts))
+| PredAnyPseudo(q,p) -> xf.xpred(PredAnyPseudo(q,xpred xf p))
+| PredAnyGeneral(q,ty) -> xf.xpred(PredAnyGeneral(q,xtype xf ty))
+| PredAttributePseudo(ps,t,ps') -> xf.xpred(PredAttributePseudo(
+                                                map(xpred xf) ps,
+                                                xterm xf t,
+                                                map(xpred xf)ps'))
+| PredPseudo(ps,p,ts,ps') -> xf.xpred(PredPseudo(map(xpred xf) ps,xprop xf p,map(xterm xf) ts,map(xpred xf) ps'))
+
+and xexpr xf = 
+function 
+| Eterm t -> xf.xexpr(Eterm(xterm xf t))
+| Etyp ty -> xf.xexpr(Etyp(xtype xf ty))
+| Eprop p -> xf.xexpr(Eprop(xprop xf p))
+| EVar (s,e) -> xf.xexpr(EVar(s,xexpr xf e))
+| ex -> xf.xexpr ex
+
+and xpatt xf = 
+function 
+| Pat_term t -> xf.xpatt(Pat_term(xterm xf t))
+| Pat_type ty -> xf.xpatt(Pat_type(xtype xf ty))
+| Pat_prop p -> xf.xpatt(Pat_prop(xprop xf p))
+| Pat_option p -> xf.xpatt(Pat_option(xpatt xf p))
+| Pat_sequence ps -> xf.xpatt(Pat_sequence(map(xpatt xf) ps))
+| Pat_controlseq(s,ps) -> xf.xpatt(Pat_controlseq(s,map(xpatt xf) ps))
+| p -> xf.xpatt p
+
+and xprim xf = 
+function
+| Prim_term_op_controlseq(p1,p2,p3,p4,p5,t,ts) -> xf.xprim(Prim_term_op_controlseq(p1,p2,p3,p4,p5,xterm xf t,map(xterm xf) ts))
+| Prim_binary_relation_controlseq(p1,p2,p3,p4,t,ts) -> xf.xprim(Prim_binary_relation_controlseq(p1,p2,p3,p4,xterm xf t,map(xterm xf) ts))
+| Prim_propositional_op_controlseq(p1,p2,p3,p4,p5,p,ts) -> xf.xprim(Prim_propositional_op_controlseq(p1,p2,p3,p4,p5,xprop xf p,map(xterm xf) ts))
+| Prim_type_op_controlseq(p1,p2,p3,t,ts) -> xf.xprim(Prim_type_op_controlseq(p1,p2,p3,xterm xf t,map(xterm xf) ts))
+| Prim_term_controlseq(p1,p2,p3,t,ts) -> xf.xprim(Prim_term_controlseq(p1,p2,p3,xterm xf t,map(xterm xf) ts))
+| Prim_type_controlseq(p1,p2,p3,ty,ts) -> xf.xprim(Prim_type_controlseq(p1,p2,p3,xtype xf ty,map(xexpr xf) ts))
+| Prim_lambda_binder(p1,p2,t) -> xf.xprim(Prim_lambda_binder(p1,p2,xterm xf t))
+| Prim_pi_binder(p1,p2,ty) -> xf.xprim(Prim_pi_binder(p1,p2,xtype xf ty))
+| Prim_binder_prop(p1,p2,p) -> xf.xprim(Prim_binder_prop(p1,p2,xprop xf p))
+| Prim_field_term_accessor(p1,p2,ty) -> xf.xprim(Prim_field_term_accessor(p1,p2,xtype xf ty))
+| Prim_typed_name(p1,p2,ty,es) -> xf.xprim(Prim_typed_name(p1,p2,xtype xf ty,map(xexpr xf) es))
+| Prim_adjective(p1,p2,p,es) -> xf.xprim(Prim_adjective(p1,p2,xprop xf p,map(xexpr xf) es))
+| Prim_adjective_multisubject(p1,p2,p,es) -> xf.xprim(Prim_adjective_multisubject(p1,p2,xprop xf p,map(xexpr xf) es))
+| Prim_simple_adjective(p1,p2,p,es) -> xf.xprim(Prim_simple_adjective(p1,p2,xprop xf p,map(xexpr xf) es))
+| Prim_simple_adjective_multisubject(p1,p2,p,es) -> xf.xprim(Prim_simple_adjective_multisubject(p1,p2,xprop xf p,map(xexpr xf) es))
+| Prim_definite_noun(p1,p2,t,es) -> xf.xprim(Prim_definite_noun(p1,p2,xterm xf t,map(xexpr xf) es))
+| Prim_identifier_term(p1,p2,t,es) -> xf.xprim(Prim_identifier_term(p1,p2,xterm xf t,map(xexpr xf) es))
+| Prim_identifier_type(p1,p2,ty,es) -> xf.xprim(Prim_identifier_type(p1,p2,xtype xf ty,map(xexpr xf) es))
+| Prim_possessed_noun(p1,p2,t,es) -> xf.xprim(Prim_possessed_noun(p1,p2,xterm xf t,map(xexpr xf) es))
+| Prim_verb(p1,p2,p,es) -> xf.xprim(Prim_verb(p1,p2,xprop xf p,map(xexpr xf) es))
+| Prim_verb_multisubject(p1,p2,p,es) -> xf.xprim(Prim_verb_multisubject(p1,p2,xprop xf p,map(xexpr xf) es))
+| Prim_structure(p1,p2,ty,es) -> xf.xprim(Prim_structure(p1,p2,xtype xf ty,map(xexpr xf) es))
+| Prim_type_op(p1,p2,ty,tys) -> xf.xprim(Prim_type_op(p1,p2,xtype xf ty,map(xtype xf) tys))
+| Prim_binary_relation_op(p1,p2,p,(t,t')) -> xf.xprim(Prim_binary_relation_op(p1,p2,xprop xf p,(xterm xf t,xterm xf t')))
+| Prim_propositional_op(p1,p2,p3,p4,p,ps) -> xf.xprim(Prim_propositional_op(p1,p2,p3,p4,xprop xf p,map(xprop xf) ps))
+| Prim_relation(p1,p2,ty,ts) -> xf.xprim(Prim_relation(p1,p2,xtype xf ty,map(xterm xf) ts))
+| Prim_term_var(p1,p2,tyo) -> xf.xprim(Prim_term_var(p1,p2,omap(xtype xf) tyo))
+| pr -> xf.xprim pr 
+
+(* collector *)
+
+let fmap f xs = List.flatten(List.map f xs)
+
+let rec cterm (cf : 'a collector) (tm : term) : 'a list = 
+  try cf.cterm tm 
+  with Failure _ -> 
+         match tm with 
+
+  | RawTermOp t -> cprim cf t
+  | RawTdop ts -> fmap (cterm cf) ts
+  | RawTermPattern p -> cpatt cf p
+  | TermClass(_,ts) -> fmap(cterm cf) ts
+  | TVar (_,t) -> (fmap(ctype cf) (list_opt t))
+
+  | Annotated(t,ty) -> cterm cf t @ ctype cf ty
+  | PrimId p -> cprim cf p
+  | ControlSeq(p,es) -> cprim cf p @ fmap (cexpr cf) es
+  | FieldTermAccessor p -> cprim cf p
+  | IfThenElse (p,t,t') -> cprop cf p @ cterm cf t @  cterm cf t'
+  | Make(tyo,es) -> fmap (ctype cf) (list_opt tyo) @ fmap (jdiag3 (cexpr cf)) es
+  | Comprehension(t,ts,st) -> cterm cf t @ fmap (cterm cf) ts @ cstat cf st
+  | Case(pts) -> fmap (jfun2(cprop cf , cterm cf)) pts
+  | Match(ts,tts) -> fmap (cterm cf) ts @ fmap (jfun2(fmap(cterm cf),cterm cf)) tts
+  | MatchFunction(ees,sts,ty,tts) -> fmap(jdiag2 (cexpr cf)) ees @ 
+                                       fmap(ctype cf) (snd (unzip sts)) @ 
+                                         ctype cf ty @ 
+                                           fmap(jfun2(fmap(cterm cf),cterm cf)) tts
+  | Lambda(p,ees,es,t) -> cprim cf p @ fmap(jdiag2(cexpr cf)) ees @ fmap(cexpr cf) es @ 
+                                          cterm cf t
+  | LambdaFun(ees,es,ty,t) -> fmap(jdiag2(cexpr cf)) ees @ 
+                                                 fmap(cexpr cf) es @ 
+                                                 ctype cf ty @ 
+                                                 cterm cf t
+  | TAnyName p -> cpred cf p
+  | TPossessedNoun(ps,t,ps') -> fmap(cpred cf) ps @ cterm cf t @ fmap(cpred cf) ps'
+  | _ -> []
+
+
+and ctype (cf : 'a collector) (typ : typ) : 'a list  = 
+try cf.ctype typ
+  with Failure _ -> 
+match typ with 
+
+| TyId p -> cprim cf p
+| TyControlSeq(p,es) -> cprim cf p @ fmap(cexpr cf) es
+| FieldTypeAccessor(t,p) -> cterm cf t @ cprim cf p
+| Subtype(t,ts,st) -> cterm cf t @ fmap(cterm cf) ts @ cstat cf st
+| TyQuotient(ty,t) -> ctype cf ty @ cterm cf t
+| TyGeneral(ps,t,ps') -> fmap (cpred cf) ps @ ctype cf t @ fmap(cpred cf) ps'
+| TyCoerce t -> cterm cf t
+| TyAgda ts -> fmap(cterm cf) ts
+| TyApp (ty,ees,es) -> ctype cf ty @ fmap(jdiag3(cexpr cf)) ees @ fmap(cexpr cf) es
+| TyBinder(p,ees,es,ty) -> cprim cf p @ 
+                             fmap(jdiag2(cexpr cf)) ees @ 
+                               fmap(cexpr cf) es @ 
+                                 ctype cf ty
+| TyOp p -> cprim cf p
+| TyBinop (ees,tys) -> fmap(jdiag2(cexpr cf)) ees @ fmap(ctype cf) tys
+| Structure(es,sts,sees,ps) -> fmap(jdiag2(cexpr cf)) es @ 
+                                 fmap(ctype cf) (snd(unzip sts)) @ 
+                                   fmap(jfun4(id,cexpr cf,cexpr cf,cexpr cf)) sees @ 
+                                     fmap(cprop cf) ps
+| Inductive(_,ees,sts,e,sees) -> fmap(jdiag2(cexpr cf)) ees @ 
+                                   fmap(ctype cf) (snd(unzip sts)) @ 
+                                     cexpr cf e @ 
+                                       fmap(jfun3(fmap(jdiag2(cexpr cf)),
+                                                       fmap(ctype cf),ctype cf)) 
+                                         (map (fun (_,e,v,ty) -> (e,snd(unzip v),ty)) sees)
+| Mutual(ss,ees,sts,ms) -> ss @ 
+                                        fmap(jdiag2(cexpr cf)) ees @ 
+                                        fmap(ctype cf) (snd(unzip sts)) @ 
+                                        fmap(jfun4(fmap(jdiag2(cexpr cf)),
+                                                   fmap(ctype cf),
+                                                   cexpr cf,
+                                                   fmap(jfun3(
+                                                            fmap(jdiag2(cexpr cf)),
+                                                            fmap(ctype cf),
+                                                            ctype cf))))
+                                          (let f r = map (fun(_,ee,sts,t) -> (ee,snd(unzip sts),t)) r in 
+                                           let m' = map (fun(_,ee,sts,e,r) -> (ee,snd(unzip sts),e,f r)) ms in 
+                                           m'
+                                          )
+| _ -> []
+
+
+and cprop (cf : 'a collector)  (pr : prop) : 'a list  =
+try cf.cprop pr 
+with Failure _ ->
+match pr with 
+| FieldPropAccessor (t,p) -> cterm cf t @ cprim cf p
+| PStatement st -> cstat cf st
+| PRel p -> cprim cf p
+| P_ops ts -> fmap(cterm cf) ts
+| Ptdop ps -> fmap(cprop cf) ps
+| Ptdopr ts -> fmap(jdiag3(cterm cf)) ts
+| PApp (p,ees,es) -> cprop cf p @ fmap(jdiag3(cexpr cf)) ees @ fmap(cexpr cf) es
+| PLambda(ees,es,p) -> fmap(jdiag2(cexpr cf)) ees @ fmap(cexpr cf) es @ cprop cf p
+| PBinder(p,ees,sts,p') -> cprim cf p @ fmap(jdiag2(cexpr cf)) ees @ fmap(ctype cf) (snd(unzip sts)) @ cprop cf p'
+| _ -> []
+
+and cstat (cf : 'a collector) (stat : statement) : 'a list = 
+try cf.cstat stat 
+with Failure _ ->
+match stat with 
+| StateCombination(_,ss) -> fmap(cstat cf) ss
+| StateQuantifier(_,ps,s) -> fmap(cpred cf) ps @ cstat cf s
+| StateThereExist(_,ps) -> fmap(cpred cf) ps
+| StateProp p -> cprop cf p
+| StateSimple(ts,ps) -> fmap(cterm cf) ts @ fmap(cpred cf) ps
+| _ -> cf.cstat stat
+
+
+and cpred (cf : 'a collector) (pr : predicate) : 'a list = 
+try cf.cpred pr 
+with Failure _ ->
+match pr with
+| RawPredPattern p -> cpatt cf p
+| PredPrim p -> cprim cf p
+| PredCombination(_,ps) -> fmap(cpred cf) ps
+| PredType t -> ctype cf t
+| PredNoun n -> cterm cf n
+| PredPossessed ts -> fmap(cterm cf) ts
+| PredRightStatement s -> cstat cf s
+| PredAnyArg(_,ts) -> fmap(cterm cf) ts
+| PredAnyPseudo(_,p) -> cpred cf p
+| PredAnyGeneral(_,ty) -> ctype cf ty
+| PredAttributePseudo(ps,t,ps') -> fmap(cpred cf) ps @ 
+                                     cterm cf t @ 
+                                       fmap(cpred cf)ps'
+| PredPseudo(ps,p,ts,ps') -> fmap(cpred cf) ps @ cprop cf p @ fmap(cterm cf) ts @ fmap(cpred cf) ps'
+
+
+and cexpr (cf : 'a collector)  (ex : expr) : 'a list  = 
+try cf.cexpr ex
+with Failure _ -> 
+match ex with 
+| Eterm t -> cterm cf t
+| Etyp ty -> ctype cf ty
+| Eprop p -> cprop cf p
+| EVar (_,e) -> cexpr cf e
+| _ -> []
+
+and cpatt (cf : 'a collector) (pt : pattern) : 'a list  = 
+try cf.cpatt pt
+with Failure _ ->
+match pt with 
+| Pat_term t -> cterm cf t
+| Pat_type ty -> ctype cf ty
+| Pat_prop p -> cprop cf p
+| Pat_option p -> cpatt cf p
+| Pat_sequence ps -> fmap(cpatt cf) ps
+| Pat_controlseq(_,ps) -> fmap(cpatt cf) ps
+| _ -> []
+
+and cprim (cf : 'a collector) (pr : prim) : 'a list  = 
+try cf.cprim pr
+with Failure _ ->
+match pr with
+| Prim_term_op_controlseq(_,_,_,_,_,t,ts) -> cterm cf t @ fmap(cterm cf) ts
+| Prim_binary_relation_controlseq(_,_,_,_,t,ts) -> cterm cf t @ fmap(cterm cf) ts
+| Prim_propositional_op_controlseq(_,_,_,_,_,p,ts) -> cprop cf p @ fmap(cterm cf) ts
+| Prim_type_op_controlseq(_,_,_,t,ts) -> cterm cf t @ fmap(cterm cf) ts
+| Prim_term_controlseq(_,_,_,t,ts) -> cterm cf t @ fmap(cterm cf) ts
+| Prim_type_controlseq(_,_,_,ty,ts) -> ctype cf ty @ fmap(cexpr cf) ts
+| Prim_lambda_binder(_,_,t) -> cterm cf t
+| Prim_pi_binder(_,_,ty) -> ctype cf ty
+| Prim_binder_prop(_,_,p) -> cprop cf p
+| Prim_field_term_accessor(_,_,ty) -> ctype cf ty
+| Prim_typed_name(_,_,ty,es) -> ctype cf ty @ fmap(cexpr cf) es
+| Prim_adjective(_,_,p,es) -> cprop cf p @ fmap(cexpr cf) es
+| Prim_adjective_multisubject(_,_,p,es) -> cprop cf p @ fmap(cexpr cf) es
+| Prim_simple_adjective(_,_,p,es) -> cprop cf p @ fmap(cexpr cf) es
+| Prim_simple_adjective_multisubject(_,_,p,es) -> cprop cf p @ fmap(cexpr cf) es
+| Prim_definite_noun(_,_,t,es) -> cterm cf t @ fmap(cexpr cf) es
+| Prim_identifier_term(_,_,t,es) -> cterm cf t @ fmap(cexpr cf) es
+| Prim_identifier_type(_,_,ty,es) -> ctype cf ty @ fmap(cexpr cf) es
+| Prim_possessed_noun(_,_,t,es) -> cterm cf t @ fmap(cexpr cf) es
+| Prim_verb(_,_,p,es) -> cprop cf p @ fmap(cexpr cf) es
+| Prim_verb_multisubject(_,_,p,es) -> cprop cf p @ fmap(cexpr cf) es
+| Prim_structure(_,_,ty,es) -> ctype cf ty @ fmap(cexpr cf) es
+| Prim_type_op(_,_,ty,tys) -> ctype cf ty @ fmap(ctype cf) tys
+| Prim_binary_relation_op(_,_,p,(t,t')) -> cprop cf p @ cterm cf t @ cterm cf t'
+| Prim_propositional_op(_,_,_,_,p,ps) -> cprop cf p @ fmap(cprop cf) ps
+| Prim_relation(_,_,ty,ts) -> ctype cf ty @ fmap(cterm cf) ts
+| Prim_term_var(_,_,tyo) -> fmap(ctype cf) (list_opt tyo)
+| _ -> []
+
+

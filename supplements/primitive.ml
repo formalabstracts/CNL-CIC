@@ -206,6 +206,9 @@ let prim_scope =
   | Prim_term_var (scope,_,_) -> scope
   | Prim_type_var (scope,_) -> scope 
   | Prim_prop_var (scope,_) -> scope
+  | Prim_field_prop_accessor(scope,_) -> scope
+  | Prim_field_term_accessor(scope,_,_) -> scope
+  | Prim_field_type_accessor(scope,_) -> scope
 
 let prim_string = function
   | Prim_term_op_controlseq (_,string,_,_,_,_,_) -> string
@@ -379,6 +382,23 @@ let prim_simple_adjective_multisubject_tbl : (string,prim) Hashtbl.t = Hashtbl.c
 let prim_simple_adjective_multisubject_option key = 
   prim_string_in_scope prim_simple_adjective_multisubject_tbl key
 
+let prim_field_term_accessor_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
+
+let prim_field_term_accessor_option key = 
+  prim_string_in_scope prim_field_term_accessor_tbl key
+
+let prim_field_type_accessor_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
+
+let prim_field_type_accessor_option key = 
+  prim_string_in_scope prim_field_type_accessor_tbl key
+
+let prim_field_prop_accessor_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
+
+let prim_field_prop_accessor_option key = 
+  prim_string_in_scope prim_field_type_accessor_tbl key
+
+
+
 let prim_verb_tbl : (string,prim) Hashtbl.t  = Hashtbl.create 100
 
 let prim_verb_multisubject_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
@@ -494,6 +514,9 @@ let prim_list =
   "prim_adjective_multisubject";
   "prim_simple_adjective";
   "prim_simple_adjective_multisubject";
+  "prim_field_term_accessor";
+  "prim_field_type_accessor";
+  "prim_field_prop_accessor";
   "prim_definite_noun";
   "prim_identifier_term";
   "prim_identifier_type";

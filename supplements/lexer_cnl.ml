@@ -214,7 +214,7 @@ let identifier = [%sedlex.regexp? alphanum_nonblank, Star(alphanum) ]
 
 let hierarchical_identifier = [%sedlex.regexp? identifier, Plus('.', identifier) ]  
 
-let field_accessor = [%sedlex.regexp? Plus('.', identifier)]
+let field_accessor = [%sedlex.regexp? '.', identifier] (* was Plus('.',identifier) *)
 
 let tex2cnl_error = [%sedlex.regexp? "[TeX2CnlError", Star(white), string, Star(white), "]"]
 
@@ -302,6 +302,9 @@ let string_of_ints js =
 
 let string_lexeme buf = string_of_ints(lexeme buf)
 
+let remove_period s = 
+  String.concat "" (String.split_on_char '.' s)
+
 let lp = Sedlexing.lexing_positions 
 
 let mk f buf = { pos = lp buf; tok = f(string_lexeme buf) }
@@ -342,7 +345,7 @@ let rec lex_node buf =
     | rbrace -> mk (c R_BRACE) buf
     | comma -> mk (c COMMA) buf
     | semi -> mk (c SEMI) buf 
-    | field_accessor -> mk (fun t -> FIELD_ACCESSOR t) buf
+    | field_accessor -> mk (fun t -> FIELD_ACCESSOR (remove_period t)) buf
     | hierarchical_identifier -> mk (fun t -> HIERARCHICAL_IDENTIFIER t) buf
     | varlong -> mk (fun t -> VAR t) buf
     | symbolseq -> mk symbolkey buf

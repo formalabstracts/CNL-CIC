@@ -271,6 +271,14 @@ prim_typed_name : PA6 {}
     prim_predicate_pseudoterm : PA7 {} 
   *)
 
+ (* from structure *)
+prim_field_term_accessor : PA6a {}
+
+prim_field_type_accessor : PA6b {}
+
+prim_field_prop_accessor : PA6c {}
+
+
  (* from adjective_pattern *)
 prim_adjective : PA8 {} 
 
@@ -528,6 +536,7 @@ tightest_type :
 | inductive_type
 | mutual_inductive_type
 | structure (* declaration *)
+| field_type 
 {()}
 
 paren_type : paren(general_type) {()} (* -> paren_expr in implementation *)
@@ -537,6 +546,8 @@ annotated_type : paren(general_type COLON ID_TYPE {}) {()}
 controlseq_type : cs_brace(prim_type_controlseq) {()}
 
 const_type : prim_identifier_type {()}
+
+field_type : tightest_term prim_field_type_accessor {}
 
 overstructure_type :
 | prim_structure app_args option(LIT_OVER over_args {}) {()}
@@ -691,11 +702,12 @@ proof_expr :
 
 
 (** tightest terms *)
+tightest_post_term :
+ | APPLYSUB tightest_terms
+ | prim_field_term_accessor (* FIELD_ACCESSOR *) {}
 
 tightest_term : 
-| tightest_prefix
-| tightest_term FIELD_ACCESSOR
-| tightest_term APPLYSUB tightest_terms
+ | tightest_prefix list(tightest_post_term)
 {()}
 
   tightest_terms : paren(nonempty_list(tightest_term)) {()}
@@ -949,11 +961,14 @@ tightest_prop :
 | identifier_prop 
 | VAR
 | annotated_prop
+| field_prop 
 {()}
 
 identifier_prop : prim_relation {()} (* *)
 
 annotated_prop : paren(prop COLON ID_PROP {}) {()}
+
+field_prop : tightest_term prim_field_prop_accessor {}
 
 app_prop : tightest_prop app_args {()} 
 

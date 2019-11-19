@@ -6,45 +6,50 @@ type qany =
   | QNo
 [@@deriving show]
 
-type raw = (* raw unprocessed data *)
-  | RawNodeList of node list
+type term_class = 
+  | List 
+  | Tuple
+  | SetEnum
+  | DefiniteTerm
+  | MapsTo
+  | TPrimTypedName 
+  | TermPostfix
+  | TightestTerm 
+  | Let 
+  | ApplySub 
+  | PlainTerm 
 
 and term = 
   | RawTerm of node list
-  | RawPlainTerm of node list
   | RawTermOp of prim
   | RawTdop of term list
   | RawTermPattern of pattern
 
-  | TVar of string * (typ option)
-  | Annotated of term * typ 
   | Decimal of string
   | Integer of int (* XX should be BigInt *)
   | String of string 
   | Blank
+
+  | TermClass of term_class * term list 
+  | TVar of string * (typ option)
+  | Annotated of term * typ 
   | PrimId of prim 
   | ControlSeq of prim * expr list
-  | FieldAccessor of string * term 
-  | Let of term * term * term 
+  | FieldTermAccessor of prim
   | IfThenElse of prop * term * term
   | Make of typ option * (expr * expr * expr) list
   | Where of term * (expr * expr * expr) list
   | App of term * (expr * expr * expr) list * expr list
-  | ApplySub of term * term list
-  | List of term list
-  | Tuple of term list
-  | SetEnum of term list
   | Comprehension of term * term list * statement
   | Case of (prop * term) list
   | Match of (term list) * (term list * term) list
-  | Definite_Term  of term
+
   | MatchFunction of (expr * expr) list * (string * typ) list * typ * (term list * term) list
-  | Lambda of prim * ((expr * expr) list * expr list) * term
-  | LambdaFun of ((expr * expr) list * expr list) * typ * term
-  | MapsTo of term * term 
+  | Lambda of prim * (expr * expr) list * expr list * term
+  | LambdaFun of (expr * expr) list * expr list * typ * term
+
   | TAnyName of predicate 
   | TPossessedNoun of predicate list * term * predicate list 
-  | TPrimTypedName of term 
 
 and typ = 
   | RawGeneralType of node list
@@ -53,6 +58,7 @@ and typ =
   | TyVar of string
   | TyId of prim
   | TyControlSeq of prim * expr list
+  | FieldTypeAccessor of term * prim 
   | Subtype of term * term list * statement 
   | TyQuotient of typ * term
   | TyGeneral of predicate list * typ * predicate list 
@@ -78,10 +84,11 @@ and typ =
 
   | Mutual of 
       string list * 
-        ((expr * expr) list * (string * typ) list) *
-          ((string * (expr * expr) list * (string * typ) list * expr) *
-             (string * (expr * expr) list * (string * typ) list * typ) list)
-            list
+        (expr * expr) list * 
+          (string * typ) list *
+
+            (string * (expr * expr) list * (string * typ) list * expr *
+               (string * (expr * expr) list * (string * typ) list * typ) list) list
 
   | Over of prim * 
               (expr * expr * expr) list * 
@@ -92,6 +99,7 @@ and prop =
   | RawProp of node list 
 
   | PVar of string
+  | FieldPropAccessor of term * prim
   | PStatement of statement 
   | PRel of prim
   | P_ops of term list 
@@ -105,50 +113,59 @@ and context =
   | CVarb of string * expr * bool (* name, type-expr, fixed? *)
   | CVar of string * expr (* name, type-expr *)
 
+and statement_op =
+  | StateAndList
+  | StateNot
+  | StateIfThen
+  | StateIff 
+  | StateTrue
+  | StateFalse 
+  | StateOrList
+
+and statement_quantifier =
+  | StateForAny
+  | StateForall
+  | StateExist 
+
 and statement = 
   | RawStatement of node list 
 
   | LetAnnotation of context list 
-  | StateForAny of predicate list * statement 
-  | StateIfThen of statement * statement
-  | StateAnd of statement list
-  | StateOr of statement list
-  | StateIff of statement * statement
-  | StateNot of statement 
+  | StateCombination of statement_op * statement list 
+  | StateQuantifier of statement_quantifier * predicate list * statement 
   | StateThereExist of bool * predicate list  
-  | StateTrue
-  | StateFalse 
   | StateProp of prop
-  | StateForall of predicate * statement
-  | StateExist of predicate * statement
   | StateSimple of term list * predicate list
+
+and predicate_class = 
+  | PredPrimAdj 
+  | PredPrimAdjMulti
+  | PredPrimVerb 
+  | PredPrimVerbMulti
+  | PredPrimSimpleAdj
+  | PredPrimSimpleAdjMulti
+  | PredNeg 
+  | PredPairwise
+  | PredWith
+  | PredIsA
+  | PredIs
+  | PredRightThat
+  | PredRight
 
 and predicate = 
   | RawPredPattern of pattern
 
-  | PredPrimAdj of predicate
-  | PredPrimAdjMulti of predicate 
-  | PredPrimVerb of predicate 
-  | PredPrimVerbMulti of predicate 
-  | PredPrimSimpleAdj of prim 
-  | PredPrimSimpleAdjMulti of prim
-  | PredNeg of predicate 
-  | PredPairwise of predicate 
-  | PredWith of predicate 
-  | PredIsA of predicate list
-  | PredIs of predicate list
+  | PredPrim of prim 
+  | PredCombination of predicate_class * predicate list
   | PredType of typ 
   | PredNoun of term
   | PredPossessed of term list
   | PredRightStatement of statement
-  | PredRightThat of predicate list
-  | PredRight of predicate list
   | PredAnyArg of qany * term list
   | PredAnyPseudo of qany * predicate 
   | PredAnyGeneral of qany * typ
   | PredAttributePseudo of predicate list * term * predicate list 
   | PredPseudo of predicate list * prop * term list * predicate list 
-(*  | PredName of term  *)
 
 and proof = 
   | Proof
@@ -227,6 +244,11 @@ and prim =
   | Prim_pi_binder of scope * string * typ 
   | Prim_binder_prop of scope * string * prop 
 
+  (* -- fields *)
+  | Prim_field_term_accessor of scope * string * typ
+  | Prim_field_type_accessor of scope * string 
+  | Prim_field_prop_accessor of scope * string 
+
   (* -- non cs *)
   (* scope, pattern, def, frees *)                             
   | Prim_typed_name of scope * pattern * typ * expr list 
@@ -253,6 +275,8 @@ and prim =
   | Prim_term_var of scope * string * typ option
   | Prim_prop_var of scope * string 
 [@@deriving show]
+
+
 
 
 type this_adj =
@@ -296,6 +320,12 @@ type pos = (Lexing.position * Lexing.position) [@opaque]
 [@@deriving show]
 
 (* let show_pos _ _ = "" *)
+
+(* strings here are labels *)
+
+type raw = (* raw unprocessed data *)
+  | RawNodeList of node list
+[@@deriving show]
 
 type text_item = 
   | Section_preamble of pos * bool * int * string (* new current section *)
