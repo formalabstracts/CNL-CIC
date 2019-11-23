@@ -1,0 +1,109 @@
+
+
+\documentclass[12pt]{article}
+\usepackage{pmmeta}
+\pmcanonicalname{Coprime}
+\pmcreated{2013-03-22 11:46:13}
+\pmmodified{2019-11-22}
+\pmowner{drini}{3}
+\pmmodifier{drini}{3}
+\pmformalizer{chaunguyen}{}
+\pmtitle{coprime}
+\pmrecord{9}{30225}
+\pmprivacy{1}
+\pmauthor{drini}{3}
+\pmtype{Definition}
+\pmcomment{trigger rebuild}
+\pmclassification{msc}{11-00}
+\pmclassification{msc}{53B20}
+\pmclassification{msc}{53C25}
+\pmclassification{msc}{53C17}
+\pmclassification{msc}{53B21}
+\pmsynonym{relatively prime}{Coprime}
+\pmdefines{divides}
+\pmdefines{divisor}
+\pmdefines{common divisor}
+\pmdefines{greatest common divisor}
+\pmdefines{coprime}
+\pmdefines{relatively prime}
+%\pmkeywords{Integers}
+%\pmkeywords{Divisibility}
+
+\endmetadata
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{cnl}
+\usepackage{xcolor}
+%\usepackage{graphicx}
+%%%%\usepackage{xypic}
+
+% TITLE AUTHOR DATE
+\title{Number Theory,\\ Coprime}
+\date{October 22, 2019}
+\author{Chau Nguyen (chaunguyen)}
+
+%- DOCUMENT
+
+\begin{document}
+\parskip =\baselineskip
+
+% Local Defs for Coprime definition 
+\def\natdiv#1#2{{#1}\mathrel{|}{#2}}
+
+\begin{cnl}
+
+\Cnlinput{../Tex2CNL/package/cnlinit}
+
+\bigskip
+
+%-% BEGIN
+\lsection{Coprime}
+
+In this section, let $d,\ m,\ p,\ q$ be integers.
+
+%-% Definition
+
+\deflabel{divides}
+Assume that $d,\ m$ are integer numbers. Then we say that $d$ \df{divides} $m$ iff $d\ne 0$ and there exists $r$
+such that $m= d\*r$.
+\end{definition}
+
+\begin{remark}				
+We write  $\natdiv{d}{m}$ iff $d$ divides $m$.				
+We say  $d$ is a \df{divisor of} $m$ iff $d$ divides $m$
+\end{remark}
+
+\deflabel{common divisor}
+Assume $d,\ p,\ q$ are integers. Then we say that $d$ is \df{a common divisor} of $p$ and $q$  iff $d$ divides $p$  and $d$ divides $q$. 
+\end{definition}
+
+\begin{remark}
+We now introduce the greatest common divisor: 
+\end{remark}
+
+\deflabel{greatest common divisor}
+Assume $d,\ p,\ q$ are integers. Then we say that $d$ is \df{a greatest common divisor} of $p$ and $q$  
+iff $d$ is a common divisor of $p$ and $q$ and 
+there exists no $r$ such that $r$ is a common divisor of $p$ and $q$ and $r >d$. This greatest common divisor exists and is unique. 
+\end{definition}
+
+\begin{remark}
+We write $gcd (p,\q) = d$ iff $d$ is the greatest common divisor of $p$ and $q$.
+\end{remark}
+
+\deflabel{coprime}
+Assume $p,\ q$ are integers. Then we say that $p,\ q$ are  \df{coprime} iff  $gcd(p,\ q)=1$. 
+\end{definition}
+
+\begin{remark}
+It is also said that $p,\ q$ are \df{relatively prime}.
+\end{remark}
+
+\end{cnl}
+
+
+
+
+\end{document}
