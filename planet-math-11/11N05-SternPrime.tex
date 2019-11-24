@@ -1,0 +1,84 @@
+\documentclass[12pt]{article}
+\usepackage{pmmeta}
+\pmcanonicalname{SternPrime}
+\pmcreated{2013-03-22 16:19:10}
+\pmmodified{2019-11-24}
+\pmowner{PrimeFan}{13766}
+\pmmodifier{PrimeFan}{13766}
+\pmformalizer{chaunguyen}{}
+\pmtitle{Stern prime}
+\pmrecord{4}{38446}
+\pmprivacy{1}
+\pmauthor{PrimeFan}{13766}
+\pmtype{Definition}
+\pmcomment{trigger rebuild}
+\pmclassification{msc}{11N05}
+\pmdefines{Stern prime}
+
+\endmetadata
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{cnl}
+\usepackage{xcolor}
+%\usepackage{graphicx}
+%%%%\usepackage{xypic}
+
+% TITLE AUTHOR DATE
+\title{Number Theory,\\ Stern pprime}
+\date{October 24, 2019}
+\author{Chau Nguyen (chaunguyen)}
+
+%- DOCUMENT
+
+\begin{document}
+\parskip =\baselineskip
+	
+% Local Defs for Coprime definition 
+\def\natdiv#1#2{{#1}\mathrel{|}{#2}}
+	
+\begin{cnl}
+		
+\Cnlinput{../Tex2CNL/package/cnlinit}
+		
+\bigskip
+		
+%-% BEGIN
+
+\lsection{Stern_prime }
+		
+In this section, let $d,\ m,\ p$ be integers.
+		
+\deflabel{divides}
+We say that $d$ \df{divides} $m$ iff $d\ne 0$ and there exists an integer $r$ such that $m= d\*r$.
+\end{definition}
+	
+\deflabel {divides-notation}
+We write  $\natdiv{d}{m}$ iff $d$ divides $m$.	
+\end{definition}
+
+\deflabel {divisor}
+We say  $d$ is a \df{divisor} of $m$ iff $d$ divides $m$. 
+\end{definition}
+
+\deflabel{prime}
+Assume that $p$ is an integer greater than $1$.  Then we say that $p$
+is a \df{prime} iff each divisor of $p$ is either equal to $1$ or equal to $p$.
+\end{definition}
+
+\deflabel{Stern prime}
+Assume that $p$ is a prime.  Then we say that $p$
+is a \df{Stern prime} iff there exists no prime $q$ and integer $b$ such that $q<p$ and $b\ne 0$ and $p  = 2b^2 + q$.
+\end{definition}
+
+\begin{remark}
+These primes were first studied by Moritz Abraham Stern, in connection to a lesser known conjecture of Goldbach's. Like other mathematicians of the time, Stern considered 1 to be a prime number. Thus his list of Stern primes read thus: 2, 17, 137, 227, 977, 1187, 1493. A century later the list has been amended to include 3 (as in A042978 of Sloane's OEIS) but no terms larger than 1493 have been found. The larger of a twin prime is not a Stern prime.
+\end{remark}
+
+\end{cnl}
+
+
+
+
+\end{document}
