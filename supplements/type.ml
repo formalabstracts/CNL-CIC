@@ -75,13 +75,17 @@ and typ =
           (string list * expr * expr * expr) list * 
             prop list
 
-  | Inductive of 
+  | Inductive of (expr * (expr * expr) list * (string * typ) list * typ) list
+
+(*
       string * 
         (expr * expr) list * 
           (string * typ) list * 
             expr *
               (string * (expr * expr) list * (string * typ) list * typ) list
+ *)
 
+(*
   | Mutual of 
       string list * 
         (expr * expr) list * 
@@ -89,6 +93,7 @@ and typ =
 
             (string * (expr * expr) list * (string * typ) list * expr *
                (string * (expr * expr) list * (string * typ) list * typ) list) list
+ *)
 
   | Over of prim * 
               (expr * expr * expr) list * 
@@ -337,6 +342,8 @@ type text_item =
   | Fiat of wordpattern list
   | Implement of pos * typ * raw list 
   | Macro of pos * int * (wordpattern * expr) list
+  | Mutual_def of string list * (expr * expr) list * (string * typ) list 
+  | Mutual_type of string list * (expr * expr) list * (string * typ) list 
   | Namespace
 [@@deriving show]
 

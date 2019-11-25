@@ -117,6 +117,7 @@ article : lit_a | LIT_THE {}
 and_comma : LIT_AND | COMMA {}
 lit_binder_comma : COMMA {}
 
+
 lit_defined_as : LIT_SAID LIT_TO LIT_BE
 | LIT_DEFINED LIT_AS
 | LIT_DEFINED LIT_TO LIT_BE {}
@@ -183,6 +184,19 @@ lit_def : LIT_DEF | LIT_DEFINITION {}
 lit_axiom : LIT_AXIOM | LIT_CONJECTURE | LIT_HYPOTHESIS | LIT_EQUATION | LIT_FORMULA {}
 lit_property : LIT_PROPERTY | LIT_PROPERTIES {}                                                                                                 
 lit_with_properties : LIT_WITH lit_property {}                                                                                                 
+
+lit_declare_mutual : 
+option(LIT_WE) LIT_DECLARE LIT_MUTUAL LIT_INDUCTIVE {}
+
+lit_declare_mutual_inductive_type :
+lit_declare_mutual lit_type {}
+
+lit_declare_mutual_inductive_def :
+lit_declare_mutual lit_def {}
+
+
+                                
+
 lit_theorem :
 | LIT_PROPOSITION
 | LIT_THEOREM
@@ -348,9 +362,6 @@ section_preamble : section_tag option(label) PERIOD {}
   | lit_document
   | lit_enddocument {}
 
-(* namespaces  *)
-
-namespace : NOT_IMPLEMENTED {}
 
 (* instructions - 
    See Naproche-SAD github Instr.hs. Test:Instructions  
@@ -378,13 +389,6 @@ instruction :
 (* XX issue: VAR must be included to accommodate /-s plural formation *)
   instruct_synonym : bracket(LIT_SYNONYMS
     separated_nonempty_list (instruct_sep,nonempty_list(WORD)) {}) {}
-
-synonym_statement :
-option(LIT_WE) option(LIT_INTRODUCE) LIT_SYNONYMS 
-separated_nonempty_list(instruct_sep,nonempty_list(WORD)) PERIOD {}
-
-moreover_implements : 
-LIT_MOREOVER COMMA general_type LIT_IMPLEMENTS brace_semi(field) PERIOD {}
 
 (* variables *)
 
@@ -534,7 +538,7 @@ tightest_type :
 | var_type
 | subtype
 | inductive_type
-| mutual_inductive_type
+(* moved to text_item : mutual_inductive_type *)
 | structure (* declaration *)
 | field_type 
 {()}
@@ -640,12 +644,14 @@ inductive_type : LIT_INDUCTIVE identifier args_template
   opt_alt_constructor : ALT identifier args_template opt_colon_type {}
   alt_constructor : ALT identifier args_template colon_type {}
 
+(* 11/25/2019. Break mutual inductive into separate inductive types.
 mutual_inductive_type : LIT_INDUCTIVE
   comma_nonempty_list(identifier) args_template 
   list(LIT_WITH identifier args_template opt_colon_type
        list(alt_constructor) {}) 
   LIT_END
   {()}
+ *)
 
 (** structure *)
 
@@ -1065,20 +1071,50 @@ primary_statement :
 
 (* text *)
 text : list(text_item) {}
-  text_item : 
-    | section_preamble
-    | instruction
-    | declaration
-    | misc_statement
-    | macro
-    | moreover_implements
-    | namespace {}
+
+text_item : 
+ | section_preamble
+ | instruction
+ | declaration
+ | macro
+ | misc_text_item 
+     {}
+
+misc_text_item : 
+ | synonym_item 
+ | mutual_inductive_type_item 
+ | mutual_inductive_def_item 
+ | moreover_implements
+ | namespace
+     {}
+
+synonym_item :
+     option(LIT_WE) option(LIT_INTRODUCE) LIT_SYNONYMS 
+       separated_nonempty_list(instruct_sep,nonempty_list(WORD)) PERIOD {}
+
+mutual_inductive_type_item :
+       lit_declare_mutual_inductive_type
+         comma_nonempty_list(WORD) 
+         option(lit_param args_template {})
+         {}
+
+mutual_inductive_def_item :
+       lit_declare_mutual_inductive_def  
+         comma_nonempty_list(WORD) 
+         option(lit_param args_template {})
+         {}
+
+moreover_implements : 
+         LIT_MOREOVER COMMA general_type LIT_IMPLEMENTS brace_semi(field) PERIOD {}
+
+namespace : NOT_IMPLEMENTED {}
+
+fiat : NOT_IMPLEMENTED {}
 
 
-misc_statement : synonym_statement {}
 
 (* declaration test:declaration *)
-declaration : axiom | definition | theorem  {}
+declaration : axiom | definition | theorem | fiat {}
 
 (** axiom *)
 axiom : axiom_preamble list(assumption) 

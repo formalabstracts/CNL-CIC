@@ -422,7 +422,8 @@ let frozen_list =
 [
 "a";"an";"all";"and";"any";"are";"as";"assume";"be";"by";
 "case";"classifier";
-"coercion";"conjecture";"contradiction";"contrary";"corollary";"def";
+"coercion";"conjecture";"contradiction";"contrary";"corollary";"declare";
+"def";
 "define";"defined";"definition";"denote";"division";"do";"document";
 "does";"dump";"each";"else";"end";"enddivision";"endsection";
 "endsubdivision";"endsubsection";"endsubsubsection";"equal";
@@ -430,7 +431,7 @@ let frozen_list =
 "false";"fix";"fixed";"for";"forall";"formula";"fun";"function";"has";"have";
 "having";"hence";"holding";"hypothesis";"if";"iff";"in";"inferring";
 "indeed";"induction";"inductive";"introduce";"is";"it";"left";"lemma";
-"let";"library";"make";"map";"match";"moreover";"namespace";
+"let";"library";"make";"map";"match";"moreover";"mutual";"namespace";
 "no";"not";"notational";"notation";
 "notationless";"obvious";"of";"off";"on";"only";"ontored";"or";"over";
 "pairwise";"parameter";"precedence";"predicate";"printgoal";

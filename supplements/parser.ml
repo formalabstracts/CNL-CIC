@@ -638,6 +638,8 @@ let lit_property = someword "property properties"
 
 let lit_with_properties = word "with" ++ lit_property
 
+let lit_param = phrase "with parameter" 
+
 let lit_theorem = someword "proposition theorem lemma corollary"
 
 let lit_location = parse_some [lit_document;lit_theorem;lit_axiom;lit_def]
@@ -693,10 +695,6 @@ let treat_section_preamble =
 let section_preamble = 
   commit_head "section" section_tag
     (fun t -> ((t ++ possibly label ++ period) >> treat_section_preamble))
-
-(* namespace XX NOT_IMPLEMENTED *)
-
-let namespace = failparse
 
 (* instructions *)
 
@@ -837,13 +835,6 @@ let instruction =
         )
      >> (fun (p,i) -> Instruction (p,i)))
 
-let synonym_statement = 
-  let head = possibly (word "we") ++ possibly(word "introduce") ++ word "synonyms" in
-  commit_head "synonym_statement" head
-    (fun head -> 
-           ((getpos ++ head ++ comma_nonempty_list synlist ++ getpos ++ a PERIOD  
-            >> (fun ((((p,_),ls),p'),_) -> (Synonym ( pair_pos (p,p'),InstructSyn ls))))))
-
 (* end of instructions *)
 
 
@@ -950,7 +941,7 @@ let assumption =
   ((assumption_prefix ++ balanced ++ (a PERIOD) >> 
      (fun ((_,b),_) -> RawStatement b)) 
   |||
-    (let_annotation >> (fun t -> LetAnnotation t)))
+    (let_annotation ++ (a PERIOD) >> (fun (t,_) -> LetAnnotation t)))
 
 let possibly_assumption = 
   (possibly (many assumption ++ lit_then >> fst)) >> flatten
@@ -1055,6 +1046,7 @@ let pattern_banned =
    "enter";"namespace";
    "stand";"if";"iff";"inferring";"the";"a";"an";
    "we";"say";"write";
+   "assume";"suppose";"let";
    "said";"defined";"or";"fix";"fixed";(* "and"; *)
    (* "and" needed in phrases such as "resultant of f and g" *)
   ]
@@ -1347,7 +1339,7 @@ let type_def_copula =
                  ++ phantom (possibly(word "notational") ++ word "structure") >> discard)
              ||| 
                (possibly(article) 
-                ++ phantom (possibly(word "mutual") ++ word "inductive") >> discard)
+                ++ phantom (possibly(word "mutual") ++ phrase "inductive type") >> discard)
         ) >> discard
       )
 
@@ -1479,19 +1471,6 @@ let theorem =
           ++ affirm_proof 
           >>
             (fun (((p,l),ls),(p',sts)) -> Theorem(pair_pos (p,p'),l,ls,sts))))
-
-(* XX need to add to the namespace of the given structure *)
-
-let moreover_implements = 
-  let except = (function | WORD(_,w) -> not(w = "implement") | _ -> true) in
-  let head = word "moreover" ++ comma in
-  commit_head "moreover_implements" head 
-  (fun head ->
-         getpos ++ head ++ balancedB except ++ word "implement" ++ brace_semi
-           ++ getpos ++ a PERIOD
-  ) 
-  >> (fun ((((((p,_),b),_),b'),p'),_) -> 
-            Implement (pair_pos(p,p'),RawGeneralType b,List.map (fun t -> RawNodeList t) b'))
 
 (* fiat *)
 let fiat_preamble = 
@@ -1627,17 +1606,61 @@ let fiat =
   dependent_plus fiat_preamble fiat_body ++ a PERIOD >> fst 
   >> (fun x -> Fiat x)
 
+let synonym_statement = 
+  let head = possibly (word "we") ++ possibly(word "introduce") ++ word "synonyms" in
+  commit_head "synonym_statement" head
+    (fun head -> 
+           ((getpos ++ head ++ comma_nonempty_list synlist ++ getpos ++ a PERIOD  
+            >> (fun ((((p,_),ls),p'),_) -> (Synonym ( pair_pos (p,p'),InstructSyn ls))))))
+
+(* XX need to add to the namespace of the given structure *)
+
+let moreover_implements = 
+  let except = (function | WORD(_,w) -> not(w = "implement") | _ -> true) in
+  let head = word "moreover" ++ comma in
+  commit_head "moreover_implements" head 
+  (fun head ->
+         getpos ++ head ++ balancedB except ++ word "implement" ++ brace_semi
+           ++ getpos ++ a PERIOD
+  ) 
+  >> (fun ((((((p,_),b),_),b'),p'),_) -> 
+            Implement (pair_pos(p,p'),RawGeneralType b,List.map (fun t -> RawNodeList t) b'))
+
+(* namespace XX NOT_IMPLEMENTED *)
+
+let namespace = failparse
+
+let mutual_inductive_item f = 
+  (possibly(word "we") ++ phrase("declare mutual inductive") ++ f)
+  ++ comma_nonempty_list(anywordexcept ["with"])
+  ++ possibly(lit_param ++ args_template >> snd)
+  >> (fun ((_,cs),r) -> let cs' = map stored_string cs in 
+                        match r with 
+                        | [] -> (cs',[],[])
+                        | (a,a') :: _ -> (cs',a,a')
+  )
+
+let mutual_inductive_type_item = 
+  mutual_inductive_item (word "type") 
+  >> (fun (c,a,a') -> Mutual_type (c,a,a'))
+
+let mutual_inductive_def_item = 
+  mutual_inductive_item (word "definition")
+  >> (fun (c,a,a') -> Mutual_def (c,a,a')) 
+
 let text = 
   group "text" 
     (
       (group "section_preamble" section_preamble)
       ||| (group "instruction" instruction)
       ||| (group "axiom" axiom)
-      ||| (definition)
+      ||| definition
       ||| theorem
       ||| (group "fiat" fiat)
       ||| (group "macro" macro)
       ||| (group "synonym_statement" synonym_statement)
+      ||| (group "mutual_type_item" mutual_inductive_type_item)
+      ||| (group "mutual_def_item" mutual_inductive_def_item)
       ||| (group "moreover_implements" moreover_implements)
       ||| (group "namespace" namespace >> (fun _ -> Namespace))
     )
@@ -1854,36 +1877,17 @@ let subtype = group "subtype"
   *)
 
 let opt_alt_constructor = 
-  (a ALT ++ identifier >> snd >> stored_string)
+  (a ALT ++ identifier >> snd >> (fun s -> RawExpr [s]))
   ++ args_template 
   ++ opt_colon_type
   >> (fun ((i,(a,a')),o) -> (i,a,a',o))
 
 let inductive_type = 
   group "inductive_type"
-    ((word "inductive" ++ 
-        (identifier >> stored_string) >> snd)
-     ++ args_template 
-     ++ opt_colon_sortish
+    (word "inductive" 
      ++ many(opt_alt_constructor) 
-     ++ word "end"
-     >> (fun ((((i,(a,a')),p),m),_) ->  Inductive (i,a,a',p,m)))
-
-let mutual_inductive_type = 
-  let header = 
-    (word "inductive" ++ comma_nonempty_list(identifier >> stored_string) >> snd) 
-    ++ args_template in
-  let with_header = 
-    ((word "with" ++ identifier >> snd >> stored_string) 
-    ++ args_template 
-    ++ opt_colon_sortish) >> (fun ((i,(a,a')),c) -> (i,a,a',c))  in 
-     
-  group "mutual_inductive"
-    (header 
-     ++ many(with_header  ++ many(opt_alt_constructor)
-             >> (fun ((i1,i2,i3,i4),m) -> (i1,i2,i3,i4,m)))
-     ++ word "end" 
-    ) >> (fun (((ss,(h2,h2')),i3),_) -> Mutual (ss,h2,h2',i3))
+     ++ word "end") 
+  >> (fun ((_,m),_) -> Inductive m)
 
 let brace_field_assign = 
   let pre = balancedB(function | COMMA | COLON | ASSIGN | SEMI | PERIOD -> false | _ -> true) in
@@ -1922,7 +1926,6 @@ let tightest_type =
       ||| controlseq_type
       ||| subtype
       ||| inductive_type
-      ||| mutual_inductive_type
       ||| structure
      ||| field_type
     )
@@ -2604,21 +2607,12 @@ function
                                             map(fun2(id,xtype xf)) sts,
                                             map(fun4(id,xexpr xf,xexpr xf,xexpr xf)) sees,
                                             map(xprop xf) ps))
-| Inductive(s,ees,sts,e,sees) -> xf.xtype(Inductive(
-                                              s,
-                                              map(diag2(xexpr xf)) ees,
-                                              map(fun2(id,xtype xf)) sts,
-                                              xexpr xf e,
-                                              map(fun4(id,map(diag2(xexpr xf)),
-                                                       map(fun2(id,xtype xf)),xtype xf)) sees))
-| Mutual(ss,ees,sts,ms) -> xf.xtype(Mutual(
-                                        ss,
-                                        map(diag2(xexpr xf)) ees,
-                                        map(fun2(id,xtype xf)) sts,
-                                        map(fun5(id,map(diag2(xexpr xf)),map(fun2(id,xtype xf)),xexpr xf,
-                                             map(fun4(id,map(diag2(xexpr xf)),
-                                                      map(fun2(id,xtype xf)),xtype xf))))
-                                            ms))
+| Inductive ms -> xf.xtype(Inductive(
+                               map(fun4(xexpr xf,
+                                        map(diag2(xexpr xf)),
+                                        map(fun2(id,xtype xf)),
+                                        xtype xf)) ms
+                            ))
 | ty -> xf.xtype ty 
 
 and xprop xf = 
@@ -2773,26 +2767,11 @@ match typ with
                                  fmap(ctype cf) (snd(unzip sts)) @ 
                                    fmap(jfun4(id,cexpr cf,cexpr cf,cexpr cf)) sees @ 
                                      fmap(cprop cf) ps
-| Inductive(_,ees,sts,e,sees) -> fmap(jdiag2(cexpr cf)) ees @ 
-                                   fmap(ctype cf) (snd(unzip sts)) @ 
-                                     cexpr cf e @ 
-                                       fmap(jfun3(fmap(jdiag2(cexpr cf)),
-                                                       fmap(ctype cf),ctype cf)) 
-                                         (map (fun (_,e,v,ty) -> (e,snd(unzip v),ty)) sees)
-| Mutual(ss,ees,sts,ms) -> ss @ 
-                                        fmap(jdiag2(cexpr cf)) ees @ 
-                                        fmap(ctype cf) (snd(unzip sts)) @ 
-                                        fmap(jfun4(fmap(jdiag2(cexpr cf)),
-                                                   fmap(ctype cf),
-                                                   cexpr cf,
-                                                   fmap(jfun3(
-                                                            fmap(jdiag2(cexpr cf)),
-                                                            fmap(ctype cf),
-                                                            ctype cf))))
-                                          (let f r = map (fun(_,ee,sts,t) -> (ee,snd(unzip sts),t)) r in 
-                                           let m' = map (fun(_,ee,sts,e,r) -> (ee,snd(unzip sts),e,f r)) ms in 
-                                           m'
-                                          )
+
+| Inductive ms -> fmap(jfun4(cexpr cf,
+                             fmap(jdiag2(cexpr cf)),
+                             fmap(jfun2((fun _ -> []),ctype cf)),
+                             ctype cf)) ms
 | _ -> []
 
 
@@ -2899,3 +2878,50 @@ match pr with
 | _ -> []
 
 
+(* find defined and undefined expressions *)
+
+let get_structure_labeled_param =
+  function
+  | Structure(p,_,_,_) -> p
+  | _ -> failwith "get_structure_labeled_param"
+
+let get_structure_unlabeled_param = 
+  function
+  | Structure(_,u,_,_) -> u
+  | _ -> failwith "get_structure_unlabeled_param"
+
+let get_structure_field = 
+  function
+  | Structure(_,_,f,_) -> f
+  | _ -> failwith "get_structure_field"
+
+let get_structure_prop = 
+  function
+  | Structure(_,_,_,p) -> p
+  | _ -> failwith "get_structure_prop"
+
+let text_node_collector : token collector = 
+{
+  cterm = (
+    function
+    | RawTerm ns -> map tok ns
+    | _ -> failwith "cterm"
+  );
+  ctype = (
+    function
+    | RawGeneralType ns | RawPostColon ns -> map tok ns
+    | _ -> failwith "ctype"
+  );
+  cprop = (fun _ -> [BLANK]);
+  cstat = (fun _ -> [BLANK]);
+  cpred = (fun _ -> [BLANK]);
+  cexpr = (fun _ -> [BLANK]);
+  cprim = (fun _ -> [BLANK]);
+  cpatt = (fun _ -> [BLANK])
+}
+
+(*
+let collect_text_token = 
+  function
+  | Axiom (_,_,_,sts,sts) -> cstat cf (sts @ sts)
+ *)
