@@ -15,6 +15,10 @@ let synonym = Hashtbl.create 200;;
 let find_all_syn key = 
   Hashtbl.find_all synonym key 
 
+let find_head_syn key = 
+  match find_all_syn key with
+  | [] -> key
+  | s :: _ -> s
 
  (* Now, only single-word synonyms are allowed.
 
@@ -25,10 +29,8 @@ let find_all_syn key =
 
 let syn_add1 (key,value) = (* key = string , value = canonical , was [remaining],hyphen-canonical *)
   let ls = Hashtbl.find_all synonym key in 
-(*  let ls = List.filter (fun l -> fst value = fst l) ls in *)
   if not(ls = [])
   then warn true 
-(*         (not(snd(List.hd ls') = snd value))  *)
          (Printf.sprintf "synonym %s already exists for %s" (List.hd ls)   key)
   else Hashtbl.add synonym key value
 
@@ -40,61 +42,17 @@ let syn_add ts =
     let value = List.hd hs in
     ignore (List.map (fun key -> syn_add1 (key,value)) hs)
 
-(*
-  let benign = 
-    not(Hashtbl.mem synonym key) || 
-
-     (value = value') || failwith ("synonym already declared "^key^" "^value')) in 
-      if benign then 
- *)
-
-(* 
-let expanded_word s input = 
-  let u = find_syn (singularize s) in 
-  try 
-    let (a,(_,rest)) = some_nodeX 
-      (function 
-       | WORD (w,wu) as w' -> 
-           let wsyns = find_all_syn wu in
-           if wsyns = [] then (
-           ((wsyn = u),WORD (w,wsyn))
-       | VAR v -> 
-           let (b,v') = is_word v in 
-           (b && v'=u),WORD(v,v')
-       | t -> (false,t)) input in 
-    (a,(TrString ("matched:"^u),rest))
-  with 
-    Noparse _ -> raise (Noparse (TrGroup (("expected:"^u),trPos input)))
- *)
-
-(*
-let rec match_syn f ss input = (* syn expanded word *)
-  if ss = [] then (f,(TrEmpty,input))
-  else 
-    let ss_null,ss_pos = partition (fun t -> fst t = []) ss in 
-    let f = (match ss_null with 
-             | [] -> f
-             | (_,r):: _ -> Some r) in 
-    let ({ tok = w'; _ },(_,input')) = anyword input in 
-    match w' with 
-    | WORD (_,v') ->
-        let ss'_pos = List.filter (fun (ws,_) -> v' = List.hd ws) ss_pos in 
-        if ss'_pos = [] then (f,(TrEmpty,input))
-        else match_syn f (map (fun (ws,h) -> List.tl ws,h) ss'_pos) input' 
-    | _ -> (f,(TrEmpty,input))
- *)
-
-
-
 (* scope *)
 
 let mk_meta =
   let i = ref 0 in 
   fun () ->
         let () = i := !i + 1 in 
-        string_of_int (!i)
+         (!i)
 
 let scope_current = ref []
+
+let get_current_scope() = !scope_current 
 
 (* Length of scope is the length of this list.
    With no document, the list is empty. 
@@ -164,7 +122,11 @@ let set_start_scope_current (new_length,label) = (* label becomes hd of list of 
     let _ = List.length new_scope = new_length || failwith "set_start_scope_current:length" in
     scope_current := new_scope
 
-
+let set_scope_current(is_end,new_length,label) = 
+  match (is_end,label) with
+  | (true,"") -> set_end_unlabeled_scope_current new_length 
+  | (true,_) -> set_end_labeled_scope_current(label,new_length)
+  | (false,_) -> set_start_scope_current(new_length,label)
 
 (* primitives *)
 
@@ -176,9 +138,9 @@ let set_start_scope_current (new_length,label) = (* label becomes hd of list of 
 let prim_scope = 
   function 
   | Prim_classifier (scope,_) -> scope 
-  | Prim_term_op_controlseq (scope,_,_,_,_,_,_) -> scope
+  | Prim_term_op_controlseq (scope,_,_,_,_,_) -> scope
   | Prim_binary_relation_controlseq (scope,_,_,_,_,_) -> scope
-  | Prim_propositional_op_controlseq (scope,_,_,_,_,_,_ ) -> scope
+  | Prim_propositional_op_controlseq (scope,_,_,_,_,_) -> scope
   | Prim_type_op_controlseq (scope,_,_,_,_) -> scope
   | Prim_term_controlseq (scope,_,_,_,_ ) -> scope
   | Prim_type_controlseq (scope,_,_,_,_ ) -> scope
@@ -201,7 +163,7 @@ let prim_scope =
   | Prim_type_word (scope,_,_,_) -> scope
   | Prim_term_op (scope,_,_,_) -> scope
   | Prim_binary_relation_op (scope,_,_,_) -> scope
-  | Prim_propositional_op (scope,_,_,_,_,_ ) -> scope
+  | Prim_propositional_op (scope,_,_,_,_) -> scope
   | Prim_relation (scope,_,_,_ ) -> scope
   | Prim_term_var (scope,_,_) -> scope
   | Prim_type_var (scope,_) -> scope 
@@ -211,9 +173,9 @@ let prim_scope =
   | Prim_field_type_accessor(scope,_) -> scope
 
 let prim_string = function
-  | Prim_term_op_controlseq (_,string,_,_,_,_,_) -> string
+  | Prim_term_op_controlseq (_,string,_,_,_,_) -> string
   | Prim_binary_relation_controlseq (_,string,_,_,_,_) -> string
-  | Prim_propositional_op_controlseq (_,string,_,_,_,_,_ ) -> string
+  | Prim_propositional_op_controlseq (_,string,_,_,_,_) -> string
   | Prim_type_op_controlseq (_,string,_,_,_) -> string
   | Prim_term_controlseq (_,string,_,_,_ ) -> string
   | Prim_type_controlseq (_,string,_,_,_ ) -> string
@@ -224,7 +186,7 @@ let prim_string = function
   | Prim_identifier_type (_,string,_,_) -> string
   | Prim_type_op (_,string,_,_) -> string
   | Prim_binary_relation_op (_,string,_,_) -> string
-  | Prim_propositional_op (_,string,_,_,_,_ ) -> string
+  | Prim_propositional_op (_,string,_,_,_) -> string
   | Prim_term_var (_,s,_) -> s
   | Prim_type_var (_,s) -> s
   | Prim_prop_var (_,s) -> s
@@ -252,6 +214,9 @@ let prim_add tbl (key,value) =
   warn (not (prim_find_all_inscope tbl key = []))
     ("primitive already declared: "^key); 
     Hashtbl.add tbl key value
+
+let prim_add_force tbl (key,value) = 
+  Hashtbl.add tbl key value
 
 (*
 let prim_string_in_scope tbl key =
@@ -369,8 +334,8 @@ let prim_type_op_controlseq_option key =
 
 let prim_classifier_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
-let prim_classifier_option key = 
-  prim_string_in_scope prim_classifier_tbl key
+let prim_classifier_find_all_inscope key = 
+  prim_find_all_inscope prim_classifier_tbl key
 
 let prim_simple_adjective_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 
@@ -546,5 +511,18 @@ let add_used_word ls =
 let add_master_list() = 
     add_used_word (frozen_list @ preposition_list)
 
-
+let process_fiat = 
+  let sc = get_current_scope() in 
+  function
+  | Wp_classifier cs -> 
+      ignore(List.map 
+               (fun ss -> 
+                      let s = String.concat " " (safetail ss) in 
+                      let _ = ss <> [] || failwith ("empty classifier "^s) in 
+                      prim_add_force prim_classifier_tbl (List.hd ss,Prim_classifier(sc,s))) 
+               cs)
+(*  | Wp_symbolpat(ws,p) ->  
+      prim_add prim_term_op_controlseq_tbl (sc,s,n, *)
+      
+  | _ -> ()
 

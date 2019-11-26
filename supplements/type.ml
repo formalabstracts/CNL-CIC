@@ -31,22 +31,22 @@ and term =
   | Blank
 
   | TermClass of term_class * term list 
-  | TVar of string * (typ option)
+  | TVar of string * typ
   | Annotated of term * typ 
   | PrimId of prim 
   | ControlSeq of prim * expr list
   | FieldTermAccessor of prim
   | IfThenElse of prop * term * term
-  | Make of typ option * (expr * expr * expr) list
-  | Where of term * (expr * expr * expr) list
-  | App of term * (expr * expr * expr) list * expr list
+  | Make of typ option * (expr * expr) list
+  | Where of term * (expr * expr) list
+  | App of term * (expr * expr) list * expr list
   | Comprehension of term * term list * statement
   | Case of (prop * term) list
   | Match of (term list) * (term list * term) list
 
-  | MatchFunction of (expr * expr) list * (string * typ) list * typ * (term list * term) list
-  | Lambda of prim * (expr * expr) list * expr list * term
-  | LambdaFun of (expr * expr) list * expr list * typ * term
+  | MatchFunction of expr list * expr list * typ * (term list * term) list
+  | Lambda of prim * expr list * expr list * term
+  | LambdaFun of expr list * expr list * typ * term
 
   | TAnyName of predicate 
   | TPossessedNoun of predicate list * term * predicate list 
@@ -57,6 +57,7 @@ and typ =
 
   | TyVar of string
   | TyId of prim
+  | TyMeta of int 
   | TyControlSeq of prim * expr list
   | FieldTypeAccessor of term * prim 
   | Subtype of term * term list * statement 
@@ -64,41 +65,23 @@ and typ =
   | TyGeneral of predicate list * typ * predicate list 
   | TyCoerce of term 
   | TyAgda of term list 
-  | TyApp of typ * (expr * expr * expr) list * expr list
-  | TyBinder of prim * (expr * expr) list * expr list * typ 
+  | TyApp of typ * (expr * expr) list * expr list
+  | TyBinder of prim * expr list * expr list * typ 
   | TyOp of prim
-  | TyBinop of (expr * expr) list * typ list 
+  | TyBinop of expr list * typ list 
+  | TyNone 
 
   | Structure of 
-      (expr * expr) list * 
-        (string * typ) list *
+      expr list * 
+        expr list *
           (string list * expr * expr * expr) list * 
             prop list
 
-  | Inductive of (expr * (expr * expr) list * (string * typ) list * typ) list
-
-(*
-      string * 
-        (expr * expr) list * 
-          (string * typ) list * 
-            expr *
-              (string * (expr * expr) list * (string * typ) list * typ) list
- *)
-
-(*
-  | Mutual of 
-      string list * 
-        (expr * expr) list * 
-          (string * typ) list *
-
-            (string * (expr * expr) list * (string * typ) list * expr *
-               (string * (expr * expr) list * (string * typ) list * typ) list) list
- *)
-
+  | Inductive of (string * expr list * expr list * typ) list
   | Over of prim * 
-              (expr * expr * expr) list * 
+              (expr * expr) list * 
                 expr list * 
-                  (expr * expr * expr) list
+                  (expr * expr) list
 
 and prop = 
   | RawProp of node list 
@@ -110,13 +93,12 @@ and prop =
   | P_ops of term list 
   | Ptdop of prop list
   | Ptdopr of (term * term * term) list
-  | PApp of prop * (expr * expr * expr) list * expr list
-  | PLambda of (expr * expr) list * expr list * prop
-  | PBinder of prim * (expr * expr) list * (string * typ) list * prop
+  | PApp of prop * (expr * expr) list * expr list
+  | PLambda of expr list * expr list * prop
+  | PBinder of prim * expr list * expr list * prop
 
 and context = 
-  | CVarb of string * expr * bool (* name, type-expr, fixed? *)
-  | CVar of string * expr (* name, type-expr *)
+  | CVar of string * expr * bool (* name, type-expr, true<->fixed *)
 
 and statement_op =
   | StateAndList
@@ -177,13 +159,20 @@ and proof =
 
 and expr = 
   | RawExpr of node list 
-  | Raw_Colon_Sortish of node list  
+  | RawColonSort of node list  
 
+  | EVar of string * expr (* var, its type info *)
   | Eterm of term
   | Etyp of typ
   | Eprop of prop
   | Eproof
-  | EVar of string * expr (* var, its type info *)
+  | Emeta of int 
+  | ExNone
+  | ESortType of typ list 
+  | ESortProp of typ list 
+  | ESortTerm
+  | ESortProof 
+
 
 and pattern = (* what wordpattern get translated to for parsing *)
   | Pat_var_term
@@ -215,7 +204,7 @@ and associativity =
 
 and scope = string list (* hierarchical identifiers *)
 
-and precedence = int 
+and precedence = int option * associativity 
 
 and numbracearg = int 
 
@@ -228,16 +217,16 @@ and prim =
     all cs primitives are 0-ary or 2-ary (as infix, not referring to braceargs) 
 
     Ordering of fields is as follows:
-    scope, cs string, numbraceargs, precedence, assoc, def (term,typ,etc. as appropriate), free vars  
+    scope, cs string, numbraceargs, precedence-assoc, def (term,typ,etc. as appropriate), free vars  
 
    *)
 
   (* -- controlseq *)
-  | Prim_classifier of scope * string (* phrase *)
-  | Prim_term_op_controlseq of scope * string * numbracearg * precedence * associativity * term * term list
+  | Prim_classifier of scope * string (* phrase without first word, which is the key *)
+  | Prim_term_op_controlseq of scope * string * numbracearg * precedence * term * term list
   | Prim_binary_relation_controlseq of scope * string * numbracearg * prop * term * term list
   | Prim_propositional_op_controlseq of 
-      scope * string * numbracearg * precedence * associativity * prop * term list 
+      scope * string * numbracearg * precedence * prop * term list 
   (* -- 2-ary fixed prec, right assoc. *)
   | Prim_type_op_controlseq of scope * string * numbracearg * term * term list
   (* -- 0-ary, i.e. only brace args *)
@@ -272,12 +261,12 @@ and prim =
   | Prim_type_word of scope * pattern * typ * typ list
   | Prim_term_op of scope * pattern * term * expr list
   | Prim_binary_relation_op of scope * string * prop * (term * term)
-  | Prim_propositional_op of scope * string * int * associativity * prop * prop list 
+  | Prim_propositional_op of scope * string * precedence * prop * prop list 
   | Prim_relation of scope * pattern * typ * term list 
 
   (* context variables *)
   | Prim_type_var of scope * string
-  | Prim_term_var of scope * string * typ option
+  | Prim_term_var of scope * string * typ
   | Prim_prop_var of scope * string 
 [@@deriving show]
 
@@ -291,34 +280,47 @@ type this_adj =
   *)
 [@@deriving show]
 
+type wordpattern_class = 
+  | Wpc_adj
+  | Wpc_adjM
+  | Wpc_verb
+  | Wpc_verbM
+  | Wpc_ty_word 
+  | Wpc_fun_word 
+  | Wpc_notion 
+  | Wpc_symbolpatT 
+  | Wpc_inferring 
+  | Wpc_binder 
+  | Wpc_symbolpat 
+  | Wpc_symbolpatP 
+  | Wpc_cs 
+  | Wpc_ty_cs 
+  | Wpc_bin_cs 
+[@@deriving show]
 
 type wordpattern = 
   | Wp_wd of string
-  | Wp_option of string
+  | Wp_option of string 
+  | Wp_csname of string 
   | Wp_synonym of string list 
   | Wp_var of context
   | Wp_symbol of string
-  | Wp_ty_word of wordpattern list
-  | Wp_bin_cs of wordpattern * string * wordpattern list * wordpattern
-  | Wp_ty_identifier of string * (expr * expr) list * ((string * typ) list)
-  | Wp_ty_cs of string * wordpattern list
+  | Wp_prec of precedence 
+  | Wp_list of wordpattern_class * wordpattern list 
+(*
+  | Wp_symbolpat of wordpattern list * precedence 
+  | Wp_symbolpatP of wordpattern list * precedence 
   | Wp_cs of string * wordpattern list
-  | Wp_symbolpat of wordpattern list * int option  * associativity
-  | Wp_symbolpatP of wordpattern list * int option  * associativity
-  | Wp_symbolpatT of wordpattern list
-  | Wp_identifier of string * (expr * expr) list * ((string * typ) list)
-  | Wp_identifierP of string * (expr * expr) list * ((string * typ) list)
-  | Wp_fun_word of wordpattern list
-  | Wp_notion of wordpattern list
-  | Wp_adj of wordpattern list
-  | Wp_adjM of wordpattern list
-  | Wp_verb of wordpattern list
-  | Wp_verbM of wordpattern list
-  | Wp_classifier of string list list
+  | Wp_ty_cs of string * wordpattern list
+  | Wp_bin_cs of wordpattern * string * wordpattern list * wordpattern
+ *)
+  | Wp_ty_identifier of string * expr list * expr list
+  | Wp_identifier of string * expr list * expr list
+  | Wp_identifierP of string * expr list * expr list
+  | Wp_classifier of string list list 
   | Wp_namespace of string
-  | Wp_inferring of wordpattern * wordpattern list
   | Wp_record of expr list * this_adj list
-  | Wp_binder of wordpattern * wordpattern (* wp, wp_var *)
+
 [@@deriving show]
 
 type pos = (Lexing.position * Lexing.position) [@opaque]
@@ -338,12 +340,11 @@ type text_item =
   | Axiom of pos * string * string * statement list * statement list  (* kind,label,assumptions,conclusions *)
   | Definition of pos * string * statement list * (wordpattern * expr) list * this_adj list (* label, assumptions, word patterns and definitions.  *)
   | Theorem of pos * string * statement list * statement list  (* label, assumptions ,conclusions *)
-  | Synonym of pos * instruct
   | Fiat of wordpattern list
-  | Implement of pos * typ * raw list 
+  | Implement of pos * typ * (string list * expr * expr * expr) list
   | Macro of pos * int * (wordpattern * expr) list
-  | Mutual_def of string list * (expr * expr) list * (string * typ) list 
-  | Mutual_type of string list * (expr * expr) list * (string * typ) list 
+  | Mutual_def of string list * expr list * expr list 
+  | Mutual_type of string list * expr list * expr list 
   | Namespace
 [@@deriving show]
 

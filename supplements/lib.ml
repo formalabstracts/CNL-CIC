@@ -74,6 +74,11 @@ let _ = pad 1 'x' ['t';'a';'b';'c';'d'];;  (* ['d'] *)
 
 let _ = pad 3 'x' ['t'] (* ['x'; 'x'; 't'] *)
 
+let safetail =
+  function
+  | [] -> []
+  | _ :: tl -> tl
+
 let take k ls =  if k <= 0 then [] else fst(chop_list k ls) (* retain head part *)
 
 let rec cutat p =  (* head of list satisfies p *)
