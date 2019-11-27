@@ -492,6 +492,8 @@ let  and_comma = (* no Oxford comma allowed, which is reserved for sentence conj
 
 let and_comma_nonempty_list parser = separated_nonempty_list parser and_comma
 
+let or_nonempty_list parser = separated_nonempty_list parser (word "or")
+
 let lit_binder_comma = comma
 
 let cs_brace parser1 parser2 = 
@@ -2403,6 +2405,9 @@ and does_pred input : predicate parsed =
    ||| (lit_has ++ has_pred >> snd )
    ||| (lit_is ++ and_comma_nonempty_list(is_pred) >> fun (_,t) -> PredCombination(PredIs,t))
    ||| (lit_is ++ and_comma_nonempty_list(is_aPred) >> fun (_,t) -> PredCombination(PredIsA,t))
+         (* these two cases are not in Paskevich *)
+   ||| (lit_is ++ or_nonempty_list(is_pred) >> fun (_,t) -> PredCombination(PredIsOr,t))
+   ||| (lit_is ++ or_nonempty_list(is_aPred) >> fun (_,t) -> PredCombination(PredIsAOr,t))
   ) input 
 
  (* XX not pairwise vs pairwise not *)

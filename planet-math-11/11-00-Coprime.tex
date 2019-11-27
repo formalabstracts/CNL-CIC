@@ -1,0 +1,102 @@
+
+
+\documentclass[12pt]{article}
+\usepackage{pmmeta}
+\pmcanonicalname{Coprime}
+\pmcreated{2013-03-22 11:46:13}
+\pmmodified{2019-11-22}
+\pmowner{drini}{3}
+\pmmodifier{drini}{3}
+\pmformalizer{chaunguyen}{}
+\pmtitle{coprime}
+\pmrecord{9}{30225}
+\pmprivacy{1}
+\pmauthor{drini}{3}
+\pmtype{Definition}
+\pmcomment{trigger rebuild}
+\pmclassification{msc}{11-00}
+\pmclassification{msc}{53B20}
+\pmclassification{msc}{53C25}
+\pmclassification{msc}{53C17}
+\pmclassification{msc}{53B21}
+\pmsynonym{relatively prime}{Coprime}
+\pmdefines{divides}
+\pmdefines{divisor}
+\pmdefines{common divisor}
+\pmdefines{greatest common divisor}
+\pmdefines{coprime}
+\pmdefines{relatively prime}
+
+
+\endmetadata
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{cnl}
+\usepackage{xcolor}
+%\usepackage{graphicx}
+%%%%\usepackage{xypic}
+
+% TITLE AUTHOR DATE
+\title{Number Theory,\\ Coprime}
+\date{October 22, 2019}
+\author{Chau Nguyen (chaunguyen)}
+
+%- DOCUMENT
+
+\begin{document}
+\parskip =\baselineskip
+
+% Local Defs for Coprime definition 
+\def\natdiv#1#2{{#1}\mathrel{|}{#2}}
+
+\parindent=0pt
+
+\begin{cnl}
+
+\Cnlinput{../Tex2CNL/package/cnlinit}
+
+\bigskip
+
+%-% BEGIN
+\lsection{Coprime}
+
+In this section, let $d,\ m,\ p,\ q$ be integers.
+
+%-% Definition
+
+\dfn
+{We say $d$ \df{divides} $m$ iff $d\ne 0$ and there exists $r$ such that $m= d\*r$.}
+			
+We write  $\natdiv{d}{m}$ iff $d$ divides $m$.		
+		
+We say  $d$ is a \df{divisor of} $m$ iff $d$ divides $m$.
+
+
+\dfn{We say $d$ is a \df{common divisor} of $p$ and $q$  iff $d$ divides $p$  and $d$ divides $q$.}
+
+
+\begin{remark}
+We now introduce the greatest common divisor: 
+\end{remark}
+
+\dfn{We say $d$ is a \df{greatest common divisor} of $p$ and $q$  
+iff $d$ is a common divisor of $p$ and $q$ such that 
+for every common divisor $r$ of $p$ and $q$ we have $r\le d$.}
+
+\dfn{
+Let $\h{\df{gcd}}\ p\ q$ denote the greatest common divisor of $p$ and $q$. This exists and is unique.}
+
+\dfn
+{We say that $p,\ q$ are  \df{coprime} iff  $gcd\ p\ q =1$. }
+
+\dfn
+{We say that $p,\ q$ are \df{relatively prime} iff $p,\ q$ are coprime.}
+
+\end{cnl}
+
+
+
+
+\end{document}

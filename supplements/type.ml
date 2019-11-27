@@ -136,6 +136,8 @@ and predicate_class =
   | PredWith
   | PredIsA
   | PredIs
+  | PredIsAOr
+  | PredIsOr
   | PredRightThat
   | PredRight
 

@@ -11,4 +11,4 @@ let convert_toks s =
 (* Tex2cnl__Lexer_tex.test_lex_string ();; *)
 
 
-Tex2cnl.process_doc convert_toks  "../tex/sample_sylow.tex";;
+(* Tex2cnl.process_doc convert_toks  "../tex/sample_sylow.tex";; *)

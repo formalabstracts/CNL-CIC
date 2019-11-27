@@ -1,0 +1,99 @@
+\documentclass[12pt]{article}
+\usepackage{pmmeta}
+\pmcanonicalname{FactorialPrime}
+\pmcreated{2013-03-22 16:19:19}
+\pmmodified{2019-11-24}
+\pmowner{PrimeFan}{13766}
+\pmmodifier{PrimeFan}{13766}
+\pmformalizer{chaunguyen}{}
+\pmtitle{factorial prime}
+\pmrecord{6}{38449}
+\pmprivacy{1}
+\pmauthor{PrimeFan}{13766}
+\pmtype{Definition}
+\pmcomment{trigger rebuild}
+\pmclassification{msc}{11A41}
+\pmclassification{msc}{05A10}
+\pmclassification{msc}{11B65}
+\pmdefines{factorial prime}
+\endmetadata
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{cnl}
+\usepackage{xcolor}
+%\usepackage{graphicx}
+%%%%\usepackage{xypic}
+
+%- DOCUMENT
+
+\begin{document}
+\parskip =\baselineskip
+	
+% Local Defs 
+\def\natdiv#1#2{{#1}\mathrel{|}{#2}}
+\def\factorial#1{{#1!}}
+\parindent=0pt
+	
+\begin{cnl}
+		
+\Cnlinput{../Tex2CNL/package/cnlinit}
+		
+\bigskip
+		
+%-% BEGIN
+
+\lsection{FactorialPrime}
+		
+In this section, let $d,\ m,\ p$ be integers.
+		
+\dfn{
+We say that $d$ \df{divides} $m$ iff $d\ne 0$ and there exists an integer $r$ such that $m= d\*r$.
+}
+
+\dfn{
+We say that $d$ is \df{positive} iff $d > 0$.
+}
+	
+\dfn{
+We write  $\natdiv{d}{m}$ iff $d$ divides $m$.	
+}
+
+\dfn{
+We say  $d$ is a \df{divisor} of $m$ iff $d$ divides $m$. 
+}
+
+\dfn{
+Assume that $p$ is an integer greater than $1$.  Then we say that $p$
+is a \df{prime} iff each positive divisor of $p$ is either equal to $1$ or equal to $p$.
+}
+
+\dfn{
+Assume that $n$ is a natural number.  Then we define
+$\factorial{n}\assign$
+\par$\match\ n$ with
+\begin{envMatch}
+\firstmatchitem $0$ &$\assign$& $1$
+\matchitem $m + 1$ &$\assign$& $(m+1) \* \factorial{m}$\texstop
+\end{envMatch}\cnlstop
+This exists by recursion.
+}
+
+\dfn{
+Assume that $p$ is a prime.  Then we say that $p$
+is a \df{factorial prime} iff there exists a natural number $n$ such that $p$ is equal to $\factorial {n}+ 1 $ or $p$ equal to $\factorial {n} - 1 $.
+}
+
+\begin{remark}
+The first few factorial primes are: 2, 3, 5, 7, 23, 719, 5039, 39916801, 479001599, 87178291199 (sequence A088054 in the OEIS). It is conjectured that only for $n = 3$ are both $n! - 1$ and $n! + 1$ both primes.
+
+Factorial primes have a r\^ole in an argument that 1 is not a prime number. If $n$ is a positive integer and $p$ is a prime number, $n! + p$ is never a prime for $p < n$, because obviously it will be a multiple of $p$, just as $n!$ is. But $n! + 1$, even though it certainly is a multiple of 1, can be a prime, specifically, a factorial prime. (The same is also true if we subtract instead of add).
+\end{remark}
+
+\end{cnl}
+
+
+
+
+\end{document}
