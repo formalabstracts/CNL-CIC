@@ -117,6 +117,7 @@ article : lit_a | LIT_THE {}
 and_comma : LIT_AND | COMMA {}
 lit_binder_comma : COMMA {}
 
+
 lit_defined_as : LIT_SAID LIT_TO LIT_BE
 | LIT_DEFINED LIT_AS
 | LIT_DEFINED LIT_TO LIT_BE {}
@@ -183,6 +184,19 @@ lit_def : LIT_DEF | LIT_DEFINITION {}
 lit_axiom : LIT_AXIOM | LIT_CONJECTURE | LIT_HYPOTHESIS | LIT_EQUATION | LIT_FORMULA {}
 lit_property : LIT_PROPERTY | LIT_PROPERTIES {}                                                                                                 
 lit_with_properties : LIT_WITH lit_property {}                                                                                                 
+
+lit_declare_mutual : 
+option(LIT_WE) LIT_DECLARE LIT_MUTUAL LIT_INDUCTIVE {}
+
+lit_declare_mutual_inductive_type :
+lit_declare_mutual lit_type {}
+
+lit_declare_mutual_inductive_def :
+lit_declare_mutual lit_def {}
+
+
+                                
+
 lit_theorem :
 | LIT_PROPOSITION
 | LIT_THEOREM
@@ -248,13 +262,13 @@ prim_term_controlseq : PA1d {}
  (* from type_head.controlseq_pattern, no prec *)
 prim_type_controlseq : PA2 {}
 
- (* from NOT_IMPLEMENTED. We need rules to extend these primitives. *)
+ (* from binder_def *)
 prim_lambda_binder : LAMBDA {} (* lambda term binders *)
 prim_pi_binder : PITY {} (* Pi type binders *)
 prim_binder_prop : QUANTIFIER {}  (* forall, exists, etc. *)
 
 
- (* derived from declarations of prim_identifier_type, 
+ (* derived from declarations of prim_identifier_type,  that is (type_def.identifier_type_pattern).
     structures, quotients, 
     inductive types, mutual inductive types  
 
@@ -271,6 +285,14 @@ prim_typed_name : PA6 {}
     prim_predicate_pseudoterm : PA7 {} 
   *)
 
+ (* from structure *)
+prim_field_term_accessor : PA6a {}
+
+prim_field_type_accessor : PA6b {}
+
+prim_field_prop_accessor : PA6c {}
+
+
  (* from adjective_pattern *)
 prim_adjective : PA8 {} 
 
@@ -286,13 +308,13 @@ prim_simple_adjective_multisubject : PA11 {}
  (* from function_def *)
 prim_definite_noun : PA12 {} (* functions and terms *)
 
- (* from function_def *)
+ (* from function_def identifier_term_pattern  *)
 prim_identifier_term : PA13 {} (* all identifiers that are terms *)
 
  (* from type_def *)
-prim_identifier_type : PA7 {} (* all identifiers that are terms *)
+prim_identifier_type : PA7 {} (* all identifiers that are types *)
 
- (* derived as in Forthel *)
+ (* derived from prim_definite_noun or XX as in Forthel *)
 prim_possessed_noun : PA15 {} 
 
  (* from verb_pattern *)
@@ -340,9 +362,6 @@ section_preamble : section_tag option(label) PERIOD {}
   | lit_document
   | lit_enddocument {}
 
-(* namespaces  *)
-
-namespace : NOT_IMPLEMENTED {}
 
 (* instructions - 
    See Naproche-SAD github Instr.hs. Test:Instructions  
@@ -370,13 +389,6 @@ instruction :
 (* XX issue: VAR must be included to accommodate /-s plural formation *)
   instruct_synonym : bracket(LIT_SYNONYMS
     separated_nonempty_list (instruct_sep,nonempty_list(WORD)) {}) {}
-
-synonym_statement :
-option(LIT_WE) option(LIT_INTRODUCE) LIT_SYNONYMS 
-separated_nonempty_list(instruct_sep,nonempty_list(WORD)) PERIOD {}
-
-moreover_implements : 
-LIT_MOREOVER COMMA general_type LIT_IMPLEMENTS brace_semi(field) PERIOD {}
 
 (* variables *)
 
@@ -410,24 +422,24 @@ tvar : VAR | annotated_var {()}
 
 assign_expr : ASSIGN expr {()} 
 
-record_assign :
+brace_assign :
   brace_semi(var_or_atomic (* opt_colon_type - not needed *) assign_expr {})  {()} 
 
-record_args_template : 
+brace_noassign : 
   brace_semi(var_or_atomics opt_colon_type {}) {()}
 
 app_args :  (* can be empty *)
-  option( record_assign {}) list(tightest_expr) {()}
+  option( brace_assign {}) list(tightest_expr) {()}
 
 
 (* function and binder parameters. *)
 
-args_template : option( record_args_template {}) required_args_template {()}
+args_template : option( brace_noassign {}) required_args_template {()}
 
          (* A brace_semi as the first argument to a function is
-            ambiguious: it could be either a record_args_template or a required
+            ambiguious: it could be either a brace_noassign or a required
             arg that takes the form of a make_term.  The convention is
-            that the principal interpretation is record_args_template.  But if it
+            that the principal interpretation is brace_noassign.  But if it
             contains a field name that is not an optional argument,
             then it is interpreted as a make_term. *)
 
@@ -462,7 +474,7 @@ args_template : option( record_args_template {}) required_args_template {()}
  (* unambiguous boundaries of terms needed here *)
  (* This allows too much. We should restrict further to admissible patterns. *)
 
-tightest_args : record_args_template list(tightest_arg) {()}
+tightest_args : brace_noassign list(tightest_arg) {()}
 
   tightest_arg : 
   | tightest_expr
@@ -526,8 +538,9 @@ tightest_type :
 | var_type
 | subtype
 | inductive_type
-| mutual_inductive_type
+(* moved to text_item : mutual_inductive_type *)
 | structure (* declaration *)
+| field_type 
 {()}
 
 paren_type : paren(general_type) {()} (* -> paren_expr in implementation *)
@@ -537,6 +550,8 @@ annotated_type : paren(general_type COLON ID_TYPE {}) {()}
 controlseq_type : cs_brace(prim_type_controlseq) {()}
 
 const_type : prim_identifier_type {()}
+
+field_type : tightest_term prim_field_type_accessor {}
 
 overstructure_type :
 | prim_structure app_args option(LIT_OVER over_args {}) {()}
@@ -562,7 +577,7 @@ app_type :
 binder_type : 
 | app_type 
 | prim_pi_binder tightest_args lit_binder_comma binder_type 
-{}
+{()}
 
 (** binop_type *)
  (* for product types A * B, sum types A + B, 
@@ -571,7 +586,8 @@ binder_type :
     all type operators are right assoc with the same precedence
     N.B. binder_types is tighter than binop_type, which might be non-intuitive.  *)
 binop_type : 
-| list(type_operand type_op {}) binder_type  {}
+    option( brace_noassign {})
+      list(type_operand type_op {}) binder_type  {()}
 
   type_op :
   | prim_type_op 
@@ -582,7 +598,7 @@ binop_type :
   | binder_type
   | agda_dependent_vars {} (* for Agda style dependent typing *)
 
-  agda_dependent_vars : option( record_args_template {})
+  agda_dependent_vars : 
     nonempty_list(annotated_vars) {}
 
 opentail_type :
@@ -609,7 +625,12 @@ general_type : attribute(opentail_type) {}
 colon_type :
   | COLON general_type
   | COLON prim_relation app_args
+  | COLON coerced_type 
 {}
+
+coerced_type :
+      coercion_type
+      | term {}
 
 opt_colon_type : option(colon_type) {}
 
@@ -623,12 +644,14 @@ inductive_type : LIT_INDUCTIVE identifier args_template
   opt_alt_constructor : ALT identifier args_template opt_colon_type {}
   alt_constructor : ALT identifier args_template colon_type {}
 
+(* 11/25/2019. Break mutual inductive into separate inductive types.
 mutual_inductive_type : LIT_INDUCTIVE
   comma_nonempty_list(identifier) args_template 
-  list(LIT_WITH atomic args_template colon_type
+  list(LIT_WITH identifier args_template opt_colon_type
        list(alt_constructor) {}) 
   LIT_END
   {()}
+ *)
 
 (** structure *)
 
@@ -647,16 +670,16 @@ structure : option(LIT_NOTATIONAL) LIT_STRUCTURE
   (* If the field identifier is a var, satisfaction ignores its name.
    If the field identifier is a prim_structure, it becomes embedded. 
    *)
+  extended_field : 
+  | field
+  | satisfying_pred {}
 
   field : field_prefix field_identifier option(assign_expr) {}
+
   field_identifier : 
   | prim_structure
   | var_or_atomic opt_colon_sort
   | var_or_atomic opt_colon_type {}
-
-  extended_field : 
-  | field
-  | satisfying_pred {}
 
   field_prefix : option(lit_a) 
                    option(paren(comma_nonempty_list(lit_field_key) {})) {}
@@ -685,11 +708,12 @@ proof_expr :
 
 
 (** tightest terms *)
+tightest_post_term :
+ | APPLYSUB tightest_terms
+ | prim_field_term_accessor (* FIELD_ACCESSOR *) {}
 
 tightest_term : 
-| tightest_prefix
-| tightest_term FIELD_ACCESSOR
-| tightest_term APPLYSUB tightest_terms
+ | tightest_prefix list(tightest_post_term)
 {()}
 
   tightest_terms : paren(nonempty_list(tightest_term)) {()}
@@ -723,7 +747,7 @@ delimited_term :
 
 annotated_term : paren(term colon_type {}) {()}
 
-make_term : LIT_MAKE brace_semi(var_or_atomic_or_blank opt_colon_type
+make_term : LIT_MAKE option(tightest_type) brace_semi(var_or_atomic_or_blank opt_colon_type
   option(assign_expr {}) {}) {()}
 
   var_or_atomic_or_blank : 
@@ -793,15 +817,14 @@ let_term : LIT_LET tightest_prefix ASSIGN plain_term LIT_IN opentail_term {()}
 if_then_else_term : LIT_IF prop LIT_THEN plain_term LIT_ELSE opentail_term {()}
 
 where_term : opentail_term option(where_suffix) {()}
+ (* where (Haskell style) *)
+  where_suffix : LIT_WHERE brace_semi(   (* deprecated option(LIT_INFERRING)  *)
+                 VAR opt_colon_type option(assign_expr) {}) {}
 
 definite_term : 
 | where_term
 | option(LIT_THE) prim_definite_noun {}
     (* | paren(option(LIT_THE) prim_definite_noun {}) {} subsumed by paren(where_term) tightest_term *)
-
- (* where (Haskell style) *)
-  where_suffix : LIT_WHERE brace_semi(   (* deprecated option(LIT_INFERRING)  *)
-                 VAR opt_colon_type option(assign_expr) {}) {}
 
 term : 
 | option(prim_classifier) definite_term 
@@ -835,7 +858,7 @@ plain_term : plain(term) {}
 attribute(X) : list(left_attribute) X option(right_attribute) {}
 
   left_attribute : 
-  | prim_simple_adjective 
+  | option(LIT_NON) prim_simple_adjective 
   | prim_simple_adjective_multisubject {}
 
   right_attribute : 
@@ -843,7 +866,8 @@ attribute(X) : list(left_attribute) X option(right_attribute) {}
   | LIT_THAT and_comma_nonempty_list(does_pred) {}
   | LIT_SUCH LIT_THAT statement {}
 
-(* XX something is wrong here.  We don't want attributes around tvar?? *)
+(* XX something is wrong here.  We don't want attributes around tvar?? 
+   Doch! n that is positive.  G with finite order. *)
 attribute_pseudoterm : attribute(typed_name_without_attribute) {}
   typed_name_without_attribute : 
   | prim_typed_name
@@ -943,11 +967,14 @@ tightest_prop :
 | identifier_prop 
 | VAR
 | annotated_prop
+| field_prop 
 {()}
 
 identifier_prop : prim_relation {()} (* *)
 
 annotated_prop : paren(prop COLON ID_PROP {}) {()}
+
+field_prop : tightest_term prim_field_prop_accessor {}
 
 app_prop : tightest_prop app_args {()} 
 
@@ -971,64 +998,64 @@ does_pred : option(lit_do) option(LIT_NOT) prim_verb {}
 | option(lit_do) option(LIT_NOT) prim_verb_multisubject
 | lit_has has_pred
 | lit_is and_comma_nonempty_list(is_pred)
-| lit_is and_comma_nonempty_list(is_aPred {}) {}
+| lit_is and_comma_nonempty_list(is_aPred {}) {()}
 
 is_pred : option(LIT_NOT) prim_adjective {}
 | option(LIT_NOT) option(LIT_PAIRWISE) prim_adjective_multisubject
-| lit_with has_pred {}
+| lit_with has_pred {()}
 
 is_aPred : option(LIT_NOT) option(lit_a) general_type {}
-| option(LIT_NOT) definite_term {}
+| option(LIT_NOT) definite_term {()}
 
 has_pred : 
-| and_comma_nonempty_list(article possessed_noun {}) {}
-| LIT_NO possessed_noun {}
+| and_comma_nonempty_list(article possessed_noun {})
+| LIT_NO possessed_noun {()}
 
-  possessed_noun : attribute(prim_possessed_noun) {}
+  possessed_noun : attribute(prim_possessed_noun) {()}
 
 
 
 (** statement *)
 
-statement : head_statement | chain_statement {}
+statement : head_statement | chain_statement {()}
 
   head_statement : 
   | LIT_FOR and_comma_nonempty_list(any_name {}) COMMA statement {}
   | LIT_IF statement COMMA LIT_THEN statement (* != if-then-else *)
-  | lit_its_wrong statement {}
+  | lit_its_wrong statement {()}
 
   chain_statement : 
   | and_or_chain
   | paren(and_or_chain) LIT_IFF statement 
-  {}
+  {()}
 
   comma_and : COMMA LIT_AND {}
   comma_or : COMMA LIT_OR {}
 
-  and_or_chain : and_chain | or_chain | primary_statement {}
+  and_or_chain : and_chain | or_chain | primary_statement {()}
   and_chain : separated_nonempty_list(comma_and, primary_statement {}) 
-    COMMA LIT_AND head_primary {}
+    COMMA LIT_AND head_primary {()}
   or_chain : separated_nonempty_list(comma_or, primary_statement {}) 
-    COMMA LIT_OR head_primary {}
-  head_primary : head_statement | primary_statement {}
+    COMMA LIT_OR head_primary {()}
+  head_primary : head_statement | primary_statement {()}
 
 (** primary statement *)
 primary_statement :
   | simple_statement {}
   | there_is_statement
   | filler symbol_statement
-  | filler const_statement {}
+  | filler const_statement {()}
 
   filler : PL2a option(phrase_list_filler) {}
 
-  simple_statement : terms separated_nonempty_list(LIT_AND, does_pred) {}
+  simple_statement : terms separated_nonempty_list(LIT_AND, does_pred) {()}
 
   there_is_statement : LIT_THERE lit_exist pseudoterms {}
-  | LIT_THERE lit_exist LIT_NO pseudoterm {}
+  | LIT_THERE lit_exist LIT_NO pseudoterm {()}
 
   const_statement : option(LIT_THE) LIT_THESIS {}
   | option(LIT_THE) LIT_CONTRARY
-  | lit_a LIT_CONTRADICTION {}
+  | lit_a LIT_CONTRADICTION {()}
 
   symbol_statement :
   | LIT_FORALL predicate_pseudoterm lit_binder_comma
@@ -1038,30 +1065,62 @@ primary_statement :
   | LIT_NOT symbol_statement
   | paren(statement)
   | prop
-  {}
+  {()}
 
 
 
 (* text *)
 text : list(text_item) {}
-  text_item : 
-    | section_preamble
-    | instruction
-    | declaration
-    | misc_statement
-    | macro
-    | moreover_implements
-    | namespace {}
+
+text_item : 
+ | section_preamble
+ | instruction
+ | declaration
+ | macro
+ | misc_text_item 
+     {}
+
+misc_text_item : 
+ | synonym_item 
+ | mutual_inductive_type_item 
+ | mutual_inductive_def_item 
+ | moreover_implements
+ | namespace
+     {}
+
+synonym_item :
+     option(LIT_WE) option(LIT_INTRODUCE) LIT_SYNONYMS 
+       separated_nonempty_list(instruct_sep,nonempty_list(WORD)) PERIOD {}
+
+mutual_inductive_type_item :
+       lit_declare_mutual_inductive_type
+         comma_nonempty_list(WORD) 
+         option(lit_param args_template {})
+         {}
+
+mutual_inductive_def_item :
+       lit_declare_mutual_inductive_def  
+         comma_nonempty_list(WORD) 
+         option(lit_param args_template {})
+         {}
+
+moreover_implements : 
+         LIT_MOREOVER COMMA general_type LIT_IMPLEMENTS brace_semi(field) PERIOD {}
+
+namespace : NOT_IMPLEMENTED {}
+
+fiat : NOT_IMPLEMENTED {}
 
 
-misc_statement : synonym_statement {}
 
 (* declaration test:declaration *)
-declaration : axiom | definition | theorem  {}
+declaration : axiom | definition | theorem | fiat {}
 
 (** axiom *)
 axiom : axiom_preamble list(assumption) 
-  then_prefix statement PERIOD {}
+  then_prefix statement PERIOD 
+  list(LIT_MOREOVER statement PERIOD {})
+  {}
 
   axiom_preamble : lit_axiom option(label) PERIOD {}
 
@@ -1086,6 +1145,7 @@ affirm_proof :
 {}
  
   statement_proof : then_prefix statement by_ref PERIOD
+    list(LIT_MOREOVER statement by_ref PERIOD {})
     option(proof_script {}) {}
 
   goal_proof : goal_prefix statement by_ref PERIOD 
@@ -1127,7 +1187,8 @@ proof_script : proof_preamble option(list(canned_prefix proof_body {})
 
 (** This exists and is well-defined. *)
 this_exists : LIT_THIS
-  and_comma_nonempty_list(this_directive_pred) PERIOD {}
+  and_comma_nonempty_list(this_directive_pred) PERIOD {()}
+
   this_directive_pred : LIT_IS
     and_comma_nonempty_list(this_directive_adjective)
     | this_directive_verb {}
@@ -1157,7 +1218,7 @@ definition_statement :
 | type_def
 | function_def
 | predicate_def
-{}
+{()}
 
   copula : lit_is option(lit_defined_as) | lit_denote {}
   function_copula : copula | opt_colon_type ASSIGN {}
@@ -1245,7 +1306,7 @@ definition_statement :
 
 (* macro *)
 
-macro : option(insection) macro_bodies {}
+macro : option(insection) macro_bodies {()}
 
   insection : LIT_IN LIT_THIS lit_document {}
 
@@ -1257,6 +1318,7 @@ macro : option(insection) macro_bodies {}
   | function_def  
   | predicate_def  
   | let_annotation 
+  | binder_def 
   | we_record_def
   | enter_namespace
   {}
@@ -1283,6 +1345,10 @@ macro : option(insection) macro_bodies {}
   we_record_def : lit_we_record comma_nonempty_list(plain_term) {}
 
   enter_namespace : LIT_WE LIT_ENTER LIT_THE LIT_NAMESPACE identifier {}                    
+
+  binder_def : LIT_LET LIT_THE LIT_BINDER symbol paren(VAR opt_colon_type {})
+                 lit_denote plain_term {}
+
 
  (* subsumed by type_def, function_def, etc. 
 

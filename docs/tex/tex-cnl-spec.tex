@@ -103,6 +103,8 @@ identifiers with ! as in \verb'!identifier_with_underscore!' .
 Subscripts written without braces are interpreted as part of the variable
 or identifier name.
 
+
+
 Subscripts written with braces are interpreted in CNL as function applications.
 
 Thus, \verb!x_1! is a variable and  \verb!x_{1}!  is the function $x$ applied to $1$.
@@ -112,6 +114,35 @@ the $i$ and the $j$, so that this is equivalent to \verb!a i j!.   To activate f
 in the subscript, wrap the subscripts in an extra layer of parentheses \verb!a_{(f x)}! or
 \verb!a_{\parenI{f x}}!.  The \verb!\parenI! control sequence is invisible in the pdf display,
 but expands to parentheses in the CNL.
+
+\subsection{Words}
+
+Words are generally formed by consecutive alphabetic characters.
+
+When separate words are joined by \verb!\-!, \verb!\~!, or \verb!\'! they appear
+as a dash, space, and apostrophe in the pdf, 
+but they are removed in the CNL file.
+For example, 
+\verb!Riemann\-Roch! becomes \verb!RiemannRoch! in the CNL,
+\verb!Wiener\'s\~theorem! becomes \verb!Wienerstheorem!,
+\verb!totally\~bounded! becomes \verb!totallybounded!.
+
+Alphabetic phrases enclosed in \verb!{~  }! become a single word in the CNL.
+For example,
+\verb!{~generalized Bernoulli shift}! becomes \verb!generalizedBernoullishift! in 
+CNL, and
+\verb!{~Sturm\-Liouville operators}! becomes \verb!SturmLiouvilleoperators!.
+
+The sequences \verb!\~! and \verb!\'! are no longer available as accents.
+
+Sometimes, one must choose whether to treat an adjective+noun as a
+term with a left attribute, as in \verb!commutative ring! or as a
+multi-word noun, as in \verb!normed\~ring!.  In this case, commutative
+is made into an attribute because it is a predicate on ring. However,
+`normed` adds data (the norm) to the ring, and it is treated as a
+multi-word noun.
+
+
 
 \subsubsection{labels}
 
@@ -294,6 +325,8 @@ stripped of many of the foreign accents.
 \item \'etale - etale
 \end{itemize}
 
+The \verb!\~! has been redefined to be a space (that disappears in the CNL file).
+
 \subsubsection{control sequences as variables}
 
 We wish for it to be possible to use some control sequences (and more general token lists)
@@ -420,6 +453,108 @@ and mutual inductive type declarations, structures, etc.
 These custom itemize environments are translated to the
 appropriate language constructs in the CNL image.
 
+\section{naming conventions for macros}
+
+The successful implementation of the the \TeX\ to CNL translation
+will rely on a very large number of macros.  In an ordinary \TeX\ document,
+most macro names are largely invisible to everyone except the author.
+However, in our system,
+macro names become part of a CNL document and part of
+the formal specification of a mathematical definition.  Therefore, increased
+care is called for in choosing macro names.
+
+
+We suggest some naming conventions.
+We recommend
+\href{https://hilton.org.uk/presentations/naming-guidelines}{naming-conventions}.
+Several of our rules have been adapted directly from that source.
+
+
+Follow \LaTeX\ 
+\href{https://tex.stackexchange.com/questions/48195/macro-naming-best-practice}{capitalization conventions}.  Most document macros are all lower case.
+(Common exceptions are upper case alphabets \verb!\Delta! \verb!\AA! (\AA), 
+proper names,  
+and variants of a lower case macro
+such as \verb!\rightarrow! and \verb!\Rightarrow!.)
+Package interface commands are CamelCase, and internal commands contain
+the symbol \verb!@!.  
+We will be tolerant of allowing camelCase (starting with lowercase) in 
+document-level macros.  When using camelCase, upper-case characters
+should always mark the beginning of a word in the name.
+
+Where \LaTeX\ has established a precedent for naming macros, follow that.
+
+The order of words inside a name should follow the order of hierarchical identifiers for
+namespaces.  The real absolute value would probably be found in the real numbers namespace
+and the absolute value on integers would probably be found in the integer namespace.
+As hierarchical identifiers for namespaces, 
+we would have \verb!real.abs! and \verb!int.abs!.  
+Thus, \verb!\realabs! and \verb!\intabs! should be the macro names
+(rather than say, \verb!\absreal!). 
+
+Complete correctly-spelled words are better than abbreviations.  
+Abbreviations should be dictionary-accepted abbreviations, or widely recognized
+math abbreviations (such as int for integer, nat for natural number, bool for
+boolean).  
+
+It is expected that editor tools for
+word completion will be used, and the user has a better chance of guessing
+part of the macro name if the full word is used.  Distinct meanings call for
+distinct names.  The names should reflect the semantics.
+
+
+
+
+\begin{tabular}{l l l}
+ \verb!\QuaternionRing! for ${\mathbb H}$ \\
+ \verb!\Diracdelta! for $\delta$ \\
+ \verb!\Kroneckerdelta! for $\delta$ \\
+ \verb!\Feigenbaumdelta! for $\delta$
+\end{tabular}
+
+
+
+Following entropy, frequently
+used macros may have shortened names.  Follow Knuth's \TeX\ style in this regard.
+ 
+\begin{tabular}{ l l l }
+common & \verb!\le! \verb!\it! \verb!\ne! \verb!\min! \\
+uncommon & \verb!\displaywidowpenalty! \verb!\finalhyphendemerits!
+\end{tabular}
+
+Limit name length to at most 20 characters, and limit the word count in the
+name to 4.  Generally avoid plural nouns in names. 
+
+
+Name qualifiers should be suffixes (not prefixes). For example,
+\verb!\sumBig! and \verb!\sumSmall!
+
+Do not redefine existing macros.
+
+Make the macro vocabulary large and mathematically precise.
+Let entropy, the theory of error correcting codes, and searchability 
+be guiding principles in macro naming. 
+That is, macro names should be easy to find by search tools, and it
+should be difficult to mistake one macro for another.  A mathematician
+who knows the mathematical name of something should be able to
+find the relevant macro by keyword search.
+
+Different macros should differ in more than one or two letters.
+\LaTeX\ violates this in places, such as \verb!\ldots! and \verb!\cdots!.
+But avoid creating further examples like this.
+
+Different macros should differ in more than word order.
+We make an exception when the ordering aligns with the semantics.
+
+\begin{tabular}{lll}
+ incorrect: &\verb!\sumfromto{a}{b}{f}!\\ &\verb!\sumtofrom{a}{b}{f}!\\
+ permissible: &\verb!\realintervalopenclosed{a}{b}! for $(a,b]$\\
+    &\verb!\realintervalclosedopen{a}{b}! for $[a,b)$.
+\end{tabular} 
+
+Users can always define their own abbreviated macro names for local use.
+Those will not become part of the shared libraries.
+
 
 \section{outstanding issues}
 
@@ -479,11 +614,14 @@ For example, in \eqref{W}, we would write
 
 
 
-\section{Referenes}
+\section{References}
 
 \href{https://en.wikibooks.org/wiki/LaTeX/Mathematics}{Wikibook LaTeX Mathematics}
 
+\href{https://hilton.org.uk/presentations/naming-guidelines}{naming-conventions}
 
+\href{https://www.tug.org/TUGboat/tb32-3/tb102verna.pdf}%
+{Towards \LaTeX\ coding standards}
 
 
 \end{document}

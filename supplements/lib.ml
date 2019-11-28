@@ -61,20 +61,90 @@ let rec chop_list n l =
   try let m,l' = chop_list (n-1) (List.tl l) in (List.hd l)::m,l'
   with Failure _ -> failwith "chop_list";;
 
-let _ = chop_list 3 [5;6;7;8;9;10;11;12];;
+let _ = chop_list 3 [5;6;7;8;9;10;11;12];; (* gives [5;6;7], [8;9;10;11;12] *)
 
 (* end HOL Light *)
 
-let pad k x ls =
-    if (k <= List.length ls) then snd(chop_list k ls)
-    else (List.init (k - List.length ls) (fun _ -> x) @ ls)
+let pad k x ls =  (* output has length k. Adjust length at head.  *)
+  let r = List.length ls - k in 
+  if (r >= 0) then snd(chop_list r ls)
+    else (List.init (-r) (fun _ -> x) @ ls);;
 
-let rec cutat p =
+let _ = pad 1 'x' ['t';'a';'b';'c';'d'];;  (* ['d'] *)
+
+let _ = pad 3 'x' ['t'] (* ['x'; 'x'; 't'] *)
+
+let safetail =
+  function
+  | [] -> []
+  | _ :: tl -> tl
+
+let take k ls =  if k <= 0 then [] else fst(chop_list k ls) (* retain head part *)
+
+let rec cutat p =  (* head of list satisfies p *)
   function
   | [] -> failwith "cutat not found "
   | t :: ts as ls -> if p t then ls else cutat p ts 
 
-let rec take k =
+let list_opt =
+  function
+  | None -> []
+  | Some t -> [t]
+
+let opt_list = 
   function 
-  | t :: ts -> if (k <=0) then [] else t :: take (k - 1) ts
-  | _ -> []
+  | [] -> None
+  | t :: _ -> Some t
+
+let (-|) f g x = f(g(x))
+
+let pair x y = (x,y)
+
+let discard _ = ();;
+
+let id x = x
+
+let omap f =
+function
+| Some x -> Some (f x)
+| None -> None
+
+let diag2 f (x,y) = (f x,f y)
+
+let diag3 f (x,y,z) = (f x,f y,f z)
+
+let fun2 (f,g) (x,y) = (f x,g y)
+
+let fun3 (f1,f2,f3) (x1,x2,x3) = (f1 x1,f2 x2,f3 x3)
+
+let fun4 (f1,f2,f3,f4) (x1,x2,x3,x4) = (f1 x1,f2 x2,f3 x3,f4 x4)
+
+let fun5 (f1,f2,f3,f4,f5) (x1,x2,x3,x4,x5) = (f1 x1,f2 x2,f3 x3,f4 x4,f5 x5)
+
+let join2 (x,y) = (x @ y)
+
+let join3 (x,y,z) = (x @ y @ z)
+
+let join4 (x1,x2,x3,x4) = (x1 @ x2 @ x3 @ x4)
+
+let join5 (x1,x2,x3,x4,x5) = (x1 @ x2 @ x3 @ x4 @ x5)
+
+let jdiag2 f = join2 -| diag2 f
+
+let jdiag3 f = join3 -| diag3 f
+
+let jfun2 f = join2 -| fun2 f
+
+let jfun3 f = join3 -| fun3 f
+
+let jfun4 f = join4 -| fun4 f
+
+let jfun5 f = join5 -| fun5 f
+
+
+
+
+
+
+
+

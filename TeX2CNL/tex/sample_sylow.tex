@@ -1,31 +1,7 @@
-
 \documentclass[12pt]{article}
-
+\usepackage{cnl}
 
 %- PACKAGES
-\usepackage{url}
-\usepackage{amsmath}
-\usepackage{amsthm}
-\usepackage{amssymb}
-\usepackage{xcolor}
-\usepackage{currfile}
-\usepackage{fancyvrb}
-\usepackage{xparse} % needed for \ellipsis control sequence in cnl-style
-\usepackage{enumitem} % for topsep=0pt
-\usepackage{colonequals}
-
-% for underscores https://texfaq.org/FAQ-underscore
-\usepackage{lmodern}
-\usepackage[T1]{fontenc}
-\usepackage{textcomp}
-\usepackage{lineno}
-
-\usepackage[
-bookmarksopen,
-bookmarksdepth=2,
-%breaklinks=true
-colorlinks=true,
-urlcolor=blue]{hyperref}
 
 % GLOBAL FORMATTING
 %\linenumbers
@@ -33,10 +9,24 @@ urlcolor=blue]{hyperref}
 \parskip=0.5\baselineskip
 \raggedbottom
 
+% LOCAL DEFS FOR SYLOWS THEOREMS
+
+\def\natdiv#1#2{{#1}\mathrel{|}{#2}}
+\def\natpow#1#2{{#1}^{#2}}
+\def\conj#1#2{{#1}{#2}{#1}^{-1}}
+\def\mult#1#2{m}
+\def\Syl#1#2{\operatorname{Syl}_{#1}(#2)}
+\def\SylN#1#2{n_{#1}(#2)}
+\def\Nz#1#2{|N(#1,#2)|}
+\def\realabs#1{|#1|}
+\def\grouporder#1{|#1|}
+
+
+
 % TITLE AUTHOR DATE
 \title{Sample Controlled Natural Language text,\\ including real numbers and Sylows theorems}
 
-\date{November 1, 2019}
+\date{November 14, 2019}
 \author{Thomas Hales}
 
 %- THEOREMS
@@ -57,364 +47,15 @@ urlcolor=blue]{hyperref}
 \newpage
 
 
-%\renewcommand\labelitemi{\normalfont|}}
-
-
-%% ELLIPSIS, 
-% based on Luis Berlioz's query
-% https://tex.stackexchange.com/questions/503731/how-to-define-a-macro-that-takes-the-definition-of-a-macro-as-an-argument
-% \usepackage{amsmath}
-% \usepackage{xparse}
-
-\ExplSyntaxOn
-\NewDocumentCommand{\ellipsis}{mmmm}
- {% #1 = main term
-  % #2 = first index
-  % #3 = last index
-  % #4 = operation
-  \group_begin:
-  \lucas_ellipsis:nnnn { #1 } { #2 } { #3 } { #4 }
-  \group_end:
- }
-\cs_new:Nn \lucas_ellipsis:nnnn
- {
-  \cs_set:Nn \__lucas_ellipsis_term:n { #1 }
-  \__lucas_ellipsis_term:n { #2 }
-  #4 \dots #4
-  \__lucas_ellipsis_term:n { #3 }
- }
-\ExplSyntaxOff
-
-%\begin{document}
-
-%$\ellipsis{x^{#1}}{0}{5}{+}$
-
-%$\ellipsis{x_{#1}}{0}{5}{+}$
-
-%$\ellipsis{(x_{#1}+y_{#1}i)}{1}{n}{}$
-
-%\end{document}
-%
-
-%% SUSPEND itemize
-% https://tex.stackexchange.com/questions/135726/intertext-like-command-in-enumerate-environment
-
-
-%% CNL CONTROL SEQUENCES
-
-\def\ignoreOptionAndCS[#1]#2{}
-
-\def\onearg#1{(onearg:#1)} % for debugging.
-
-\ignoreOptionAndCS[3]\onearg
-
-
-\def\ignoreOne#1{}
-
-%\ignoreOne\onearg C
-
-\def\ignoreOptionOrCS{%
-\futurelet\nextToken\chooseBranch}
-
-
-\def\chooseBranch{%
-\let\next=\relax
-\ifx\nextToken [%
- \let\next=\ignoreOptionAndCS%
-\else%
- \let\next=\ignoreOne%
-\fi%
-\next%
-}
-\ignoreOne{]}
-
-\def\ignoreOptionAndCSS[#1]#2#3{}
-\def\ignoreTwo#1#2{}
-\def\ignoreOptionOrCSS{%
-\futurelet\nextToken\chooseBranchTwo%
-}
-\def\chooseBranchTwo{%
-\let\next=\relax
-\ifx\nextToken [%
- \let\next=\ignoreOptionAndCSS%
-\else%
- \let\next=\ignoreTwo%
-\fi%
-\next%
-}
-
-\let\CnlExpand=\ignoreOptionOrCS
-\let\CnlNoExpand=\ignoreOptionOrCS
-\let\CnlDelete=\ignoreOptionOrCS
-\let\CnlCustom=\ignoreOptionOrCSS
-\let\CnlDef=\ignoreOptionOrCSS
-\let\CnlError=\ignoreOptionOrCS
-\def\CnlEnvirDelete#1{}
-
-
-%% ENVIRONMENTS
-
-\newenvironment{cnl}{\centerline{\bf CNL text starts here.}}
-{\centerline{\bf CNL text ends here.}}
-% \leavevmode\par is to make remark work 
-% when it is the first item in a subsection.
-
-\newenvironment{remark}%{}{} %temp debug
-{\leavevmode\par\begin{tabular}{|p{13cm}}\parskip=\baselineskip{\bf Remark.}}
-{\end{tabular}}
-
-\newenvironment{envMatch}%
-               {\par\begin{tabular}{@{\quad\normalfont| }lll}}%
-               {\end{tabular}\par}
-
-\newenvironment{structure}%
-{\begin{itemize}[topsep=0pt]}
-{\end{itemize}}
-
-\newcommand{\interitem}[1]{\end{itemize}#1\begin{itemize}[topsep=0pt]}
-
-
-\newenvironment{make}%                             
-{\begin{itemize}[topsep=0pt]}
-{\end{itemize}}
-
-%\newenvironment{format}%
-%{\begin{align*}}{\end{align*}}
-
-% ENVIRONMENT ITEMS
-\renewcommand\labelitemi{--}
-\newcommand{\matchitem}{\\}
-\newcommand{\firstmatchitem}{}
-\newcommand{\firstitem}{\item}
-
-% LABELS
-\def\lsection#1{\section{#1}\label{#1}}
-\def\lsubsection#1{\subsection{#1}\label{#1}}
-\def\lsubsubsection#1{\subsubsection{#1}\label{#1}}
-\def\deflabel#1{\begin{definition}[#1]\label{#1}}
-\def\thmlabel#1{\begin{theorem}[#1]\label{#1}}
-\def\namelabel#1{[#1]\label{#1}}
-
-% SPECIALS
-\newcommand{\var}[1]{#1}
-\newcommand{\id}[1]{#1}
-\newcommand{\prefix}[1]{}
-\newcommand{\app}[1]{#1}
-\newcommand{\CnlList}[1]{#1} % was list
-\newcommand{\parenI}[1]{#1}
-\newcommand{\df}[1]{\text{\bf #1}}
-\newcommand{\h}[1]{\text{\color{red} #1}}
-\newcommand{\Mid}{\mathrel{\|}}
-\newcommand{\ignore}[1]{}
-\newcommand{\parenthetical}[1]{(#1)}
-\newcommand{\funmapsto}[2]{#1\mapsto #2}
-\newcommand{\funalign}{}
-\newcommand{\setcomp}[2]{\{#1 \mid #2\}}
-\newcommand{\setenum}[1]{\{#1\}}
-\newcommand{\wherearg}[1]{\where\ $\{#1\}$}
-\newcommand{\optarg}[1]{\{#1\}}
-\newcommand{\texstop}{.}
-\newcommand{\texcomma}{,}
-\newcommand{\cnlstop}{}
-\newcommand{\plural}{/-}
-\newcommand\caseif[2]{#1 & \ifcond\ #2}
-\newcommand\caseotherwise[1]{#1&\otherwise}
-\newcommand\onlyTeX[1]{#1}
-
-% SYMBOLS
-\newcommand{\join}{\lor}
-\newcommand{\blank}{\h{\_}}
-\renewcommand{\qed}{\ensuremath{\square}}
-\newcommand{\inv}[1]{{#1}^{-1}}
-\newcommand{\nullbrack}{[]}
-\renewcommand{\*}{\,}
-\renewcommand{\iff}{\leftrightarrow}
-\newcommand{\Prop}{\text{\tt Prop}}
-\newcommand{\Type}{\text{\tt Type}}
-\newcommand{\Bool}{\text{\tt Bool}}
-\newcommand{\assign}{\colonequals} % {colonequals}
-\newcommand{\cons}{\mathrel{\coloncolon}} % {colonequals}
-\newcommand{\Nat}{\ensuremath{{\mathbb N}}}
-\newcommand{\Real}{\ensuremath{{\mathbb R}}}
-
-% KEYWORDS
-\newcommand{\keyword}[1]{{\text{\bf{#1}}}}
-\newcommand{\Make}{\keyword{make}}
-\newcommand{\fun}{\keyword{fun}}
-\newcommand{\match}{\keyword{match}}
-\newcommand{\ifcond}{\keyword{if}}
-\newcommand{\thencond}{\keyword{then}}
-\newcommand{\elsecond}{\keyword{else}}
-\newcommand{\otherwise}{\keyword{otherwise}}
-\newcommand{\function}{\keyword{function}}
-\newcommand{\quot}{\keyword{quot}}
-\newcommand{\etc}{\keyword{etc}}
-\newcommand{\where}{\keyword{where}}
-
-% ACCENTS
-% Use these versions to fuse with variable name in CNL image.
-% \mathcheck{c} --> V__c_mathcheck
-% \check{c} --> \check{c} (function application)
-\newcommand{\mathhat}{\hat}
-\newcommand{\mathwidehat}{\widehat}
-\newcommand{\mathcheck}{\check}
-\newcommand{\mathtilde}{\tilde}
-\newcommand{\mathwidetilde}{\widetilde}
-\newcommand{\mathacute}{\acute}
-\newcommand{\mathgrave}{\grave}
-\newcommand{\mathdot}{\dot}
-\newcommand{\mathddot}{\ddot}
-\newcommand{\mathbreve}{\breve}
-\newcommand{\mathbar}{\bar}
-\newcommand{\mathvec}{\vec}
-
-%\renewcommand{\_}{\textunderscore}
-%\newcommand{\comment}[1]{\%- \nobreak{#1}}
-%\renewcommand{\~}{\ }
-%\newcommand{\Bool}{\ensuremath{{\mathbb {B}}}}
-%\newcommand{\cons}{\mathrel{{\bf :\hskip-1.1pt:}}}
-%\newcommand{\fld}{.} %use \h{. }
-%\newcommand{\assign}{\mathrel{:=}} %{\mathrel{:\equiv}}
-%\newcommand{\caseif}{{\bf if}}
-%\newcommand{\caseotherwise{{\bf otherwise}}
-
-% Local Defs for Sylows Theorems
-\def\natdiv#1#2{{#1}\mathrel{|}{#2}}
-\def\natpow#1#2{{#1}^{#2}}
-\def\conj#1#2{{#1}{#2}{#1}^{-1}}
-\def\mult#1#2{m}
-\def\Syl#1#2{\operatorname{Syl}_{#1}(#2)}
-\def\SylN#1#2{n_{#1}(#2)}
-\def\Nz#1#2{|N(#1,#2)|}
-\def\realabs#1{|#1|}
-\def\grouporder#1{|#1|}
 
 
 \begin{cnl}
 
+\Cnlinput{package/cnlinit}
 
-%% We start with some that will eventually be moved to a standard library.
-
-\CnlCustom[1]\parenI{ (#1) }
-\CnlCustom\*{*}
-\CnlCustom[1]\lsection{Section \concat{}{#1} .}
-\CnlCustom[1]\lsubsection{Subsection \concat{}{#1} .}
-\CnlCustom[1]\lsubsubsection{Subsubsection \concat{}{#1} .}
-\CnlCustom[1]\deflabel{\begin{definition}\label{#1}}
-\CnlCustom[1]\df{ #1 }
-\CnlCustom[1]\h{ #1 }
-\CnlCustom\where{where}
-\CnlCustom\ifcond{if}
-\CnlCustom\otherwise{true}
-\CnlCustom\elsecond{else}
-\CnlCustom\where{where}
-\CnlCustom\assign{ \concat{}{:=} }
-\CnlCustom\cons{\concat{}{::}} 
-\CnlCustom\plural{\concat{}{/-}}
-\CnlCustom\wherearg{where}
-\CnlCustom\fun{fun}
-\CnlCustom[2]\funmapsto{(fun #1 \assign #2)}
-%\funalign{A}&{\to}{B}\\{a}{\mapsto}{b}
-\CnlCustom[6]\funalign{(fun (#4 : #1) \assign (#6 : #3))}
-\CnlCustom\Prop{Prop}
-\CnlCustom\Type{Type}
-\CnlCustom\Bool{Bool}
-\CnlCustom\iff{iff}
-\CnlCustom\optarg{}
-\CnlCustom\match{match}
-
-
-
-\CnlCustom\function{function}
-\CnlCustom\Make{make}
-\CnlCustom\etc{\_}
-\CnlCustom\Nat{Nat}
-\CnlCustom\Real{Real}
-\CnlCustom\quot{quot}
+%- Place user Customizations here.
 \CnlCustom\alpha{V--alpha}
 \CnlCustom\beta{V--beta}
-\CnlCustom\prefix{\concat}
-\CnlCustom\cnlstop{.}
-%\CnlCustom\nullbrack{\concat{}{[]}}
-\CnlCustom\matchitem{\alt}
-\CnlCustom\firstmatchitem{\alt}
-\CnlCustom[2]\caseif{#2 \assign #1}
-\CnlCustom[1]\caseotherwise{true \assign #1}
-\CnlCustom\rightarrow{\imply}
-%\CnlNoExpand[1]\section
-
-
-% Prohibited control sequences. 
-% That is, they should remain outside the cnl environment.
-% We should list many TeX primitive control sequences here.
-
-% CNLERROR
-\CnlError\if
-\CnlError\else
-\CnlError\fi
-\CnlError\let
-\CnlError\futurelet
-\CnlError\afterassignment
-\CnlError\usepackage
-% etc. 
-
-% CNLDELETE
-\CnlDelete\expandafter
-\CnlDelete[1]\interitem
-\CnlDelete\texstop
-\CnlDelete[1]\onlyTeX
-\CnlDelete[1]\phantom
-\CnlDelete\firstitem
-\CnlDelete\texstop
-\CnlDelete\texcomma
-% math modes and space
-\CnlDelete\ensuremath
-\CnlDelete\text
-\CnlDelete\thinmuskip
-\CnlDelete\medmuskip
-\CnlDelete\thickmuskip
-\CnlDelete\quad
-\CnlDelete\qquad
-\CnlDelete\,
-\CnlDelete\:
-\CnlDelete\;
-\CnlDelete\!
-\CnlDelete\ %space
-\CnlDelete\enspace
-\CnlDelete[1]\hspace
-\CnlDelete\hfil
-\CnlDelete\hfill
-\CnlDelete\thinspace
-\CnlDelete\left
-\CnlDelete\right
-\CnlDelete\big
-\CnlDelete\Big
-\CnlDelete\bigg
-\CnlDelete\Bigg
-\CnlDelete\allowdisplaybreaks
-%other  spacing
-\CnlDelete\noindent
-\CnlDelete\indent
-\CnlDelete[1]\vspace
-\CnlDelete\null
-\CnlDelete\break
-\CnlDelete\newline
-\CnlDelete\newpage
-\CnlDelete\vfil
-\CnlDelete\vfill
-\CnlDelete\smallskip
-\CnlDelete\medskip
-\CnlDelete\bigskip
-\CnlDelete[2]\rule
-\CnlDelete[1]\parenthetical
-
-%\CnlDelete\par
-
-\CnlEnvirDelete{remark}
-\CnlEnvirDelete{summary}
-\CnlEnvirDelete{tikzpicture}
-\CnlEnvirDelete{fancyvrb}
-
 
 
 
@@ -537,7 +178,7 @@ In type theory, there is a universe and an empty set for each type:
 the universe of the natural numbers, the empty set of the real
 numbers, etc.
 
-In the following, we remark that \h{notation-subset} is a type
+In the following, we remark that notation-subset\ is a type
 isomorphic with \h{binary-relation}.
 \end{remark}
 
@@ -552,15 +193,15 @@ of the same type.
 
 \deflabel{notation in}
 %- structure
-\h{notation-in} is the notational structure with
+notation-in\ is the notational structure with
 \begin{structure}
 \firstitem (parameter) $\beta$ % carrier first, to allow dependency.
 \item (parameter) $\alpha$
-\item \h{notation-in} : $\alpha\to\beta\to \Prop$\texstop
+\item notation-in\ : $\alpha\to\beta\to \Prop$\texstop
 \end{structure}\cnlstop
 \end{definition}
 
-\deflabel{in}
+\deflabel{set-in}
 We write $x \in X$ (inferring C :
 \h{notation-in}) iff $C\h{.notation-in}\ x\ X$.
 \end{definition}
@@ -570,10 +211,10 @@ We write $x\notin X$ iff $\h{not}(x\in X)$.
 \end{definition}
 
 \deflabel{notation-subset}
-\h{notation-subset} is the notational structure with
+notation-subset\ is the notational structure with
 \begin{structure}
 \firstitem (parameter, type) $\alpha$
-\item \h{notation-subseteq} : $\alpha \to \alpha \to \Prop$\texstop
+\item notation-subseteq\ : $\alpha \to \alpha \to \Prop$\texstop
 %\item subset $X\ (Y : \alpha)\ \assign X \subseteq Y$ and $X\ne Y$
 \end{structure}\cnlstop
 \end{definition}
@@ -611,7 +252,7 @@ level (rather than nested) in the structure being declared.
 \end{remark}
 
 
-Moreover, \h{notation-in} over $\beta, \alpha$ implements
+Moreover, notation-in\ over $\beta, \alpha$ implements
 \begin{structure}
 \firstitem (notation) notation-subset $X\ Y\ \assign\ 
   \h{for all } x,\ x \in X \rightarrow x \in Y$\texstop
@@ -630,17 +271,17 @@ inductive type).
 \end{remark}
 
 \deflabel{typical structure}
-A \h{typical-structure} is a structure with
+A typical-structure\ is a structure with
 \begin{structure}
 \firstitem (type) $\alpha : \Type$\texstop
 \end{structure}\cnlstop
 \end{definition}
 
 \deflabel{notation zero}
-\h{notation-zero} is the notational structure with
+notation-zero\ is the notational structure with
 \begin{structure}
 \firstitem $\alpha : \Type$
-\item $\h{notation-zero} : \alpha$\texstop
+\item notation-zero\ $: \alpha$\texstop
 \end{structure}\cnlstop
 \end{definition}
 
@@ -648,20 +289,20 @@ Let $0$ (inferring
 $C:\h{notation-zero}$) stand for $C\h{.notation-zero}$.
 
 \deflabel{notation one}
-\h{notation-one} is the notational structure with
+notation-one\ is the notational structure with
 \begin{structure}
 \firstitem $\alpha : \Type$
-\item \h{notation-one} $ : \alpha$\texstop
+\item notation-one\ $ : \alpha$\texstop
 \end{structure}\cnlstop
 \end{definition}
 
 Let $1$ (inferring $C:\h{notation-one}$) stand for $C\h{.notation-one}$.
 
 \deflabel{notation add}
-\h{notation-add} is the notational structure with
+notation-add\ is the notational structure with
 \begin{structure}
 \firstitem $\alpha : \Type$
-\item \h{notation-add} $ : \alpha\to\alpha\to\alpha$\texstop
+\item notation-add\ $ : \alpha\to\alpha\to\alpha$\texstop
 \end{structure}\cnlstop
 \end{definition}
 
@@ -671,7 +312,7 @@ $30$ and left associativity.
 \end{definition}
 
 \deflabel{notation numeral}
-\h{notation-numeral} is the notational structure with
+notation-numeral\ is the notational structure with
 \begin{structure}
 \firstitem notation-one
 \item notation-add\texstop
@@ -686,10 +327,10 @@ has automated support for positive numerals
 \end{remark}
 
 \deflabel{notation mul}
-\h{notation-mul} is the notational structure with
+notation-mul\ is the notational structure with
 \begin{structure}
 \firstitem $\alpha : \Type$
-\item \h{notation-mul} $ : \alpha\to\alpha\to\alpha$\texstop
+\item notation-mul\ $ : \alpha\to\alpha\to\alpha$\texstop
 \end{structure}\cnlstop
 \end{definition}
 
@@ -702,8 +343,8 @@ $40$ and left associativity.
 \deflabel{natural numbers}
 Let $\Nat$ be the inductive type
 \begin{envMatch}
-\firstmatchitem \h{zero} &$:\ \Nat$ 
-\matchitem \h{succ} &$:\ \Nat\to\Nat$\texstop
+\firstmatchitem zero\ &$:\ \Nat$ 
+\matchitem succ\ &$:\ \Nat\to\Nat$\texstop
 \end{envMatch}\cnlstop
 
 \smallskip
@@ -715,11 +356,11 @@ Moreover, $\Nat$ implements
 \end{definition}
 
 \deflabel{natural number addition}
-We define $\h{add}\ (m\ n:\Nat) \assign$
+We define add $(m\ n:\Nat) \assign$
 \par$\match\ n$ with
 \begin{envMatch}
 \firstmatchitem $0$ &$\assign$& $m$
-\matchitem $\h{succ}\ k$ &$\assign$& $\h{succ}\ (\h{add}\ m\ k)$\texstop
+\matchitem succ $k$ &$\assign$& succ $(\h{add}\ m\ k)$\texstop
 \end{envMatch}\cnlstop
 This exists by recursion.
 \end{definition}
@@ -730,11 +371,11 @@ Moreover, $\Nat$ implements
 \end{structure}\cnlstop
 
 \deflabel{natural number multiplication}
-We define $\h{mul}\ (m\ n :\Nat) \assign$
+We define mul $(m\ n :\Nat) \assign$
 \par$\match\ n$ with
 \begin{envMatch}
 \firstmatchitem $0$ &$\assign$& $0$
-\matchitem $k+1$ &$\assign$& $\h{succ}\ (\h{mul}\ m\ k  + m)$\texstop
+\matchitem $k+1$ &$\assign$& succ $(\h{mul}\ m\ k  + m)$\texstop
 \end{envMatch}\cnlstop
 This exists by recursion.
 \end{definition}
@@ -757,9 +398,9 @@ introduces lists, basic operations on lists, and notation.
 In this section, let $\alpha$ be a type.
 
 \deflabel{list}
-Let $\h{list}\ \h{(of)}\ \alpha$ be the inductive type
+Let list $\h{(of)}\ \alpha$ be the inductive type
 \begin{envMatch}
-\firstmatchitem $\h{null}\ \optarg{}$ &$:$& $\h{list}$
+\firstmatchitem null $\optarg{}$ &$:$& $\h{list}$
 \matchitem $\h{cons}$ &$:$& $\alpha\to\h{list}\to\h{list}$\texstop
 \end{envMatch}\cnlstop
 \end{definition}
@@ -781,7 +422,7 @@ Let $(x : \alpha) \cons (X : \h{list}\ \alpha)$ stand for
 We introduce synonyms size/length.
 
 \deflabel{length}
-Let $\h{length} : \h{list}\ \alpha\ \to \Nat \assign$ \par\function
+Let length\ $: \h{list}\ \alpha\ \to \Nat \assign$ \par\function
 \begin{envMatch}
 \firstmatchitem $\nullbrack$ &$\assign$& $0$
 \matchitem $a \cons A$ &$\assign$& 1 + \h{length}\ A\texstop
@@ -789,18 +430,18 @@ Let $\h{length} : \h{list}\ \alpha\ \to \Nat \assign$ \par\function
 This exists by recursion.
 \end{definition}
 
-\deflabel{in}
-Let $\h{in}\ (x : \alpha) : \h{list}\ \alpha\to \Prop\assign$  \par\function
+\deflabel{list-in}
+Let list-in $(x : \alpha) : \h{list}\ \alpha\to \Prop\assign$  \par\function
 \begin{envMatch}
 \firstmatchitem $\nullbrack$ &$\assign$& \h{false}
-\matchitem $a \cons A$ &$\assign$& $(x = a) \lor (\h{in}\ x\ A)$\texstop
+\matchitem $a \cons A$ &$\assign$& $(x = a) \lor (\h{list-in}\ x\ A)$\texstop
 \end{envMatch}\cnlstop
 This exists by recursion.
 \end{definition}
 
 Moreover, list implements
 \begin{structure}
-\firstitem (notation) notation-in $(x : \alpha)\ (X : \h{list}\ \alpha) \assign \h{in}\ x\ X$
+\firstitem (notation) notation-in $(x : \alpha)\ (X : \h{list}\ \alpha) \assign \h{list-in}\ x\ X$
 \end{structure}\cnlstop
 
 \begin{remark} The drop function removes the first occurrence
@@ -809,12 +450,12 @@ of an element from a list
 \end{remark}
 
 \deflabel{drop}
-Let $\h{drop}\ (x : \alpha) : \h{list}\ \alpha\to\h{list}\ \alpha \assign$
+Let drop $(x : \alpha) : \h{list}\ \alpha\to\h{list}\ \alpha \assign$
 \par\function
 \begin{envMatch}
 \firstmatchitem $\nullbrack$ &$\assign$& \nullbrack
 \matchitem $a \cons A$ &$\assign$&
-$\h{if}\ (x = a)\ \h{then}\ A\ \h{else}\ a \cons (\h{drop}\ x\ A)$\texstop
+if $(x = a)\ \h{then}\ A\ \h{else}\ a \cons (\h{drop}\ x\ A)$\texstop
 \end{envMatch}\cnlstop
 This exists by recursion.
 \end{definition}
@@ -822,12 +463,12 @@ This exists by recursion.
 \lsubsection{multiset}
 
 \deflabel{nodup}
-Let $\h{nodup} : \h{list}\ \alpha\to\Prop \ \assign$
+Let nodup\ $: \h{list}\ \alpha\to\Prop \ \assign$
 \par\function
 \begin{envMatch}
 \firstmatchitem $\nullbrack$ &$\assign$& \h{true}
 \matchitem $a \cons A$ &$\assign$&
-$\h{nodup}\ A \land a \not\in A$\texstop
+nodup $A \land a \not\in A$\texstop
 \end{envMatch}\cnlstop
 This exists by recursion.
 \end{definition}
@@ -842,7 +483,7 @@ construction a multiset has an enumeration by a list.
 \end{remark}
 
 \deflabel{is-permutation}
-Let $\h{is-permutation}\ X\ Y : \Prop \assign$
+Let is-permutation $X\ Y : \Prop \assign$
 \par\match\ $(X,Y)$ with
 \begin{envMatch}
   \firstmatchitem $(\nullbrack,\nullbrack)$ &$\assign$& \h{true}
@@ -863,8 +504,8 @@ This exists by recursion.
 %$
 
 
-\deflabel{multiset} Let \h{multiset}\ (of)\ $\alpha$ denote the quotient
-of $\h{list}\ \alpha$ by 
+\deflabel{multiset} Let multiset of $\alpha$ denote the quotient
+of list $\alpha$ by 
 \h{is-permutation}.  This exists.
 \end{definition}
 
@@ -876,7 +517,7 @@ Here we get
 \h{multiset} : \h{list}\ \alpha \to \h{multiset}\ \alpha.
 \]
 
-A duplicate~free~multiset over $\alpha$ is an enumeration of a
+A duplicate\~free\~multiset over $\alpha$ is an enumeration of a
 finite set.
 \end{remark}
 
@@ -888,7 +529,7 @@ This exists and is welldefined.
 
 Moreover, multiset\ $\alpha$ implements
 \begin{structure}
-\firstitem (notation) \h{notation-in} $(x : \alpha)$ $(X : \h{multiset}\ \alpha) \assign$ \par
+\firstitem (notation) notation-in\ $(x : \alpha)$ $(X : \h{multiset}\ \alpha) \assign$ \par
 $x\in Y$ for each and every $X = \h{multiset}\ Y$\texstop
 \end{structure}\cnlstop
 
@@ -899,7 +540,7 @@ Let \h{multiset.nodup} $(X : \h{multiset}\ \alpha) : \Prop \assign$
 We introduce synonyms element/point/carrier.
 
 \deflabel{duplicate free multiset}
-A \h{duplicate~free~multiset} is a structure with
+A \h{duplicate\~free\~multiset} is a structure with
 \begin{structure}
 \firstitem (parameter) element : \Type
 \item support : multiset element
@@ -925,13 +566,13 @@ This section relies on results about lists.
 Every list is constructed by a finite process of cons'ing.  This
 finite process leads to the notion of finite sets and types.
 
-We can specify a bijection from \h{duplicate~free~multiset} to finite sets.
+We can specify a bijection from \h{duplicate\~free\~multiset} to finite sets.
 
 The function takes a simple form, thanks to our notation $\in$ for
 multisets, and curly bracket notation for sets.
 
 Once we have a bijection, there are two ways to interpret $\in$ for
-\h{duplicate~free~multisets}.  We need compatibility. %XX
+\h{duplicate\~free\~multisets}.  We need compatibility. %XX
 \end{remark}
 
 In this section, let $X$ be a duplicate free multiset $\alpha$;
@@ -949,9 +590,9 @@ Let an \df{equivalence} $(f:\alpha\to\beta)$ stand for a bijection $f$.
 We record as identification
 \begin{align*}
 \funalign
-{\h{duplicate~free~multiset}\ \alpha}
+{\h{duplicate\~free\~multiset}\ \alpha}
 & {\ \xrightarrow{\sim}\ } 
-{\h{finite set}\ \alpha}\\
+{\h{finite\~set}\ \alpha}\\
 {X}&{\ \mapsto\ }{\setcomp{x}{x \in \h{support of}\ X}}.
 \end{align*}
 This exists and is unique.
@@ -964,7 +605,7 @@ recorded in the form of coercions in both directions between the
 two.
 
 By recording it as an identification, definitions involving
-\h{duplicate~free~multiset} automatically extend to finite sets.
+\h{duplicate\~free\~multiset} automatically extend to finite sets.
 
 For this reason, size and support are now defined on finite
 sets.
@@ -1002,14 +643,14 @@ and is unique.
 \lsection{Order}
 
 \deflabel{binary relation}
-A \df{binary~relation} is a structure with
+A \df{binary\~relation} is a structure with
 \begin{structure}
 \firstitem (parameter, type) element : \Type
 \item a (map) $relation : element \to element \to \Prop$\texstop
   \end{structure}\cnlstop
 \end{definition}
 
-In this section, fix $(R : \h{binary~relation})$; and 
+In this section, fix $(R : \h{binary\~relation})$; and 
  let $(s\ x\ y\ z : R)$; and 
 write $x \le y$ iff $R\ x\ y$.
 
@@ -1045,9 +686,9 @@ all\ $x, y,\ x \le y\ \h{and}\ y \le x\ \h{imply}\ x = y$.
 antisymmetric preorder.
 \end{definition}
 
-Let \df{partially ordered set} stand for poset.
+Let \df{partially\~ordered\~set} stand for poset.
 
-\deflabel{linear order} We say that $R$ is a \df{linear order} iff $R$
+\deflabel{linear order} We say that $R$ is a \df{linear\~order} iff $R$
 is a total poset.
 \end{definition}
 
@@ -1055,23 +696,23 @@ Let \df{total order} denote linear order.
 
 We introduce synonyms greatest/maximum/top.
 
-\deflabel{greatest element} We say that $y$ is a \df{greatest element
-  in} $R$ iff for all\ $x,\ x \le y$.
+\deflabel{greatest element} We say that $y$ is a
+\df{greatest\~element} in $R$ iff for all\ $x,\ x \le y$.
 \end{definition}
 
 We introduce synonyms least/minimum/bottom.
 
-\deflabel{least element} We say that $y$ is a \df{least element} in
+\deflabel{least element} We say that $y$ is a \df{least\~element} in
 $R$ iff for all\ $x,\ y \le x$.
 \end{definition}
 
 Let $x < y$ stand for $x \le y$ and $x \ne y$.
 
-\deflabel{maximal element} We say that $y$ is a \df{maximal element}
+\deflabel{maximal element} We say that $y$ is a \df{maximal\~element}
 in $R$ iff there exists no $x$ such that $y < x$.
 \end{definition}
 
-\deflabel{minimal element} We say that $y$ is a \df{minimal element}
+\deflabel{minimal element} We say that $y$ is a \df{minimal\~element}
 in $R$ iff there exists no $x$ such that $x < y$.
 \end{definition}
 
@@ -1080,7 +721,7 @@ exists no $x$ such that $x < x$.
 \end{definition}
 
 \deflabel{asymmetric} We say that $R$ is \df{asymmetric} iff for
-all\ $x\ y,\ x < y\ \h{implies that not}\ y < x$.
+all\ $x\ y,\ x < y\ \h{implies not}\ y < x$.
 \end{definition}
 
 \deflabel{strict partial order} We say that $R$ is a
@@ -1090,65 +731,65 @@ asymmetric.
 
 Let $S$ be a set of $R$.
 
-\deflabel{upper bound} We say $x$ is an \df{upper bound} of $S$ in $R$
+\deflabel{upper bound} We say $x$ is an \df{upper\~bound} of $S$ in $R$
 iff $s \le x\ \h{for all}\ s \in S$.
 \end{definition}
 
-\deflabel{lower bound} We say $x$ is a \df{lower bound} of $S$ in $R$
+\deflabel{lower bound} We say $x$ is a \df{lower\~bound} of $S$ in $R$
 iff $x \le s$ for all $s \in S$.
 \end{definition}
 
-\deflabel{wellfounded} We say that $R$ is \df{wellfounded} iff for
+\deflabel{wellfounded} We say that $R$ is \df{well\-founded} iff for
 every $S$ such that $S\ne \emptyset$ there exists a lower bound $s$ of
 $S$ in $R$ such that $s\in S$.
 \end{definition}
 
-We introduce synonyms least upper bound/join/supremum.
+We introduce synonyms least\~upper\~bound/join/supremum/suprema/sup.
 
-We introduce synonyms greatest lower bound/meet/infimum.
+We introduce synonyms greatest\~lower\~bound/meet/infimum/infima/inf.
 
-\deflabel{least upper bound} We say $x$ is a \df{least upper bound} of
+\deflabel{least upper bound} We say $x$ is a \df{least\~upper\~bound} of
 $S$ in $R$ iff $x$ is an upper bound of $S$ such that for every upper
 bound $y$ of $S$ we have $x \le y$.
 \end{definition}
 
-\deflabel{greatest lower bound} We say $x$ is a \df{greatest lower
-  bound} of $S$ in $R$ iff $x$ is a lower bound of $S$ such that for
-every lower bound $y$ of $S$ we have $y \le x$.
+\deflabel{greatest lower bound} We say $x$ is a
+\df{greatest\~lower\~bound} of $S$ in $R$ iff $x$ is a lower\~bound of
+$S$ such that for every lower bound $y$ of $S$ we have $y \le x$.
 \end{definition}
 
-\deflabel{join semilattice} We say $R$ is a \df{join semilattice} iff
+\deflabel{join semilattice} We say $R$ is a \df{join\~semilattice} iff
 for every $x, y$, there exists a least upper bound of $\setenum{x,y}$ in
 $R$.
 \end{definition}
 
-\deflabel{meet semilattice} We say $R$ is a \df{meet semilattice} iff
-for every $x, y$, there exists a greatest lower bound of $\setenum{x,y}$ in
+\deflabel{meet semilattice} We say $R$ is a \df{meet\~semilattice} iff
+for every $x, y$, there exists a greatest\~lower\~bound of $\setenum{x,y}$ in
 $R$.
 \end{definition}
 
-\deflabel{join} Assume $R$ is a join semilattice.  Then let
-$\h{\df{join}}\ x\ y$ be the least upper bound of $\setenum{x,y}$ in $R$.
+\deflabel{join} Assume $R$ is a join\~semilattice.  Then let
+$\h{\df{join}}\ x\ y$ be the least\~upper\~bound of $\setenum{x,y}$ in $R$.
 This exists and is unique.
 \end{definition}
 
-\deflabel{meet} Assume $R$ is a meet semilattice.  Then let
+\deflabel{meet} Assume $R$ is a meet\~semilattice.  Then let
 $\h{\df{meet}}\ x\ y$ be the greatest lower bound of $\setenum{x,y}$ in $R$.
 This exists and is unique.
 \end{definition}
 
-\deflabel{lattice} $R$ is a \df{lattice} iff $R$ is a join semilattice
-and a meet semilattice.
+\deflabel{lattice} $R$ is a \df{lattice} iff $R$ is a join\~semilattice
+and a meet\~semilattice.
 \end{definition}
 
 \newpage
 \lsection{Order Notation}
 
 \deflabel{notation le}
-\h{notation-le} is the notational structure with
+notation-le\ is the notational structure with
 \begin{structure}
 \firstitem (type) $\alpha : \Type$
-\item \h{notation-le} : $\alpha \to \alpha \to \Prop$\texstop
+\item notation-le\ : $\alpha \to \alpha \to \Prop$\texstop
 %\item lt $x\ (y : D)\ \assign x \le y$ and $x\ne y$
 %\item ge $x\ (y : D)\ \assign y \le x$
 %\item gt $x\ (y : D)\ \assign y < x$
@@ -1177,7 +818,7 @@ We say $n$ is \df{greater than} $m$ iff $n > m$.
 \newpage
 \lsection{More on Natural Numbers}
 
-In this section, let $m,\ n,\ d,\ p,\ r$ be natural numbers.
+In this section, let $m,\ n,\ d,\ p,\ r$ be natural\~numbers.
 
 \deflabel{nat le}
   We write that $\h{nat.nat-le}\ m \ n$ iff there exists $d$ such that $m + d = n$.
@@ -1191,7 +832,7 @@ Moreover, $\Nat$ implements
 %We record a wellfounded total order, where
 %\begin{structure}
 %\firstitem relation\ $\assign \h{nat-le}$
-%\item (notation) \h{notation-le} $\assign$ relation
+%\item (notation) notation-le\ $\assign$ relation
 %\end{structure}\cnlstop
 %This exists and is unique.
 
@@ -1202,9 +843,9 @@ $0,\pm1,\pm2,\ldots$ can be interpreted in any structure that
 additionally satisfies \h{notation-neg}.
 \end{remark}
 
-We introduce synonyms number\plural s.
+%We introduce synonyms number\plural s.
 
-Let \df{natural number} stand for \Nat.
+Let \df{natural\~number} stand for \Nat.
 
 \deflabel{divides}
 We say that $d$ \df{divides} $m$ iff $d\ne 0$ and there exists $r$
@@ -1214,11 +855,11 @@ such that $m= d\*r$.
 
 We write $\natdiv{d}{m}$ iff $d$ divides $m$.
 
-We say that $d$ is a \df{divisor of} $m$ iff $d$ divides $m$.
+We say that $d$ is a \df{divisor} of $m$ iff $d$ divides $m$.
 
 
 \deflabel{natpow}
-Assume that $b,n$ are natural numbers.  Then we define
+Assume that $b,n$ are natural\~numbers.  Then we define
 $\natpow{b}{n}\assign$
 \par$\match\ n$ with
 \begin{envMatch}
@@ -1229,14 +870,14 @@ This exists by recursion.
 \end{definition}
 
 \deflabel{prime}
-Assume that $p$ is a natural number greater than $1$.  Then we say that $p$
+Assume that $p$ is a natural\~number greater than $1$.  Then we say that $p$
 is a \df{prime} iff each divisor of $p$ is equal to $1$ or is equal to
 $p$.
 \end{definition}
 
 \deflabel{multiplicity}
-Assume that $n$ is a positive natural number. Then
-the \df{multiplicity} of $p$ in $n$ is the natural number $m$ such that
+Assume that $n$ is a positive natural\~number. Then
+the \df{multiplicity} of $p$ in $n$ is the natural\~number $m$ such that
 \[
 \natpow{p}{m}\ \h{divides}\ n\quad \h{and}\quad \natpow{p}{m+1}\ %
 \h{does not divide}\ n.
@@ -1250,29 +891,13 @@ This exists and is unique.
 In this section, let $\alpha$ be a type.
 
 \deflabel{magma}
-A \h{magma} is a structure with
+A magma\ is a structure with
 \begin{structure}
 \firstitem (type, parameter) element : \Type
-\item an $\h{op} : \h{element} \to \h{element} \to \h{element}$
-\item (notation) $\h{notation-mul} \assign op$\texstop
+\item an op\ $: \h{element} \to \h{element} \to \h{element}$
+\item (notation) notation-mul\ $\assign op$\texstop
 \end{structure}\cnlstop
 \end{definition}
-
-
-%We record a coercion 
-%\begin{align*}
-%\funalign
-%{\h{magma}\ \alpha}{\ \to \ }{\h{notation-in}}
-%{M}{\ \mapsto \ }
-%\$(G : group) : \h{notation-in}\assign$
-%{
-%\Make\begin{make}
-%\firstitem \h{notation-in} $\beta\assign \h{group}$
-%\item $\alpha\assign M\h{.element}$\texstop
-%\end{make}\cnlstop
-%}
-%\end{align*}
-
 
 \deflabel{abelian}
 Assume that $M$ is a magma. Then
@@ -1289,27 +914,22 @@ x \* y \* z = (x \* y) \* z\texstop
 \end{structure}\cnlstop
 \end{definition}
 
-% for all $(x, y, z : element), x \* y \* z = (x \* y) \* z$.
-% for all $x$, $y$ and  $z$, $x \* y \* z = (x \* y) \* z$.
-% for all $(x,\ y,\ z : \h{element}),\ x \* y \* z = (x \* y) \* z$.
-% for all $x$, $y$ and  $z$, $x \* y \* z = (x \* y) \* z$.
-
 \deflabel{monoid}
  A \df{monoid} is a structure with
 \begin{structure}
 \firstitem a semigroup
 \item a unit: element
-\item (notation) $\h{notation-one} \assign \h{unit}$
+\item (notation) notation-one\ $\assign \h{unit}$
 \interitem{such that}
 \item for all\ $x,\ x \* 1 = 1 \* x = x$\texstop
 \end{structure}\cnlstop
 \end{definition}
 
 \deflabel{notation inverse}
-\h{notation-inverse} is the notational structure with
+notation-inverse\ is the notational structure with
 \begin{structure}
 \firstitem (parameter) $\alpha : \Type$
-\item \h{notation-inverse} : $\alpha\to\alpha$\texstop
+\item notation-inverse\ : $\alpha\to\alpha$\texstop
 \end{structure}\cnlstop
 \end{definition}
 
@@ -1324,7 +944,7 @@ A \df{group} is a structure with
 \firstitem a monoid
 \item an inv : $C \to C$ 
 \interitem{such that}
-\item (notation) $\h{notation-inverse} \assign \h{inv}$
+\item (notation) notation-inverse\ $\assign \h{inv}$
 \item $\forall (x : C),\  x \* \inv{x} = \inv{x} \* x = 1$\texcomma
 \end{structure}
 \wherearg{C \assign\h{element}}.
@@ -1337,16 +957,13 @@ A \df{group} is a structure with
 An additive group is just a group in which the surface notation has
 been altered.  Additive group and group satisfy each other (but the notational
 fields drop out).
-%The convention is that 'xxx extensions keep field names distinct,
-%but satisfaction ignores 'xxx extensions, but gives priority to fewer ''.
 \end{remark}
 
-
 \deflabel{notation neg}
-\h{notation-neg} is the notational structure with
+notation-neg\ is the notational structure with
 \begin{structure}
 \firstitem $\alpha : \Type$
-\item $\h{notation-neg} : \alpha\to\alpha$\texstop
+\item notation-neg\ $: \alpha\to\alpha$\texstop
 \end{structure}\cnlstop
 \end{definition}
 
@@ -1354,17 +971,15 @@ Let $-x$ (inferring
 $C:\h{notation-neg})$
 stand for $C\h{.notation-neg}\ x$.
 
-
 \deflabel{additive group}
 An \df{additive group} is a structure with
 \begin{structure}
 \firstitem (notationless)  group 
-\item (notation) $\h{notation-zero} \assign \h{unit}$
-\item (notation) $\h{notation-add} \assign \h{op}$
-\item (notation) $\h{notation-neg} \assign \h{inv}$\texstop
+\item (notation) notation-zero\ $\assign \h{unit}$
+\item (notation) notation-add\ $\assign \h{op}$
+\item (notation) notation-neg\ $\assign \h{inv}$\texstop
 \end{structure}\cnlstop
 \end{definition}
-
 
 \deflabel{ring}
 A \df{ring} is a structure with
@@ -1372,8 +987,8 @@ A \df{ring} is a structure with
 \firstitem an abelian additive group
 \item an $\h{op'}  : C \to C \to C$
 \item a $\h{unit'} : C$
-\item (notation) $\h{notation-mul} \assign \h{op'}$
-\item (notation) $\h{notation-one} \assign \h{unit'}$
+\item (notation) notation-mul\ $\assign \h{op'}$
+\item (notation) notation-one\ $\assign \h{unit'}$
 \interitem{such that}
 \item $\forall\ (x : C),\ 1\*x = x\*1 = x$
 \item $\forall\ (x\ y\ z : C),\ x\*y\*z = x\*(y\*z)$
@@ -1383,7 +998,6 @@ A \df{ring} is a structure with
 \wherearg{C \assign \h{element}}.
 \end{definition}
 
-
 \begin{remark} 
 By construction, a ring satisfies a group (with additive structure).
 There is a separate map from ring to monoid (with multiplicative
@@ -1392,7 +1006,7 @@ structure), which is achieved with an explicit function call.
 
 
 \deflabel{multiplicative monoid of ring}
-Let $\h{monoid-of-ring}\ ($R$ : \h{ring}) : \h{monoid} \assign$
+Let monoid-of-ring $($R$ : \h{ring}) : \h{monoid} \assign$
 \Make \begin{make}
 %\item element \assign R\h{.element}
 \firstitem unit $\assign R\h{.unit'}$
@@ -1422,10 +1036,10 @@ $(x : R)$.  Then we say that $x$ is a \df{unit} in $R$ iff there exists $(y
 
 
 \deflabel{notation dot}
-\h{notation-dot} is the notational structure with
+notation-dot\ is the notational structure with
 \begin{structure}
 \firstitem (parameter, type) $\alpha, \beta : \Type$
-\item (notation) \h{notation-dot} : $\alpha \to \beta \to \beta$\texstop
+\item (notation) notation-dot\ : $\alpha \to \beta \to \beta$\texstop
 \end{structure}\cnlstop
 \end{definition}
 
@@ -1438,9 +1052,9 @@ A \df{left module} is a structure with
 \begin{structure}
 \firstitem (parameter) $R$ : ring
 \item an  additive group
-\item a \h{scalar-multiplication} : 
+\item a scalar-multiplication\ : 
 $R\h{.element} \to$ element $\to$ element
-\item (notation) $\h{notation-dot} \assign \h{scalar-multiplication}$
+\item (notation) notation-dot\ $\assign \h{scalar-multiplication}$
 \interitem{such that}
 \item for all $r,x,y,\ r \cdot (x + y) = r \cdot x + r \cdot y$
 \item 
@@ -1454,12 +1068,12 @@ for all $r,s,x,\ (r\*s) \cdot x = r \cdot (s \cdot x)$
 \newpage
 \lsection{The field of real numbers}
 
-\deflabel{field}
-A \df{field} $R$ is a nontrivial commutative ring such that for all $x\ne 0$,  $x$ is a unit in $R$.
+\deflabel{field} A \df{field} $R$ is a nontrivial commutative ring
+such that for all $x\ne 0$, $x$ is a unit in $R$.
 \end{definition}
 
 \deflabel{vector space}
-  A \df{vector space} is a structure with
+  A \df{vector\~space} is a structure with
   \begin{structure}
 \firstitem a left module
 \item (parameter) $R$ : field\texstop
@@ -1468,12 +1082,12 @@ A \df{field} $R$ is a nontrivial commutative ring such that for all $x\ne 0$,  $
 
 
 \deflabel{ordered ring}
-An \df{ordered ring} is a structure with
+An \df{ordered\~ring} is a structure with
 \begin{structure}
 \firstitem a ring
 \item a linear order 
 \interitem{such that}
-\item (notation) $\h{notation-le} \assign$ relation
+\item (notation) notation-le\ $\assign$ relation
 \item for all $x,y,z$, if $x \le y$, then $x + z \le y + z$
 \item for all $x,y$, if $0\le a$ and $0\le b$, then $0\le a\*b$\texstop
 \end{structure}\cnlstop
@@ -1483,24 +1097,23 @@ An \df{ordered ring} is a structure with
 
 
 \deflabel{ordered field}
-An \df{ordered field} is a a structure with
+An \df{ordered\~field} is a a structure with
 \begin{structure}
-\firstitem an  ordered ring
+\firstitem an  ordered\~ring
 \item a field\texstop
 \end{structure}\cnlstop
 \end{definition}
 
-\deflabel{complete}
-Assume that $F$ is an ordered field. Then
-we say that $F$ is \df{complete} iff
-for every subset $S$ of the universe of $F$,
-  if $S \ne \emptyset$ and $S$ has an upper bound in $F$, then $S$ has a least upper bound in $F$.
+\deflabel{complete} 
+Assume that $F$ is an ordered\~field. Then we say
+that $F$ is \df{complete} iff for every subset $S$ of the universe of
+$F$, if $S \ne \emptyset$ and $S$ has an upper bound in $F$, then $S$
+has a least upper bound in $F$.
 \end{definition}
 
 \deflabel{absolute value}
 Let
-$\h{ordered-field.absolute-value}\assign$
-%\ (x : \h{element})\assign$ 
+$\h{ordered-field.absolute\~value}\assign$
 \begin{align*}
 \funalign
 {\h{element}}&{\quad\to \ }{\h{element}}\\
@@ -1516,10 +1129,10 @@ $\h{ordered-field.absolute-value}\assign$
 This exists and is unique and total.
 \end{definition}
 
-In this section, let $(F\ G : \h{complete order field})$.
+In this section, let $(F\ G : \h{complete\~ordered\~field})$.
 
 \deflabel{isomorphism of complete ordered fields} 
-An isomorphism of complete ordered fields  from $F$ to $G$  is a bijection
+An isomorphism of complete\~ordered\~fields  from $F$ to $G$  is a bijection
 \[
 f:F\to G
 \]
@@ -1531,7 +1144,7 @@ such that
 \end{definition}
 
 We record as identification
-the isomorphism of complete ordered fields
+the isomorphism of complete\~ordered\~fields
 from $F$ to $G$.  This exists and is unique.
 
 \begin{remark}
@@ -1540,19 +1153,19 @@ structure from $F$ to $G$.
 \end{remark}
 
 \deflabel{real}
-Let \Real\ be the complete ordered field.
+Let \Real\ be the complete\~ordered\~field.
 This exists and is canonical.
 \end{definition}
 
 \lsubsection{norms}
 
-Let $\realabs{(x:\Real)}$ denote \h{absolute-value}\ $x$.
+Let $\realabs{(x:\Real)}$ denote absolute-value $x$.
 
 \deflabel{normed commutative ring}
-  A \df{normed commutative ring} is a structure with
+  A \df{normed\~commutative\~ring} is a structure with
   \begin{structure}
 \firstitem a commutative ring
-\item an \h{absolute-value} : element $\to \Real$
+\item an absolute-value\ : element $\to \Real$
 \interitem{such that}
 \item for all $x$, $A\ x = 0 \iff x = 0$
 \item for all $x\ y,\ A (x + y) \le A\ x + A\ y$
@@ -1563,9 +1176,9 @@ Let $\realabs{(x:\Real)}$ denote \h{absolute-value}\ $x$.
 \end{definition}
 
 \deflabel{normed field}
-  A \df{normed field} is a structure with
+  A \df{normed\~field} is a structure with
   \begin{structure}
-\firstitem a normed commutative ring
+\firstitem a normed\~commutative\~ring
 \item a field\texstop
   \end{structure}\cnlstop
 \end{definition}
@@ -1589,7 +1202,7 @@ Because of the way parameters work, we say that $H$ is a subgroup {\it
 \deflabel{subgroup}
 A \df{subgroup}  is a structure with
 \begin{structure}
-\firstitem (parameter) \h{ambient-group} : group
+\firstitem (parameter) ambient-group\ : group
 \item (type) support $: \h{set of}\ \h{ambient-group}$
 \interitem{such that}
 \item $1 \in support$ and
@@ -1602,8 +1215,8 @@ A \df{subgroup}  is a structure with
 \h{subgroup-semilattice}
 $(G :\h{group}) : \h{meet-semilattice}\assign$
 \Make \begin{make}
-\firstitem $\h{element}\ \assign \h{subgroup over}\ G$
-\item $\h{relation}\ H_1\ H_2 \assign \h{for all}\ x,\ x \in H_1 \to x \in
+\firstitem element $\assign \h{subgroup over}\ G$
+\item relation $H_1\ H_2 \assign \h{for all}\ x,\ x \in H_1 \to x \in
 H_2$
 \item \etc\texstop
 \end{make}\cnlstop
@@ -1628,23 +1241,23 @@ We enter the namespace subgroup.
 \deflabel{subgroup order}
 Assume that $H$ is a subgroup over a finite group $G$. Then 
 the \df{order} of $H$ is the size of the support of $H$.
-This exists and is well propped \parenthetical{that is, $H$ is finite}.
+This exists and is well propped \inmark{that is, $H$ is finite}.
 \end{definition}
 
 
 \lsubsection{statement}
 
-In this section, let $G$ be a fixed finite group.
+In this section, let $G$ be a fixed finite group; and let $(g : G)$.
 
 
 In this section, let $\conj{g}{X}$ stand for
 \[
 \setcomp{g\*x\*\inv{g}}{x\in X},
 \]
-\where\ $(g : G)$ $(X : \h{set}\ G)$.
+\where\  $\{ X : \h{set}\ G\}$.
 
 \deflabel{conjugate}
-Assume that $(g : G)$.  Assume that $H$ is a subgroup over $G$.  Then the
+Assume that $H$ is a subgroup over $G$.  Then the
 \df{conjugate} of $H$ by $g$ in $G$ is the subgroup $\conj{g}{H}$ over $G$.
 \end{definition}
 
@@ -1679,7 +1292,7 @@ Let $\Syl{p}{G} \assign
 
 
 Let $\SylN{p}{G}$ denote the size of $\Syl{p}{G}$.  This is well
-propped \parenthetical{that is, there are finitely many Sylow $p$
+propped \inmark{that is, there are finitely many Sylow $p$
   subgroups}.
 
 

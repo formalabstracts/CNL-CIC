@@ -1,5 +1,5 @@
 (dirs :standard \ chaff)
-(data_only_dirs tex)
+(data_only_dirs tex package)
 
 (library
 (name tex2cnl)

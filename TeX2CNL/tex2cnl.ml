@@ -129,14 +129,6 @@ let rec concat_toks =
     | [Tok t] -> Tok t
     | _ -> Error "concat_toks must be nonempty token list";;
 
-let debug = true;;
-
-let print_debug_endline s = if debug then print_endline s else ();;
-let print_debug s = if debug then print_string s else ();;
-
-let print_debug_token tok = 
-  if debug then print_string ((token_to_string_output tok)^" ") else ();;
-
 let mk_label toks = 
   let t = "Label_"^(tokens_to_clean_string toks) in (* force initial letter *)
   Label t ;;
@@ -180,20 +172,40 @@ let read_lines name : string list =
   loop [];;
 
 let mk_iochannels f s = (* f should terminate lines with Eol *)
-let infile = mk_infile s in
-let outfile = mk_outfile s in
-let rs = read_lines infile in 
-let toks = List.map f rs in
+  let infile = mk_infile s in
+  let dirfile = Filename.dirname infile in
+  let print_endline _ = () in 
+  let _ = print_endline ("\n%--"^ Printf.sprintf " opening file dir %s and name %s" dirfile infile) in
+  let _ = print_endline ("\n%-- current dir is "^Sys.getcwd()) in
+  let outfile = mk_outfile s in
+  let rs = read_lines infile in 
+  let toks = List.map f rs in
   {
     infile = infile; 
     outfile = outfile;
-    outc = open_out outfile;
+    outc = stdout (* open_out outfile XX DEBUG.  All output is now to standard output. *);
     intoks = List.flatten toks;
   };;
 
-let output_token ios tok = 
-  let _ = print_debug_token tok in 
-  output_string (ios.outc) (token_to_string_output tok);;
+let close_out _ = ();; (* XX DEBUG *)
+
+let debug = false;;
+
+let print_token tok = print_string ((token_to_string_output tok)^" ")
+
+let print_endline_debug s = if debug then print_endline ("\n%--DEBUG: "^s) else ();;
+
+let print_string_debug s = if debug then print_string s else ();;
+
+let print_token_debug tok = 
+  if debug then print_token tok else ();;
+
+let output_token_debug ios (* ios *) tok = 
+  let _ = print_token_debug tok in
+  output_string ios.outc (token_to_string_output tok);;
+
+let output_token _ tok = 
+  print_token tok ;;
 
 let output_token_list ios toks = 
   ignore(List.map (output_token ios) toks);;
@@ -457,7 +469,6 @@ let debug_show_macrotable () =
 
 let setmacro f = 
   let _ = (macrotable := f :: !macrotable) in
-(*  let _ = print_debug (debug_macro_to_string f) in *)
   ();;
 
 let envdeltable = ref []  ;;
@@ -488,7 +499,6 @@ let nopar ios toks s =
   toks';;
 
 let process_controlseq ios cs_string =
-(*  let _ = print_debug ("[process-cs:"^cs_string^"]") in *)
   match cs_string with
   | "CnlDelete" -> 
       let i = input_brack_num ios in
@@ -530,14 +540,13 @@ let process_controlseq ios cs_string =
   | _ -> let otoks = opt_assoc !macrotable cs_string in
          (match otoks with
          | Some (k,pat) -> 
-(*             let _ = if (k>0) then print_debug "[expanding macro," else () in  *)
              let skip = [FormatCol;FormatEol] in
              let args = (input_matched_brace_list ios [] skip k) in 
              let repl_text = macroexpand [] pat args in 
 (*             let _ = if (k>0) then 
-                       (print_debug "expanded macro:";
-                        ignore(List.map print_debug_token repl_text);
-                        print_debug "]") in  *)
+                       (print_string_debug "expanded macro:";
+                        ignore(List.map print_token_debug repl_text);
+                        print_string_debug "]") in  *)
              (return_input ios repl_text;[])
          | None ->
              if is_math_font(cs_string) then (* \mathfrak{C} -> C__mathfrak *)
@@ -560,10 +569,6 @@ let transcribe_token ios ifexpand outputif tr tok =
   match tok with
   | ControlSeq s -> if ifexpand then ps(process_controlseq ios s) else p tok
   | Arg _ -> output_error ios "# parameters must appear in macro patterns"
- (*  
-  | FormatEol -> output_error ios "FormatEol must appear in environment"
-  | FormatCol -> output_error ios "FormatCol must appear in environment"
-  *)
   | Eol -> output_error ios "unexpected EOL"
   | Eof -> raise End_of_file
   | _ -> p tok;;
@@ -647,6 +652,17 @@ let mk_matrix_env s is_delete =
     stay_in_par = TrackPar;
   };;
 
+let mk_text_env s is_delete = 
+  {
+    name = s; 
+    begin_token = Ignore;
+    end_token = Ignore;
+    tr_token = [];
+    drop_toks = [ControlSeq "item"];
+    is_delete = is_delete;
+    stay_in_par = TrackPar;
+  };;
+
 let is_prologue_env s =
   match s with
   | "def" | "definition" | "Definition" 
@@ -665,6 +681,7 @@ let mk_e_item s e =
     match s with
     | "itemize" | "structure" | "make"  ->
                                   mk_itemize_env s LBrace (Semi) (e.is_delete)
+    | "itemizetext" | "enumeratetext" -> mk_text_env s e.is_delete
       | "center" -> mk_drop_env s [] Ignore (e.is_delete)
       | "align" | "align*" -> mk_drop_env s [FormatEol;FormatCol] Ignore (e.is_delete)
       | "envMatch" -> mk_drop_env s [FormatEol;FormatCol] (Tok "end") e.is_delete
@@ -725,41 +742,40 @@ let output_prologue ios s =
 
 let rec process_environ ios e_stack =
   let out tok is_delete = if (is_delete) then () else output_token ios tok in 
+  let err = output_error ios in 
+  let err_continue msg = (err msg; process_environ ios e_stack) in 
+  let sp = Printf.sprintf in 
   let par_filter e = 
     let nrp = not(regard_par e.stay_in_par) in
-    let _ = nrp || (output_error ios 
-                      ("illegal paragraph ending in environment "^e.name); true) in
+    let _ = nrp || (err ("illegal paragraph ending in environment "^e.name); true) in
     nrp in
   let rec output_err_stack es = 
     if (List.length e_stack <= 1) then () 
     else 
-      (output_error ios ("expected \\end{"^((List.hd e_stack).name)^"}"); 
+      (err("expected \\end{"^((List.hd e_stack).name)^"}"); 
        output_err_stack (List.tl es)) in
   if (e_stack=[]) 
-  then (output_error ios "unexpected empty environment. ending cnl envir"; EndCnl) else 
+  then (err "unexpected empty environment. ending cnl envir"; EndCnl) 
+  else 
     let e = List.hd e_stack in
     let tok = input ios (e.stay_in_par) in 
     match tok with
     | Cnlenvdel s -> (setdelenv s; process_environ ios e_stack)
-    | Par -> (output_error ios "illegal paragraph ended before envir end."; 
+    | Par -> (err "illegal paragraph ended before envir end."; 
               let ignore_par_stack = 
                 List.filter par_filter  e_stack in 
               process_environ ios ignore_par_stack)
-    | BeginCnl -> (output_error ios "improper nesting of \\begin{cnl}; input ignored"; 
-                   process_environ ios e_stack)
+    | BeginCnl -> err_continue "improper nesting of \\begin{cnl}; input ignored"
     | EndCnl | Input _ | Eof -> (output_err_stack e_stack; tok) 
     | EndSeq s -> if (s = null_env.name) then
-                    let msg = null_env.name^" is an illegal environment name; ignored" in
-                    (output_error ios msg; process_environ ios e_stack)
-                  else if (s = e.name) then
-                    (out e.end_token e.is_delete; process_environ ios (List.tl e_stack))
+                    err_continue (sp "%s is an illegal environment name; ignored" null_env.name)
+                  else if (s <> e.name) then
+                    err_continue (sp "\\end{%s} expected, \\end{%s} found; input ignored."
+                                    e.name s)
                   else 
-                    let msg = "\\end{" ^(e.name)^ "} expected, \\end{" 
-                              ^s^ "} found; input ignored." in
-                    (output_error ios msg; process_environ ios e_stack) 
+                    (out e.end_token e.is_delete; process_environ ios (List.tl e_stack))
     | BeginSeq s -> if (s = null_env.name) then
-                    let msg = null_env.name^" is an illegal environment name; ignored" in
-                    (output_error ios msg; process_environ ios e_stack)
+                      err_continue (sp "%s is an illegal environment name; ignored" null_env.name)
                     else
                       let e' = mk_e_item s e in
                       let _ = if not(e'.is_delete)
@@ -775,44 +791,56 @@ let rec process_environ ios e_stack =
 let rec debug_process_environ ios e  = 
   let tok = input ios NoTrackPar in 
   match tok with
-  | EndCnl | Input _ | Eof -> (tok) 
+  | EndCnl | Input _  | Eof -> (tok) 
     | _ ->          (transcribe_token ios false (fun _ -> true) [] tok;
             debug_process_environ ios e)
 ;;
 
 let rec seek_cnl_block ios = 
   match (input ios NoTrackPar) with
-  | BeginCnl -> BeginCnl 
+  | BeginCnl -> (print_endline_debug "found cnl block"; 
+                    BeginCnl) 
   | Eof -> Eof 
   | _ -> seek_cnl_block ios;;
 
-  (* returns Eof, or Input *)
-let rec process_cnl_block ios = 
-  match seek_cnl_block ios with
+let rec continue_cnl_block ios = 
+  match (process_environ ios [null_env]) with
+  | EndCnl -> seek_and_continue_cnl_block ios 
   | Eof -> Eof
-  | _ -> (match (process_environ ios [null_env]) with
-         | EndCnl -> process_cnl_block ios 
-         | Eof -> Eof
-         | Input _ as t -> t
-         | _ -> (output_error ios "fatal, ending file"; Eof));;  
+  | Input _ as t -> t
+  | _ -> (output_error ios "fatal, ending file"; Eof)
 
-let rec process_ios convert_toks io_stack = 
+  (* returns Eof or Input *)
+and seek_and_continue_cnl_block ios = 
+  match seek_cnl_block ios with
+  | BeginCnl -> continue_cnl_block ios
+  | t -> t ;;  
+
+let process_cnl_block continue ios = 
+  if continue then continue_cnl_block ios else seek_and_continue_cnl_block ios;;
+
+let rec process_ios continue convert_toks io_stack = 
   if io_stack = [] then true 
   else
     try 
       let ios = List.hd io_stack in
-      match (process_cnl_block ios) with
-      | Eof -> let _ = close_out ios.outc in process_ios convert_toks (List.tl io_stack)
+      match (process_cnl_block continue ios) with
+      | Eof -> let _ = close_out ios.outc in 
+               let _ = print_endline_debug (" closing "^ios.infile) in 
+               let _ = print_endline_debug (" returning to previous file") in
+               let io_stack' = List.tl io_stack in 
+               process_ios true convert_toks (io_stack')
       | Input filename -> (let ios' = mk_iochannels convert_toks filename in
-                           process_ios convert_toks (ios' :: io_stack))
+                           let _  = print_endline_debug (" opening:" ^ filename) in 
+                           process_ios true convert_toks (ios' :: io_stack))
       | _ -> (output_error ios ("fatal file error, closing: "^ios.outfile); close_out(ios.outc);
-              process_ios convert_toks (List.tl io_stack))
+              process_ios continue convert_toks (List.tl io_stack))
     with Failure _ ->
            let _ = List.map (fun x -> close_out(x.outc)) io_stack in
            false;;
   
 let process_doc convert_toks filename = 
-  process_ios convert_toks [mk_iochannels convert_toks filename];;
+  process_ios false convert_toks [mk_iochannels convert_toks filename];;
 
 
 (* fin *)

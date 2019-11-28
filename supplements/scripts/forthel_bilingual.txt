@@ -25,7 +25,7 @@ symbToken -
 tokenGroup - synonym 
 
 1.3.2 Notions - 
-primClassNoun - prim_typed_name TypedNameWithoutAttribute
+primClassNoun - prim_typed_name typed_name_without_attribute
 primClassRelation - prim_free_predicate FreePredicateWithoutAttribute
 names - names
 leftAttribute - 

@@ -1,0 +1,170 @@
+To what extent can we make parsing unambiguous?
+(and at the same time achieve some efficiency)?
+
+Lemma. Every text_item can be parsed unambiguously mod 
+statement, general_type, and plain_term.
+That is, if we are give a series of tokens and told
+that it is a statement, a general_type, or plain_term;
+and if we can parse that, then we can parse text_items.
+
+text_item :
+
+  instruction Y.
+  instruction vs. list_term 
+  [KEYWORD ...] takes priority over lists.
+
+  section preamble Y. 
+  Always 3 tokens, 
+  commitment: 2-3 toks, first and last are section and PERIOD.
+  Take priority over other interps.
+
+  namespace not implemented.
+
+  declaration. Also starts with a preamble.
+  Preamble commits to axiom, def, or theorem.
+
+  axiom. keyword lit_assume commits to assumption.
+  assumption_prefix is as long as possible.
+  conclusion follows in a single sentence.
+
+  theorem. assumptions identified as in axiom.
+  Next sentence commited to theorem statement.
+  Proof preamble commits to a proof.
+  proof_body types. 
+  assumption - commitment by lit_assume.
+  canned_proof - commitment by exact match of wording.
+  case - commitment by LIT_CASE Y.
+  choose - commitment by lit_choose Y.
+  affirm_proof - otherwise.
+  -> so every theorem is parsed modulo statements.
+
+  definition - assumptions identified as in axiom.
+  definition_statement:
+
+  classifier_def - canned - LET ... lit_is lit_a lit_classifier
+  
+  In the following we look for the copula or iff_junction first
+  then commit.
+  copula iff_junction not allowed in patterns.
+  type_def - pat copula general_type
+  function_def - pat copula plain_term
+  predicate_def - pat iff_junction statement
+
+  patterns:
+  type_token_pattern - TOKEN...
+  identifier_pattern - starts with blank or identifier
+  controlseq_pattern - CONTROLSEQ {x} {y} {z}
+  binary_controlseq_pattern - tvar controlseq_pattern tvar (no precedence spec)
+  function_token_pattern - THE TOKEN ...
+  symbol pattern - contains a symbol or controlseq (overlaps)
+
+  type_def vs. function_def
+  RHS of type_def is annotated_type (... : Type), which is easy to detect.
+
+
+  predicate_head: commit and split at iff_junction
+  symbol_pattern - has symbol or controlseq.
+  predicate_token_pattern - starts with tvar or var_multisubject
+    tvar IS...
+    var_multisubject ARE...
+    tvar TOKEN
+    var_multisubject TOKEN
+  identifier_pattern - starts with blank or identifier.
+    precedence given to identifier pattern over token pattern.
+  
+
+  
+
+  macro - whatever is left.  Each is a single sentence.
+
+  this_statement a separate text item?
+  commitment by initial LIT_THIS, following definition_statement
+
+(* Expr ******* *)
+
+EXPR - Can always be reduced to parsing demarcated term, type, prop.
+Lemma.  Given an expr and its start, its end can always be
+determined.
+
+Proof. It appears in control seq args, assigns expr SEMI,
+or as tightest_expr.
+
+parsing expr precedence.
+Try first as proof_expr, 
+then sort_expr (commit if it ends with lit_sort)
+then term, 
+then general_type, 
+then prop
+proof_expr. YES. SYMBOL_QED takes precedence.
+
+(* controlseq *)
+
+controlseq_term Y. It falls into several primitive cats, or is 
+  part of a new pattern.
+
+tightest_term:
+  NUMERIC Y.
+  STRING Y.
+  BLANK Y.
+  VAR Y.  (term variables precedence, all type and prop vars need to be contextualized)
+  prim_identifier_term Y.
+  controlseq_term Y.
+
+delimited_term:
+  paren(term) ? up to recursion
+  annotated_term ? up to recursion, with type still not parsed.
+
+  brace_terms:
+  make_term Y. rework to subsume record_assign, opt_args, 
+      over_args, where, structure.
+      internally contains expr, prop, still unknown.
+      Assume controlseq_term is already identified (with braced args).
+  set_comprehensision_term Y. has LIT_MID, internals unknown.
+  set_enum_term Y.  = everything else in braces.  
+    	note ambiguity: {x} = singleton = opt_args.
+
+  alt_term Y.
+
+
+(* synonyms *)
+Synonyms are handled in a preprocessing stage of each sentence.
+a synonym must be introduced before the macro/def pattern using it.
+So there is a chronology.
+
+Allow multiword synonyms.
+[synonym least upper bound/supremum]
+The relation is reflexive, symmetric, transitive.
+
+Restart.
+Because of chronology, synonym information always needs
+to be recorded in the prim_patterns, rather than in the text being parsed.
+WordPatIgnoreCase["least upper bound";"supremum"]; 
+strings are possibly multiword.
+HashKey=first word of first string in pattern.
+Single pattern is entered into hashtable several ways, if first word is
+a synonym.
+
+Parser scans first word in text, looks up all patterns on that key.
+Patterns on key are in a discrimination net, so redundant initial
+parses are carried out only once.
+
+
+old:
+When a token is encountered, its canonical form 
+is registered with the token (also keeping the original input).
+Patterns are stored using canonical forms.
+No! Patterns are stored with all forms.
+
+old:delete
+
+In multiword synonyms, they are always reduced in 
+a preprocessing step (that completely ignores syntax)
+of each sentence, that does a repeat left-to-right rewrite.
+"least upper bound" -> fresh-token
+"supremum" -> same fresh token.
+No! This breaks the chronology.
+
+
+
+
+

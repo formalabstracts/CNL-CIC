@@ -51,6 +51,8 @@
 % Local Defs for Coprime definition 
 \def\natdiv#1#2{{#1}\mathrel{|}{#2}}
 
+\parindent=0pt
+
 \begin{cnl}
 
 \Cnlinput{../Tex2CNL/package/cnlinit}
@@ -64,39 +66,33 @@ In this section, let $d,\ m,\ p,\ q$ be integers.
 
 %-% Definition
 
-\deflabel{divides}
-We say $d$ \df{divides} $m$ iff $d\ne 0$ and there exists $r$ such that $m= d\*r$.
-\end{definition}
+\dfn
+{We say $d$ \df{divides} $m$ iff $d\ne 0$ and there exists $r$ such that $m= d\*r$.}
 			
-We write  $\natdiv{d}{m}$ iff $d$ divides $m$.				
+We write  $\natdiv{d}{m}$ iff $d$ divides $m$.		
+		
 We say  $d$ is a \df{divisor of} $m$ iff $d$ divides $m$.
 
-\deflabel{common divisor}
- We say $d$ is a \df{common divisor} of $p$ and $q$  iff $d$ divides $p$  and $d$ divides $q$. 
-\end{definition}
+
+\dfn{We say $d$ is a \df{common divisor} of $p$ and $q$  iff $d$ divides $p$  and $d$ divides $q$.}
+
 
 \begin{remark}
 We now introduce the greatest common divisor: 
 \end{remark}
 
-\deflabel{greatest common divisor}
-We say $d$ is a \df{greatest common divisor} of $p$ and $q$  
+\dfn{We say $d$ is a \df{greatest common divisor} of $p$ and $q$  
 iff $d$ is a common divisor of $p$ and $q$ such that 
-for every common divisor $r$ of $p$ and $q$ we have $r\le d$.
-\end{definition}
+for every common divisor $r$ of $p$ and $q$ we have $r\le d$.}
 
-\deflabel{gcd notation}
-Assume $p,\ q$ are integers.  Then let $\h{\df{gcd}}\ p\ q$ be the greatest common divisor of $p$ and $q$. This exists and is unique. 
-\end{definition}
+\dfn{
+Let $\h{\df{gcd}}\ p\ q$ denote the greatest common divisor of $p$ and $q$. This exists and is unique.}
 
+\dfn
+{We say that $p,\ q$ are  \df{coprime} iff  $gcd\ p\ q =1$. }
 
-\deflabel{coprime}
-We say that $p,\ q$ are  \df{coprime} iff  $gcd(p,\ q)=1$. 
-\end{definition}
-
-\begin{remark}
-It is also said that $p,\ q$ are \df{relatively prime}.
-\end{remark}
+\dfn
+{We say that $p,\ q$ are \df{relatively prime} iff $p,\ q$ are coprime.}
 
 \end{cnl}
 

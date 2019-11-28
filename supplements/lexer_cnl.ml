@@ -199,17 +199,22 @@ let string = [%sedlex.regexp? '"', Star(string_item), '"']
 
 let alphabet = [%sedlex.regexp? 'a'..'z' | 'A'..'Z']
 
+let alphanum_nonblank = [%sedlex.regexp? alphabet | digit | "'"]
+
 let alphanum = [%sedlex.regexp? alphabet | digit | '_' | "'"]
              
 let controlseq = [%sedlex.regexp? '\\', Plus(alphabet)]
 
 let varlong = [%sedlex.regexp? alphabet, '_', '_', Star(alphanum)] (* mangling *)
 
-let identifier = [%sedlex.regexp? Plus(alphanum) ]          
+(* 
+   initial blank is reserved for internal use 
+*)
+let identifier = [%sedlex.regexp? alphanum_nonblank, Star(alphanum) ]          
 
 let hierarchical_identifier = [%sedlex.regexp? identifier, Plus('.', identifier) ]  
 
-let field_accessor = [%sedlex.regexp? Plus('.', identifier)]
+let field_accessor = [%sedlex.regexp? '.', identifier] (* was Plus('.',identifier) *)
 
 let tex2cnl_error = [%sedlex.regexp? "[TeX2CnlError", Star(white), string, Star(white), "]"]
 
@@ -297,6 +302,9 @@ let string_of_ints js =
 
 let string_lexeme buf = string_of_ints(lexeme buf)
 
+let remove_period s = 
+  String.concat "" (String.split_on_char '.' s)
+
 let lp = Sedlexing.lexing_positions 
 
 let mk f buf = { pos = lp buf; tok = f(string_lexeme buf) }
@@ -337,7 +345,7 @@ let rec lex_node buf =
     | rbrace -> mk (c R_BRACE) buf
     | comma -> mk (c COMMA) buf
     | semi -> mk (c SEMI) buf 
-    | field_accessor -> mk (fun t -> FIELD_ACCESSOR t) buf
+    | field_accessor -> mk (fun t -> FIELD_ACCESSOR (remove_period t)) buf
     | hierarchical_identifier -> mk (fun t -> HIERARCHICAL_IDENTIFIER t) buf
     | varlong -> mk (fun t -> VAR t) buf
     | symbolseq -> mk symbolkey buf
@@ -429,8 +437,8 @@ let lex_token_to_string_brief =
   | EOF -> "(EOF)"
   | UNKNOWN s -> s ^ " ?"
 
-(*
-let token_to_string = 
+
+let token_to_string_plain = 
 function
 | STRING s ->  "\""^s^"\""
 | CONTROLSEQ s -> "\\"^s
@@ -442,7 +450,7 @@ function
 | R_PAREN -> ")"
 | L_BRACE -> "{"
 | R_BRACE -> "}"
-| MAPSTO -> "\\mapsto"
+| MAPSTO -> "|->"
 | PERIOD -> "."
 | MID -> "|"
 | TMID -> "//"
@@ -450,10 +458,10 @@ function
 | SEMI -> ";"
 | COLON -> ":"
 | ASSIGN -> ":="
-| ARROW -> "\to"
+| ARROW -> "->"
 | BLANK -> "_"
 | ALT -> "|"
-| APPLYSUB -> "\\sb"
+| APPLYSUB -> "_"
 | SLASH -> "/"
 | SLASHDASH -> "/-"
 | COERCION -> "^"
@@ -462,10 +470,10 @@ function
 | QUANTIFIER s -> s
 | ATOMIC_IDENTIFIER s -> s
 | FIELD_ACCESSOR s -> s
-| EOF -> "EOF"
+| EOF -> "[EOF]"
 | UNKNOWN s -> s^"?"
 | _ -> failwith "token_to_string: not found"
- *)
+
 
 
 let rec lex_nodes acc buf = 
@@ -498,6 +506,10 @@ let string_of_toks ts =
   let ss = List.map (fun t -> lex_token_to_string_brief t) ts in 
   String.concat " " ss;;
 
+let string_of_toks_plain ts = 
+  let ss = List.map (fun t -> lex_token_to_string_brief t) ts in 
+  String.concat " " ss;;
+
 let rec print_tok = function
   | [] -> ()
   | t :: ts -> 
@@ -506,7 +518,7 @@ let rec print_tok = function
 let print_nodes_brief ns = 
   print_endline (string_of_toks (List.map (fun n -> n.tok) ns))
 
-let test_lex_string() = print_nodes (lex_string "lexer_cnl.ml" "A B C hello\\alpha33[1]there !ready! \\begin \\\\ \n Riemann-Hilbert %comment \n\n more #4 # 5  $ ))))))))");;
+let test_lex_string() = print_nodes (lex_string "lexer_cnl.ml" "A B C hello\\alpha33[1]there !ready! \\begin \\\\ \n Riemann-Hilbert %comment \n\n more #4 # 5  $ _id ))))))");;
               
 
 

@@ -1,0 +1,136 @@
+% Inititalization of CNL commands.
+% This file should be read inside \begin{cnl}...\end{cnl}
+% 
+
+%- reading cnlinit.tex file 
+
+% SECTIONS
+
+\CnlCustom[1]\parenI{ (#1) }
+\CnlCustom\*{*}
+\CnlCustom[1]\lsection{Section \concat{}{#1} .}
+\CnlCustom[1]\lsubsection{Subsection \concat{}{#1} .}
+\CnlCustom[1]\lsubsubsection{Subsubsection \concat{}{#1} .}
+\CnlCustom[1]\deflabel{\begin{definition}\label{#1}}
+\CnlCustom[1]\df{ #1 }
+\CnlCustom[1]\h{ #1 }
+\CnlCustom[1]\thm{Theorem. #1}
+\CnlCustom[1]\dfn{Definition. #1}
+
+
+% CUSTOM WORDS
+
+\CnlCustom\where{where}
+\CnlCustom\ifcond{if}
+\CnlCustom\otherwise{true}
+\CnlCustom\elsecond{else}
+\CnlCustom\where{where}
+\CnlCustom\Prop{Prop}
+\CnlCustom\Type{Type}
+\CnlCustom\Bool{Bool}
+\CnlCustom\iff{iff}
+\CnlCustom\match{match}
+\CnlCustom\function{function}
+\CnlCustom\Make{make}
+\CnlCustom\Nat{Nat}
+\CnlCustom\Real{Real}
+\CnlCustom\quot{quot}
+\CnlCustom\wherearg{where}
+\CnlCustom\fun{fun}
+
+
+\CnlCustom\assign{ \concat{}{:=} }
+\CnlCustom\cons{\concat{}{::}} 
+\CnlCustom\plural{\concat{}{/-}}
+\CnlCustom[2]\funmapsto{(fun #1 \assign #2)}
+%\funalign{A}&{\to}{B}\\{a}{\mapsto}{b}
+\CnlCustom[6]\funalign{(fun (#4 : #1) \assign (#6 : #3))}
+\CnlCustom\optarg{}
+\CnlCustom\etc{\_}
+\CnlCustom\prefix{\concat}
+\CnlCustom\cnlstop{.}
+\CnlCustom\matchitem{\alt}
+\CnlCustom\firstmatchitem{\alt}
+\CnlCustom[2]\caseif{#2 \assign #1}
+\CnlCustom[1]\caseotherwise{true \assign #1}
+\CnlCustom\rightarrow{\imply}
+%\CnlCustom\nullbrack{\concat{}{[]}}
+%\CnlNoExpand[1]\section
+
+
+
+% Prohibited control sequences. 
+% That is, they should remain outside the cnl environment.
+% We should list many TeX primitive control sequences here.
+
+% CNLERROR
+
+\CnlError\if
+\CnlError\else
+\CnlError\fi
+\CnlError\let
+\CnlError\futurelet
+\CnlError\afterassignment
+\CnlError\usepackage
+
+
+% CNLDELETE
+
+\CnlDelete\expandafter
+\CnlDelete[1]\interitem
+\CnlDelete\texstop
+\CnlDelete[1]\onlyTeX
+\CnlDelete[1]\phantom
+\CnlDelete\firstitem
+\CnlDelete\texstop
+\CnlDelete\texcomma
+% math modes and space
+\CnlDelete\ensuremath
+\CnlDelete\text
+\CnlDelete\thinmuskip
+\CnlDelete\medmuskip
+\CnlDelete\thickmuskip
+\CnlDelete\quad
+\CnlDelete\qquad
+\CnlDelete\,
+\CnlDelete\:
+\CnlDelete\;
+\CnlDelete\!
+\CnlDelete\ %space
+\CnlDelete\enspace
+\CnlDelete[1]\hspace
+\CnlDelete\hfil
+\CnlDelete\hfill
+\CnlDelete\thinspace
+\CnlDelete\left
+\CnlDelete\right
+\CnlDelete\big
+\CnlDelete\Big
+\CnlDelete\bigg
+\CnlDelete\Bigg
+\CnlDelete\allowdisplaybreaks
+%other  spacing
+\CnlDelete\noindent
+\CnlDelete\indent
+\CnlDelete[1]\vspace
+\CnlDelete\null
+\CnlDelete\break
+\CnlDelete\newline
+\CnlDelete\newpage
+\CnlDelete\vfil
+\CnlDelete\vfill
+\CnlDelete\smallskip
+\CnlDelete\medskip
+\CnlDelete\bigskip
+\CnlDelete[2]\rule
+\CnlDelete[1]\inmark
+
+% IGNORED ENVIRONMENTS 
+
+\CnlEnvirDelete{remark}
+\CnlEnvirDelete{demark}
+\CnlEnvirDelete{summary}
+\CnlEnvirDelete{tikzpicture}
+\CnlEnvirDelete{fancyvrb}
+
+%- end of cnlinit.tex

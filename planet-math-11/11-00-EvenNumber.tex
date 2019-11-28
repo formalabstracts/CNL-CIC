@@ -1,0 +1,81 @@
+\documentclass[12pt]{article}
+\usepackage{pmmeta}
+\pmcanonicalname{EvenNumber}
+\pmcreated{2013-03-22 13:56:29}
+\pmmodified{2019-11-14}
+\pmowner{mathcam}{2727}
+\pmmodifier{thales}{2727}
+\pmformalizer{miinguyen}{}  % Note this new field
+\pmtitle{even number}
+\pmrecord{10}{34703}
+\pmprivacy{1}
+\pmauthor{mathcam}{2727}
+\pmtype{Definition}
+\pmcomment{trigger rebuild}
+\pmclassification{msc}{11-00}
+\pmclassification{msc}{03-00}
+\pmrelated{NumberOdd}
+\pmdefines{odd number}
+\pmdefines{even integer}
+\pmdefines{odd integer}
+\pmdefines{even}
+\pmdefines{odd}
+
+\endmetadata
+
+% this is the default PlanetMath preamble.  as your knowledge
+% of TeX increases, you will probably want to edit this, but
+% it should be fine as is for beginners.
+
+% almost certainly you want these
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
+\usepackage{cnl}
+\usepackage{xcolor}
+
+
+
+% there are many more packages, add them here as you need them
+
+% define commands here
+\newcommand{\intpow}[2]{{#1}^{#2}}
+
+\begin{document}
+
+\parskip=\baselineskip
+
+\begin{cnl}
+\Cnlinput{../TeX2CNL/package/cnlinit}
+
+\bigskip
+
+
+In this section, let $k$, $r$ be integers.
+
+ 
+\dfn{We say that $k$ is \df{odd}  iff there exists an integer $r$ such that $k=2\* r+1$.}
+\dfn{We say that $k$ is \df{even} iff there exists an integer $r$ such that $k=2\* r$.}
+
+
+\begin{demark}
+The concept of even and odd numbers are most easily understood in 
+the binary base. Then the above definition simply states that even numbers end
+with a $0$, and odd numbers end with a $1$.
+\end{demark}
+
+\lsubsubsection{Properties}
+
+
+\begin{enumeratetext}
+\item \thm{Every integer is either even or odd.} \inmark{This can be proven
+using induction, or using the fundamental theorem of arithmetic.}
+\item \thm{Each integer $k$ is even  if and only if $\intpow{k}{2}$ is even.}
+\end{enumeratetext}
+
+
+\end{cnl}
+%%%%%
+%%%%%
+\end{document}

@@ -1,0 +1,123 @@
+Colada is a \emph{controlled natural language} for writing mathematics.
+
+This document is a specification and user manual for the Colada controlled natural language.
+
+\section{Introduction}
+
+The practice of mathematics is often described in ideal terms as a
+formal deductive system.  A precise language is specified.  The axioms
+of mathematics are written down in this language.  The permissible
+rules of logic are spelled out in complete detail. New definitions are
+built up systematically from previous definitions.  Theorems are
+proved in a series of deductions grounded in the axioms and rules of
+logic.  A mathematical proof that is carried out according to this
+ideal is called a formal proof.  
+
+
+There is a long history behind this style of doing mathematics, going
+back to early Greek mathematics (Thales, Pythagoreas, Euclid, \ldots).
+Various foundational systems (such as Zermelo Fraenkel Choice set
+theory or type theory) are adequate for large parts of mathematics as
+currently practiced.
+
+Progress over the centuries has culminated in software proof
+assistants.  These are software systems that verify each step of a
+formal proof.  Major proof assistants include Coq, Lean, HOL (in
+various dialects), and Mizar.  Mathematicians are generally aware
+of software proof assistants, but only rarely does a mathematician
+learn to formalize proofs in one of these
+systems.  Most users are still computer scientists and their students.
+
+
+The usual means of written communication of mathematicians depart
+significantly from this ideal and the vast majority of mathematical
+theorems are written in English (or some other natural langauge),
+typed into \TeX, and then typeset into pdf documents.  Sometimes mathematical research
+is supplemented with calculations in computer algebra systems or
+in other computational packages.
+
+The aim of this project is to narrow the gap between the proof
+assistant and current mathematical written communication.
+
+
+By a controlled natural language for mathematics (CNL), we mean
+an artificial language for the communication of mathematics that
+\begin{itemize}
+  \item is deliberately designed with precise computer-readable syntax
+    and semantics,
+    \item is based on a single natural language (which
+      for us will be English),
+      \item and is broadly understood at least
+in an intuitive way by mathematically literate speakers of
+the natural language.
+\end{itemize}
+
+
+
+
+Some of design goals for this language have been
+\begin{itemize}
+\item Writing documents in this language
+  should be similar to writing \LaTeX.
+\item Reading documents in this language should be similar to reading
+  ordinary mathematical texts typeset in \LaTeX.  A short explanation
+  should be all that is needed to explain the special conventions of
+  the language.
+\item The logical and mathematical foundations of the system are
+  provided by the Calculus of Inductive Constructions (CiC) as
+  implemented in the Lean theorem prover.  Documents written in the
+  language should compile to CiC.
+\end{itemize}
+
+
+
+
+
+
+
+
+
+\section{Lexical Structure}
+
+The character set for Colada is ASCII.  However, future
+versions of the language will use unicode (UTF8) characters.
+
+\subsection{Character Categories}
+
+Characters are divided into the following categories.
+
+Comment: \% 
+
+Whitespace: (space) (tab) (linefeed) (carriagereturn).
+
+Alphabet: a-Z, A-Z.
+
+Digit: 0-9.
+
+Alphanumeric: alphabet, digit, and ' \_
+
+Punctuation: . ; ,
+
+Delimiter: ( ) [ ] { }
+
+ControlCharacter $\backslash$
+
+Symbol:  All other ASCII characters.
+
+
+\section{Control Sequences}
+
+\section{}
+
+\section{Patterns}
+
+
+\section{The Calculus of Inductive Constructions}
+
+
+\section{Converting \TeX\ to Colada}
+
+\section{preprocessing \TeX}
+
+\section{Sample Texts}
+

@@ -33,6 +33,8 @@
 	
 % Local Defs 
 \def\natdiv#1#2{{#1}\mathrel{|}{#2}}
+\def\factorial#1{{#1!}}
+\parindent=0pt
 	
 \begin{cnl}
 		
@@ -46,24 +48,28 @@
 		
 In this section, let $d,\ m,\ p$ be integers.
 		
-\deflabel{divides}
+\dfn{
 We say that $d$ \df{divides} $m$ iff $d\ne 0$ and there exists an integer $r$ such that $m= d\*r$.
-\end{definition}
+}
+
+\dfn{
+We say that $d$ is \df{positive} iff $d > 0$.
+}
 	
-\deflabel {divides-notation}
+\dfn{
 We write  $\natdiv{d}{m}$ iff $d$ divides $m$.	
-\end{definition}
+}
 
-\deflabel {divisor}
+\dfn{
 We say  $d$ is a \df{divisor} of $m$ iff $d$ divides $m$. 
-\end{definition}
+}
 
-\deflabel{prime}
+\dfn{
 Assume that $p$ is an integer greater than $1$.  Then we say that $p$
-is a \df{prime} iff each divisor of $p$ is either equal to $1$ or equal to $p$.
-\end{definition}
+is a \df{prime} iff each positive divisor of $p$ is either equal to $1$ or equal to $p$.
+}
 
-\deflabel{factorial}
+\dfn{
 Assume that $n$ is a natural number.  Then we define
 $\factorial{n}\assign$
 \par$\match\ n$ with
@@ -72,12 +78,12 @@ $\factorial{n}\assign$
 \matchitem $m + 1$ &$\assign$& $(m+1) \* \factorial{m}$\texstop
 \end{envMatch}\cnlstop
 This exists by recursion.
-\end{definition}
+}
 
-\deflabel{factorial prime}
+\dfn{
 Assume that $p$ is a prime.  Then we say that $p$
-is a \df{factorial prime} iff there exists a natural number $n$ such that $p$ is either equal to $\factorial {n}+ 1 $ or equal to $\factorial {n} - 1 $.
-\end{definition}
+is a \df{factorial prime} iff there exists a natural number $n$ such that $p$ is equal to $\factorial {n}+ 1 $ or $p$ equal to $\factorial {n} - 1 $.
+}
 
 \begin{remark}
 The first few factorial primes are: 2, 3, 5, 7, 23, 719, 5039, 39916801, 479001599, 87178291199 (sequence A088054 in the OEIS). It is conjectured that only for $n = 3$ are both $n! - 1$ and $n! + 1$ both primes.
