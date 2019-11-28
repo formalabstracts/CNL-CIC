@@ -138,12 +138,12 @@ let set_scope_current(is_end,new_length,label) =
 let prim_scope = 
   function 
   | Prim_classifier (scope,_) -> scope 
-  | Prim_term_op_controlseq (scope,_,_,_,_,_) -> scope
-  | Prim_binary_relation_controlseq (scope,_,_,_,_,_) -> scope
-  | Prim_propositional_op_controlseq (scope,_,_,_,_,_) -> scope
-  | Prim_type_op_controlseq (scope,_,_,_,_) -> scope
-  | Prim_term_controlseq (scope,_,_,_,_ ) -> scope
-  | Prim_type_controlseq (scope,_,_,_,_ ) -> scope
+  | Prim_term_op_controlseq (scope,_,_,_,_) -> scope
+  | Prim_binary_relation_controlseq (scope,_,_,_) -> scope
+  | Prim_propositional_op_controlseq (scope,_,_,_,_) -> scope
+  | Prim_type_op_controlseq (scope,_,_,_) -> scope
+  | Prim_term_controlseq (scope,_,_) -> scope
+  | Prim_type_controlseq (scope,_,_) -> scope
   | Prim_lambda_binder (scope,_,_ ) -> scope
   | Prim_pi_binder (scope,_,_ ) -> scope
   | Prim_binder_prop (scope,_,_ ) -> scope
@@ -173,12 +173,12 @@ let prim_scope =
   | Prim_field_type_accessor(scope,_) -> scope
 
 let prim_string = function
-  | Prim_term_op_controlseq (_,string,_,_,_,_) -> string
-  | Prim_binary_relation_controlseq (_,string,_,_,_,_) -> string
-  | Prim_propositional_op_controlseq (_,string,_,_,_,_) -> string
-  | Prim_type_op_controlseq (_,string,_,_,_) -> string
-  | Prim_term_controlseq (_,string,_,_,_ ) -> string
-  | Prim_type_controlseq (_,string,_,_,_ ) -> string
+  | Prim_term_op_controlseq (_,Pat_controlseq(string,_),_,_,_) -> string
+  | Prim_binary_relation_controlseq (_,Pat_controlseq(string,_),_,_) -> string
+  | Prim_propositional_op_controlseq (_,Pat_controlseq(string,_),_,_,_) -> string
+  | Prim_type_op_controlseq (_,Pat_controlseq(string,_),_,_) -> string
+  | Prim_term_controlseq (_,Pat_controlseq(string,_),_) -> string
+  | Prim_type_controlseq (_,Pat_controlseq(string,_),_) -> string
   | Prim_lambda_binder (_,string,_ ) -> string
   | Prim_pi_binder (_,string,_ ) -> string
   | Prim_binder_prop (_,string,_ ) -> string
@@ -193,6 +193,13 @@ let prim_string = function
   | _ -> failwith "prim_string: string expected" 
 
 let prim_pattern = function 
+  | Prim_term_op_controlseq (_,pattern,_,_,_) -> pattern
+  | Prim_binary_relation_controlseq (_,pattern,_,_) -> pattern
+  | Prim_propositional_op_controlseq (_,pattern,_,_,_) -> pattern
+  | Prim_type_op_controlseq (_,pattern,_,_) -> pattern
+  | Prim_term_controlseq (_,pattern,_) -> pattern
+  | Prim_type_controlseq (_,pattern,_) -> pattern
+
   | Prim_typed_name (_,pattern,_,_) -> pattern
   | Prim_relation (_,pattern,_,_ ) -> pattern
   | Prim_adjective_multisubject (_,pattern,_,_) -> pattern
@@ -212,7 +219,7 @@ let prim_find_all_inscope tbl key =
 
 let prim_add tbl (key,value) = 
   warn (not (prim_find_all_inscope tbl key = []))
-    ("primitive already declared: "^key); 
+    ("prim_add failure; primitive already declared: "^key); 
     Hashtbl.add tbl key value
 
 let prim_add_force tbl (key,value) = 
@@ -511,9 +518,60 @@ let add_used_word ls =
 let add_master_list() = 
     add_used_word (frozen_list @ preposition_list)
 
-let process_fiat = 
-  let sc = get_current_scope() in 
+let rec process_wp_syn = 
+  function 
+  | Wp_synonym ss :: tl -> 
+      let _ = List.length ss > 1 || 
+                failwith ("process_wp_syn: at least 2 words needed in "^String.concat " " ss) in 
+      syn_add ss; process_wp_syn tl
+  | Wp_list (c,ws) :: tl -> 
+      let ws' = process_wp_syn ws in 
+      let tl' = process_wp_syn tl in 
+      if ws' = [] then tl' else Wp_list(c,ws') :: tl'
+  | t :: tl  -> t :: process_wp_syn tl
+  | [] -> []
+
+let get_fiat_var = 
   function
+  | Wp_var (CVar(s,ExNone,false)) -> 
+      (match s with
+      | "t" -> Pat_var_term
+      | "T" -> Pat_var_type
+      | "p" -> Pat_proof
+      | "P" -> Pat_var_prop
+      | _ -> failwith ("get_fiat_var:bad variable name "^s)
+      ) 
+  | wp -> failwith ("get_fiat_var:bad variable pattern "^show_wordpattern wp)
+
+let convert_fiat_pat = 
+  function 
+  | Wp_var _ as w -> get_fiat_var w 
+  | Wp_list(Wpc_cs,Wp_csname s :: w) -> 
+      let w' = List.map get_fiat_var w in 
+      Pat_controlseq(s,w')
+  | _ -> failwith ("convert_fiat_pat")
+
+(* The patterns are set up currently to start at the very
+   beginning, including material before the key. *)
+let process_fiat wp = 
+  let prim_pat tl = 
+    Pat_sequence (List.map convert_fiat_pat tl) in     
+  let rec first_csname  = 
+    function 
+    | Wp_list(_,Wp_csname s :: _)::_ -> s 
+    | _ :: tl -> first_csname tl 
+    | [] -> failwith "first_csname not found" in 
+  let rec first_word  = 
+    function 
+    | Wp_wd s :: _ -> s 
+    | _ :: tl -> first_word tl 
+    | [] -> failwith "first_word not found" in 
+
+  
+  let sc = get_current_scope() in 
+  let wps' = process_wp_syn [wp] in
+  if wps' = [] then () 
+  else match List.hd wps' with 
   | Wp_classifier cs -> 
       ignore(List.map 
                (fun ss -> 
@@ -521,8 +579,87 @@ let process_fiat =
                       let _ = ss <> [] || failwith ("empty classifier "^s) in 
                       prim_add_force prim_classifier_tbl (List.hd ss,Prim_classifier(sc,s))) 
                cs)
-(*  | Wp_symbolpat(ws,p) ->  
-      prim_add prim_term_op_controlseq_tbl (sc,s,n, *)
-      
+  | Wp_list(Wpc_term_op_controlseq,Wp_prec(i,p)::tl) ->
+      let pat = prim_pat tl in 
+
+      prim_add prim_term_op_controlseq_tbl (first_csname tl,Prim_term_op_controlseq(sc,pat,(i,p),Blank,[]))
+  | Wp_list(Wpc_binary_relation_controlseq,tl) -> 
+      let pat = prim_pat tl in 
+      prim_add prim_binary_relation_controlseq_tbl
+        (first_csname tl,Prim_binary_relation_controlseq(sc,pat,PNone,[]))
+  | Wp_list(Wpc_propositional_op_controlseq,Wp_prec(i,p)::tl) ->
+      let pat = prim_pat tl in 
+      prim_add prim_propositional_op_controlseq_tbl
+        (first_csname tl,Prim_propositional_op_controlseq(sc,pat,(i,p),PNone,[]))
+  | Wp_list(Wpc_type_op_controlseq,tl) ->
+      let pat = prim_pat tl in 
+      prim_add prim_type_op_controlseq_tbl
+        (first_csname tl,Prim_type_op_controlseq(sc,pat,Blank,[]))
+  | Wp_list(Wpc_term_controlseq,Wp_prec(_,_) :: tl) -> 
+      let tl' = List.map convert_fiat_pat tl in 
+      prim_add prim_term_controlseq_tbl
+      (first_csname tl,Prim_term_controlseq(sc,Pat_sequence tl',Blank))
+  | Wp_list(Wpc_type_controlseq,tl) -> 
+      let tl' = List.map convert_fiat_pat tl in 
+      prim_add prim_type_controlseq_tbl
+      (first_csname tl,Prim_type_controlseq(sc,Pat_sequence tl',TyNone))
+  | Wp_list(Wpc_lambda_binder,tl) -> 
+      let s = first_csname tl in
+      prim_add prim_lambda_binder_tbl (s,Prim_lambda_binder(sc,s,Blank))
+  | Wp_list(Wpc_pi_binder,tl) -> 
+      let s = first_csname tl in
+      prim_add prim_pi_binder_tbl (s,Prim_pi_binder(sc,s,TyNone))
+  | Wp_list(Wpc_binder_prop,tl) -> 
+      let s = first_csname tl in
+      prim_add prim_binder_prop_tbl (s,Prim_binder_prop(sc,s,PNone))
+  | Wp_list(Wpc_adj,tl) ->
+      let s = first_word tl in 
+      let pat = prim_pat tl in 
+      prim_add prim_adjective_tbl (s,Prim_adjective(sc,pat,PNone,[]))
+  | Wp_list(Wpc_adjM,tl) ->
+      let s = first_word tl in 
+      let pat = prim_pat tl in 
+      prim_add prim_adjective_multisubject_tbl 
+        (s,Prim_adjective_multisubject(sc,pat,PNone,[]))
+  | Wp_list(Wpc_simple_adj,tl) ->
+      let s = first_word tl in 
+      let pat = prim_pat tl in 
+      prim_add prim_simple_adjective_tbl 
+        (s,Prim_simple_adjective(sc,pat,PNone,[]))
+  | Wp_list(Wpc_simple_adjM,tl) ->
+      let s = first_word tl in 
+      let pat = prim_pat tl in 
+      prim_add prim_simple_adjective_multisubject_tbl 
+        (s,Prim_simple_adjective_multisubject(sc,pat,PNone,[]))
+  | Wp_list(Wpc_definite_noun,tl) -> 
+      let s = first_word tl in 
+      let pat = prim_pat tl in 
+      prim_add prim_definite_noun_tbl 
+        (s,Prim_definite_noun(sc,pat,Blank,[]))
+  | Wp_identifier(Wpc_identifier_term,s,_,_) -> 
+      prim_add prim_identifier_term_tbl 
+        (s,Prim_identifier_term(sc,s,Blank,[]))
+  | Wp_identifier(Wpc_identifier_type,s,_,_) -> 
+      prim_add prim_identifier_type_tbl 
+        (s,Prim_identifier_type(sc,s,TyNone,[]))
+
+(*  
+  | Wp_list(Wpc_typed_name,tl)
+  | Wp_list(Wpc_possessed_noun,tl)
+ *)
+
+
+(*
+  | Wp_list(Wpc_verb,tl) -> 
+  | Wp_list(Wpc_verbM,) ->
+  | Wp_list(Wpc_structure,tl)
+  | Wp_list(Wpc_type_op,tl)
+  | Wp_list(Wpc_type_word,tl)
+  | Wp_list(Wpc_term_op,tl)
+  | Wp_list(Wpc_binary_relation_op,tl)
+  | Wp_list(Wpc_propositional_op,tl)
+  | Wp_list(Wpc_prim_relation,tl) *)
+
+  | Wp_list(c,_) -> failwith ("process_fiat not installed "^show_wordpattern_class c)
   | _ -> ()
 

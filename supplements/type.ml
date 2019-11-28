@@ -96,6 +96,7 @@ and prop =
   | PApp of prop * (expr * expr) list * expr list
   | PLambda of expr list * expr list * prop
   | PBinder of prim * expr list * expr list * prop
+  | PNone 
 
 and context = 
   | CVar of string * expr * bool (* name, type-expr, true<->fixed *)
@@ -208,8 +209,6 @@ and scope = string list (* hierarchical identifiers *)
 
 and precedence = int option * associativity 
 
-and numbracearg = int 
-
 and prim = 
   (*
     the string field = the key = name of primitive word, controlseq, or symbol. 
@@ -219,21 +218,22 @@ and prim =
     all cs primitives are 0-ary or 2-ary (as infix, not referring to braceargs) 
 
     Ordering of fields is as follows:
-    scope, cs string, numbraceargs, precedence-assoc, def (term,typ,etc. as appropriate), free vars  
+    scope, pattern=Pat_controlseq(csstring,args), 
+    precedence-assoc, def (term,typ,etc. as appropriate), free vars  
 
    *)
 
   (* -- controlseq *)
   | Prim_classifier of scope * string (* phrase without first word, which is the key *)
-  | Prim_term_op_controlseq of scope * string * numbracearg * precedence * term * term list
-  | Prim_binary_relation_controlseq of scope * string * numbracearg * prop * term * term list
+  | Prim_term_op_controlseq of scope * pattern * precedence * term * term list
+  | Prim_binary_relation_controlseq of scope * pattern * prop * term list
   | Prim_propositional_op_controlseq of 
-      scope * string * numbracearg * precedence * prop * term list 
+      scope * pattern * precedence * prop * prop list 
   (* -- 2-ary fixed prec, right assoc. *)
-  | Prim_type_op_controlseq of scope * string * numbracearg * term * term list
+  | Prim_type_op_controlseq of scope * pattern * term * term list
   (* -- 0-ary, i.e. only brace args *)
-  | Prim_term_controlseq of scope * string * numbracearg * term * term list 
-  | Prim_type_controlseq of scope * string * numbracearg * typ * expr list 
+  | Prim_term_controlseq of scope * pattern * term 
+  | Prim_type_controlseq of scope * pattern * typ 
 
   (* -- binders *)
   | Prim_lambda_binder of scope * string * term 
@@ -285,6 +285,8 @@ type this_adj =
 type wordpattern_class = 
   | Wpc_adj
   | Wpc_adjM
+  | Wpc_simple_adj
+  | Wpc_simple_adjM
   | Wpc_verb
   | Wpc_verbM
   | Wpc_ty_word 
@@ -292,12 +294,34 @@ type wordpattern_class =
   | Wpc_notion 
   | Wpc_symbolpatT 
   | Wpc_inferring 
-  | Wpc_binder 
   | Wpc_symbolpat 
   | Wpc_symbolpatP 
   | Wpc_cs 
-  | Wpc_ty_cs 
+  | Wpc_type_controlseq  
   | Wpc_bin_cs 
+  | Wpc_term_op_controlseq
+  | Wpc_binary_relation_controlseq
+  | Wpc_propositional_op_controlseq
+  | Wpc_type_op_controlseq
+  | Wpc_term_controlseq
+  | Wpc_lambda_binder 
+  | Wpc_pi_binder 
+  | Wpc_binder_prop 
+  | Wpc_definite_noun
+  | Wpc_typed_name
+  | Wpc_possessed_noun
+  | Wpc_type_op
+  | Wpc_type_word
+  | Wpc_term_op
+  | Wpc_binary_relation_op
+  | Wpc_propositional_op
+  | Wpc_prim_relation
+
+  | Wpc_identifier_type 
+  | Wpc_identifier_term
+  | Wpc_identifier_pred 
+  | Wpc_structure
+
 [@@deriving show]
 
 type wordpattern = 
@@ -316,9 +340,9 @@ type wordpattern =
   | Wp_ty_cs of string * wordpattern list
   | Wp_bin_cs of wordpattern * string * wordpattern list * wordpattern
  *)
-  | Wp_ty_identifier of string * expr list * expr list
-  | Wp_identifier of string * expr list * expr list
-  | Wp_identifierP of string * expr list * expr list
+  | Wp_identifier of wordpattern_class * string * expr list * expr list
+(*  | Wp_identifier_term of string * expr list * expr list
+  | Wp_identifierP of string * expr list * expr list *)
   | Wp_classifier of string list list 
   | Wp_namespace of string
   | Wp_record of expr list * this_adj list
