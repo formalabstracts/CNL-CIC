@@ -1,0 +1,31 @@
+# script followed for checking pull request
+# commit changes branch is up to date.
+# checkout pull request 
+
+user='chaunth2019'
+git checkout -b $user-master master
+git pull https://github.com/$user/CNL-CIC.git master
+grep -l '.\{80\}' *.tex
+
+filename='11P32-LevysConjecture'
+latex $filename.tex
+
+
+ dvipdf $filename.dvi
+/usr/bin/qlmanage -p $filename.pdf
+../TeX2CNL/_build/default/main.exe $filename.tex  > ~/Desktop/temp.cnl
+../supplements/_build/default/main.exe ~/Desktop/temp.cnl 
+
+
+grep -i pmcanonicalname $filename.tex 
+# -> \pmcanonicalname{SternPrime}
+
+open https://planetmath.org/$(grep pmcanonicalname $filename.tex | tr "{}\\" " " | cut -d" " -f3)
+
+# merging pull request.
+git checkout master
+git merge --no-ff $user-master
+git push origin master
+
+# deleting old branch
+git branch -d $user-master
