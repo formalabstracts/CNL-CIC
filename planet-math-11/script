@@ -7,7 +7,7 @@ git checkout -b $user-master master
 git pull https://github.com/$user/CNL-CIC.git master
 grep -l '.\{80\}' *.tex
 
-filename=' '
+filename='11P32-LevysConjecture'
 latex $filename.tex
 
 
