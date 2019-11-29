@@ -1,0 +1,20 @@
+# script followed for checking pull request
+# commit changes branch is up to date.
+# checkout pull request 
+
+git checkout -b chaunth2019-master master
+git pull https://github.com/chaunth2019/CNL-CIC.git master
+grep -l '.\{80\}' *.tex
+latex filename.tex
+ dvipdf filename.dvi
+/usr/bin/qlmanage -p filename.pdf
+../TeX2CNL/_build/default/main.exe filename.tex  > ~/Desktop/temp.cnl
+../supplements/_build/default/main.exe ~/Desktop/temp.cnl 
+
+# merging pull request.
+git checkout master
+git merge --no-ff chaunth2019-master
+git push origin master
+
+# deleting old branch
+git branch -d chaunth2019-master
