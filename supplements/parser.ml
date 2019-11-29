@@ -614,7 +614,7 @@ let lit_we_record =
     possibly(phrase "as identification") ++
     possibly (word "that")
 
-let lit_exists = someword "exist exists"
+let lit_exists = word "exist"
 
 let lit_lets = 
   (word "let" ++ possibly (word "us")) |||
@@ -884,7 +884,7 @@ let this_directive_right_attr =
   (phrase "by recursion" >> (fun _ -> This "Recursion"))
 
 let this_directive_verb = 
-  (word "exists" ++ possibly(this_directive_right_attr) >>
+  (word "exist" ++ possibly(this_directive_right_attr) >>
      fun (_,ts) -> This "Exist" :: ts)
 
 let this_directive_pred = 
@@ -893,7 +893,7 @@ let this_directive_pred =
     (group "this_directive_verb" this_directive_verb)
 
 let this_exists = (* no period *)
-  commit "this_exists" (word "this" ++ someword "exists is")
+  commit "this_exists" (word "this" ++ someword "exist is")
   (getpos ++ word "this" ++ group "and_comma_nonempty_list" (and_comma_nonempty_list(this_directive_pred)) ++ getpos >>
      (fun (((p,_),ls),p') -> (pair_pos (p,p'),flatten ls)))
 
@@ -1138,17 +1138,17 @@ let word_pattern = group "word_pattern"
 
 let type_word_pattern = possibly(lit_a) ++ word_pattern >> (fun (_,bs) -> Wp_list(Wpc_ty_word,bs))
 
-let function_word_pattern = 
+let function_word_pattern wpc = 
   word("the") ++ word_pattern >> 
-    (fun (_,w) -> Wp_list(Wpc_fun_word, w))
+    (fun (_,w) -> Wp_list(wpc, w))
 
 let notion_pattern = 
   tvarpat ++ word "is" ++ lit_a ++ word_pattern
   >> (fun (((v,_),_),w) -> Wp_list(Wpc_notion, (v::w) ))
                               
-let adjective_pattern = 
+let adjective_pattern wpc = 
   tvarpat ++ word "is" ++ possibly (word "called") ++ word_pattern
-  >> (fun (((a,_),_),b) -> Wp_list(Wpc_adj, (a ::b)) )
+  >> (fun (((a,_),_),b) -> Wp_list(wpc, (a ::b)) )
 
 let var_multisubject_pat = 
   tvarpat ++ a(COMMA) ++ tvarpat >> (fun ((a,_),c) -> a,c) |||
@@ -1158,9 +1158,9 @@ let var_multisubject_pat =
               (wp_var(v,Etyp e),wp_var(v',Etyp e)))
     )
 
-let adjective_multisubject_pattern =
+let adjective_multisubject_pattern wpc =
   var_multisubject_pat ++ word "are" ++ possibly(word "called") ++ word_pattern 
-  >> (fun ((((v,v'),_),_),w) -> Wp_list(Wpc_adjM, (v :: v' ::w)))
+  >> (fun ((((v,v'),_),_),w) -> Wp_list(wpc, (v :: v' ::w)))
 
 let verb_pattern = 
   tvarpat ++ word_pattern 
@@ -1172,8 +1172,8 @@ let verb_multisubject_pattern =
 
 let predicate_word_pattern =
   notion_pattern 
-  ||| adjective_pattern
-  ||| adjective_multisubject_pattern
+  ||| adjective_pattern  Wpc_adj
+  ||| adjective_multisubject_pattern Wpc_adjM
   ||| verb_pattern
   ||| verb_multisubject_pattern
 
@@ -1214,10 +1214,6 @@ let args_template =
 
 (* *)
 
-let identifier_pattern = group "identifier_pattern"
-  (possibly(lit_a) ++ (must (not_banned -| tok)  identifier ||| a(BLANK)) ++
-    group "args_template" args_template)
-
 let controlseq = some(function | CONTROLSEQ _ -> true | _ -> false)
 
 let the_controlseq s = some(function | CONTROLSEQ s' -> (s=s') | _ -> false)
@@ -1253,9 +1249,9 @@ let precedence_level =
          | "right" -> AssocRight 
          | _ -> AssocNone)
     | _ -> AssocNone) -| tok in
-  word "with" ++ word "precedence" ++ integer ++
+  (word "with" ++ word "precedence") ++ integer ++
     possibly(word "and" ++ lit_left ++ word "associativity") >>
-    (fun (((_,_),i),bs) -> 
+    (fun ((_,i),bs) -> 
            let a = (function 
              | [] -> AssocNone
              | ((_,l),_) :: _ -> assoc l) bs in 
@@ -1354,17 +1350,24 @@ let classifier_def = group "classifier_def"
 let symbol_type_pattern = 
     (symbol_pattern >> (fun (a,_,_) -> Wp_list(Wpc_symbolpatT,a)))
 
-let identifier_type_pattern = 
-    (identifier_pattern >> (fun ((_,a),(b,c)) -> Wp_ty_identifier (stored_string a,b,c)))
+let identifier_pattern wpc = 
+  group "identifier_pattern"
+    (possibly(lit_a) ++ (must (not_banned -| tok)  identifier ||| a(BLANK)) ++
+       group "args_template" args_template)
+  >> (fun ((_,a),(b,c)) -> Wp_identifier(wpc,stored_string a,b,c))
+
+(* let identifier_term_pattern = identifier_pattern Wpc_identifier_term  *)
+
+(* let identifier_predicate_pattern = identifier_pattern Wpc_identifier_pred  *)
 
 let controlseq_type_pattern =     
-  (controlseq_pattern >> (fun (a,b) -> Wp_list(Wpc_ty_cs, (Wp_csname(stored_string a) :: b))))
+  (controlseq_pattern >> (fun (a,b) -> Wp_list(Wpc_type_controlseq, (Wp_csname(stored_string a) :: b))))
 
 let type_head = 
   group "type_word_pattern" 
     type_word_pattern 
   ||| symbol_type_pattern
-  ||| identifier_type_pattern 
+  ||| identifier_pattern Wpc_identifier_type
   ||| controlseq_type_pattern
 
 let type_def_copula = 
@@ -1387,16 +1390,13 @@ let type_def = group "type_def"
    ++ balanced ++ phantom (a(PERIOD))) >>
     (fun ((((_,a),_),b),_) -> [(a,b)])
 
-let symbol_term_pattern = 
-  (symbol_pattern >> (fun (a,b,c) -> Wp_list(Wpc_symbolpat,Wp_prec(b,c):: a)))
-
-let identifier_term_pattern = 
-  (identifier_pattern >> (fun ((_,a),(b,c)) -> Wp_identifier (stored_string a,b,c)))
+let symbol_term_pattern wpc = 
+  (symbol_pattern >> (fun (a,b,c) -> Wp_list(wpc,Wp_prec(b,c):: a)))
 
 let function_head = 
-  function_word_pattern 
-   ||| symbol_term_pattern 
-   ||| identifier_term_pattern
+  function_word_pattern Wpc_ty_word
+   ||| (symbol_term_pattern Wpc_symbolpat)
+   ||| identifier_pattern Wpc_identifier_term
 
 let wp_infer (h,m) = 
   if m=[] then h else Wp_list(Wpc_inferring,h :: m)
@@ -1410,14 +1410,11 @@ let function_def head = group "function_def"
      group "balanced" balanced  ++ phantom  (a(PERIOD))   ) >>
     (fun ((((((_,h),_),_),_),b),_) -> [(h,b)])
 
-let identifier_predicate_pattern = 
-  (identifier_pattern >> (fun ((_,a),(b,c)) -> Wp_identifierP (stored_string a,b,c)))
-
 let identifier_symbol_pattern = 
   (symbol_pattern >> (fun (a,b,c) -> Wp_list(Wpc_symbolpatP,Wp_prec(b,c)::a)))
 
 let predicate_head = 
-  identifier_predicate_pattern
+  identifier_pattern Wpc_identifier_pred
   ||| predicate_word_pattern 
   ||| identifier_symbol_pattern 
 
@@ -1427,14 +1424,14 @@ let predicate_def = group "predicate_def"
   ++ balanced ++ phantom (a(PERIOD)))
   >> (fun (((((_,h),m),_),b),_) -> [(wp_infer(h,m),b)])
 
-let binder_pattern = 
+let binder_pattern wpc = 
   symbol ++ paren(var ++ opt_colon_sort 
                   >> wp_var) (* : Term -> Prop, Term -> Type, Term -> Term, etc. *)
-  >> (fun (s,wp) -> Wp_list(Wpc_binder,[s;wp]))
+  >> (fun (s,wp) -> Wp_list(wpc,[s;wp]))
 
 let binder_def = 
   commit_head "binder_def" (phrase "let the binder")
-  (fun h -> h ++ binder_pattern
+  (fun h -> h ++ (binder_pattern Wpc_lambda_binder)
    ++ lit_denote
    ++ group "balanced" balanced ++ phantom (a PERIOD)
   )
@@ -1519,64 +1516,72 @@ let fiat_preamble =
 let fiat_prim_classifier = 
   classifier_def >> unzip >> fst
 
+(* In fiat, variables are always t (term), T (type), p (proof), P (prop) *)
+
 let fiat_prim_term_op_controlseq = 
   comma_nonempty_list (binary_symbol_pattern 
-                       >> (fun (a,b,c) -> Wp_list(Wpc_symbolpat,Wp_prec(b,c):: a)))
+                       >> (fun (a,b,c) -> Wp_list(Wpc_term_op_controlseq,Wp_prec(b,c):: a)))
 
 let fiat_prim_binary_relation_controlseq = 
   comma_nonempty_list (binary_symbol_pattern 
-                       >> (fun (a,b,c) -> Wp_list(Wpc_symbolpatP,Wp_prec(b,c):: a)))
+                       >> (fun (a,b,_) -> 
+                                 let _ = (b = None) || 
+                                           failwith "fiat_prim_binary_relation_controlseq" in 
+                                 Wp_list(Wpc_binary_relation_controlseq,a)))
 
 let fiat_prim_propositional_op_controlseq = 
   comma_nonempty_list (binary_symbol_pattern 
-                       >> (fun (a,b,c) -> Wp_list(Wpc_symbolpatP,Wp_prec(b,c):: a)))
+                       >> (fun (a,b,c) -> Wp_list(Wpc_propositional_op_controlseq,Wp_prec(b,c):: a)))
 
 let fiat_prim_type_op_controlseq = 
   comma_nonempty_list (binary_symbol_pattern 
-                       >> (fun (a,_,_) -> Wp_list(Wpc_symbolpatT, a)))
+                       >> (fun (a,b,_) -> 
+                                 let _ = (b = None) || 
+                                           failwith "fiat_prim_type_op_controlseq" in 
+                                 Wp_list(Wpc_type_op_controlseq, a)))
 
 let fiat_prim_term_controlseq = 
-  comma_nonempty_list symbol_term_pattern
+  comma_nonempty_list (symbol_term_pattern Wpc_term_controlseq)
 
 let fiat_prim_type_controlseq = 
   comma_nonempty_list controlseq_type_pattern
 
 let fiat_prim_lambda_binder = 
-  comma_nonempty_list binder_pattern
+  comma_nonempty_list (binder_pattern Wpc_lambda_binder)
 
 let fiat_prim_pi_binder = 
-  comma_nonempty_list binder_pattern
+  comma_nonempty_list (binder_pattern Wpc_pi_binder)
 
 let fiat_prim_binder_prop = 
-  comma_nonempty_list binder_pattern
+  comma_nonempty_list (binder_pattern Wpc_binder_prop)
 
 let fiat_prim_adjective = 
-  comma_nonempty_list adjective_pattern 
+  comma_nonempty_list (adjective_pattern Wpc_adj)
 
 let fiat_prim_adjective_multisubject = 
-  comma_nonempty_list adjective_multisubject_pattern 
+  comma_nonempty_list (adjective_multisubject_pattern Wpc_adjM)
 
 let fiat_prim_simple_adjective = 
-  comma_nonempty_list adjective_pattern 
+  comma_nonempty_list (adjective_pattern Wpc_simple_adj)
 
 let fiat_prim_simple_adjective_multisubject = 
-  comma_nonempty_list adjective_multisubject_pattern 
+  comma_nonempty_list (adjective_multisubject_pattern Wpc_simple_adjM)
 
-let fiat_prim_definite_noun = 
-  comma_nonempty_list (inferring function_word_pattern)
+let fiat_prim_definite_noun = (* skip inferring *)
+  comma_nonempty_list (function_word_pattern Wpc_definite_noun)
 
-let fiat_prim_identifier_term = 
-  comma_nonempty_list (inferring identifier_term_pattern)
+let fiat_prim_identifier_term = (* skip inferring *)
+  comma_nonempty_list (identifier_pattern Wpc_identifier_term)
 
 let fiat_prim_identifier_type = 
-  comma_nonempty_list identifier_type_pattern
+  comma_nonempty_list (identifier_pattern Wpc_identifier_type)
 
 let fiat_prim_typed_name = fiat_prim_identifier_type
 
 let fiat_prim_possessed_noun = 
   comma_nonempty_list 
-    (inferring  function_word_pattern
-     ||| identifier_type_pattern
+    (function_word_pattern Wpc_ty_word (* skip inferring *)
+     ||| (identifier_pattern Wpc_identifier_type)
     )
 
 let fiat_prim_verb = 
@@ -1586,7 +1591,7 @@ let fiat_prim_verb_multisubject =
   comma_nonempty_list verb_multisubject_pattern 
 
 let fiat_prim_structure = 
-    comma_nonempty_list identifier_type_pattern
+    comma_nonempty_list (identifier_pattern Wpc_structure)
 
 let fiat_prim_type_op = 
   comma_nonempty_list symbol_type_pattern
@@ -1606,7 +1611,7 @@ let fiat_prim_propositional_op =
   fiat_prim_binary_relation_op
   
 let fiat_prim_relation =
-  comma_nonempty_list identifier_predicate_pattern 
+  comma_nonempty_list (identifier_pattern Wpc_identifier_pred)
 
 
 let fiat_body = 
@@ -1646,7 +1651,7 @@ let fiat =
   >> (fun x -> Fiat x)
 
 let synonym_statement = 
-  let head = possibly (word "we") ++ possibly(word "introduce") ++ word "synonyms" in
+  let head = possibly (word "we") ++ possibly(word "introduce") ++ word "synonym" in
   commit_head "synonym_statement" head
     (fun head -> 
            ((getpos ++ head ++ comma_nonempty_list synlist ++ getpos ++ a PERIOD  
@@ -1913,7 +1918,7 @@ let satisfying_preds =
                  
 let structure = group "structure"
   ((possibly(word "notational") ++ word "structure" 
-  ++ possibly(phrase("with parameters")) ++ args_template
+  ++ possibly(phrase("with parameter")) ++ args_template
   ++ possibly(word "with") ++ brace_field_assign 
   ++ possibly(possibly(lit_with_properties) ++ satisfying_preds >> snd))
   >> (fun ((((_,(a,a')),_),b),b') ->  Structure (a,a',b, flatten b')))
@@ -2370,9 +2375,14 @@ and simple_statement input : statement parsed =
     input 
 
 and there_is_statement input : statement parsed =
-  (phrase "there exist" ++ (has_possibly(word "no") ++ pseudoterms) >> snd 
-   >> (fun (b,ps) -> StateThereExist (b,ps))
-  ) input 
+  ((phrase "there exist" ++ (has_possibly(word "no") ++ pseudoterms) >> snd 
+   >> (fun (b,ps) -> StateThereExist (not b,ps))  (* true = affirmative, false = negation *)
+  )
+   |||
+  ((phrase "there does not exist" ||| phrase "there do not exist") ++ 
+     pseudoterms 
+   >> (fun (_,ps) -> StateThereExist(false,ps))
+  )) input 
 
 and const_statement input : statement parsed = 
   ((possibly(word "the") ++ word "thesis" >>  (fun _ -> StateCombination (StateTrue, [])))
@@ -2383,7 +2393,7 @@ and const_statement input : statement parsed =
 and symbol_statement input : statement parsed = 
   ((word "forall" ++ predicate_pseudoterm ++ lit_binder_comma ++ symbol_statement 
     >> (fun (((_,b),_),d) -> StateQuantifier (StateForall,[b],d)))
-   ||| (word "exists" ++ predicate_pseudoterm ++ lit_binder_comma ++ symbol_statement
+   ||| (word "exist" ++ predicate_pseudoterm ++ lit_binder_comma ++ symbol_statement
         >> (fun (((_,p),_),s) -> StateQuantifier (StateExist,[p],s)))
    ||| (word "not" ++ symbol_statement >> snd >> (fun t -> StateCombination(StateNot,[t])))
    ||| (paren statement)
@@ -2757,12 +2767,12 @@ then
   )
 else 
 function
-| Prim_term_op_controlseq(p1,p2,p3,p4,t,ts) -> xf.xprim(Prim_term_op_controlseq(p1,p2,p3,p4,xterm xf t,map(xterm xf) ts))
-| Prim_binary_relation_controlseq(p1,p2,p3,p4,t,ts) -> xf.xprim(Prim_binary_relation_controlseq(p1,p2,p3,p4,xterm xf t,map(xterm xf) ts))
-| Prim_propositional_op_controlseq(p1,p2,p3,p4,p,ts) -> xf.xprim(Prim_propositional_op_controlseq(p1,p2,p3,p4,xprop xf p,map(xterm xf) ts))
-| Prim_type_op_controlseq(p1,p2,p3,t,ts) -> xf.xprim(Prim_type_op_controlseq(p1,p2,p3,xterm xf t,map(xterm xf) ts))
-| Prim_term_controlseq(p1,p2,p3,t,ts) -> xf.xprim(Prim_term_controlseq(p1,p2,p3,xterm xf t,map(xterm xf) ts))
-| Prim_type_controlseq(p1,p2,p3,ty,ts) -> xf.xprim(Prim_type_controlseq(p1,p2,p3,xtype xf ty,map(xexpr xf) ts))
+| Prim_term_op_controlseq(p1,p2,p3,t,ts) -> xf.xprim(Prim_term_op_controlseq(p1,p2,p3,xterm xf t,map(xterm xf) ts))
+| Prim_binary_relation_controlseq(p1,p2,t,ts) -> xf.xprim(Prim_binary_relation_controlseq(p1,p2,xprop xf t,map(xterm xf) ts))
+| Prim_propositional_op_controlseq(p1,p2,p3,p,ts) -> xf.xprim(Prim_propositional_op_controlseq(p1,p2,p3,xprop xf p,map(xprop xf) ts))
+| Prim_type_op_controlseq(p1,p2,t,ts) -> xf.xprim(Prim_type_op_controlseq(p1,p2,xterm xf t,map(xterm xf) ts))
+| Prim_term_controlseq(p1,p2,t) -> xf.xprim(Prim_term_controlseq(p1,p2,xterm xf t))
+| Prim_type_controlseq(p1,p2,ty) -> xf.xprim(Prim_type_controlseq(p1,p2,xtype xf ty))
 | Prim_lambda_binder(p1,p2,t) -> xf.xprim(Prim_lambda_binder(p1,p2,xterm xf t))
 | Prim_pi_binder(p1,p2,ty) -> xf.xprim(Prim_pi_binder(p1,p2,xtype xf ty))
 | Prim_binder_prop(p1,p2,p) -> xf.xprim(Prim_binder_prop(p1,p2,xprop xf p))
@@ -2930,12 +2940,12 @@ and cprim (cf : 'a collector) (pr : prim) : 'a list  =
 try cf.cprim pr
 with Failure _ ->
 match pr with
-| Prim_term_op_controlseq(_,_,_,_,t,ts) -> cterm cf t @ fmap(cterm cf) ts
-| Prim_binary_relation_controlseq(_,_,_,_,t,ts) -> cterm cf t @ fmap(cterm cf) ts
-| Prim_propositional_op_controlseq(_,_,_,_,p,ts) -> cprop cf p @ fmap(cterm cf) ts
-| Prim_type_op_controlseq(_,_,_,t,ts) -> cterm cf t @ fmap(cterm cf) ts
-| Prim_term_controlseq(_,_,_,t,ts) -> cterm cf t @ fmap(cterm cf) ts
-| Prim_type_controlseq(_,_,_,ty,ts) -> ctype cf ty @ fmap(cexpr cf) ts
+| Prim_term_op_controlseq(_,_,_,t,ts) -> cterm cf t @ fmap(cterm cf) ts
+| Prim_binary_relation_controlseq(_,_,t,ts) -> cprop cf t @ fmap(cterm cf) ts
+| Prim_propositional_op_controlseq(_,_,_,p,ts) -> cprop cf p @ fmap(cprop cf) ts
+| Prim_type_op_controlseq(_,_,t,ts) -> cterm cf t @ fmap(cterm cf) ts
+| Prim_term_controlseq(_,_,t) -> cterm cf t 
+| Prim_type_controlseq(_,_,ty) -> ctype cf ty 
 | Prim_lambda_binder(_,_,t) -> cterm cf t
 | Prim_pi_binder(_,_,ty) -> ctype cf ty
 | Prim_binder_prop(_,_,p) -> cprop cf p
@@ -3073,15 +3083,7 @@ let rec fulfill_wp =
   function 
   | Wp_var(CVar(s,e,b)) -> Wp_var(CVar(s,fulfill_expr e,b))
   | Wp_list(c,ts) -> Wp_list(c,map fulfill_wp ts)
-  | Wp_ty_identifier(s,es,es') -> Wp_ty_identifier(s,map fulfill_expr es,map fulfill_expr es')
-(*  | Wp_ty_cs(s,ws) -> Wp_ty_cs(s,map fulfill_wp ws)
-  | Wp_cs(s,ws) -> Wp_cs(s,map fulfill_wp ws)
-  | Wp_symbolpat(ws,i) -> Wp_symbolpat(map fulfill_wp ws,i)
-  | Wp_symbolpatP(ws,i) -> Wp_symbolpatP(map fulfill_wp ws,i)
-  | Wp_bin_cs(w,s,ws,w') -> Wp_bin_cs(fulfill_wp w,s,map fulfill_wp ws,fulfill_wp w')
- *)
-  | Wp_identifier(s,es,es') -> Wp_identifier(s,map fulfill_expr es,map fulfill_expr es')
-  | Wp_identifierP(s,es,es') -> Wp_identifierP(s,map fulfill_expr es,map fulfill_expr es')
+  | Wp_identifier(c,s,es,es') -> Wp_identifier(c,s,map fulfill_expr es,map fulfill_expr es')
   | Wp_record(es,ts) -> Wp_record(map fulfill_expr es,ts)
   | t -> t 
 
