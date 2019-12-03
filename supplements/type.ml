@@ -224,7 +224,6 @@ and prim =
    *)
 
   (* -- controlseq *)
-  | Prim_classifier of scope * string (* phrase without first word, which is the key *)
   | Prim_term_op_controlseq of scope * pattern * precedence * term * term list
   | Prim_binary_relation_controlseq of scope * pattern * prop * term list
   | Prim_propositional_op_controlseq of 
@@ -234,16 +233,6 @@ and prim =
   (* -- 0-ary, i.e. only brace args *)
   | Prim_term_controlseq of scope * pattern * term 
   | Prim_type_controlseq of scope * pattern * typ 
-
-  (* -- binders *)
-  | Prim_lambda_binder of scope * string * term 
-  | Prim_pi_binder of scope * string * typ 
-  | Prim_binder_prop of scope * string * prop 
-
-  (* -- fields *)
-  | Prim_field_term_accessor of scope * string * typ
-  | Prim_field_type_accessor of scope * string 
-  | Prim_field_prop_accessor of scope * string 
 
   (* -- non cs *)
   (* scope, pattern, def, frees *)                             
@@ -266,10 +255,22 @@ and prim =
   | Prim_propositional_op of scope * string * precedence * prop * prop list 
   | Prim_relation of scope * pattern * typ * term list 
 
+  (* -- binders *)
+  | Prim_lambda_binder of scope * string * term 
+  | Prim_pi_binder of scope * string * typ 
+  | Prim_binder_prop of scope * string * prop 
+
+  (* -- fields *)
+  | Prim_field_term_accessor of scope * string * typ
+  | Prim_field_type_accessor of scope * string 
+  | Prim_field_prop_accessor of scope * string 
+
   (* context variables *)
   | Prim_type_var of scope * string
   | Prim_term_var of scope * string * typ
   | Prim_prop_var of scope * string 
+
+  | Prim_classifier of scope * string (* phrase without first word, which is the key *)
 [@@deriving show]
 
 
