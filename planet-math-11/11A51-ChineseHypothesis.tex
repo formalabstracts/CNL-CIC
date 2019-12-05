@@ -1,0 +1,97 @@
+\documentclass[12pt]{article}
+\usepackage{pmmeta}
+\pmcanonicalname{ChineseHypothesis}
+\pmcreated{2013-03-22 18:11:08}
+\pmmodified{2019-11-24}
+\pmowner{FourDozens}{21006}
+\pmmodifier{FourDozens}{21006}
+\pmformalizer{chaunguyen}{}
+\pmtitle{Chinese hypothesis}
+\pmrecord{6}{40757}
+\pmprivacy{1}
+\pmauthor{FourDozens}{21006}
+\pmtype{Definition}
+\pmcomment{trigger rebuild}
+\pmclassification{msc}{11A51}
+
+\endmetadata
+
+
+
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{cnl}
+\usepackage{xcolor}
+%\usepackage{graphicx}
+%%%%\usepackage{xypic}
+
+
+\newtheorem{hypothesis}{Hypothesis}
+%- DOCUMENT
+
+\begin{document}
+\parskip =\baselineskip
+	
+% Local Defs 
+
+\def\natdiv#1#2{{#1}\mathrel{|}{#2}}
+\def\intpow#1#2{{#1}^{#2}}
+	
+\begin{cnl}
+		
+\Cnlinput{../Tex2CNL/package/cnlinit}
+		
+\bigskip
+		
+%-% BEGIN
+
+\lsection{ChineseHypothesis}
+		
+In this section, let $d,\ m,\ p$ be integers.
+
+\dfn{ We say that $d$ is \df{positive } iff $d > 0$. }
+		
+\dfn{ We say that $d$ \df{divides} $m$ iff $d\ne 0$ and there
+ exists an integer $r$ such that $m= d\*r$. }
+	
+\dfn{ We write  $\natdiv{d}{m}$ iff $d$ divides $m$. }
+
+\dfn{ We say  $d$ is a \df{divisor} of $m$ iff $d$ divides $m$. }
+
+\dfn{ Assume that $p$ is greater than $1$.  Then we say that $p$
+ is a \df{prime} iff each positive divisor of $p$ is equal to $1$
+ or equal to $p$.}
+
+\dfn{ Assume that $b$ is an integer and $n$ is a natural number.  
+Then we define
+$\intpow{b}{n}\assign$
+\par$\match\ n$ with
+\begin{envMatch}
+	\firstmatchitem $0$ &$\assign$& $1$
+	\matchitem $m + 1$ &$\assign$& $b \* \intpow{b}{m}$\texstop
+\end{envMatch}\cnlstop
+This exists by recursion.
+}
+
+\begin{hypothesis}
+An integer $n$ is a prime iff $\natdiv {n}{\intpow{2}{n}-2}$. 
+\end{hypothesis}
+
+
+\begin{remark}
+ By Fermat's little theorem we have that $2^p \equiv 2 \mod p$, so that means
+ $n$ does divide $2^n- 2$ if $n$ is prime. However, if $n$ is composite 
+ Fermat's little theorem does not rule out that $n$ could divide $2^n-2$. 
+ The Chinese hypothesis checks out for the small powers of two. The first 
+ counterexample is $n=341$, but since $2^{341}$ has more than a hundred
+ digits, it wasn't easy to check it back in the 18th century when this test
+ was first proposed. Though back then they attributed it to ancient 
+ Chinese mathematicians, hence the name.
+\end{remark}
+
+\end{cnl}
+
+
+\end{document}
