@@ -2606,7 +2606,7 @@ let rec is_plain_term =
   | FieldAccessor (_,t) -> is_plain_term t
   | Let (a,b,c) -> List.for_all is_plain_term [a;b;c]
   | IfThenElse(p,t,t') -> is_plain_prop p && is_plain_term t && is_plain_term t'
-  | Make(tyo,es)  -> is_plain_type (list_opt tyo) && List.for_all xxd
+  | Make(tyo,es)  -> is_plain_type (list_opt tyo) && List.for_all
 
   | RawTerm | RawPlainTerm _ | RawTermOp _ | RawTdop _  | RawTermPattern _ ->
     failwith "Must eliminated raw terms first"                                                                            
@@ -3025,13 +3025,25 @@ let rec raw_parse_transformer =
   xterm = 
     (function
      | RawTerm [] -> failwith "Unreachable:raw_parse_transformer term"
-     | RawTerm ns -> fulfill_term(consume term ns)
+     | RawTerm ns -> fulfill_term(
+                         match consume term ns with
+                         | RawTerm ns -> 
+                             raise (Noparse (TrGroup("raw_parse_transformer: term loop",trPos ns)))
+                         | t -> t
+                       )
      | t -> t
     );
   xtype = 
     (function
      | RawGeneralType [] -> TyNone 
-     | RawGeneralType ns -> fulfill_type (consume general_type ns)
+     | RawGeneralType ns -> 
+         fulfill_type (
+             match consume general_type ns with
+             | RawGeneralType ns 
+             | RawPostColon ns -> 
+                 raise (Noparse (TrGroup ("raw_parse_transformer: type loop",trPos ns)))
+             | t -> t 
+           )
      | RawPostColon [] -> TyNone 
      | RawPostColon ns -> fulfill_type (consume post_colon ns)
      | t -> t
@@ -3039,20 +3051,34 @@ let rec raw_parse_transformer =
   xprop = 
     (function 
      | RawProp [] -> failwith "Unreachable:raw_parse_transformer prop"
-     | RawProp ns -> fulfill_prop(consume prop ns)
+     | RawProp ns -> 
+         fulfill_prop(
+             match consume prop ns with 
+             | RawProp ns -> raise(Noparse (TrGroup ("raw_parse_transformer: prop loop",trPos ns)))
+             | t -> t)
      | t -> t 
     );
   xstat = 
     (function
      | RawStatement [] -> failwith "Unreachable:raw_parse_transformer statement"
-     | RawStatement ns -> fulfill_stat(consume statement ns)
+     | RawStatement ns -> 
+         fulfill_stat(
+             match consume statement ns with 
+             | RawStatement ns -> raise(Noparse(TrGroup("raw_parse_transformer: stat loop",trPos ns)))
+             | t -> t
+           )
      | t -> t
     );
   xpred = id;
   xexpr = 
     (function
      | RawExpr [] -> ExNone
-     | RawExpr ns -> fulfill_expr(consume expr ns)
+     | RawExpr ns -> 
+         fulfill_expr(
+             match consume expr ns with
+             | RawExpr ns -> raise(Noparse(TrGroup("raw_parse_transformer: expr loop",trPos ns)))
+             | t -> t
+           )
      | t -> t 
     );
   xprim = id;

@@ -1,0 +1,280 @@
+\documentclass[12pt]{amsart}
+
+
+% PACKAGES
+\usepackage{url}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+
+% for underscores https://texfaq.org/FAQ-underscore
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+\usepackage{lineno}
+
+\usepackage[
+bookmarksopen,
+bookmarksdepth=2,
+%breaklinks=true
+colorlinks=true,
+urlcolor=blue]{hyperref}
+
+% GLOBAL FORMATTING
+%\linenumbers
+\parindent=0pt
+\parskip=0.5\baselineskip
+\raggedbottom
+
+% TITLE AUTHOR DATE
+\title{Controlled natural language for type theory}
+
+\date{November 17, 2019}
+\author{Thomas Hales}
+
+% THEOREMS 
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}[definition]{Theorem}
+\newtheorem{lemma}[definition]{Lemma}
+\newtheorem{specification}[definition]{Specification}
+
+% COMMANDS
+\renewcommand{\iff}{\leftrightarrow}
+\newcommand{\Prop}{\text{\tt Prop}}
+\newcommand{\Type}{\text{\tt Type}}
+\newcommand{\fld}{\textasciicircum}
+\newcommand{\dequiv}{\mathrel{:=}} %{\mathrel{:\equiv}}
+\newcommand{\Nat}{\ensuremath{{\mathbb N}}}
+\newcommand{\Real}{\ensuremath{{\mathbb R}}}
+\newcommand{\df}[1]{\text{\bf #1}}
+\newcommand{\h}[1]{\text{#1}}
+\newcommand{\join}{\lor}
+\newcommand{\Mid}{\mathrel{\|}}
+\newcommand{\comment}[1]{\%- \nobreak{#1}}
+\renewcommand{\~}{\ }
+\newcommand{\ignore}[1]{}
+%\newcommand{\remark}[1]{(#1)}
+\renewcommand{\_}{\textunderscore}
+\renewcommand\labelitemi{-}
+\renewcommand{\qed}{\ensuremath{\square}}
+
+% ENVIRONMENTS
+
+% \leavevmode\par is to make remark work when it is the first item in a subsection.
+\newenvironment{remark}
+{\leavevmode\par\begin{tabular}{|p{13cm}}\parskip=\baselineskip{\bf Remark.}}
+{\end{tabular}}
+
+\newenvironment{oblongo}{}{}
+
+\newenvironment{prule}%
+               {\begin{itemize}}%
+               {\end{itemize}}
+\newcommand{\ptem}{\item}
+\newcommand{\nt}[1]{{\tt #1}}
+\newcommand{\rw}{$\quad\to\quad$}
+
+
+
+% DOCUMENT
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+This abstract describes the current designs and development of a
+controlled natural language for mathematics that compiles to the Lean
+proof assistant.  We call this language Colada (short for
+\emph{Co}ntrolled \emph{la}nguage \emph{da}ta).
+
+The design of language grows out of previous controlled natural
+languages for mathematics (specifically, Forthel-Naproche-SAD), as
+described in Peter Koepke's AITP 2019 talk.  We use
+Forthel-Naproche-SAD (or simply Forthel) as a generic name for any of
+the dialect inspired by Forthel, and our language Colada is one of
+those dialects. This document will refer to the Colada language as
+\emph{our dialect}.
+
+Documents in our dialect are written in a specially prepared \LaTeX\ file.
+The output of the file will eventually be a type-checked Lean file,
+although parts of this process are still under development.  (Checking
+mathematical proofs is not currently part of our intended project;
+type-checked Lean we exclude proof-checking.)
+
+\subsection{Controlled Natural Languages (CNL)}\label{sub:CNL}
+
+By controlled natural language for mathematics (CNL), we mean an
+artificial language for the communication of mathematics that is (1)
+designed in a deliberate and explicit way with precise
+computer-readable syntax and semantics, (2) based on a single natural
+language (which for us will be  English), and (3) broadly
+understood at least in an intuitive way by mathematically literate
+speakers of the natural language.
+
+CNLs can achieve a much higher degree of English fluency than other
+proof-checking languages such as the \emph{Mizar} and DeBruijn's
+\emph{vernacular}.  Some other proof languages are purely stylistic,
+such as \emph{structured derivations}.  
+
+At AITP 2019 Peter Koepke displayed a short proof from Rudin's {\it
+  Principles of mathematical analysis} that he modified with Steffen
+Frerix so that it can be read and checked by their system. Their
+modified proof is written in fluent English, is typeset by \LaTeX, and
+yet is fully checkable. (The target of their language is first-order
+logic.)
+
+It is our belief that controlled natural languages are undervalued
+technologies in AITP.  Following a divide-and-conquer strategy, our
+basic aim is to develop a technology that lies roughly at the midpoint
+between current practice of research mathematicians and the current
+practice within the proof assistant community.  
+
+\subsection{Lean}
+
+Lean theorem prover is a proof assistant built on the
+foundations of calculus of inductive constructions.
+
+The eventual target of our CNL is Lean.
+
+Why is Lean the target?  We wanted something more powerful than 
+first-order logic as used in other Forthel dialects.
+Many mathematicians are finding it a good system
+for research-level mathematics.  There is also the M.K. argument
+that if we succeed in bridging the gap between English and Lean,
+then automated translation tools will eventually give us translations
+from Lean to other proof assistants.
+
+
+\subsection{Research to Date}
+
+This abstract describes the current stage of a project that is
+intended to continue over a period of years.
+
+Our specific research contributions to date are as follows.
+
+\subsubsection{A design and specification of a controlled natural
+  language}
+
+Like other Forthel dialects, our grammar is not a context-free.
+However, it is similar to a context-free grammar by being described as
+a collection of terminal and nonterminal symbols and production rules.
+However, the grammar grows as a document is parsed by the addition of
+new production rules, which are described in the document.
+
+Our dialect can be viewed as a fusion of three different syntaxes:
+Forthel-Naproche-SAD syntax, \LaTeX\ syntax, and Lean theorem-prover
+syntax.  
+
+The lexical structure of our dialect is specified in sedlex, a lexical
+generator tool for OCaml.
+
+Our dialect has been specified in menhir, an OCaml-based
+parser-generator tool for LR(1) grammars.  (Although our dialect is
+not an LR(1) grammar, which prevents menhir from automatically
+generating a parser, the software checks that we have a well-formed
+grammar.)
+
+Our grammar is both complex and recursive to an extraordinary degree.
+The grammar has about 350 nonterminals and about 700 production
+rules.  The grammar has about 150 context-dependent key words.  (This
+is before any of the user-defined grammar extensions.)  However, we
+feel that a some complexity is justified (and even required) to
+capture widespread mathematical idioms and formulas, the syntax of type
+theory (for us, the calculus of inductive constructions), and their
+interactions.
+
+We keep most features of Forthel, such its handling of synonyms, noun
+phrases, verbs, and adjectives; and its grammar extension mechanisms.
+We add additional features such as operator precedence parsing (with
+user-specified precendence levels and associativities); scoping;
+syntax for \LaTeX\ macros; and dependent type theory including
+inductive types and mutual inductive types, structures, and lambda
+terms.
+
+A parser for our grammar has been implemented in OCaml, building on
+the parser combinator library that John Harrison wrote to parse HOL
+Light.  However, this parser is still at an early stage. For example,
+it is still not capable of transforming a syntax tree of a parsed
+document into expressions that can be processed Lean. (Building this
+capability will be a major project.)
+
+We try to make the grammar unambiguous by always taking the longest
+match possible in a greedy way.  By greedy, we mean that we take
+the longest match of a given production rule when it occurs 
+even if doing so produces a match for the enclosing production rule 
+of suboptimal length. Whenever this is not the desired behavior,
+the author of the document must insert parentheses.
+
+And if, for example, a symbol has been assigned several meanings, it
+is always the most recently declared that wins out.
+
+
+\subsubsection{\TeX to raw controlled natural language syntax}
+
+
+We have written a software program takes a specially prepared
+\LaTeX\ file as input and strips away the non-semantic content and
+outputs raw (such as headers, spaces and other layout, graphics,
+remarks, and dollar signs).
+
+To create a specially prepared \LaTeX\ file, the author imports a
+package \verb!\usepackage{cnl}!. Then any text that appears within the
+\emph{cnl} \LaTeX\ environment is handled as controlled natural
+language.  Arbitrary \LaTeX\ and graphics may appear outside the CNL
+environment.  The key to beautifully typeset \TeX\ documents is an
+dual expansion system for macros.  The \TeX\ engine expands macros in
+the usual way, but the CNL engine expands some macros according to an
+independent semantic specification.
+
+\section{examples}
+
+One project we have started is the translation of the number theory
+Planet Math files to our CNL dialect.
+
+We have been using a 30-page CNL file (for debugging) that 
+gives many elementary definitions of groups, rings, fields, real numbers, etc.
+It goes as far as statements of Sylow's theorems in group theory.
+
+
+\section{motivation and summary}
+
+This is part of the Formal Abstracts project.
+
+A CNL fixes a problem we encountered early on in the Formal Abstracts
+project.   If we leave out proofs, we need more eyes, but Lean
+is not written for human eyes (or only as a secondary objective).  
+Lean is optimized for writing 
+computer-checked proofs.  
+One can often not tell what the idea of a proof is by reading a Lean file.
+Therefore we need a language that all mathematicians can read.
+
+Our language is already finding uses at this early stage of
+development.  For example, our tool can reveal to the author of a
+\LaTeX\ document which terms and symbols are being used without
+definition.  Ultimately each symbol, word, and phrase can be traced
+its source either as a keyword of our dialect or as author-supplied.
+
+I thank the Thang Long University Formal Abstracts team for feedback,
+in their use of the software.  I thank Jesse Han, who wrote a
+preliminary version of the parser using Haskell's megaparsec parser
+combinator library.  I thank Peter Koepke for inspiring this project
+and for many conversations.  I thank many others at the project github page.
+
+bibliography
+
+Lean proof assistant.
+
+CiC.
+
+My blog post on CNL and github.
+
+Koepke AITP and github
+\footnote{\href{http://aitp-conference.org/2019/aitp19-proceedings.pdf}{AITP
+    2019 proceedings}, page 84}
+
+Paskevich thesis and paper
+
+Glushkov and history.
+
+\end{document}
