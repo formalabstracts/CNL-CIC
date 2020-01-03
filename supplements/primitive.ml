@@ -54,30 +54,34 @@ let scope_current = ref []
 
 let get_current_scope() = !scope_current 
 
-(* Length of scope is the length of this list.
-   With no document, the list is empty. 
-   When the document starts, the first item is the doc name and the list has length 1.
-   When a section starts, the head is the section name, and the list has length 2.
+(* Length of scope is the length of this list.  With no document, the
+   list is empty.
 
-  divisions and subdivisions can be at any position of the list, and are treated
-  as a special case with "length" -1. 
+   When the document starts, the first item is the doc name and the
+   list has length 1.
 
-  An import is placed in the document (that is global) scope. 
-  Nonglobal defs from import are flattened (placed at the section scope no matter their actual scope).
+   When a section starts, the head is the section name, and the list
+   has length 2.
 
-  We haven't implemented namespaces in a significant way.
- *)
+  Divisions and subdivisions can be at any position of the list, and
+   are treated as a special case with "length" -1.
 
-let scope_length = List.length !scope_current
+  An import is placed in the document (that is global) scope.
+   Nonglobal defs from import are flattened (placed at the section
+   scope no matter their actual scope).
 
- (* an object of given scope is "inscope" if it is a tailing sub scope of scope_current. 
-  *)
+  We haven't implemented namespaces in a significant way.  *)
+
+let scope_current_length() = List.length !scope_current
+
+(* An object of given scope is "inscope" if it is a tailing sub scope
+   of scope_current.  *)
 
 let inscope scope = 
   let sc = !scope_current in
-  let is = List.length scope in
-  let ic = scope_length in 
-  (is <= ic) && (scope = snd(chop_list (ic - is) sc))
+  let length_sc = scope_current_length() in 
+  let length_scope = List.length scope in
+  (length_scope <= length_sc) && (scope = snd(chop_list (length_sc - length_scope) sc))
 
 let string_of_scope = 
   String.concat "." (List.rev !scope_current)
@@ -100,7 +104,8 @@ let set_end_unlabeled_scope_current new_length =
   try 
     if (new_length < 0) then 
       scope_current := List.tl !scope_current
-    else 
+    else
+      let _ = new_length <= scope_current_length() || failwith "" in 
       scope_current := pad (new_length) "" !scope_current 
   with Failure _ -> failwith ("set_end_unlabeled_scope_current:tl")
 
@@ -369,8 +374,6 @@ let prim_field_prop_accessor_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 let prim_field_prop_accessor_option key = 
   prim_string_in_scope prim_field_type_accessor_tbl key
 
-
-
 let prim_verb_tbl : (string,prim) Hashtbl.t  = Hashtbl.create 100
 
 let prim_verb_multisubject_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
@@ -388,7 +391,6 @@ let prim_typed_name_tbl : (string,prim) Hashtbl.t = Hashtbl.create 100
 let prim_used_tbl : (string,unit) Hashtbl.t = Hashtbl.create 500
 
 let prim_defined_tbl : (string,unit) Hashtbl.t = Hashtbl.create 500
-
 
 let frozen_list = 
 [
@@ -505,18 +507,17 @@ let prim_list =
   "prim_relation"
   ]
 
-
 let syn_add_frozen() = 
   List.map syn_add (List.map (fun t -> [t]) frozen_list);;
 
-let add_used_word ls = 
+let add_prim_defined ls = 
   let m = List.map (fun s -> String.split_on_char ' ' s) ls in
   let m = List.flatten m in 
   let _ = List.map (fun t -> Hashtbl.add prim_defined_tbl t ()) m in 
   ()
 
 let add_master_list() = 
-    add_used_word (frozen_list @ preposition_list)
+    add_prim_defined (frozen_list @ preposition_list)
 
 let rec process_wp_syn = 
   function 
