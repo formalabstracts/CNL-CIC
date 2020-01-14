@@ -28,6 +28,8 @@ exception Nocatch of trace;;
 
 let trEof =  TrFail (0,0,EOF);;
 
+let trEob = TrFail(0,0,UNKNOWN "end of parse");;
+
 let failEof = Noparse(trEof)
 
 let failtr tr _ = raise (Noparse tr)
@@ -37,11 +39,12 @@ let getpos =
   | [] -> raise failEof
   | t::_ as input -> t.pos,(TrEmpty,input)
 
-let line_col n = 
-  let p = fst(n.pos) in 
+let line_col_pos (p : Lexing.position) = 
   let line = p.pos_lnum in 
   let col = p.pos_cnum - p.pos_bol in 
   (line,col)
+
+let line_col n = line_col_pos (fst n.pos)
 
 let line_col_string (line,col) = 
   "line="^string_of_int line^" col="^string_of_int col
@@ -147,6 +150,7 @@ let show_trace =
   |  TrString s -> s
   | t -> show_trace t
 
+
 let mergeOr (t,t') = 
   match t with 
   | TrOr t'' -> TrOr (t'' @ [t'])
@@ -156,7 +160,7 @@ let mergeAdd (t,t') =
   match t with 
   | TrEmpty -> t' 
   | TrAdd t'' -> TrAdd (t'' @ [t'])
-  | _ -> TrAdd [t;t']
+  | _ -> if (t' = TrEmpty) then t else TrAdd [t;t']
 
 let pos n = n.pos 
 
@@ -261,7 +265,9 @@ let rec atleast n prs input =
    else prs ++ atleast (n - 1) prs >> (fun (h,t) -> h::t)) input;;
 
 let finished input =
-  if input = [] then (),(TrEmpty,input) else raise (Noparse (trEof))
+  if input = [] then (),(TrEmpty,input) else 
+    let l,c = line_col_pos (fst(fst(getpos input))) in 
+    raise (Noparse (TrFail(l,c,UNKNOWN "unconsumed token"))) (* (List.hd input).tok))) *)
 
 (* end of HOL Light *)
 
@@ -302,6 +308,8 @@ let a tok input =
     Noparse t -> raise (Noparse (TrGroup ("expected:"^string_of_toks [tok],t)))
 
 let consume parser input = 
+(*  let finished' i =
+    if i = [] then (),(TrEmpty,input) else raise (Noparse (trEob)) in *)
   let ((a,_),_) = (parser ++ finished) input in a
 
 let plus prs = atleast 1 prs
@@ -451,13 +459,24 @@ let paren parser  =
 let bracket parser = 
   (a L_BRACK ++ parser ++ a R_BRACK) >> (fun ((_,p),_) -> p) 
 
+let brace parser = 
+  (a L_BRACE ++ parser ++ a R_BRACE) >> (fun ((_,p),_) -> p) 
+
+let paren_keep parser  = 
+  (a L_PAREN ++ parser ++ a R_PAREN) >> (fun ((l,p),r) -> l :: (p @ [r])) 
+
+let bracket_keep parser = 
+  (a L_BRACK ++ parser ++ a R_BRACK) >> (fun ((l,p),r) -> l :: (p @ [r])) 
+
+let brace_keep parser = 
+  (a L_BRACE ++ parser ++ a R_BRACE) >> (fun ((l,p),r) -> l :: (p @ [r])) 
+
+
 (*
 let pos_bracket parser = 
     (a L_BRACK ++ parser ++ a R_BRACK) >> (fun ((p',p),p'') -> (pair_pos(p'.pos,p''.pos),p)) 
  *)
 
-let brace parser = 
-  (a L_BRACE ++ parser ++ a R_BRACE) >> (fun ((_,p),_) -> p) 
 
 let opt_paren parser = 
   paren parser ||| parser
@@ -472,15 +491,16 @@ let nonbrack accept =
 let rec balancedB accept input = 
   (many (
       plus(nonbrack accept) |||
-        paren(balanced) |||
-        bracket(balanced) |||
-        brace(balanced)) >> flatten  ) input
+        paren_keep(balanced) |||
+        bracket_keep(balanced) |||
+        brace_keep(balanced)) >> flatten  ) input
 and balanced input = balancedB (fun _ -> true) input
 
 let brace_semi = 
   let semisep = balancedB (function | SEMI -> false | _ -> true) in
-  brace(semisep ++ many(a(SEMI) ++ semisep)) >>
-    (fun (a,bs) -> a :: (map snd bs))
+  brace(separated_nonempty_list semisep (a SEMI))
+(*  >> 
+    (fun (a,bs) -> a :: (map snd bs)) *)
 
 let comma = a COMMA 
 
@@ -1177,7 +1197,7 @@ let predicate_word_pattern =
   ||| verb_pattern
   ||| verb_multisubject_pattern
 
-let pre_expr = (balancedB (function | COMMA | SEMI | PERIOD -> false | _ -> true))
+let pre_expr = (balancedB (function (* can have quantifiercomma | COMMA *) | SEMI | PERIOD -> false | _ -> true))
 
 let assign_expr = a ASSIGN ++ pre_expr >> snd
 
@@ -1899,7 +1919,7 @@ let inductive_type =
 
 let brace_field_assign = 
   let pre = balancedB(function | COMMA | COLON | ASSIGN | SEMI | PERIOD -> false | _ -> true) in
-  let field_prefix = comma_nonempty_list(lit_field_key >> stored_string) in 
+  let field_prefix = paren(comma_nonempty_list(lit_field_key >> stored_string)) in 
   let brace_field_assign_item = 
     (possibly(lit_a) ++ possibly(field_prefix) >> snd >> flatten)
     ++ pre 
@@ -1912,6 +1932,24 @@ let brace_field_assign =
              if b' = ExNone then (ss,ExNone,b',c')  (* Props and Structures in 2nd slot *)
              else (ss,raw_expr a,b',c')) in 
   brace_semi >> (fun ts -> map (consume brace_field_assign_item) ts)
+
+(* kill this debug 
+let brace_field_assign = 
+  let pre = balancedB(function | COMMA | COLON | ASSIGN | SEMI | PERIOD -> false | _ -> true) in
+  let field_prefix = paren(comma_nonempty_list(lit_field_key >> stored_string)) in 
+  let brace_field_assign_item = 
+    (possibly(lit_a) ++ group "bfa_pfp" (possibly(field_prefix)) >> snd >> flatten)
+    ++ group "bfa_pre" pre 
+    ++ group "bfa_cp" (possibly( a COLON++ pre >> snd))
+    ++ group "bfa_pae" (possibly assign_expr)
+    >>
+      (fun (((ss,a),b),c) -> 
+             let b' = raw_expr (flatten b) in 
+             let c' = raw_expr (flatten c) in 
+             if b' = ExNone then (ss,ExNone,b',c')  (* Props and Structures in 2nd slot *)
+             else (ss,raw_expr a,b',c')) in 
+  brace_semi >> (fun ts -> map (consume brace_field_assign_item) ts)
+ *)
 
 let satisfying_preds = 
   brace_semi >> map (fun t -> RawProp t)

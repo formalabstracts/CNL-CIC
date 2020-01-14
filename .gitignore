@@ -1,4 +1,5 @@
 *~
 *.#*
+*.dvi
 cnl-cic-parser.cabal
 
