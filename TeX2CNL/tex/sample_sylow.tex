@@ -26,7 +26,7 @@
 % TITLE AUTHOR DATE
 \title{Sample Controlled Natural Language text,\\ including real numbers and Sylows theorems}
 
-\date{November 14, 2019}
+\date{January 18, 2020}
 \author{Thomas Hales}
 
 %- THEOREMS
@@ -103,17 +103,17 @@ $n$-tuple are distinguished by the ordering of the components, but the
 components (that is fields) of a structure are distinguished by naming
 each component.
 
-In a structure declaration, a field marked as {\it parameter} can float out
+In a structure declaration, a field marked as \emph{parameter} can float out
 of the structure and become an unbundled parameter to the structure.
 We are relying here on an extension to CiC designed by the author last
 year (called Cabarete mode), which facilitates the transformations
 between bundled and unbundled structures.
 
-A field marked as {\it type} means that when a value $X$ of that
+A field marked as \emph{type} means that when a value $X$ of that
 structure appears in syntax reserved for a type (for example $x : X$
 or $f:X \to \alpha$), the value $X$ is coerced to the type field.
 
-A field marked as {\it map} means that when a value $f$ appears in
+A field marked as \emph{map} means that when a value $f$ appears in
 function application syntax (say $f\ x$), the function $f$ is coerced
 to the map field.
 \end{remark}
@@ -164,7 +164,7 @@ Let $\emptyset$ stand for the empty set.
 
 \begin{remark}
 A set $X$ over $\alpha$ is a subset of the universe of $\alpha$. We
-follow our general convention of using the preposition {\it over} with
+follow our general convention of using the preposition \emph{over} with
 parameters to a type.
 
 Subsets are identified with their characteristic functions, taking
@@ -245,7 +245,7 @@ In the following extension, we pull out the variables $\alpha$ and
 $\beta$ for purposes of naming.  The resulting extension is equivalent
 to what would be obtained by working with fully bundled structures.
 
-A structure is {\it embedded} (following the terminology of golang) if
+A structure is \emph{embedded} (following the terminology of golang) if
 all the fields of that structure are inserted into the structure being
 declared. The insertion is flat.  That is the fields appear at the top
 level (rather than nested) in the structure being declared.
@@ -666,7 +666,7 @@ all\ $x\ y\ z,\ x \le y \land y \le z \to x \le z$.
 all\ $x\ y,\ x \le y \to y \le x$.
 \end{definition}
 
-\deflabel{preorder} We say $R$ is a \df{preorder} iff $R$ is symmetric
+\deflabel{preorder} We say $R$ is a \df{preorder} iff $R$ is reflexive
 and transitive.
 \end{definition}
 
@@ -692,7 +692,7 @@ Let \df{partially\~ordered\~set} stand for poset.
 is a total poset.
 \end{definition}
 
-Let \df{total order} denote linear order.
+Let \df{total order} denote linear\~order.
 
 We introduce synonyms greatest/maximum/top.
 
@@ -1085,7 +1085,7 @@ such that for all $x\ne 0$, $x$ is a unit in $R$.
 An \df{ordered\~ring} is a structure with
 \begin{structure}
 \firstitem a ring
-\item a linear order 
+\item a linear\~order 
 \interitem{such that}
 \item (notation) notation-le\ $\assign$ relation
 \item for all $x,y,z$, if $x \le y$, then $x + z \le y + z$
@@ -1241,7 +1241,7 @@ We enter the namespace subgroup.
 \deflabel{subgroup order}
 Assume that $H$ is a subgroup over a finite group $G$. Then 
 the \df{order} of $H$ is the size of the support of $H$.
-This exists and is well propped \inmark{that is, $H$ is finite}.
+This exists \inmark{that is, $H$ is finite}.
 \end{definition}
 
 
@@ -1292,7 +1292,7 @@ Let $\Syl{p}{G} \assign
 
 
 Let $\SylN{p}{G}$ denote the size of $\Syl{p}{G}$.  This is well
-propped \inmark{that is, there are finitely many Sylow $p$
+defined \inmark{that is, there are finitely many Sylow $p$
   subgroups}.
 
 
