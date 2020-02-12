@@ -117,7 +117,8 @@ exhibited some short proofs written in fluent English that can be read and check
 We use
 Forthel as the generic name for any of
 the dialects inspired by Forthel (a 
-controlled natural language developed by Paskevich), including Colada. 
+controlled natural language developed by various researchers, and implemented in Paskevich's PhD thesis), 
+including Colada. 
 We refer to the Colada language as
 \emph{our dialect}.
 Our dialect differs from others in that our semantic target is the logical Calculus of Inductive
@@ -146,9 +147,9 @@ CNLs can achieve a much higher degree of English fluency than other
 proof-checking languages.  
 
 
-Following a divide-and-conquer strategy, our
-basic aim is to develop a technology that lies roughly midway
-between current practice of research mathematicians and the current
+Our
+basic aim is to develop a technology that lies somewhere
+between the current practice of research mathematicians and the current
 practice within the proof assistant community.  
 
 \section{Research to Date}
@@ -157,7 +158,7 @@ Our specific research contributions to date are as follows.
 
 We have a design and specification of a controlled natural
 language.
-Like other Forthel dialects, our grammar is not a context-free.
+Like other Forthel dialects, our grammar is not context-free.
 However, it is similar to a context-free grammar by being specified through
 production rules on terminal and nonterminal symbols.
 Users may extend the grammar with new mathematical notation
@@ -175,11 +176,14 @@ We believe that some complexity is justified (and even required) to
 capture widespread mathematical idioms and formulas, the syntax of type
 theory, and their
 interactions. Our grammar is recursive to an extraordinary degree.
-The grammar has about 350 nonterminals, about 350 production
-rules, and about 150 context-dependent key words.   User syntax
+The grammar has about $350$ nonterminals and about $550$ production
+rules.  The grammar contains about $150$ English words 
+(such as \emph{all, any, are, case, define, exists, if, iff, is, no, not, of, or, over, proof, the, theorem}, etc.) 
+with a fixed grammatical
+function.     User syntax
 extensions build on that base.
 
-We keep most features of Forthel, such its handling of synonyms, noun
+We keep most features of Forthel, such as its handling of synonyms, noun
 phrases, verbs, and adjectives; and its grammar extension mechanisms.
 We have added many additional features such as plural formation for nouns and verbs,
 operator precedence parsing (with
@@ -208,9 +212,6 @@ dual expansion system for macros.  The \TeX\ engine expands macros in
 the usual way, but the CNL engine expands some macros according to an
 independent semantic specification.   
 
-Many examples will be given during the AITP presentation to show that English
-fluency is obtained without loss of semantic content.  We skip them here for lack of space.
-
 We believe our language will find novel applications to search, document
 analysis, and document transformation.  
 Ultimately each word, symbol, and phrase of a math document written in our dialect can be 
@@ -219,11 +220,85 @@ accounted for.
 \bigskip
 \noindent\rule{2cm}{0.4pt}
 
-
 This work is part of the Formal Abstracts project supported by the Sloan Foundation, 
 which aims to capture all the major
 definitions and theorems of mathematics in a format that is both human and computer
 friendly.
+
+
+
+\newpage
+\section{Example}
+
+
+Many examples will be given during the AITP presentation to show that English
+fluency is obtained without loss of semantic content.  Here is one example that
+assumes a context in which a binary relation $R$ has been defined.
+
+\subsection{source} The \LaTeX\ source file, which follows, is similar to documents prepared every day
+by mathematicians.
+
+\begin{verbatim}
+\def\deflabel#1{\begin{definition}[#1]\label{#1}}
+%begin LaTeX source
+\deflabel{greatest element} We say that $y$ is a
+\df{greatest\~element} in $R$ iff for all\ $x,\ x \le y$.
+\end{definition}
+
+We introduce synonyms least/minimum/bottom.
+
+\deflabel{least element} We say that $y$ is a \df{least\~element} in
+$R$ iff for all\ $x,\ y \le x$.
+\end{definition}
+
+Let $x < y$ stand for $x \le y$ and $x \ne y$.
+
+\deflabel{maximal element} We say that $y$ is a \df{maximal\~element}
+in $R$ iff there exists no $x$ such that $y < x$.
+\end{definition}
+%end LaTeX source
+\end{verbatim}
+
+\subsection{pdf} The pdf generated from this text is 
+
+%begin sample
+\def\deflabel#1{\begin{definition}[#1]\label{#1}}
+\deflabel{greatest element} We say that $y$ is a
+\df{greatest\~element} in $R$ iff for all\ $x,\ x \le y$.
+\end{definition}
+
+We introduce synonyms least/minimum/bottom.
+
+
+\deflabel{least element} We say that $y$ is a \df{least\~element} in
+$R$ iff for all\ $x,\ y \le x$.
+\end{definition}
+
+Let $x < y$ stand for $x \le y$ and $x \ne y$.
+
+\deflabel{maximal element} We say that $y$ is a \df{maximal\~element}
+in $R$ iff there exists no $x$ such that $y < x$.
+\end{definition}
+%end sample
+
+\subsection{CNL}  Here is the generated CNL.  (We have cleaned up the white space.)
+
+\begin{verbatim}
+Definition  Label_greatest_element  .    We  say  that    y    is  a  
+greatestelement  in    R    iff  for  all    x  ,  x  \le y    .  
+    
+We  introduce  synonyms  least  /  minimum  /  bottom  .  
+  
+Definition  Label_least_element  .    We  say  that    y    is  a  
+leastelement  in  R    iff  for  all    x  ,  y  \le x    .  
+    
+Let    x  <  y    stand  for    x  \le y    and    x  \ne y    .  
+  
+Definition  Label_maximal_element  .    We  say  that    y    is  a  
+maximalelement  in    R    iff  there  exists  no    x    such  that    y  <  x    .  
+\end{verbatim}
+
+\subsection{parse tree}  This has been generated by hand.
 
 
 \end{document}
