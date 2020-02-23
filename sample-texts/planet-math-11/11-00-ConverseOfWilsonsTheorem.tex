@@ -1,0 +1,121 @@
+\documentclass[12pt]{article}
+\usepackage{pmmeta}
+\pmcanonicalname{ConverseOfWilsonsTheorem}
+\pmcreated{2013-03-22 17:58:55}
+\pmmodified{2020-01-09}
+\pmowner{PrimeFan}{13766}
+\pmmodifier{PrimeFan}{13766}
+\pmformalizer{ngonga}{}
+\pmtitle{converse of Wilson's theorem}
+\pmrecord{7}{40491}
+\pmprivacy{1}
+\pmauthor{PrimeFan}{13766}
+\pmtype{Theorem}
+\pmcomment{trigger rebuild}
+\pmclassification{msc}{11-00}
+
+\pmdefines{divides}
+\pmdefines{divisor}
+\pmdefines{prime}
+\pmdefines{factorial}
+
+\endmetadata
+
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
+\usepackage{cnl}
+\usepackage{xcolor}
+
+
+% TITLE AUTHOR DATE
+\title{Number Theory,\\ ConverseOfWilsonsTheorem}
+\date{January 09, 2020}
+\author{Ngo Nga (ngongatlu)}
+
+
+
+%- DOCUMENT
+
+\begin{document}
+\parskip=\baselineskip
+
+% Local Defs 
+\def\natdiv#1#2{{#1}\mathrel{|}{#2}}
+\def\factorial#1{{#1!}}
+\parindent=0pt
+
+
+\begin{cnl}
+
+\Cnlinput{../TeX2CNL/package/cnlinit}
+
+\bigskip
+
+%-% BEGIN
+
+\lsection{ConverseOfWilsonsTheorem}
+In this section, let $m,\ d$ be integers.
+
+
+\deflabel{divides}
+Assume that $m, \d$ are integers. Then we say that $d$ \df{divides} $m$ iff $d\ne 0$ and there exists an integer $r$ such that $m= d\*r$.
+\end{definition}
+
+\dfn{
+We write $\natdiv{d}{m}$ iff $d$ divides $m$.
+}
+
+\dfn{
+We say that $d$ is a \df{divisor of} $m$ iff $d$ divides $m$.
+}
+
+\dfn{
+We say that $d$ is \df{positive} iff $d > 0$.
+}
+
+\deflabel{prime}
+Assume that $p$ is a natural number greater than $1$.  Then we say that $p$ is a \df{prime} iff each positive divisor of $p$ is equal to $1$ or equal to $p$.
+\end{definition}
+
+\deflabel{factorial}
+Assume that $n$ are natural numbers.  Then we define
+$\factorial{n}\assign$
+\par$\match\ n$ with
+\begin{envMatch}
+\firstmatchitem $0$ &$\assign$& $1$
+\matchitem $m + 1$ &$\assign$& $(m+1) \* \factorial{m}$\texstop
+\end{envMatch}\cnlstop
+This exists by recursion.
+\end{definition}
+
+
+\begin{theorem}[WilsonsTheorem]
+Assume that $n$ is an integer. If $n>1$ and $n$ is a divisor of $\factorial(n - 1)+1$ then $n$ is prime.
+\end{theorem}
+
+\begin{demark}
+To prove the converse of Wilson's theorem it is enough to show that a composite number can't satisfy the congruence. A number that does satisfy the congruence, then, would be not composite, and therefore prime.
+
+\begin{proof}
+If $n$ is composite, then its greatest prime factor is at most $\displaystyle \frac{n}{2}$, and $\displaystyle \frac{n}{2} < (n - 1)$ as long as $n > 2$ (and the smallest positive composite number is 4). Therefore, $(n - 1)!$ being the product of the numbers from 1 to $n - 1$ includes among its divisors the greatest prime factor of $n$, and indeed all its proper divisors. In fact, for composite $n > 4$, it is the case that $(n - 1)!$ not only has all the same proper divisors of $n$ as a subset of its own proper divisors, but has them with greater multiplicity than $n$ does. For the special case of $n = 4$, the congruence $(n - 1)! \equiv 2 \mod n$ is satisfied. For all larger composite $n$, the congruence $(n - 1)! \equiv 0 \mod n$ is satisfied instead of the congruence stated in the theorem.
+\end{proof}
+
+The special case of $n = 4$ deserves further special attention, as it is an exception which proves the rule. With any other semiprime $n = pq$, with either $p$ or $q$ being a prime greater than 2, the product $(n - 1)!$ contains, in addition to $p$ and $q$, both $(p - 1)q$ and $p(q - 1)$ (which are distinct numbers if $p \neq q$). So if $p$ and $q$ are distinct, then $(n - 1)!$ has both prime factors $p$ and $q$ with a multiplicity of at least 2, which is greater than the multiplicity of 1 in the semiprime $pq$. But with 4, the numbers $(p - 1)q$ and $p(q - 1)$ are both 2, and so 3! includes 2 as a factor with only a multiplicity of 1, which is less than that factor's multiplicity in 4.
+\end{demark}
+
+\begin{thebibliography}{1}
+\bibitem{tk} Thomas Kochy, ''Elementary Number Theory with Applications'', 2nd Edition. London: Elsevier (2007): 324 - 325
+\end{thebibliography}
+%%%%%
+%%%%%
+
+
+
+
+\end{cnl}
+%%%%%
+%%%%%
+\end{document}

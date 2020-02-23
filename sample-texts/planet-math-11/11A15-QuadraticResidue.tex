@@ -1,0 +1,106 @@
+\documentclass[12pt]{article}
+\usepackage{pmmeta}
+\pmcanonicalname{QuadraticResidue}
+\pmcreated{2013-03-22 11:55:19}
+\pmmodified{2020-02-12}
+\pmowner{mathcam}{2727}
+\pmmodifier{mathcam}{2727}
+\pmformalizer{ngonga}{}
+\pmtitle{quadratic residue}
+\pmrecord{9}{30622}
+\pmprivacy{1}
+\pmauthor{mathcam}{2727}
+\pmtype{Definition}
+\pmcomment{trigger rebuild}
+\pmclassification{msc}{11A15}
+\pmrelated{LegendreSymbol}
+\pmrelated{EulersCriterion}
+\pmdefines{quadratic non-residue}
+\pmdefines{quadratic nonresidue}
+
+\endmetadata
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+%%%%\usepackage{xypic}
+
+\usepackage{cnl}
+\usepackage{xcolor}
+
+
+% TITLE AUTHOR DATE
+\title{Number Theory,\\ QuadraticResidue}
+\date{Febraury 12, 2020}
+\author{Ngo Nga (ngongatlu)}
+
+
+
+%- DOCUMENT
+
+\begin{document}
+\parskip=\baselineskip
+
+% Local Defs 
+\def\natdiv#1#2{{#1}\mathrel{|}{#2}}
+\parindent=0pt
+
+\begin{cnl}
+
+\Cnlinput{../TeX2CNL/package/cnlinit}
+
+\bigskip
+
+%-% BEGIN
+
+
+\lsection{QuadraticResidue}
+In this section, let $d,\ m,\ p,\ q,\ a$ be integers.
+
+%-% Definition
+
+\dfn {We say $d$ \df{divides} $m$ iff $d\ne 0$ and there exists an integer $r$
+  such that $m= d\*r$.}
+			
+We write  $\natdiv{d}{m}$ iff $d$ divides $m$.		
+		
+We say  $d$ is a \df{divisor of} $m$ iff $d$ divides $m$.
+
+\dfn{We say $d$ is a \df{common\~divisor} of $p$ and $q$ iff $d$
+  divides $p$ and $d$ divides $q$.}
+
+
+\begin{remark}
+We now introduce the greatest common divisor: 
+\end{remark}
+
+\dfn{We say $d$ is a \df{greatest\~common\~divisor} of $p$ and $q$  
+iff $d$ is a common\~divisor of $p$ and $q$ such that 
+for every common\~divisor $r$ of $p$ and $q$ we have $r\leq d$.}
+
+\dfn{ Let $\h{\df{gcd}}\ p\ q$ denote the greatest\~common\~divisor of
+  $p$ and $q$. This exists and is unique.}
+
+\dfn
+{We say that $p,\ q$ are  \df{coprime} iff  $gcd\ p\ q =1$. }
+
+\dfn
+{We say that $p,\ q$ are \df{relatively\~prime} iff $p,\ q$ are coprime.}
+
+
+\dfn{
+Assume that $a,\ n$ are integers. Assume that $a,\ n$ are relatively\~prime. 
+We say that $a$ is a \df{quadratic\~residue} of $n$ iff there exists an integer
+ $x$ such that $n$ divides $x\* x - a$, else, we say that $a$ is a \df{quadratic\~nonresidue} of $n$.
+}
+\end{cnl}
+
+
+
+
+
+%%%%%
+%%%%%
+%%%%%
+\end{document}

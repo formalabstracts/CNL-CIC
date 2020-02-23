@@ -1,0 +1,109 @@
+\documentclass[12pt]{article}
+\usepackage{pmmeta}
+\pmcanonicalname{DivisibilityByPrimeNumber}
+\pmcreated{2013-03-22 14:48:18}
+\pmmodified{2020-02-12}
+\pmowner{pahio}{2872}
+\pmmodifier{pahio}{2872}
+\pmformalizer{ngonga}{}
+\pmtitle{divisibility by prime number}
+\pmrecord{18}{36460}
+\pmprivacy{1}
+\pmauthor{pahio}{2872}
+\pmtype{Theorem}
+\pmcomment{trigger rebuild}
+\pmclassification{msc}{11A05}
+\pmsynonym{divisibility by prime}{DivisibilityByPrimeNumber}
+\pmrelated{PrimeElement}
+\pmrelated{DivisibilityInRings}
+\pmrelated{EulerPhiAtAProduct}
+\pmrelated{RepresentantsOfQuadraticResidues}
+
+\pmdefines{divides}
+\pmdefines{divisor}
+\pmdefines{prime}
+
+\endmetadata
+
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
+\usepackage{cnl}
+\usepackage{xcolor}
+
+% TITLE AUTHOR DATE
+\title{Number Theory,\\ {DivisibilityByPrimeNumber}
+\date{February 12, 2020}
+\author{Ngo Nga (ngongatlu)}
+
+%- DOCUMENT
+
+\begin{document}
+\parskip=\baselineskip
+
+% Local Defs 
+\def\natdiv#1#2{{#1}\mathrel{|}{#2}}
+\parindent=0pt
+
+\begin{cnl}
+
+\Cnlinput{../TeX2CNL/package/cnlinit}
+
+\bigskip
+
+%-% BEGIN
+
+\lsection{DivisibilityByPrimeNumber}
+In this section, let $m,\ d$ be integers.
+
+
+\deflabel{divides}
+Assume that $m, \d$ are integers. Then we say that $d$ \df{divides} $m$ iff $d\ne 0$ and there exists an integer $r$ such that $m= d\*r$.
+\end{definition}
+
+\dfn{
+We write $\natdiv{d}{m}$ iff $d$ divides $m$.
+}
+
+\dfn{
+We say that $d$ is a \df{divisor of} $m$ iff $d$ divides $m$.
+}
+
+\dfn{
+We say that $d$ is \df{positive} iff $d > 0$.
+}
+
+\deflabel{prime}
+Assume that $p$ is a natural number greater than $1$.  Then we say that $p$ is a \df{prime}
+ iff each positive divisor of $p$ is equal to $1$ or equal to $p$.
+\end{definition}
+
+\begin{theorem}
+ Assume that $a$ and $b$ are integers and $p$ is a prime number. If $p \mid ab$ then $p \mid a$ or
+ $p \mid b$.
+\end{theorem}
+
+\begin{demark}
+{\em Proof.}  Suppose that\, $p \mid ab$.\,  Then either\; $p \mid a$\; or\; $p \nmid a$.\, In the
+ latter case we have\, $\gcd(a,\,p) = 1$,\, and therefore the corollary of B\'ezout's lemma gives
+ the result\, $p \mid b$.\,  Conversely, if\; $p \mid a$\; or\; $p \mid b$,\, then for example\,
+ $a = mp$\, for some integer $m$; this implies that\, $ab = mb\cdot p$,\, i.e.\, $p \mid ab$.\\
+
+\textbf{Remark 1.}  The theorem means, that if a product is divisible by a prime number, then at 
+least one of the factor is divisibe by the prime number.  Also conversely.\\
+
+\textbf{Remark 2.}  The condition (1) is expressed in \PMlinkescapetext{terms} of principal ideals as
+\begin{align}
+      (ab)\subseteq (p) \quad \Leftrightarrow \quad 
+          (a)\subseteq (p)\, \lor\, (b)\subseteq (p).
+\end{align}
+Here, $(p)$ is a prime ideal of $\mathbb{Z}$.
+\end{demark}
+
+
+\end{cnl}
+%%%%%
+%%%%%
+\end{document}
