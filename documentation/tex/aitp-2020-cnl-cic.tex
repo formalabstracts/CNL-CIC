@@ -235,13 +235,6 @@ reading the document.
 \df{greatest\~element} in $R$ iff for all\ $x,\ x \le y$.
 \end{definition}
 
-We introduce synonyms least/minimum/bottom.
-
-
-\deflabel{least element} We say that $y$ is a \df{least\~element} in
-$R$ iff for all\ $x,\ y \le x$.
-\end{definition}
-
 Let $x < y$ stand for $x \le y$ and $x \ne y$.
 %end sample
 
@@ -252,30 +245,18 @@ prepared every day by mathematicians.
 \begin{verbatim}
 \def\deflabel#1{\begin{definition}[#1]\label{#1}}
 
-%begin LaTeX source
 \deflabel{greatest element} We say that $y$ is a
 \df{greatest\~element} in $R$ iff for all\ $x,\ x \le y$.
-\end{definition}
-
-We introduce synonyms least/minimum/bottom.
-
-\deflabel{least element} We say that $y$ is a \df{least\~element} in
-$R$ iff for all\ $x,\ y \le x$.
 \end{definition}
 
 Let $x < y$ stand for $x \le y$ and $x \ne y$.
 \end{verbatim}
 
-\subsection{CNL}  The CNL is generated from the source file.  
+\subsection{CNL}  The CNL is generated from the source file by stripping formatting. 
 
 \begin{verbatim}
 Definition Label_greatest_element . We say that y is a 
 greatestelement in R iff for all x , x \le y . 
- 
-We introduce synonyms least / minimum / bottom . 
- 
-Definition Label_least_element . We say that y is a 
-leastelement in R iff for all x , y \le x . 
  
 Let x < y stand for x \le y and x \ne y . 
 \end{verbatim}
@@ -305,7 +286,7 @@ a Lean pre-expression from the tree.
   \4 {\sc lit\_a} \page{\tt a}
   \4 {\sc word\_pattern} \page{\tt greatestelement in $R$}
   \3 {\sc iff\_junction} \page{\tt iff}
-  \3 {\sc statement} \page{\tt for all $x$,\ $x \le y$}
+  \3 {\sc statement} \page{\tt for all $x$,\ $x\ \hbox{\tt \textbackslash le}\ y$}
   \2 {\sc period} \page{\tt .}
   \end{outline}
 
