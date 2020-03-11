@@ -12,6 +12,7 @@
 \usepackage[T1]{fontenc}
 \usepackage{textcomp}
 \usepackage{lineno}
+\usepackage{outlines}
 
 %\usepackage[
 %bookmarksopen,
@@ -28,19 +29,24 @@
 
 % TITLE AUTHOR DATE
 \title{A Controlled Natural Language for Type Theory%
-\thanks{I thank Peter Koepke for introducing me to the field and Jesse Han for his
-preliminary work on parsing.  
-Research is supported by Sloan Foundation grant G-2018-10067.
-Source code and examples are found at \url{github.com/formalabstracts/CNL-CIC}.}
-}
+  \thanks{I thank
+  Peter Koepke for introducing me to the field and Jesse Han for his
+  contributions.  Research is supported by Sloan Foundation grant
+  G-2018-10067.  This work is part of the Formal Abstracts project,
+  which aims to capture all the major definitions and theorems of
+  mathematics in a format that is both human and computer friendly.
+  Source code and examples are found at
+  \url{github.com/formalabstracts/CNL-CIC}.}  }
 
-%\date{November 17, 2019}
+
 \author{Thomas Hales}
 
 \institute{
 University of Pittsburgh\\
 Pittsburgh, PA, USA
 }
+
+%\date{March 5, 2020}
 
 \authorrunning{T.Hales}
 \titlerunning{Controlled Natural Language}
@@ -98,40 +104,34 @@ Pittsburgh, PA, USA
 
 \section{Introduction}
 
-This abstract describes the design and development of a
-controlled natural language for mathematics that has the Lean 
-theorem prover as intended target.  We call this language Colada (short for
-\emph{Co}ntrolled \emph{la}nguage \emph{da}ta).
-Documents in our dialect are written in a specially prepared \LaTeX\ file.
-Our aim is to capture definitions and theorem statements from the published
-mathematical literature in our dialect, but 
-checking mathematical proofs is beyond the scope of our project.
+This abstract describes the design and development of a controlled
+natural language for mathematics that has the Lean theorem prover as
+intended target.  We call this language Colada (short for
+\emph{Co}ntrolled \emph{la}nguage \emph{da}ta).  Documents in our
+dialect are written in a specially prepared \LaTeX\ file.  Our aim is
+to capture definitions and theorem statements from the published
+mathematical literature in our dialect, but checking mathematical
+proofs is beyond the scope of our project.
 
+Our design grows out of previous controlled natural languages for
+mathematics (specifically, Forthel-Naproche-SAD), as described in
+Peter Koepke's AITP 2019 talk, which exhibited some short proofs
+written in fluent English that can be read and checked by their
+software \cite{frerix2019making}, \cite{paskevich2007syntax},
+\cite{lyaletski2004theorem}.
 
-
-Our design grows out of previous controlled natural
-languages for mathematics (specifically, Forthel-Naproche-SAD), as
-described in Peter Koepke's AITP 2019 talk, which 
-exhibited some short proofs written in fluent English that can be read and checked by their software. 
-
-We use
-Forthel as the generic name for any of
-the dialects inspired by Forthel (a 
-controlled natural language developed by various researchers, and implemented in Paskevich's PhD thesis), 
-including Colada. 
-We refer to the Colada language as
-\emph{our dialect}.
-Our dialect differs from others in that our semantic target is the logical Calculus of Inductive
-Constructions (CiC) as implemented in the Lean theorem prover, 
-instead of first-order logic.  
-Our dialect can be viewed as a fusion of three different syntactic traditions:
-Forthel syntax, \LaTeX\ syntax, and Lean theorem-prover
-syntax.  
-From another perspective, our dialect might be viewed as a  
-mountain of syntactic sugar for Lean.
-
-
-
+We use Forthel as the generic name for any of the dialects inspired by
+Forthel (a controlled natural language developed by various
+researchers starting with Glushkov's \emph{Evidence Algorithm}, and
+implemented in Paskevich's PhD thesis), including Colada.  We refer to
+the Colada language as \emph{our dialect}.  Our dialect differs from
+others in that our semantic target is the logical Calculus of
+Inductive Constructions (CiC) as implemented in the Lean theorem
+prover, instead of first-order logic \cite{de2015lean}.  Our dialect
+can be viewed as a fusion of three different syntactic traditions:
+Forthel syntax, \LaTeX\ syntax, and Lean theorem-prover syntax.  From
+another perspective, our dialect might be viewed as a mountain of
+syntactic sugar for Lean.
 
 \section{Controlled Natural Languages (CNL)}\label{sub:CNL}
 
@@ -139,127 +139,95 @@ By controlled natural language for mathematics (CNL), we mean an
 artificial language for the communication of mathematics that is (1)
 designed in a deliberate and explicit way with precise
 computer-readable syntax and semantics, (2) based on a single natural
-language (which for us is  English), and (3) broadly
-understood at least in an intuitive way by mathematically literate
-speakers of the natural language.
+language (which for us is English), and (3) broadly understood at
+least in an intuitive way by mathematically literate speakers of the
+natural language.
 
 CNLs can achieve a much higher degree of English fluency than other
 proof-checking languages.  
 
-
-Our
-basic aim is to develop a technology that lies somewhere
-between the current practice of research mathematicians and the current
-practice within the proof assistant community.  
+Our basic aim is to develop a technology that lies somewhere between
+the current practice of research mathematicians and the current
+practice within the proof assistant community.
 
 \section{Research to Date}
 
 Our specific research contributions to date are as follows.
 
-We have a design and specification of a controlled natural
-language.
+We have a design and specification of a controlled natural language.
 Like other Forthel dialects, our grammar is not context-free.
-However, it is similar to a context-free grammar by being specified through
-production rules on terminal and nonterminal symbols.
-Users may extend the grammar with new mathematical notation
-and constructs:  the language
-contains syntax for the extension of its own syntax. 
+However, it is similar to a context-free grammar by being specified
+through production rules on terminal and nonterminal symbols.  Users
+may extend the grammar with new mathematical notation and constructs:
+the language contains syntax for the extension of its own syntax.
 
 The lexical structure of our dialect is specified in sedlex, a lexical
-generator tool for OCaml.
-Our dialect has been specified in menhir, an OCaml-based
-parser-generator tool for LR(1) grammars.  (Although our dialect is
-not an LR(1) grammar, which prevents menhir from automatically
-generating a parser, the software checks that our grammar is well-formed.)
+generator tool for OCaml.  Our dialect has been specified in menhir,
+an OCaml-based parser-generator tool for LR(1) grammars.  (Although
+our dialect is not an LR(1) grammar, which prevents menhir from
+automatically generating a parser, the software checks that our
+grammar is well-formed.)
 
 We believe that some complexity is justified (and even required) to
-capture widespread mathematical idioms and formulas, the syntax of type
-theory, and their
-interactions. Our grammar is recursive to an extraordinary degree.
-The grammar has about $350$ nonterminals and about $550$ production
-rules.  The grammar contains about $150$ English words 
-(such as \emph{all, any, are, case, define, exists, if, iff, is, no, not, of, or, over, proof, the, theorem}, etc.) 
-with a fixed grammatical
-function.     User syntax
-extensions build on that base.
+capture widespread mathematical idioms and formulas, the syntax of
+type theory, and their interactions. Our grammar is recursive to an
+extraordinary degree.  The grammar has about $350$ nonterminals and
+about $550$ production rules.  The grammar contains about $150$
+English words (such as \emph{all, any, are, case, define, exists, if,
+  iff, is, no, not, of, or, over, proof, the, theorem}, etc.)  with a
+fixed grammatical function.  User syntax extensions build on that
+base.
 
-We keep most features of Forthel, such as its handling of synonyms, noun
-phrases, verbs, and adjectives; and its grammar extension mechanisms.
-We have added many additional features such as plural formation for nouns and verbs,
-operator precedence parsing (with
-user-specified precedence levels and associativities); scoping of variables;
-syntax for \LaTeX\ macros; and dependent type theory including
-inductive and mutual inductive types, structures, and lambda
+We keep most features of Forthel, such as its handling of synonyms,
+noun phrases, verbs, and adjectives; and its grammar extension
+mechanisms.  We have added many additional features such as plural
+formation for nouns and verbs, operator precedence parsing (with
+user-specified precedence levels and associativities); scoping of
+variables; syntax for \LaTeX\ macros; and dependent type theory
+including inductive and mutual inductive types, structures, and lambda
 terms.
 
-A parser for our grammar has been implemented in OCaml, building substantially on
-the parser combinator library that John Harrison wrote to parse HOL
-Light.   
+A parser for our grammar has been implemented in OCaml, building
+substantially on the parser combinator library that John Harrison
+wrote to parse HOL Light.
 
-Future work will transform parsed output to type-checked
-terms in Lean.  Another future project is syntax highlighting and auto-completion tools 
-for our
-dialect in editors such as emacs and VSCode. We also plan to develop large
-mathematical libraries in our dialect.
+Future work will transform parsed output to type-checked terms in
+Lean: our system will output Lean-pre-expressions, which will then be
+processed by Lean's elaboration and type-checking procedures.  Another
+future project is syntax highlighting and auto-completion tools for
+our dialect in editors such as emacs and VSCode. We also plan to
+develop large mathematical libraries in our dialect.
 
-We have written software that takes a specially prepared
-\LaTeX\ file as input and strips away the non-semantic content  
-(such as headers, spaces and other layout, graphics,
-remarks, and dollar signs) and
-outputs raw CNL.
-The key to beautifully typeset \TeX\ documents is a
+We have written software that takes a specially prepared \LaTeX\ file
+as input and strips away the non-semantic content (such as headers,
+spaces and other layout, graphics, remarks, and dollar signs) and
+outputs raw CNL.  The key to beautifully typeset \TeX\ documents is a
 dual expansion system for macros.  The \TeX\ engine expands macros in
-the usual way, but the CNL engine expands some macros according to an
-independent semantic specification.   
+the usual way, but the CNL engine expands macros according to an
+independent semantic specification.
 
-We believe our language will find novel applications to search, document
-analysis, and document transformation.  
-Ultimately each word, symbol, and phrase of a math document written in our dialect can be 
-accounted for. 
+We believe our language will find novel applications to search,
+document analysis, and document transformation.
 
-\bigskip
-\noindent\rule{2cm}{0.4pt}
 
-This work is part of the Formal Abstracts project supported by the Sloan Foundation, 
-which aims to capture all the major
-definitions and theorems of mathematics in a format that is both human and computer
-friendly.
 
 
 
 \newpage
 \section{Example}
 
+Examples will be given during the AITP presentation to show that English
+fluency is obtained without loss of semantic content. The presentation
+will include a discussion of dependent types, structures, inductive types,
+type coercions, and implicit arguments.
 
-Many examples will be given during the AITP presentation to show that English
-fluency is obtained without loss of semantic content.  Here is one example that
-assumes a context in which a binary relation $R$ has been defined.
+Here is one example that
+assumes a context in which a binary relation $(R,\le)$ has been defined.
 
-\subsection{source} The \LaTeX\ source file, which follows, is similar to documents prepared every day
-by mathematicians.
 
-\begin{verbatim}
-\def\deflabel#1{\begin{definition}[#1]\label{#1}}
-%begin LaTeX source
-\deflabel{greatest element} We say that $y$ is a
-\df{greatest\~element} in $R$ iff for all\ $x,\ x \le y$.
-\end{definition}
 
-We introduce synonyms least/minimum/bottom.
-
-\deflabel{least element} We say that $y$ is a \df{least\~element} in
-$R$ iff for all\ $x,\ y \le x$.
-\end{definition}
-
-Let $x < y$ stand for $x \le y$ and $x \ne y$.
-
-\deflabel{maximal element} We say that $y$ is a \df{maximal\~element}
-in $R$ iff there exists no $x$ such that $y < x$.
-\end{definition}
-%end LaTeX source
-\end{verbatim}
-
-\subsection{pdf} The pdf generated from this text is 
+\subsection{pdf} Here is a sample text, as viewed by the mathematician
+reading the document.  
 
 %begin sample
 \def\deflabel#1{\begin{definition}[#1]\label{#1}}
@@ -267,38 +235,65 @@ in $R$ iff there exists no $x$ such that $y < x$.
 \df{greatest\~element} in $R$ iff for all\ $x,\ x \le y$.
 \end{definition}
 
-We introduce synonyms least/minimum/bottom.
+Let $x < y$ stand for $x \le y$ and $x \ne y$.
+%end sample
 
+\subsection{source}
+The \LaTeX\ source file for the pdf is similar to documents
+prepared every day by mathematicians.
 
-\deflabel{least element} We say that $y$ is a \df{least\~element} in
-$R$ iff for all\ $x,\ y \le x$.
+\begin{verbatim}
+\def\deflabel#1{\begin{definition}[#1]\label{#1}}
+
+\deflabel{greatest element} We say that $y$ is a
+\df{greatest\~element} in $R$ iff for all\ $x,\ x \le y$.
 \end{definition}
 
 Let $x < y$ stand for $x \le y$ and $x \ne y$.
-
-\deflabel{maximal element} We say that $y$ is a \df{maximal\~element}
-in $R$ iff there exists no $x$ such that $y < x$.
-\end{definition}
-%end sample
-
-\subsection{CNL}  Here is the generated CNL.  (We have cleaned up the white space.)
-
-\begin{verbatim}
-Definition  Label_greatest_element  .    We  say  that    y    is  a  
-greatestelement  in    R    iff  for  all    x  ,  x  \le y    .  
-    
-We  introduce  synonyms  least  /  minimum  /  bottom  .  
-  
-Definition  Label_least_element  .    We  say  that    y    is  a  
-leastelement  in  R    iff  for  all    x  ,  y  \le x    .  
-    
-Let    x  <  y    stand  for    x  \le y    and    x  \ne y    .  
-  
-Definition  Label_maximal_element  .    We  say  that    y    is  a  
-maximalelement  in    R    iff  there  exists  no    x    such  that    y  <  x    .  
 \end{verbatim}
 
-\subsection{parse tree}  This has been generated by hand.
+\subsection{CNL}  The CNL is generated from the source file by stripping formatting. 
 
+\begin{verbatim}
+Definition Label_greatest_element . We say that y is a 
+greatestelement in R iff for all x , x \le y . 
+ 
+Let x < y stand for x \le y and x \ne y . 
+\end{verbatim}
+
+\subsection{parse tree} This parse tree is generated from the CNL.  We only
+display the first definition and have pruned the tree for simplicity.
+Nonterminals are typeset in smallcaps and literals are in teletype.  At
+hierarchical levels above those shown in the outline, we have
+{\sc text\_item} $\to$ {\sc declaration} $\to$ {\sc definition}.  A further transformation not shown would produce
+a Lean pre-expression from the tree.
+
+\newcommand{\page}[1]{\rightskip=5pt \dotfill\quad%\rlap
+{\hbox to 125pt{#1\hfill}}\par}
+
+\begin{outline}
+  \1 {\sc definition\_preamble}
+  \2 {\sc lit\_def} \page{\tt Definition}
+  \2 {\sc label} \page{\tt Label\_greatest\_element}
+  \2 {\sc period} \page{\tt .}
+  \1 list({\sc assumption})\page{}
+  \1 {\sc definition\_affirm}
+  \2 {\sc definition\_statement} $\to$ {\sc predicate\_def}
+  \3 {\sc opt\_say} \page{\tt We say that}
+  \3 {\sc predicate\_head} $\to$ {\sc predicate\_word\_pattern} $\to$ {\sc notion\_pattern}
+  \4 {\sc tvar} \page {$y$}
+  \4 {\sc lit\_is} \page{\tt is}
+  \4 {\sc lit\_a} \page{\tt a}
+  \4 {\sc word\_pattern} \page{\tt greatestelement in $R$}
+  \3 {\sc iff\_junction} \page{\tt iff}
+  \3 {\sc statement} \page{\tt for all $x$,\ $x\ \hbox{\tt \textbackslash le}\ y$}
+  \2 {\sc period} \page{\tt .}
+  \end{outline}
+
+
+
+
+\bibliography{refs} 
+\bibliographystyle{alpha}
 
 \end{document}
