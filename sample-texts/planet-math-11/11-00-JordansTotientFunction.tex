@@ -39,7 +39,7 @@
 
 % Local Defs for Coprime definition 
 \def\natdiv#1#2{{#1}\mathrel{|}{#2}}
-\newcommand{\intpow}[2]{{#1}^{#2}}
+\def\natpow#1#2{{#1}^{#2}}
 
 \begin{cnl}
 \Cnlinput{../TeX2CNL/package/cnlinit}
@@ -70,7 +70,36 @@ Assume that $p$ is an integer greater than $1$.  Then we say that $p$
 is a \df{prime divisor} of $n$ iff $p$ is a prime and $p$ is a divisor of $n$.
 }
 
-\dfn{Assume $k$ and $n$ are natural numbers. Then \df{Jordan's totient function} $J_k(n)$ is equal to $n^k\prod_{\natdiv{p}{n}} ( 1-p^{-k})$ where the product is over prime divisor $p$ of $n$.}
+%import def of List in sample_Sylow
+In this section, let $\alpha$ be a type of all prime divisor $p$ of $n$.
+Let $R$ be type of real number. %need concept of real number
+
+\dfn{
+Let \df{list} of $alpha$ be the inductive type
+\begin{envMatch}
+\firstmatchitem null $\optarg{}$ &$:$& $\h{list}$
+\matchitem $\h{cons}$ &$:$& $\alpha\to\h{list}\to\h{list}$\texstop
+\end{envMatch}\cnlstop
+}
+
+%igive definition of prod
+\dfn{
+Let \df{prod-Jordan-func}\ $: \h{list}\ \alpha\ \to R \assign$ \par\function
+\begin{envMatch}
+\firstmatchitem $\nullbrack$ &$\assign$& $1$
+\matchitem $a \cons A$ &$\assign$& $(1-\natpow{a}{-k}) * \h{prod-Jordan-func}\ A$\texstop
+\end{envMatch}\cnlstop
+This exists by recursion.
+}
+
+
+\dfn{Assume $k$ and $n$ are natural numbers. Then \df{Jordan's totient function} $J_k(n)$ is equal to $\natpow{n}{k} * \h{prod-Jordan-func}\ (\h{list}\ \alpha)$ where the product is over prime divisor $p$ of $n$.}
+
+\begin{remark}
+   The explicite formula of Jordan's totient function is 
+    $$J_k(n) = n^k \prod_{p|n} ( 1-p^{-k})$$
+    where the product is over prime divisor $p$ of $n$.
+\end{remark}
 
 \end{cnl}
 %%%%%
