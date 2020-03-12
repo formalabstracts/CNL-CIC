@@ -400,12 +400,12 @@ let lex_token_to_string_brief =
   function 
   | STRING s -> "\""^s^"\""
   | CONTROLSEQ s -> "\\"^s
-  | DECIMAL s -> "D:"^s 
-  | INTEGER s -> "I:"^s 
-  | SYMBOL s -> "S:"^s 
+  | DECIMAL s -> "D@"^s 
+  | INTEGER s -> "I@"^s 
+  | SYMBOL s -> "S@"^s 
   | SYMBOL_QED -> "(QED)"
-  | L_PAREN -> "("
-  | R_PAREN -> ")"
+  | L_PAREN -> "@("
+  | R_PAREN -> "@)"
   | L_BRACK -> "["
   | R_BRACK -> "]"
   | L_BRACE -> "{"
@@ -427,13 +427,13 @@ let lex_token_to_string_brief =
   | COERCION -> "^|"
   | LAMBDA -> ".\\"
   | PITY -> "PI"
-  | QUANTIFIER s -> "Q:"^s 
-  | VAR s -> "V:"^s 
+  | QUANTIFIER s -> "Q@"^s 
+  | VAR s -> "V@"^s 
   | METAVAR s -> "?"^s 
-  | WORD (s,_) -> "W:"^s 
-  | ATOMIC_IDENTIFIER s -> "A:"^s 
-  | HIERARCHICAL_IDENTIFIER s -> "H:"^s 
-  | FIELD_ACCESSOR s -> "F:"^s 
+  | WORD (s,_) -> "W@"^s 
+  | ATOMIC_IDENTIFIER s -> "A@"^s 
+  | HIERARCHICAL_IDENTIFIER s -> "H@"^s 
+  | FIELD_ACCESSOR s -> "F@"^s 
   | EOF -> "(EOF)"
   | UNKNOWN s -> s ^ " ?"
 
