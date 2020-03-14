@@ -46,10 +46,13 @@
 
 \bigskip
 
+\lsection{Prime divisor number}
 
 In this section, let $d,\ m$ be integers.
 
-\dfn{We say that $d$ \df{divides} $m$ iff $d\ne 0$ and there exists an integer $r$ such that $m= d\*r$.}
+\dfn{
+Assume that $m,\ d$ are integers. Then we say that $d$ \df{divides} $m$ iff $d\ne 0$ and there exists an integer $r$ such that $m= d\*r$.
+}
 	
 \dfn{
 We write  $\natdiv{d}{m}$ iff $d$ divides $m$.	
@@ -70,30 +73,49 @@ Assume that $p$ is an integer greater than $1$.  Then we say that $p$
 is a \df{prime divisor} of $n$ iff $p$ is a prime and $p$ is a divisor of $n$.
 }
 
-%import def of List in sample_Sylow
-In this section, let $\alpha$ be a type of all prime divisor $p$ of $n$.
-Let $R$ be type of real number. %need concept of real number
 
+\lsection{List}
+In this section, let $\alpha$ be a type.
+
+%def of list of type alpha
 \dfn{
 Let \df{list} of $alpha$ be the inductive type
 \begin{envMatch}
-\firstmatchitem null $\optarg{}$ &$:$& $\h{list}$
+\firstmatchitem $\nullbrack$ &$:$& $\h{list}$
 \matchitem $\h{cons}$ &$:$& $\alpha\to\h{list}\to\h{list}$\texstop
 \end{envMatch}\cnlstop
 }
 
-%igive definition of prod
+
+%def of function append
 \dfn{
-Let \df{prod-Jordan-func}\ $: \h{list}\ \alpha\ \to R \assign$ \par\function
+Let \df{prime-div-list} $(n : \Nat)$ $: \Nat \to \h{list}\ \alpha\ \assign$ \par\function
 \begin{envMatch}
-\firstmatchitem $\nullbrack$ &$\assign$& $1$
-\matchitem $a \cons A$ &$\assign$& $(1-\natpow{a}{-k}) * \h{prod-Jordan-func}\ A$\texstop
+\firstmatchitem $0$ &$\assign$& $\nullbrack$
+\matchitem $(succ\ p)$ &$\assign$& if $\natdiv{p}{n}$ and $p$ is a prime and $p \leq n$ then $p \cons$ \h{prime-div-list} $n$\texstop
 \end{envMatch}\cnlstop
 This exists by recursion.
 }
 
 
-\dfn{Assume $k$ and $n$ are natural numbers. Then \df{Jordan's totient function} $J_k(n)$ is equal to $\natpow{n}{k} * \h{prod-Jordan-func}\ (\h{list}\ \alpha)$ where the product is over prime divisor $p$ of $n$.}
+\lsection{Jordan's totient function}
+In this section, let $\alpha$ be a type.
+Let $R$ be type of real number. %need concept of real number
+
+
+%give definition of product
+\dfn{
+Let \df{prod-Jordan-func}\ $: \h{list}\ \alpha\ \to R \assign$ \par\function
+\begin{envMatch}
+\firstmatchitem $\nullbrack$ &$\assign$& $1$
+\matchitem $a \cons A$ &$\assign$& $(1-\natpow{a}{-k}) \* \h{prod-Jordan-func}\ A$\texstop
+\end{envMatch}\cnlstop
+This exists by recursion.
+}
+
+
+
+\dfn{Assume $k$ and $n$ are natural numbers. Then \df{Jordan's totient function} $J_k(n)$ is equal to $\natpow{n}{k} \* \h{prod-Jordan-func}\ (\h{prime-div-list}\ n)$ where the product is over prime divisor $p$ of $n$.}
 
 \begin{remark}
    The explicite formula of Jordan's totient function is 
