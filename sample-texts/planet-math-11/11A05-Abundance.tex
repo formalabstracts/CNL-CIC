@@ -1,0 +1,171 @@
+\documentclass[12pt]{article}
+\usepackage{pmmeta}
+\pmcanonicalname{Abundance}
+\pmcreated{}
+\pmmodified{}
+\pmowner{}{}
+\pmmodifier{}{}
+\pmtitle{abundance}
+\pmrecord{9}{38159}
+\pmprivacy{1}
+\pmauthor{miinguyen}{}
+\pmtype{Definition}
+\pmcomment{trigger rebuild}
+\pmclassification{msc}{11A05}
+\pmrelated{Deficiency}
+
+\endmetadata
+
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+
+\usepackage{cnl}
+\usepackage{xcolor}
+
+% TITLE AUTHOR DATE
+\title{Number Theory,\\ Abundance}
+\date{March 15, 2020}
+\author{My Nguyen (miinguyen)}
+
+\begin{document}
+\parskip=\baselineskip
+
+% Local Defs for Coprime definition 
+\def\natdiv#1#2{{#1}\mathrel{|}{#2}}
+\def\natpow#1#2{{#1}^{#2}}
+
+\begin{cnl}
+\Cnlinput{../TeX2CNL/package/cnlinit}
+
+\bigskip
+
+\lsection{Divisor}
+
+In this section, let $d,\ m$ be integers.
+
+\dfn{
+Assume that $m,\ d$ are integers. Then we say that $d$ \df{divides} $m$ iff $d\ne 0$ and there exists an integer $r$ such that $m= d\*r$.
+}
+	
+\dfn{
+We write  $\natdiv{d}{m}$ iff $d$ divides $m$.	
+}
+
+\dfn{
+We say  $d$ is a \df{divisor} of $m$ iff $d$ divides $m$. 
+}
+
+\begin{remark}
+Function to return $k$ if $k$ is a divisor of $n$. It is intended mainly for implementing in the function 'sum-f' below.
+\end{remark}
+
+
+\dfn{
+Let
+$\df{divisor-of-n}\ (n\ : \Nat)\assign$
+\begin{align*}
+\funalign
+{\Nat}&{\quad\to \ }{\Nat}\\
+{k}&{\quad\mapsto\ }
+{
+\begin{cases}
+\firstmatchitem \caseif{k}{\natdiv{k}{n} }
+\matchitem \caseotherwise{0}\texstop
+\end{cases}
+}
+\end{align*}
+\cnlstop
+}
+
+
+\lsection{List}
+In this section, let $\alpha$ be a $\Type$.
+
+\begin{remark}
+Definition of a list of type $\alpha$.
+\end{remark}
+
+\dfn{
+Let \df{list} of $alpha$ be the inductive type
+\begin{envMatch}
+\firstmatchitem $\nullbrack$ &$:$& $\h{list}$
+\matchitem $\h{cons}$ &$:$& $\alpha\to\h{list}\to\h{list}$\texstop
+\end{envMatch}\cnlstop
+}
+
+%Sum all elements of the list.
+\begin{remark}
+    Function return sum of all elements of a list.
+\end{remark}
+
+\dfn{
+Let \df{sum} $: \h{list}\ \alpha\ \to \Nat \assign$ \par\function
+\begin{envMatch}
+\firstmatchitem $\nullbrack$ &$\assign$& $0$
+\matchitem $a \cons A$ &$\assign$& $a + \h{sum} A$\texstop
+\end{envMatch}\cnlstop
+This exists by recursion.
+}
+
+
+\begin{remark}
+    Function return the sum with function apply to elements of the list. This function allow us to take the sum in general form $\left( \sum_{i = 1}^n f(i) \right)$
+\end{remark}
+
+\dfn{
+Let \df{sum-f} $(f\ :\ \alpha\ \to \Nat)$ $: \h{list}\ \alpha\ \to \Nat \assign$ \par\function
+\begin{envMatch}
+\firstmatchitem $\nullbrack$ &$\assign$& $0$
+\matchitem $a \cons A$ &$\assign$& $f(a) + \h{sum-f}\ A$\texstop
+\end{envMatch}\cnlstop
+This exists by recursion.
+}
+
+
+\begin{remark}
+    Function 'range s t' return the list of numbers [s, s+1, s + t - 1]. It is intended for taking sum in a range.
+\end{remark}
+
+\dfn{
+Let \df{range} $: \Nat \to \Nat \to \h{list}\ \Nat \assign$ \par\function
+\begin{envMatch}
+\firstmatchitem $s\ 0$ &$\assign$& $\nullbrack$
+\matchitem $s\ (t+1)$ &$\assign$& $s \cons \h{range}\ (s+1)\ t $\texstop
+\end{envMatch}\cnlstop
+This exists by recursion.
+}
+
+
+\lsection{Abundance}
+
+\dfn{
+    Let $n$ be an integer. The \df{abundance} of $n$ is the difference $$\h{sum-f}\ (\h{divisor-of-n}\ n)\ (\h{range}\ 1\ n) - 2 \* n$$ or  $$\h{sum-f}\ (\h{divisor-of-n}\ n)\ (\h{range}\ 1\ (n-1)) - n$$.
+}
+
+
+\begin{remark}
+Given an integer $n$ with divisors $d_1, \ldots , d_k$ (where the divisors are in ascending order and $d_1 = 1$, $d_k = n$) the difference $$\left( \sum_{i = 1}^k d_i \right) - 2n$$ is the {\em abundance} of $n$. Or if one prefers, $$\left( \sum_{i = 1}^{k - 1} d_i \right) - n.$$
+
+For example, the divisors of 12 (which are 1, 2, 3, 4, 6 and 12) add up to 28, which is 4 more than 24 (twice 12). Therefore, 12 has an abundance of 4. For the sake of comparison, the divisors of 13 are 1 and 13, adding up to 14, which is 12 less than 26 (twice 13). Therefore, 13 has an abundance of $-12$. A033880 in Sloane's OEIS lists the abundance of the first sixty-three positive integers.
+
+\end{remark}
+
+
+\dfn{The \df{abundant\~numbers} are the numbers with positive abundance.}
+
+\dfn{The \df{quasiperfect\~number} is a number with an abundance of $1$.}
+
+\dfn{The \df{perfect\~number} is a number with an abundance of $0$.}
+
+\dfn{The \df{almost\~perfect\~number} is a number with an abundance of $-1$.}
+
+\dfn{The \df{deficient\~numbers} are the numbers with negative abundance.}
+
+
+\end{cnl}
+%%%%%
+%%%%%
+\end{document}
