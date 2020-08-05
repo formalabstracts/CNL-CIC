@@ -36,9 +36,12 @@ tokens = (
     'HIERARCHICAL_IDENTIFIER',
     'FIELD_ACCESSOR',
     'EOF',
-    'UNKNOWN'
+    'UNKNOWN',
+    'TEX_ERROR',
+    'TEX_WARNING'
 )
 
+# literals:
 #    'L_PAREN',
 #    'R_PAREN',
 #    'L_BRACK',
@@ -60,7 +63,6 @@ singularize_patterns = [
         (r'(.*[^aeiou])ies','y'),
         (r'(.*i[sz]e)s$',''),
         (r'(.*ch|.*sh|.*x|.*z)es',''),
-        #(r'(.*[^s]e)s',''),
         (r'(.*[^s])s+es','sz'),
         (r'(.*[^s])s+',''),
         (r'(.*)','')
@@ -75,12 +77,13 @@ def singularize(s):
         if match:
             return match.group(1)+e
 
+#debug
 print([singularize(s) for s in ['boss','bosses','runner','does','bodies','body',
                                 'redress','potatoes','tomatoes',
                                 'daisies','carries',
                                 'realizes','crunches','squashes',
                                 'misses','miss','cos','goes','writes',
-                                'gas','gasses','arccos']
+                                'gas','gasses','arccos','raises']
        ])
 
 t_ignore_COMMENT = '%.*'
@@ -101,15 +104,19 @@ t_ignore = r' \t\n\r\f\v'
 def t_error(t):
      print("Illegal character '%s'" % t.value[0])
      t.lexer.skip(1)
+     
+t_tex_error = r'\[TeX2CnlError\s*"[^"]*"\s*\]'
+
+t_tex_warning = r'\[TeX2CnlWarning\s*"[^"]*"\s*\]'
 
 literals = ['(',')','{','}','[',']','.',',',';',':']
 
-t_STRING = r'"([^\"]|\[\"nt])*"' 
+t_STRING = r'"[^"]*"' 
 
-t_CONTROLSEQ = r'\[a-zA-Z]+'
+t_CONTROLSEQ = r'[\][a-zA-Z]+'
 
 def t_DECIMAL(t):
-    r'[+-]?\d+.\d+'
+    r'[+-]?\d+\.\d+'
     return t
 
 def t_INTEGER(t):
@@ -117,11 +124,29 @@ def t_INTEGER(t):
     return t
 
 def t_FIELD_ACCESSOR(t):
-    ".[a-zA-Z0-9'][a-zA-Z0-9_']*"
+    "[.][a-zA-Z0-9'][a-zA-Z0-9_']*"
     return t
 
+def t_HIERARCHICAL_IDENTIFIER(t):
+    r"[a-zA-Z0-9'][a-zA-Z0-9_']*([.][a-zA-Z0-9'][a-zA-Z0-9_']*)+"
+    return t
 
-    
+is_varlong = re.compile(r"__[a-zA-Z0-9']*")
+is_var = re.compile(r"[a-zA-Z][0-9_']*")
+is_word = re.compile(r"[A-Za-z]+")
+
+def t_ATOMIC_IDENTIFIER(t):
+    r"[a-zA-Z0-9'][a-zA-Z0-9_']*"
+    if (t.value == '_'):
+        t.type = 'BLANK'
+    elif is_varlong.fullmatch(t.value):
+        t.type = 'VAR'
+    elif is_var.fullmatch(t.value):
+        t.type = 'VAR'
+    elif is_word(t.value):
+        t.type = 'WORD'
+        t.value = (t.value,singularize(t.value))
+    return t
 
 reserved_symbols = {
     '.'  : 'PERIOD', 
@@ -160,7 +185,9 @@ reserved_control = {
     }
 
 def t_CONTROLSEQ(t):
-    r'\([*+^=<>/!@#$&_-|:.?~`,;|\]|[a-zA-Z]+)'
+    r'[\]([*+^\=<>/!@#$&_-|:.?~`,;|]|[a-zA-Z]+)'
     t.type = reserved_control.get(t.value,default='CONTROLSEQ')
     return t 
+
+
 
