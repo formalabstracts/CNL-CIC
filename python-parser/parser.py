@@ -2,6 +2,7 @@
 
 import lexer
 import lib 
+import copy
 
 # input stream should have next:stream -> (result,stream)
 
@@ -56,7 +57,7 @@ class Parse:
     def set_repr(self,rep):
         self.repr = rep
         
-    def next_token():
+    def next_token(): # constructor for next token
         return Parse('next_token',next)
         
     def __call__(self,input):
@@ -166,17 +167,23 @@ class Parse:
         """parse at least once"""
         return self.atleast(1)
     
-    def dependent_plus(self,other):
-        """add parsers with second parse depending on first"""
+    def compose(self,other): #was dependent plus
+        """compose parsers"""
         def f(input):
             (result,input1) = self(input)
             return other(result,input1)
-        return Parse('dependent plus',f)
+        return Parse('compose',f)
     
     def if_next_value(v): #was a
         """parse if next token has value v or fail"""
         def p(tok):
             return tok.value == v
+        return next_token().if_test(p)
+    
+    def if_next_type(ts): 
+        """parse if next type is in ts or fail"""
+        def p(tok):
+            return tok.type in ts
         return next_token().if_test(p)
     
     def parse_all(prs):
@@ -202,9 +209,13 @@ class Parse:
                     return parse_first(prs[1:])(input)
         return Parse('parse_first',f)
     
-#def char_is_alpha(c):
-#    return c.isalpha()
-
+def wordify(tok):
+    # need to (shallow) clone because of backtracking.
+    clone = copy.copy(tok)
+    clone.type = 'WORD'
+    clone.value = (tok.value,tok.value.lower())
+    return clone
+    
 def word_parse(s):
     """parser constructor that matches word string s"""
     def p(tok):
@@ -212,13 +223,33 @@ def word_parse(s):
             return (True,tok)
         # convert single character variables to words
         elif tok.type == 'VAR' and len(tok.value)==1 and tok.value.isalpha():
-            # XX Debug. need to clone because of backtracking.
-            tok.type = 'WORD'
-            tok.value = (tok.value,tok.value.lower())
-            return (True,tok)
+            return (True,wordify(tok))
         else:
             return (False,None)
     return if_test(p).set_repr('word(%s)' % s)
+
+# synonym handling uses a global dictionary.
+
+synonym = {}
+
+def synonym_add(ts):
+    keys = synonym.keys
+    for s in ts:
+        if singularize(s) in keys:
+            return msg_error('synonym already declared: %s' % s)
+            return
+        if len(s) < 2:
+            return msg_errror('synonyms must have at least 2 chars: %s',s)
+    ls = sort([singularize(s) for s in ts])
+    js = ls.join(' ')
+    for s in ls:
+        synonym[s] = js
+
+def synonymize(s):
+    lower = s.lower()
+    synonym.get(lower,default=[lower])
+
+
         
             
                                   
