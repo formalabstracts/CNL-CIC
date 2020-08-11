@@ -8,6 +8,7 @@ Created on Tue Aug  4 09:24:36 2020
 
 import ply.lex as lex
 import msg
+import word_lists
 import re
 
 
@@ -62,7 +63,7 @@ singularize_patterns = [
 
 def singularize(s):
     s = s.lower()
-    if len(s) <= 3 or not(s.endswith('s')):
+    if len(s) <= 3 or not(s.endswith('s')) or s in word_lists.singular:
         return s
     for (p,e) in singularize_patterns:
         match = p.fullmatch(s)
@@ -182,47 +183,12 @@ def t_CONTROLSEQ(t):
     t.type = reserved_control.get(t.value,'CONTROLSEQ')
     return t 
 
-lexer = lex.lex()
+tokenizer = lex.lex()
 
 
-#Test code
-debug=False
-def printd(x):
-    if debug:
-        print(x)
-        
-print('\n'*5)   
-def test(s):
-    lex.lineno=1
-    lexer.input(s)
-    for tok in lexer:
-        printd(tok)
-    printd('*'*10)
-    printd('\n'*3)
 
-test("hello")
-test(r'A B C hello\\alpha33\alpha[1]there !ready! \begin' )
-test(r'\\ \n Riemann-Hilbert %comment \n\n more ')
-test("some-pre %comment \n more")
-test("and \n\nmore")
-test("""multiline
-     here it is
-     moreover""")
-test(r'#4 # 5  $ _id ))))))"hello"')
-test(r'v__3 a__77 33 33.2 alpha.beta alpha.2 .33 bye. ')
-test(r'* + _ - ~ ^ ! | / = < > @ # $ & ? ` .. ; \\ ,')
-test(r'\* \+ \_ \- \~ \^ \! \| \/ \= \< \> \@ \# \$ \& \? \` \.. \; \\ \,')
-test(r'\** \++ \__ \-- \~~ \^^ \!! \|| \// \== \<< \>> \@@ \## \$$ \&& \?? \`` \.. \;; \\ \,,')
-test('(){}[];:;.;,.;')
-test(r'\qed\mid\tmid\alt\sub\^\to\mapsto\blank\\\lambda\lam\Pity\forall\exists\existsunique')
 
-printd([singularize(s) for s in ['boss','bosses','runner','does','bodies','body',
-                                'redress','potatoes','tomatoes',
-                                'daisies','carries',
-                                'realizes','crunches','squashes',
-                                'misses','miss','cos','goes','writes',
-                                'gas','gasses','arccos','raises']
-       ])
+
 
 
 

@@ -33,9 +33,4 @@ def fst(ls):
 def snd(ls):
     return ls[1]
 
-#print(part([3,4,5])([0,1,2,7,8,9,6,7]))
 
-#print(swap(compress)([0,1],[7,8,2,3,4,5]))
-
-#print(fst((3,4)))
-#print(snd((3,4)))

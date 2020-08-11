@@ -1,3 +1,7 @@
+singular = [
+    'this','as','is','thesis','hypothesis','less','obvious','us','yes'
+    ]
+
 invariable = [  #frozen_list - cannot be given a synonym
     'a','an','all','and','any','are','as','assume','be','by',
     'case','classifier',

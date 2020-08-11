@@ -60,7 +60,7 @@ class Parse:
         self.repr = rep
         
     def next_token(): # constructor for next token
-        return Parse('next_token',next)
+        return Parse('next_token',lambda input: input.next())
         
     def __call__(self,input):
         self.read(input)
@@ -226,7 +226,7 @@ def wordify(tok):
 def can_wordify(tok):
     return tok.typ == 'WORD' or (tok.type == 'VAR' and len(tok.value)==1 and tok.value.isalpha())
     
-def next_word(s:str) -> Parse:
+def next_word_exact(s:str) -> Parse: #was next_word
     """parser constructor that matches next with word string s"""
     def p(tok):
         if can_wordify(tok):
@@ -273,10 +273,10 @@ def synw(tok):
         s = s.lower()
     return synonymize(s)
 
-def next_wordsyn(s:str) -> Parse:
+def next_word(s:str) -> Parse: #was_next_word_syn
     """parser constructor that matches next word s, up to synonym"""
     if len(s) < minsynlen:
-        return next_word(s)
+        return next_word_exact(s)
     syn = synonymize(lexer.singularize(s))
     def p(tok):
         return tok.type == 'WORD' and synw(tok)==syn
@@ -456,7 +456,7 @@ def var_or_atomic():
 
 def var_or_atomics():
     """parser for a sequence of one or more var or atomics"""
-    return Parser.plus(var_or_atomic())
+    return Parse.plus(var_or_atomic())
 
 def hierarchical_identifier():
     """parser for hierarchical identifiers"""
@@ -466,11 +466,21 @@ def identifier():
     """parser for hierarchical or atomic identifier"""
     return atomic() | hierarchical_identifier()
 
-# literals are stock phrases that have small variants
+# canned phrases that have small variants
+
+#debug 
+#t = next_word('q')
+#print("ehllo")
+#print(t.type)
 
 #def lits = {
 #        'a':
 #        }
+
+#canned = {
+#    'a':        next_word('a') | next_word('an'),
+#    'article':  indefinite() | Parse.word('the'),
+#    }
     
 
 def indefinite(): #lit_a
