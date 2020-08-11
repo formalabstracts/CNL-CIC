@@ -1,4 +1,4 @@
-def msg_error(s):
+def error(s):
     print('Error:'+s)
 
-#msg_error('test')
+#error('test')

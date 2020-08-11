@@ -91,7 +91,7 @@ def t_error(t):
      
 def t_TEX_ERROR(t): 
     r'\[TeX2Cnl(Error|Warning)\s*"([^"]*)"\s*\]'
-    msg.msg_error("Error in TeX file: %s" % t.value)
+    msg.error("Error in TeX file: %s" % t.value)
     pass
 
 literals = ['(',')','{','}','[',']',',',';',':']
@@ -128,14 +128,17 @@ def t_ATOMIC_IDENTIFIER(t):
         t.type = 'VAR'
     elif is_word.fullmatch(t.value):
         t.type = 'WORD'
-        t.value = (t.value,singularize(t.value))
+        t.rawvalue = t.value
+        t.value = singularize(t.value)
     return t
 
+def rawvalue(tok):
+    if tok.value == 'WORD':
+        return tok.rawvalue
+    return tok.value
+
 def token_length(t):
-    if t.type == 'WORD':
-        len(t.value[0])
-    else:
-        len(t.value)
+    return len(rawvalue(t))
 
 reserved_symbols = {
     '.'  : 'PERIOD', 

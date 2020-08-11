@@ -1,5 +1,11 @@
 #
 
+def flatten(ls):
+    """flatten a list one level"""
+    return [v for sub in ls for v in sub]
+    
+#print(flatten([[1,2],[3,4],[5,6]]))
+
 def compress(ls,ind):
     """create sublist from given indices"""
     return [ls[i] for i in ind]

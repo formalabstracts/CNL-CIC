@@ -1,4 +1,4 @@
-frozen_list = [
+invariable = [  #frozen_list - cannot be given a synonym
     'a','an','all','and','any','are','as','assume','be','by',
     'case','classifier',
     'coercion','conjecture','contradiction','contrary','corollary','declare',
@@ -23,12 +23,12 @@ frozen_list = [
     'warning','we','well','welldefined','well_defined','well_propped',
     'where','with','write','wrong','yes',
 
-#(* plural handled by desing 'classifiers', 'exists','implement',
+#(* plural handled by sing 'classifiers', 'exists','implement',
 #   'parameters','properties','propositions','synonyms','types',
 
 ]
 
-phrase_list_transition_words = [
+transition = [ #phrase_list_transition_words
     'a basic fact is','accordingly','additionally','again','also','and yet','as a result',
     'as usual','as we have seen','as we see','at the same time','besides','but',
     'by definition','certainly','clearly','computations show','consequently',
