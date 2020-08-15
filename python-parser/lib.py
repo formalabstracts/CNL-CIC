@@ -33,4 +33,9 @@ def fst(ls):
 def snd(ls):
     return ls[1]
 
+def prepend(x):
+    return [fst(x)]+snd(x)
+    
+
+
 

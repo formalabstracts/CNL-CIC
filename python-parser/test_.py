@@ -7,26 +7,26 @@ Created on Tue Aug 11 08:51:02 2020
 """
 import lib 
 
-def test(m,r):
+def assert_true(m,r):
     if (r!=True):
-        print('Error: ',m)
+        print(f'Error: {m}')
  
 file='lib'
-test('flatten',lib.flatten([[1,2],[3,4],[5,6]])==[1,2,3,4,5,6])
 
-test('compress',lib.compress([10,11,12,13,14],[0,2,4])==[10,12,14])
+def test_flatten_compress():
+    assert_true('flatten',lib.flatten([[1,2],[3,4],[5,6]])==[1,2,3,4,5,6])
+    assert_true('compress',lib.compress([10,11,12,13,14],[0,2,4])==[10,12,14])
 
 def f(a,b):
     return a+100*b
-    
-test('swap',lib.swap(f)(3,7)== 7+100*3)
 
-test('curry',lib.curry(f)(3)(7) == f(3,7))
-
-test('part',lib.part([0,2,4])([10,11,12,13,14])==[10,12,14])
-    
-test('fst',lib.fst((3,4))==3)
-test('snd',lib.snd((3,4))==4)
+def test_lib_list():    
+    assert_true('swap',lib.swap(f)(3,7)== 7+100*3)
+    assert_true('curry',lib.curry(f)(3)(7) == f(3,7))
+    assert_true('part',lib.part([0,2,4])([10,11,12,13,14])==[10,12,14])    
+    assert_true('fst',lib.fst((3,4))==3)
+    assert_true('snd',lib.snd((3,4))==4)
+    assert_true('prepend',lib.prepend((0,[1,2]))==[0,1,2])
 
 import lexer
 file='lexer'
@@ -58,8 +58,9 @@ singular = {
     'raises':'raise'
     }
 
-for key in singular:
-    test('singular.'+key,lexer.singularize(key)==singular[key])
+def test_singular():
+    for key in singular:
+        assert_true('singular.'+key,lexer.singularize(key)==singular[key])
 
 def print_tokens(s:str):
     lexer.lex.lineno=1
@@ -77,10 +78,10 @@ def token_ok(t,c):
     (ty,v) = c
     return t.type == ty and t.value == v
     
-def test_token_list(ts,ls):
+def assert_token_list(ts,ls):
     z = zip(ts,ls)
     for (t,c) in z:
-        test(t.value,token_ok(t,c))
+        assert_true(t.value,token_ok(t,c))
     
 raw_lex = {
     "hello":[('WORD','hello')],
@@ -100,23 +101,18 @@ raw_lex = {
     r'\qed\mid\tmid\alt\sub\^\to\mapsto\blank\\\lambda\lam\Pity\forall\exists\existsunique':[('SYMBOL_QED',r'\qed'),('MID',r'\mid'),('TMID',r'\tmid'),('ALT',r'\alt'),('APPLYSUB',r'\sub'),('COERCION',r'\^'),('ARROW',r'\to'),('MAPSTO',r'\mapsto'),('BLANK',r'\blank'),('LAMBDA',r'\\'),('LAMBDA',r'\lambda'),('LAMBDA',r'\lam'),('PITY',r'\Pity'),('QUANTIFIER',r'\forall'),('QUANTIFIER',r'\exists'),('QUANTIFIER',r'\existsunique')]
     }
 
-for key in raw_lex:
-    lexer.tokenizer.input(key)
-    test_token_list(list(lexer.tokenizer),raw_lex[key])
+print('hello')
+
+def test_tok():
+    for key in raw_lex:
+        lexer.tokenizer.input(key)
+        assert_token_list(list(lexer.tokenizer),raw_lex[key])
 
 #print(lexer.tokenizer.__dict__)
 
 #lexer.tokenizer.input("this is it.")
 #for i in range(4):
 #    print(lexer.tokenizer.next())
-
-import parser
-file='parser'
-
-toks = lexer.tokenizer 
-prs = Parser('test',lambda input: ())
-
-
 
 
         

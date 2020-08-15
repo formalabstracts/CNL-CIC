@@ -9,7 +9,7 @@ from collections import namedtuple
 
 # An item is a token embedded at a particular position of the tuple of tokens.
 # The stream and individual tokens remain immutable.  
-# Only the pos changes.
+# pos changes.
 Item = namedtuple('Item','stream pos token')
 
 def init_item(s) -> Item:
@@ -81,51 +81,39 @@ class Parse:
         
     def __repr__(self):
         """Description of production rule"""
-        return 'Parse(%s)' % self.repr 
+        return f'Parse({self.repr})'
     
     def set_repr(self,rep):
         self.repr = rep
         
     def next_token(): # constructor for next token
-        return Parse('next_token',lambda item: next_item(item))
+        return Parse('next_token',next_item)
         
     def __call__(self,item):
         self.process(item)
     
     def __add__(self,other):
-        """combine two parsers in succession"""
+        """combine two parsers in succession, returning pair of results."""
         def f(item:Item):
             item1 = self(item)
             item2 = other(item1)
             return update((item1.token,item2.token),item2)
-        return Parse(self.repr()+'+'+other.repr(),f)
+        return Parse(f'{self.repr()}+{other.repr()}',f)
 
     def __or__(self,other):
-        """try first parser then next"""
+        """try first parser then next. Lower precedence than +"""
         def f(item):
             try:
                 return self(item)
             except ParseError:
-                return other(item)
-            
-        return Parse(self.repr()+'|'+other.repr(),f)
+                return other(item)       
+        return Parse(f'{self.repr()}|{other.repr()}',f)
     
-    def __rshift__(self,treatment):
-        """apply treatment to parser output"""
+    def compose(self,other): #was dependent plus
+        """compose parsers"""
         def f(item):
-            item1 = self(item)
-            return update(treatment(item1.token),item1)
-        
-    def many(self):
-        """parse zero or more times"""
-        def f(item):
-            try:
-                item1 = self(item)
-                item2 = self.many()(item1)
-                return update([item1.token]+item2.token,item2)
-            except ParseError:
-                return update([],item)
-        return Parse('many(%s)' % self.repr(),f)
+            return other(self(item))
+        return Parse('compose',f)
     
     def nocatch(self,msg): #was fix
         """No catch error if failure"""
@@ -136,23 +124,38 @@ class Parse:
                 raise ParseNoCatch(msg)
         return Parse(self.repr(),f)
     
-    def separated_nonempty_list(self,sep):
-        """Sequence of at least one parse with separation sep"""
-        def treat(lls):
-            (l,ls)=lls
-            [l]+ls
-        return self + (sep + self >> lib.snd).many() >> treat
-            
-    def nothing():
-        """Does no parsing, empty list as output"""
+    # was __rshift__ but Python gives it higher precedence than | +, which isn't helpful.
+    def treat(self,treatment):
+        """apply treatment to parser output."""
         def f(item):
-            return update([],item)
-        return Parse("nothing",f)
+            item1 = self(item)
+            return update(treatment(item1.token),item1)
+        return Parse(self.repr(),f)
+        
+    def many(self):
+        """parse zero or more times"""
+        def f(item):
+            try:
+                item1 = self(item)
+                item2 = self.many()(item1)
+                return update([item1.token]+item2.token,item2)
+            except ParseError:
+                return update([],item)
+        return Parse(f'many{self.repr}',f)
     
-    def separated_list(self,sep):
-        """sequence of parses with separation sep"""
-        return (self.separated_nonempty_list(sep) | Parse.nothing()).set_repr("sep list")
-                
+    def atleast(self,n):
+        """parse at least n times"""
+        def f(item):
+            if n < 1:
+                self.many()
+            else:
+                (self + Parse.atleast(self,n-1)).treat(lib.prepend)
+        return Parse(f'at least {n}',f)
+    
+    def plus(self):
+        """parse at least once"""
+        return self.atleast(1)
+    
     def possibly(self):
         """zero or one parses returned in a list"""
         def f(item):
@@ -161,8 +164,22 @@ class Parse:
                 return update([item1.token],item1)
             except ParseError:
                 return update([],item)
-        return Parse('possibly(%s)' % self.repr(),f)
+        return Parse(f'possibly({self.repr()})',f)
     
+    def nothing():
+        """Does no parsing, empty list as output"""
+        def f(item):
+            return update([],item)
+        return Parse("nothing",f)
+ 
+    def separated_nonempty_list(self,sep):
+        """Sequence of at least one parse with separation sep"""
+        return (self + (sep + self).treat(lib.snd).many()).treat(lib.prepend)
+              
+    def separated_list(self,sep):
+        """sequence of parses with separation sep"""
+        return (self.separated_nonempty_list(sep) | Parse.nothing()).set_repr("sep list")
+                
     def if_test(self,p): #was some
         """Next passes boolean test or fail"""
         def f(item):
@@ -184,52 +201,31 @@ class Parse:
                 raise ParseError
         return Parse('if_test_delay',f)
     
-    def atleast(self,n):
-        """parse at least n times"""
-        def treat(t):
-            (a,b) = t
-            return [a]+b
-        def f(item):
-            if n < 1:
-                self.many()
-            else:
-                self + Parse.atleast(self,n-1) >> treat
-        return Parse('at least {n}'.format(n=n),f)
-    
-    def plus(self):
-        """parse at least once"""
-        return self.atleast(1)
-    
-    def compose(self,other): #was dependent plus
-        """compose parsers"""
-        def f(item):
-            return other(self(item))
-        return Parse('compose',f)
-    
-    def next_value(v): #was a
+    def if_value(self,v): #was a
         """parse if next token has value v or fail"""
         def p(tok):
             return tok.value == v
-        return Parse.next_token().if_test(p)
+        return self.if_test(p)
     
-    def next_type(ts): 
+    def if_type(self,ts): 
         """parse if next type is in ts or fail"""
         def p(tok):
             return tok.type in ts
-        return Parse.next_token().if_test(p)
-    
-    def parse_all(prs):
+        return self.if_test(p)
+ 
+    # class methods
+    def all(prs):
         """sequentially parse a list of parsers and return list of results"""
         def f(item):
             if len(prs) == 0:
                 return update([],item)
             else:
                 item1 = prs[0](item)
-                item2 = Parse.parse_all(prs[1:])(item1)
+                item2 = Parse.all(prs[1:])(item1)
                 return update([item1.token]+item2.token,item2)
-        return Parse('parse_all',f)
+        return Parse('all',f)
     
-    def parse_first(prs): #was parse_some 
+    def first(prs): #was parse_some 
         """parse first in a list that does not fail"""
         def f(item):
             if len(prs) == 0:
@@ -238,10 +234,13 @@ class Parse:
                 try: 
                     return prs[0](item)
                 except:
-                    return Parse.parse_first(prs[1:])(item)
-        return Parse('parse_first',f)
+                    return Parse.first(prs[1:])(item)
+        return Parse('first',f)
     
 #functions outside class.
+
+def nextv(v):
+    return Parse.next_token().if_value(v)
 
 def wordify(tok):
     # need to (shallow) clone because of backtracking.
@@ -262,24 +261,25 @@ def next_word_exact(s:str) -> Parse: #was next_word
             return (True,wordify(tok))
         else:
             return (False,None)
-    return Parse.next_token().if_test(p).set_repr('word(%s)' % s)
+    return Parse.next_token().if_test(p).set_repr(f'word({s})')
 
 # synonym handling uses a global dictionary, must be single words.
 
 synonym = { key: key for key in word_lists.invariable }
-minsynlen = 4
+
+MIN_LEN_SYNONYM = 4
 
 def synonym_add(ts):
     """add synonym list to dictionary"""
     #XX Debug: should check that at most one variant in ts is defined anywhere.
     for s in ts:
         if len(s.split(' '))> 1:
-            return msg.error('synonym entries must be single words:'+s)
+            return msg.error(f'synonym entries must be single words:{s}')
         if lexer.singularize(s) in synonym:
-            return msg.error('synonym already declared: %s' % s)
+            return msg.error(f'synonym already declared: {s}')
         # len restriction prevents VAR from being added to dict.
-        if len(s) < minsynlen:
-            return msg.error('synonyms must have at least {m} chars: {s}'.format(m=minsynlen,s=s))
+        if len(s) < MIN_LEN_SYNONYM:
+            return msg.error(f'synonyms must have at least {MIN_LEN_SYNONYM} chars: {s}')
     ls = [lexer.singularize(s) for s in ts]
     ls.sort()
     js = ' '.join(ls)
@@ -304,12 +304,12 @@ def synw(tok):
 
 def next_word(s:str) -> Parse: #was_next_word_syn
     """parser constructor that matches next word s, up to synonym"""
-    if len(s) < minsynlen:
+    if len(s) < MIN_LEN_SYNONYM:
         return next_word_exact(s)
     syn = synonymize(lexer.singularize(s))
     def p(tok):
         return tok.type == 'WORD' and synw(tok)==syn
-    return Parse.next_token().if_test(p).set_repr('wordsyn(%s)' % s)
+    return Parse.next_token().if_test(p).set_repr(f'wordsyn({s})')
 
 def next_any_word() -> Parse: #was anyword
     """parser constructor that matches any next word"""
@@ -326,15 +326,15 @@ def next_any_word_except(banned) -> Parse:
 def next_phrase(s:str)-> Parse:
     """parser constructor that matches phrase up to white space and synonyms."""
     phrase = [next_word(t) for t in s.split()]
-    return Parse.parse_all(phrase)
+    return Parse.all(phrase)
 
 def first_phrase(phs)-> Parse: #was somephrase
     """parser constructor for the first matching phrase up to white space and synonyms"""
-    return Parse.parse_first([next_phrase(ph) for ph in phs])
+    return Parse.first([next_phrase(ph) for ph in phs])
 
 def first_word(ss:str) -> Parse: #was someword
     """parser constructor for the first matching word up to white space and syns"""
-    return Parse.parse_first([next_word(s) for s in ss.split()])
+    return Parse.first([next_word(s) for s in ss.split()])
 
 #repeat
 #def nocatch(msg,pr:Parse) -> Parse:
@@ -349,38 +349,41 @@ def first_word(ss:str) -> Parse: #was someword
 def commit(msg:str,trial_parse:Parse,pr:Parse) -> Parse:
     """if trial_parse does not fail, discard, then apply pr without catching"""
     def f(item):
-        (_,_)= trial_parse(item)
+        _ = trial_parse(item)
         return pr.nocatch(msg)(item)
     return Parse('commit',f)
         
 def commit_head(msg:str,head:Parse,pr2) -> Parse:
-    """compose parsers applying head, then pr2(headresult) with nocatch"""
+    """compose parsers applying head, then pr2(output data) with nocatch"""
     def f(item):
-        (headresult,item1) = head(item)
-        return pr2(headresult).nocatch(msg)(item1)
+        item1 = head(item)
+        return pr2(item1.token).nocatch(msg)(item1)
     return Parse('commit_head',f)
 
 def until(pr1:Parse,pr2:Parse) -> Parse:
-    """accumulate pr1's in a list until parse2 succeeds"""
+    """accumulate pr1's in a list until pr2 succeeds, including pr2 output"""
+    def t(t1,ts):
+        t1s,t2 = ts
+        return ([t1]+t1s,t2)
     def f(item):
         try:
-            return pr2(item)
+            return pr2(item)  # no pr1
         except:
-            (result,item1)=pr1(item)
-            ((result1,result2),item2)= until(pr1,pr2)(item1)
-            return (([result]+result1,result2),item2)
+            item1=pr1(item)
+            item2= until(pr1,pr2)(item1)
+            return update(t(item1.token,item2.token),item2)
     return Parse('until',f)
 
 def delimit(pr:Parse,left:str,right:str) -> Parse:
     """delimit a parser"""
-    return (Parse.next_value(left)+pr+Parse.next_value(right))
+    return (nextv(left)+pr+nextv(right))
 
 def delimit_strip(pr:Parse,left:str,right:str) -> Parse:
     """delimit a parser, discarding delimiters"""
-    def treat(t):
-        (_,(b,_))= t
+    def take_middle(t):
+        ((_,b),_)= t
         return b
-    return delimit(pr,left,right) >> treat
+    return delimit(pr,left,right).treat(take_middle)
 
 def paren(pr): 
     return delimit_strip(pr,'(',')')
@@ -402,23 +405,23 @@ def balanced_test(test) -> Parse:  #was balanced B
          delimit(balanced(),'(',')') |
          delimit(balanced(),'{','}') |
          delimit(balanced(),'[',']')
-         ).many() >> lib.flatten
+         ).many().treat(lib.flatten)
 
 def balanced():
     return balanced_test(lambda _: True)
 
 def brace_semi():
     """construct parser for brace-delimited delimiter-balanced semicolon separated list"""
-    semisep = balanced_test(lambda tok: tok.value != ';')
-    return brace(Parse.separated_nonempty_list(semisep,Parse.next_value(';')))
+    nosemi = balanced_test(lambda tok: tok.value != ';')
+    return brace(Parse.separated_nonempty_list(nosemi,nextv(';')))
     
 def comma_nonempty_list(pr:Parse) -> Parse:
     """construct parser for comma-separated list"""
-    return Parse.separated_nonempty_list(pr,Parse.next_value(';'))
+    return Parse.separated_nonempty_list(pr,nextv(','))
 
 def andcomma():
     """parser for 'and' or ','"""
-    return Parse.next_value(',') | Parse.next_value('and')
+    return nextv(',') | nextv('and')
 
 def andcomma_nonempty_list(pr:Parse) -> Parse:
     """construct parser for and/comma separated list"""
@@ -426,21 +429,21 @@ def andcomma_nonempty_list(pr:Parse) -> Parse:
 
 def or_nonempty_list(pr:Parse) -> Parse:
     """construct parser for 'or' separated list"""
-    return Parse.separated_nonempty_list(pr,Parse.next_value('or'))
+    return Parse.separated_nonempty_list(pr,nextv('or'))
 
 def cs_brace(cs_parse:Parse,brace_parse:Parse) -> Parse:
-    """control sequence parser"""
+    """control sequence parser including arguments in braces"""
     return cs_parse + brace(brace_parse).many()
 
 def phrase_list_transition():
     """parser for transition phrases"""
     prs = [Parse.phrase(s) for s in word_lists.transition]
-    return Parse.parse_first(prs) + Parse.word('that').possibly() >> (lambda _: [])
+    return (Parse.first(prs) + Parse.word('that').possibly()).treat(lambda _: [])
 
 def phrase_list_filler():
     """parser for filler words"""
     return (Parse.word('we').possibly() + first_word('put write have know see') + 
-            Parse.word('that').possibly()) >> (lambda _ : [])
+            Parse.word('that').possibly()).treat(lambda _ : [])
 
 def phrase_list_proof_statement():
     """parser for canned proof statements"""
@@ -450,8 +453,7 @@ def phrase_list_proof_statement():
              Parse.word('now').possibly() +
              Parse.word('follows')) |
             Parse.phrase('the other cases are similar') |
-            (Parse.phrase('the proof is')+ first_word('obvious trivial easy routine')) >>
-            (lambda _ : []))
+            (Parse.phrase('the proof is')+ first_word('obvious trivial easy routine'))).treat(lambda _ : [])
 
 # case_sensitive_word -> use next_value(s)
 
@@ -477,7 +479,7 @@ def atomic():
 
 def var():
     """parser for variables"""
-    return Parse.next_token().type(['VAR'])
+    return Parse.next_token().if_type(['VAR'])
 
 def var_or_atomic():
     """parser for a var or atomic"""
@@ -489,7 +491,7 @@ def var_or_atomics():
 
 def hierarchical_identifier():
     """parser for hierarchical identifiers"""
-    return Parse.next_token().type(['HIERARCHICAL_IDENTIFIER'])
+    return Parse.next_token().if_type(['HIERARCHICAL_IDENTIFIER'])
 
 def identifier():
     """parser for hierarchical or atomic identifier"""
@@ -526,7 +528,7 @@ def lit_defined_as():
 
 def lit_is():
     """parser for 'is'-like words"""
-    return first_phrase(['is','area','be','to be'])
+    return first_phrase(['is','are','be','to be'])
 
 def lit_iff():
     """parser for 'iff'-like phrases"""

@@ -8,49 +8,31 @@ Created on Fri Aug 14 10:35:50 2020
 import lexer
 import parser
 
-
-
-
-
-input1 = "Hello World"
-
-tok = lexer.tokenizer
-
-tokst = tuple(tok.input(input1))
-
-def next_token(pos):
-    if pos >= len(tokst):
-        raise StopIteration
-    return (tokst[pos],pos+1)    
-
-class stream:
-    def __init__(self,st,pos=0):
-        self.tup = tuple(st)
-        self.pos = pos
-        
-    def __iter__(self):
-        return self
-        
-    def __next__(self):
-        if self.pos >= len(self.tup):
-            raise StopIteration
-        t = self.tup[self.pos]
-        self.pos += 1
-        return (t,self.pos)
-
-tok_input = stream(tok)
-
-for i in tok_input:
-    print(i)
-
-#(a1,tok_input2) = tok_input.next()
-
-for i in range(5):
-    print(next(tok_input))
-
-print(a1)
-print('.')
-
-for i in tok:
-    print(i)
+def test_hello():
+    print('hi')
+    assert 1 == 1
     
+print(parser.__dict__)
+    
+def mk_item_stream(s:str):
+    l = lexer.tokenizer.input(s)
+    print(l)
+    return parser.init_item(l)
+
+def test_hello_world():
+    it = mk_item_stream("Hello World!")
+    vals = ['Hello','World','!']
+    for i in range(3):
+       it = parser.next_item(it)
+       print(it)
+       assert it.token.value == vals[i]
+       
+test_hello_world()
+        
+
+
+    
+
+
+
+
