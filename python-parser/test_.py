@@ -5,7 +5,7 @@ Created on Tue Aug 11 08:51:02 2020
 
 @author: thales
 """
-import lib 
+#import lib 
 
 def assert_true(m,r):
     if (r!=True):
@@ -106,7 +106,10 @@ print('hello')
 def test_tok():
     for key in raw_lex:
         lexer.tokenizer.input(key)
+        print(key)
         assert_token_list(list(lexer.tokenizer),raw_lex[key])
+        
+test_tok()
 
 #print(lexer.tokenizer.__dict__)
 
