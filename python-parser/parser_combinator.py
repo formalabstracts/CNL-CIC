@@ -15,6 +15,7 @@ Item = namedtuple('Item','stream pos acc')
 
 def init_item(s) -> Item:
     """Initialize item stream with a tuple of tokens"""
+    
     return Item(pos=0,stream=s,acc=None)
 
 def next_item(item:Item) -> Item:
@@ -75,10 +76,11 @@ class Parse:
     """base class for parsers.
     f:Item->Item processes one or more tokens from the item stream.
     """
-    def __init__(self,repr,f):
+    def __init__(self,repr,f,errmsg=''):
         """r:Item->Item, repr:str"""
         self.process = f
         self.repr = repr 
+        self.err = errmsg
         
     def __repr__(self):
         """Description of production rule"""
@@ -463,7 +465,7 @@ def balanced() -> Parse:
 
 def brace_semi():
     """construct parser for brace-delimited delimiter-balanced semicolon separated list"""
-    nosemi = balanced_test(lambda tok: tok.value != ';')
+    nosemi = balanced_condition(lambda tok: tok.value != ';')
     return brace(Parse.separated_nonempty_list(nosemi,next_value(';')))
     
 def comma_nonempty_list(pr:Parse) -> Parse:

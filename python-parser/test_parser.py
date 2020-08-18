@@ -6,6 +6,7 @@ Created on Fri Aug 14 10:35:50 2020
 @author: hales
 """
 import copy
+import lib
 import lexer
 import parser_combinator as pc
 
@@ -307,7 +308,7 @@ def test_until():
 def test_delimit():
     its = mk_item_stream('(hello){there}')
     its1 = pc.paren(pc.next_any_word()).process(its)
-    tok = its1.acc
+    #tok = its1.acc
     #print(tok)
     vs = [t.value for t in its1.acc]
     assert vs == ['hello']
@@ -317,7 +318,7 @@ def test_delimit():
 test_delimit()
 
 def test_balanced_condition():
-    its = mk_item_stream('(Hi and (yet[+]) .) there (Bud) {#}.1 ') #'(This)  should {also [.] #} have outer words.')
+    its = mk_item_stream('(Hi and (yet[+]) .) there (Bud) {#}.1 ')
     p = pc.balanced_condition(pc.can_wordify)
     its1 = p.process(its)
     #print(its1.acc)
@@ -326,6 +327,21 @@ def test_balanced_condition():
     assert vs == ['(', 'hi', 'and', '(', 'yet', '[','+',']',')', '.', ')', 'there', '(', 'bud', ')', '{', '#', '}']
     
 test_balanced_condition()
+
+def test_brace_semi():
+    its = mk_item_stream('{Hi and ; (yet[+]) . ;there (Bud) ; {#;}.1}')
+    p = pc.brace_semi()
+    toks = p.process(its).acc
+    toks = lib.flatten(toks.reverse())
+    print(toks)
+    vs = [t.value for t in toks]
+    print(vs)
+    #assert vs == ['(', 'hi', 'and', '(', 'yet', '[','+',']',')', '.', ')', 'there', '(', 'bud', ')', '{', '#', '}']
+    
+test_brace_semi()  
+    
+
+
     
 
 
