@@ -33,6 +33,9 @@ for t in tokenizer:
 def test_lex():
     tokenizer.input('new string')
     for tok in tokenizer:
+        print(tok.__dict__)
+        print(type(tok))
+        print(ply.lex.LexToken.__dict__)
         assert tok.value in ['new','string']
 
 test_lex()

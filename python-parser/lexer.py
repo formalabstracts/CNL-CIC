@@ -30,13 +30,13 @@ tokens = (
     'COLON',
     'APPLYSUB',
     'SLASH',
-    'SLASHDASH',
+    #'SLASHDASH',
     'COERCION',
     'LAMBDA',
     'PITY',
     'QUANTIFIER',
     'VAR',
-    'METAVAR',
+    #'METAVAR',
     'WORD',
     'ATOMIC_IDENTIFIER',
     'HIERARCHICAL_IDENTIFIER',
@@ -149,7 +149,7 @@ reserved_symbols = {
     '|->': 'MAPSTO', 
     '|'  : 'ALT', 
     '/'  : 'SLASH', 
-    '/-' : 'SLASHDASH',
+    #'/-' : 'SLASHDASH',
     '_'  : 'BLANK'
     }
 

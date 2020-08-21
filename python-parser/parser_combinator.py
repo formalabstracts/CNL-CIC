@@ -10,24 +10,31 @@ from collections import namedtuple
 # An item is a token embedded at a particular position of the tuple of tokens.
 # The stream and individual tokens remain immutable.  
 # pos changes.
-# acc is the accumulator holding the parsed data
-Item = namedtuple('Item','stream pos acc')
+# acc is the accumulator holding the parsed data, with stream range start:stop
+Item = namedtuple('Item','stream pos acc start stop')
 
 def init_item(s) -> Item:
     """Initialize item stream with a tuple of tokens"""
-    
-    return Item(pos=0,stream=s,acc=None)
+#   # a token used for cloning
+    if len(s) > 0:
+        init_item.tok = s[0]
+    return Item(pos=0,stream=s,acc=None,start=0,stop=0)
+
+#v = init_item([3,4,5])
+#print(init_item.tok)
 
 def next_item(item:Item) -> Item:
     """Advance to the next item of the stream.
     The stream is left unchanged."""
     if item.pos >= len(item.stream):
         raise StopIteration
-    return Item(pos=item.pos +1,stream=item.stream,acc=item.stream[item.pos])
-
+    acc = item.stream[item.pos]
+    start = acc.lexpos
+    return Item(pos=item.pos +1,stream=item.stream,acc=acc,start=start,stop=start+lexer.token_length(acc))
+ 
 def update(acc,item:Item) -> Item:
     """Create a new item with replaced accumulator"""
-    return Item(pos=item.pos,stream=item.stream,acc=acc)
+    return Item(pos=item.pos,stream=item.stream,acc=acc,start=item.start,stop=item.stop)
 
 #exceptions
 
@@ -268,6 +275,9 @@ class Parse:
         return Parse('gen_first',f)
     
 #functions outside class.
+
+# scoping 
+scope_current = {}
 
 # synonym handling uses a global dictionary, must be single words.
 
@@ -551,74 +561,48 @@ def identifier():
     return atomic() | hierarchical_identifier()
 
 # canned phrases that have small variants
-
-#debug 
-#t = next_word('q')
-#print("ehllo")
-#print(t.type)
-
-#def lits = {
-#        'a':
-#        }
-
-#canned = {
-#    'a':        next_word('a') | next_word('an'),
-#    'article':  indefinite() | Parse.word('the'),
-#    }
+# lit[w] gives parser for w-like words or phrases
     
+lit = {
+    'a' : first_word('a an'), #indefinite
+    'article' : first_word('a an the'),
+    'defined-as' : first_phrase(['said to be','defined as','defined to be']),
+    'is' : first_phrase(['is','are','be','to be']),
+    'iff':  (first_phrase(['iff','if and only if']) | 
+             (first_phrase(['is','are','be','to be']) + next_word('the').possibly() + next_word('predicate'))),
+    'denote': first_phrase(['denote','stand for']),
+    'do': first_word('do does'),
+    'equal': next_phrase('equal to'),
+    'has': first_word('has have'),
+    'with': first_word('with of having'),
+    'true': first_word('on true yes'),
+    'false': first_word('off false no'),
+    'wrong': next_phrase('it is wrong that'),
+    'exist': next_word('exist'),
+    'lets': first_phrase(['let','let us','we','we can']),
+    'fix': first_word('fix let'),
+    'assume': first_word('assume suppose'),
+    'then': first_word('then therefore hence'),
+    'choose': first_word('take choose pick'),
+    'prove': first_word('prove show'),
+    'say': first_word('say write'),
+    'we-say': (next_word('we').possibly() +
+            first_word('say write') +
+            next_word('that').possibly()
+            ),
+    'assoc': first_word('left right no'),
+    'field-key': first_word('coercion notationless notation parameter type call'),
+    'qed': first_word('end qed obvious literal'),
+    'document': first_word('document article section subsection subsubsection subdivision division'),
+    'end-document': first_word('endsection endsubsection endsubsubsection enddivision endsubdivision'),
+    'def': first_word('def definition'),
+    'axiom': first_word('axiom conjecture hypothesis equation formula'),
+    'with-property': next_phrase('with property'),
+    'param': next_phrase('with parameter'),
+    'theorem': first_word('proposition theorem lemma corollary'),
+    # type proposition property classsifier atomic 
+    }
 
-def indefinite(): #lit_a
-    """parser for 'a' or 'an'"""
-    return Parse.word('a') | Parse.word('an')
-
-def article(): 
-    """parser for 'a' or 'an' or 'the'"""
-    return indefinite() | Parse.word('the')
-
-def lit_defined_as():
-    """parser for 'defined_as'-like phrases"""
-    return first_phrase(['said to be','defined as','defined to be'])
-
-def lit_is():
-    """parser for 'is'-like words"""
-    return first_phrase(['is','are','be','to be'])
-
-def lit_iff():
-    """parser for 'iff'-like phrases"""
-    return (first_phrase(['iff','if and only if']) |
-            (lit_is() + Parse.word('the').possibly() + Parse.word('predicate')))
-
-def lit_denote():
-    """parser for 'denote'-like phrases"""
-    return first_phrase('denote','stand for')
-
-def lit_do():
-    """parser for 'do'-like phrases"""
-    return Parse.first_word('do does')
-
-def lit_equal():
-    """parser for 'equal'-like phrases"""
-    return Parse.phrase('equal to')
-
-def lit_has():
-    """parser for 'has'-like phrases"""
-    return first_word('has have')
-
-def lit_with():
-    """parser for 'with'-like phrases"""
-    return first_word('with of having')
-
-def lit_true():
-    """parser for 'true'-like words"""
-    return first_word('on true yes')
-
-def lit_false():
-    """parser for 'false'-like words"""
-    return first_word('off false no')
-
-def lit_its_wrong():
-    """parser for 'it is wrong that'"""
-    return Parse.phrase('it is wrong that')
 
 def lit_record():
     """parser for 'record'-type phrases"""
@@ -627,155 +611,154 @@ def lit_record():
             Parse.word('identification').possibly() +
             Parse.word('that').possibly())
 
-def lit_exist():
-    """parser for 'exist'-type phrases"""
-    return Parse.word('exist')
+def lit_doc() -> Parse: #section_tag
+    """parser for section start or end markers"""
+    return lit['document'] | lit['end-document']
 
-def lit_lets():
-    """parser for 'lets'-type phrases"""
-    return first_phrase(['let','let us','we','we can'])
+def lit_location() -> Parse:
+    """parser for cross-reference document locations"""
+    return Parse.first([lit['document'],lit['theorem'],lit['axiom']])
 
-def lit_fix():
-    """parser for 'fix'-type phrases"""
-    return first_word('fix let')
-
-def lit_assume():
-    """parser for 'assume'-type words"""
-    return first_word('assume suppose')
-
-def lit_then():
-    """parser for 'then'-type words"""
-    return first_word('then therefore hence')
-
-def lit_choose():
-    """parser for 'choose'-type words"""
-    return first_word('take choose pick')
-
-def lit_prove():
-    """parser for 'prove'-like words"""
-    return first_word('prove show')
-
-def lit_say():
-    """parser for 'say'-like words"""
-    return first_word('say write')
-
-def lit_we_say():
-    """parser for 'we say'-like phrases"""
-    return (Parse.word('we').possibly() +
-            lit_say() +
-            Parse.word('that').possibly()
-            )
-
-def lit_assoc(): #lit_left
-    """parser for associativity left/right/no"""
-    return first_word('left right no')
-
-#lit_type Parse.word('type')
-#lit_proposition Parse.word('proposition')
-#lit_property Parse.word('property')
-#lit_classifier Parse.word('classifier')
+#others:
 #label = atomic
 #period Parse.value('.')
 #renamed map -> call
 
-def lit_field_key():
-    """parser for structure field keywords"""
-    return first_word('coercion notationless notation parameter type call')
+# instructions do nothing except store for now
 
-def lit_qed():
-    """parser for proof end marker"""
-    return first_word('end qed obvious literal')
+instruct = {}
 
-def lit_document():
-    """parser for section markers"""
-    return first_word('document article section subsection subsubsection subdivision division')
+def param_value(ls):
+    if ls == []:
+        return ''
+    tok = ls[0]
+    if tok.type == 'INTEGER':
+        return int(tok.value)
+    if tok.value.lower() in ['yes','true','on']:
+        return True
+    if tok.value.lower() in ['no','false','off']:
+        return False
+    return tok.value
+  
+def expand_slashdash(vs):
+    """expanding synonyms
+    e.g. word/-ing is short for word/wording"""
+    for i in range(len(vs)):
+        if vs[i]== '/-':
+            vs[i]= '/'
+            vs[i+1]= vs[i-1]+vs[i+1]
+    return [v for v in vs if v != '/']
+#test 
+#print(expand_slashdash(['work','/-','ing','/','effort','workaround']))
+#['work', 'working', 'effort', 'workaround']
 
-def lit_enddocument():
-    """parser for section end markers"""
-    return first_word("endsection endsubsection endsubsubsection enddivision endsubdivision")
+def syn():
+    """parsing synonyms"""
+    def p(tok):
+        tok.value in ['/','/-'] or can_wordify(tok)
+    synlist = Parse.next_token().if_test(p).plus()
+    return comma_nonempty_list(synlist)
 
-def lit_doc() -> Parse: #section_tag
-    """parser for section start or end markers"""
-    return lit_document() | lit_enddocument()
+def instruction():
+    """parsing and processing of synonyms and other instructions"""
+    def treat_syn(acc):
+        for ac in acc:
+            vs = [t.value for t in ac]
+            v_expand = expand_slashdash(vs)
+            synonym_add(v_expand)
+            return ()
+    def treat_instruct(acc):
+        keyword,ls = acc
+        instruct[keyword.value] = param_value(ls)
+        return ()
+    keyword_instruct = (first_word("""exit timelimit printgoal dump 
+                     ontored read library error warning""") + 
+                     Parse.next_token().possibly())
+    return (bracket(next_word('synonym') + syn().treat(treat_syn) |
+         bracket(keyword_instruct.treat(treat_instruct))))
+ 
+def this_exists():
+    """parsing of 'this'-directives.
+    DEBUG: Remove this feature. Deprecated Unfinished"""
+    def adjective(tok):
+        s1 = tok.value.lower.replace('_','')
+        return s1 in ['unique','canonical','welldefined','wellpropped','total','exhaustive']
+    def this_directive_right_attr():
+        return next_phrase('by recursion')
+    def this_directive_pred():
+        return andcomma_nonempty_list(Parse.next_token().if_test(adjective))
+    return first_phrase(['this exist','this is'])
 
-def lit_def() -> Parse:
-    """parser for def keyword"""
-    return first_word("def definition")
+def post_colon_balanced():
+    def p(token):
+        return token.value not in ['end','with',':=',';','.',',','|',':']
+    return balanced_condition(p)
 
-def lit_axiom() -> Parse:
-    """parser for axiom-like keywords"""
-    return first_word('axiom conjecture hypothesis equation formula')
+def opt_colon_type():
+    """parsing ': A'.  No treatment applied"""
+    return (next_value(':') + post_colon_balanced()).treat(lib.snd).possibly().treat(lib.flatten)
 
-def lit_with_property() -> Parse:
-    """parser for 'with property'-like phrases"""
-    return Parse.phrase('with property')
+def meta_tok():
+    tok = copy.copy(init_item.tok)
+    tok.value = str(meta_tok.count)
+    tok.type = 'META'
+    meta_tok.count += 1
+    return tok 
 
-def lit_param() -> Parse:
-    return Parse.phrase('with parameter')
+def opt_colon_type_meta():
+    def trt(acc):
+        if acc == []:
+            return meta_tok()
+        return acc
+    return opt_colon_type().treat(trt)
 
-def lit_theorem() -> Parse:
-    """parser for theorem-like keywords"""
-    return first_word('proposition theorem lemma corollary')
+annotated_var = paren(var() + opt_colon_type())
 
-def lit_location() -> Parse:
-    """parser for cross-reference document locations"""
-    return Parse.first([lit_document(),lit_theorem(),lit_axiom()])
+annotated_sort_vars = paren(var().plus() + opt_colon_type_meta())
+
+annotated_vars = paren(var().plus() + opt_colon_type_meta())
+
+def let_annotation_prefix():
+    return (next_word('let') + comma_nonempty_list(var()) +
+     next_word('be') + lit['a'].possibly() +
+     next_word('fixed').possibly())
+    
+def let_annotation():
+    return ((first_word( 'fix let') + comma_nonempty_list(annotated_sort_vars)) |
+     let_annotation_prefix() + post_colon_balanced())
+    
+then_prefix = lit['then'].possibly()
+
+def assumption():
+    assumption_prefix = lit['lets']+ lit['assume'] + next_word('that').possibly()
+    return ((assumption_prefix + balanced() + next_value('.')) |
+            let_annotation() + next_value('.'))
+
+possibly_assumption = (assumption().many() + then_prefix)
+
+axiom_preamble = lit['axiom']+ atomic() + next_value('.')
+
+moreover_statement = next_word('moreover') + balanced() + next_value('.')
+
+axiom = possibly_assumption + balanced() + next_value('.') + moreover_statement.many()
+
+ref_item = and_comma_nonempty_list(lit['location'].possibly() + atomic())
+
+by_ref = paren(next_word('by') + ref_item).possibly()
 
 
+    
+    
+    
+
+    
+    
 
 
+#def op_colon_type_meta():
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-         
             
-    
-            
-        
-    
-    
 
-
-    
-
-
-    
-        
-    
-
-
-    
-    
-
-
-    
-        
-        
-        
-
-
-        
-            
-                                  
-    
-    
-                
-    
-    
+  
             
             
