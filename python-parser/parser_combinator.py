@@ -11,14 +11,15 @@ from collections import namedtuple
 # The stream and individual tokens remain immutable.  
 # pos changes.
 # acc is the accumulator holding the parsed data, with stream range start:stop
-Item = namedtuple('Item','stream pos acc start stop')
+# history is for error-handling, positions refer to positions of toks in stream.
+Item = namedtuple('Item','stream pos acc history')
 
 def init_item(s) -> Item:
     """Initialize item stream with a tuple of tokens"""
 #   # a token used for cloning
     if len(s) > 0:
         init_item.tok = s[0]
-    return Item(pos=0,stream=s,acc=None,start=0,stop=0)
+    return Item(pos=0,stream=s,acc=None,history=[])
 
 #v = init_item([3,4,5])
 #print(init_item.tok)
@@ -28,18 +29,40 @@ def next_item(item:Item) -> Item:
     The stream is left unchanged."""
     if item.pos >= len(item.stream):
         raise StopIteration
-    acc = item.stream[item.pos]
-    start = acc.lexpos
-    return Item(pos=item.pos +1,stream=item.stream,acc=acc,start=start,stop=start+lexer.token_length(acc))
- 
+    return Item(pos = item.pos+1,stream = item.stream,
+                acc = item.stream[item.pos],
+                history = item.history+ [['next-item',item.pos,item.pos +1]])
+    #it = copy.copy(item)
+    #it.pos = it.pos + 1
+    #it.acc = item.stream[item.pos]
+    #it.history += [('next-item',item.pos,it.pos)]
+    #return it
+
 def update(acc,item:Item) -> Item:
     """Create a new item with replaced accumulator"""
-    return Item(pos=item.pos,stream=item.stream,acc=acc,start=item.start,stop=item.stop)
+    return Item(pos = item.pos,stream = item.stream,
+            acc = acc,
+            history = item.history)
+
+def replace_history(item:Item,h) -> Item:
+    """Replace history annotations"""
+    return Item(pos = item.pos,stream = item.stream,
+            acc = item.acc,
+            history = h)
+
+def add_history(item:Item,h) -> Item:
+    """Add a history annotation"""
+    return replace_history(item, item.history + h)
+
+def merge_history(name:str,hs):
+    mn = min((i for (_,i,_) in hs),default=0)
+    mx = max((i for (_,_,i) in hs),default=mn)
+    return [name,mn,mx]
 
 #exceptions
 
 class ParseError(BaseException):
-    """Standard parse error"""
+    """Standard parse error. Give item with position at which it fails as arg"""
     pass
 
 class ParseNoCatch(BaseException):
@@ -48,34 +71,34 @@ class ParseNoCatch(BaseException):
     def __init__(self,msg=''):
         self.msg = msg
         
-def can_eval(f,x):
-    try:
-        f(x)
-        return True
-    except ParseError:
-        return False
+#def can_eval(f,x):
+#    try:
+#        f(x)
+#        return True
+#    except ParseError:
+#        return False
     
-def raise_false(b):
-    if not(b):
-        raise ParseError
-    return b
+#def raise_false(b):
+#    if not(b):
+#        raise ParseError
+#    return b
 
 #not yet used...
-class ParseCell:
-    """base class for parsed data"""
-    
-    def __init__(self,toks,cells,name,celltyp):
-        self.toks = toks
-        self.cells = cells
-        self.name = name 
-        self.celltyp = celltyp
+#class ParseCell:
+#    """base class for parsed data"""
+#    
+#    def __init__(self,toks,cells,name,celltyp):
+#        self.toks = toks
+#        self.cells = cells
+#        self.name = name 
+#        self.celltyp = celltyp
         
-    def start_index(self):
-        lexer.token_len(self.toks[0])
+#    def start_index(self):
+#        lexer.token_len(self.toks[0])
         
-    def end_index(self):
-        t = self.toks[-1]
-        lexer.token_len(t)+t.lexpos 
+#    def end_index(self):
+#        t = self.toks[-1]
+#        lexer.token_len(t)+t.lexpos 
      
 #repr not yet used...
 
@@ -83,22 +106,32 @@ class Parse:
     """base class for parsers.
     f:Item->Item processes one or more tokens from the item stream.
     """
-    def __init__(self,repr,f,errmsg=''):
+    def __init__(self,f):
         """r:Item->Item, repr:str"""
         self.process = f
-        self.repr = repr 
-        self.err = errmsg
+        #self.repr = repr 
+ #       self.err = errmsg
         
-    def __repr__(self):
-        """Description of production rule"""
-        return f'Parse({self.repr})'
+#    def __repr__(self):
+#        """Description of production rule"""
+#        return f'Parse({self.repr})'
     
     def set_repr(self,rep):
         self.repr = rep
         return self
         
     def next_token(): # constructor for next token
-        return Parse('next_token',next_item)
+        return Parse(next_item)
+    
+    def expect(self,history_label):
+        """Add history annotation for expectation in case of error"""
+        def f(item):
+            try:    
+                return self.process(item)  
+            except ParseError as pe:
+                item1 = add_history(pe.args[0],[['expecting:{history_label}',item.pos,item.pos]])
+                raise ParseError(item1)
+        return Parse(f)
         
     #def __call__(self,item):
     #    return self.process(item)
@@ -108,23 +141,31 @@ class Parse:
         def f(item:Item):
             item1 = self.process(item)
             item2 = other.process(item1)
-            return update((item1.acc,item2.acc),item2)
-        return Parse(f'{self}+{other}',f)
+            mh = merge_history('add', item1.history + item2.history)
+            return replace_history(update((item1.acc,item2.acc),item2),item1.history + item2.history + [mh])
+        return Parse(f)
 
     def __or__(self,other):
         """try first parser then next. Lower precedence than +"""
         def f(item):
             try:
                 return self.process(item)
-            except ParseError:
-                return other.process(item)       
-        return Parse(f'{self} | {other}',f)
+            except ParseError as pe1:
+                try:
+                    return other.process(item)
+                except ParseError as pe2:
+                    item1 = pe1.args[0]
+                    item2 = pe2.args[0]
+                    if item1.pos > item2.pos: #raise the most progressed
+                        raise ParseError(item1)
+                    raise ParseError(item2)
+        return Parse(f)
     
-    def compose(self,other): #was dependent plus
-        """compose parsers"""
-        def f(item):
-            return other.process(self.process(item))
-        return Parse('compose',f)
+#    def compose(self,other): #was dependent plus
+#        """compose parsers"""
+#        def f(item):
+#            return other.process(self.process(item))
+#        return Parse(f)
     
     def nocatch(self,msg): #was fix
         """No catch error if failure"""
@@ -133,7 +174,7 @@ class Parse:
                 return self.process(item)
             except ParseError:
                 raise ParseNoCatch(msg)
-        return Parse(self,f)
+        return Parse(f)
     
     # was __rshift__ but Python gives it higher precedence than | +, which isn't helpful.
     def treat(self,treatment):
@@ -141,27 +182,36 @@ class Parse:
         def f(item):
             item1 = self.process(item)
             return update(treatment(item1.acc),item1)
-        return Parse(self,f)
+        return Parse(f)
         
     def many(self):
         """parse zero or more times"""
+#        def augment_history(item,mh):
+#            (_,i) = item.history[-1][0].split(' ')
+#            return ('many '+(int(i)+1),mh[1],mh[2])
         def f(item):
             try:
                 item1 = self.process(item)
                 item2 = self.many().process(item1) #this doesn't fail
-                return update([item1.acc]+item2.acc,item2)
+                mh = merge_history('many', item1.history+item2.history)
+                return replace_history(update([item1.acc]+item2.acc,item2),item1.history+item2.history[:-1]+[mh])
             except (ParseError, StopIteration):
-                return update([],item)
-        return Parse(f'many{self.repr}',f)
+                return add_history(update([],item),[['many',item.pos,item.pos]])
+        return Parse(f)
     
     def atleast(self,n):
         """parse at least n times"""
         def f(item):
             if n < 1:
-                return self.many().process(item)
+                item1 = self.many().process(item)
+                h = item1.history[-1]
+                h[0]= 'plus'
+                return replace_history(item1,item1.history[:-1]+[h])
             else:
-                return (self + Parse.atleast(self,n-1)).treat(lib.prepend).process(item)
-        return Parse(f'at least {n}',f)
+                item1 = (self + Parse.atleast(self,n-1)).treat(lib.prepend).process(item)
+                h = merge_history('plus',item1.history)
+                return replace_history(item1,item1.history[:-2]+[h])
+        return Parse(f)
     
     def plus(self):
         """parse at least once"""
@@ -175,11 +225,11 @@ class Parse:
                 return update([item1.acc],item1)
             except ParseError:
                 return update([],item)
-        return Parse(f'possibly({self})',f)
+        return Parse(f)
     
     def identity(): #was nothing
         """Does no parsing, identity parser"""
-        return Parse("identity",lambda item:item)
+        return Parse(lambda item:item)
     
     def nil(self):
         """replaces output with nil list"""
@@ -187,11 +237,11 @@ class Parse:
  
     def separated_nonempty_list(self,sep):
         """Sequence of at least one parse with separation sep"""
-        return (self + (sep + self).treat(lib.snd).many()).treat(lib.prepend)
+        return (self + (sep + self).treat(lib.snd).many()).treat(lib.prepend).expect('list')
               
     def separated_list(self,sep):
         """sequence of parses with separation sep"""
-        return (self.separated_nonempty_list(sep) | Parse.identity().nil()).set_repr("sep list")
+        return (self.separated_nonempty_list(sep) | Parse.identity().nil())
                 
     def if_test(self,p): #was some
         """Next passes boolean test or fail"""
@@ -200,8 +250,8 @@ class Parse:
             if p(item1.acc):
                 return item1
             else:
-                raise ParseError
-        return Parse('if_test',f)
+                raise ParseError(item)
+        return Parse(f)
     
 #    def if_test_treat(self,p): #was someX
 #        """Next passes test and evaluates, or fail"""
@@ -211,20 +261,20 @@ class Parse:
 #            if b:
 #                return update(treat,item1)
 #            else:
-#                raise ParseError
-#        return Parse('if_test_delay',f)
+#                raise ParseError(item)
+#        return Parse(f)
     
     def if_value(self,v): #was a
         """parse if next token has value v or fail"""
         def p(tok):
             return tok.value == v
-        return self.if_test(p)
+        return self.if_test(p).expect(v)
     
     def if_type(self,ts): 
         """parse if next type is in ts or fail"""
         def p(tok):
             return tok.type in ts
-        return self.if_test(p)
+        return self.if_test(p).expect('token in '+' '.join(ts))
  
     # class methods
     def all(prs):
@@ -236,19 +286,22 @@ class Parse:
                 item1 = prs[0].process(item)
                 item2 = Parse.all(prs[1:]).process(item1)
                 return update([item1.acc]+item2.acc,item2)
-        return Parse('all',f)
+        return Parse(f)
     
     def first(prs): #was parse_some 
         """parse first in a list that does not fail"""
         def f(item):
-            if len(prs) == 0:
-                raise ParseError
-            else:
-                try: 
-                    return prs[0].process(item)
-                except:
-                    return Parse.first(prs[1:]).process(item)
-        return Parse('first',f)
+            raise ParseError(item)
+        if len(prs) == 0:
+            return Parse(f)
+        return Parse.__or__(prs[0],Parse.first(prs[1:]))
+#            else:
+#                
+#                try: 
+#                    return prs[0].process(item)
+#                except:
+#                    return Parse.first(prs[1:]).process(item)
+#        return Parse(f)
     
     def gen_first(prs_gen,args):
         """Repeat (lazy) parse generator until first non-failure.
@@ -257,6 +310,7 @@ class Parse:
         def f(item):
             gen = prs_gen(*args) 
             #print(f'\nentering first on {item.stream[item.pos].value}\n')
+            item_max = item
             while True:
                 try:
                     prs = next(gen)
@@ -265,14 +319,17 @@ class Parse:
                     del gen
                     #print(f'{prs}--works')
                     return item1
-                except ParseError:
+                except ParseError as pe:
                     #print(f'{prs}--fails')
+                    item_e = pe.args[0]
+                    if item_e.pos > item_max.pos:
+                        item_max = item_e
                     pass
                 except StopIteration:
                     #print(f'{prs}--stop')
                     del gen
-                    raise ParseError
-        return Parse('gen_first',f)
+                    raise ParseError(item_max)
+        return Parse(f)
     
 #functions outside class.
 
@@ -342,7 +399,7 @@ def wordify(tok):
 
 def word(p:Parse) -> Parse:
     """Parser treatment attempts to coerce token to a word token up to synonym."""
-    return p.if_test(can_wordify).treat(wordify)
+    return p.if_test(can_wordify).treat(wordify).expect('word')
 
 def next_any_word() -> Parse: #was anyword
     """parser constructor that matches any next word"""
@@ -368,7 +425,7 @@ def next_word(s:str) -> Parse: #was_next_word_syn
     syn = synonymize(lexer.singularize(s))
     #def p(tok):
     #    return tok.type == 'WORD' and synw(tok)==syn
-    return next_any_word().if_value(syn)
+    return next_any_word().if_value(syn).expect(s)
     #Parse.next_token().if_test(p).treat(wordify).set_repr(f'wordsyn({s})')
 
 def next_any_word_except(banned) -> Parse:
@@ -382,15 +439,15 @@ def next_any_word_except(banned) -> Parse:
 def next_phrase(ss:str)-> Parse:
     """parser constructor that matches word phrase up to white space and synonyms."""
     phrase = [next_word(s) for s in ss.split()]
-    return Parse.all(phrase)
+    return Parse.all(phrase).expect(ss)
 
 def first_phrase(phs)-> Parse: #was somephrase
     """parser constructor for the first matching phrase up to white space and synonyms"""
-    return Parse.first([next_phrase(ph) for ph in phs])
+    return Parse.first([next_phrase(ph) for ph in phs]).expect('first:'+ '/'.join(phs))
 
 def first_word(ss:str) -> Parse: #was someword
     """parser constructor for the first matching word up to white space and syns"""
-    return Parse.first([next_word(s) for s in ss.split()])
+    return Parse.first([next_word(s) for s in ss.split(' ')]).expect('first:'+ss)
 
 #repeat
 #def nocatch(msg,pr:Parse) -> Parse:
@@ -400,21 +457,30 @@ def first_word(ss:str) -> Parse: #was someword
 #            return pr(tok)
 #        except ParseError:
 #            raise ParseNoCatch(msg)
-#    return Parse('nocatch',f)
+#    return Parse(f)
 
-def commit(msg:str,trial_parse:Parse,pr:Parse) -> Parse:
+def commit(msg:str,probe:Parse,pr:Parse) -> Parse:
     """if trial_parse does not fail, discard, then apply pr without catching"""
     def f(item):
-        trial_parse.process(item)
+        probe.process(item)
         return pr.nocatch(msg).process(item)
-    return Parse('commit',f)
+    return Parse(f)
         
 def commit_head(msg:str,head:Parse,pr2) -> Parse:
     """compose parsers applying head, then pr2(output data) with nocatch"""
     def f(item):
         item1 = head.process(item)
         return pr2(item1.acc).nocatch(msg)(item1)
-    return Parse('commit_head',f)
+    return Parse(f)
+
+def if_then_else(probe:Parse,pr1:Parse,pr2:Parse)-> Parse:
+    """if probe fails do pr2, otherwise pr1"""
+    def f(item):
+        try:
+            probe.process(item)
+        except:
+            return pr2.process(item)
+        return pr1.process(item) 
 
 def until(pr1:Parse,pr2:Parse) -> Parse:
     """accumulate pr1's in a list until pr2 succeeds, including pr2 output"""
@@ -428,7 +494,7 @@ def until(pr1:Parse,pr2:Parse) -> Parse:
             item1=pr1.process(item)
             item2= until(pr1,pr2)(item1)
             return update(t(item1.acc,item2.acc),item2)
-    return Parse('until',f)
+    return Parse(f)
 
 def delimit(pr:Parse,left:str,right:str) -> Parse:
     """delimit a parser"""
@@ -436,7 +502,7 @@ def delimit(pr:Parse,left:str,right:str) -> Parse:
         ((a,b),c)=tok
         b = b if type(b) is list else [b]
         return [a]+b+[c]
-    return (next_value(left)+pr+next_value(right)).set_repr(f'{left}delimit{right}').treat(flat)
+    return (next_value(left)+pr+next_value(right)).treat(flat)
 
 def delimit_strip(pr:Parse,left:str,right:str) -> Parse:
     """delimit a parser, discarding delimiters"""
@@ -461,7 +527,7 @@ def balanced_cases(b):
     yield Parse.next_token().if_test(b).plus() #,[b_not_delimiter]
     for left,right in [('(',')'),('[',']'),('{','}')]:
         #print(f'bc-delim-{left}{right}')
-        yield (delimit(balanced_condition(lambda _ : True),left,right))
+        yield (delimit(balanced_condition(lambda _ : True),left,right)).expect('left delimiter')
 
 def balanced_condition(b) -> Parse:  #was balanced B
     """get list of balanced delimited tokens, applying token condition at outermost level"""
@@ -475,7 +541,7 @@ def balanced() -> Parse:
 
 def brace_semi():
     """construct parser for brace-delimited delimiter-balanced semicolon separated list"""
-    nosemi = balanced_condition(lambda tok: tok.value != ';')
+    nosemi = balanced_condition(lambda tok: tok.value != ';').expect('no ;')
     return brace(Parse.separated_nonempty_list(nosemi,next_value(';')))
     
 def comma_nonempty_list(pr:Parse) -> Parse:
@@ -516,7 +582,7 @@ def phrase_list_proof_statement():
              Parse.word('now').possibly() +
              Parse.word('follows')) |
             Parse.phrase('the other cases are similar') |
-            (Parse.phrase('the proof is')+ first_word('obvious trivial easy routine'))).nil()
+            (Parse.phrase('the proof is')+ first_word('obvious trivial easy routine'))).nil().expect('canned')
 
 # case_sensitive_word -> use next_value(s)
 
@@ -528,7 +594,8 @@ def atomic():
     #I forget why I am converting integers.
     """parser for atomic identifiers, converting words and integers as needed"""
     def f(item):
-        (result,item1) = Parse.next_token().process(item)
+        item1 = Parse.next_token().process(item)
+        result = item1.tok
         if result.type == 'INTEGER' or result.type == 'WORD':
             tok = copy.copy(result)
             if tok.type == 'WORD':
@@ -537,16 +604,16 @@ def atomic():
             return (tok,item1)
         if result.type == 'ATOMIC_IDENTIFIER':
             return result
-        raise ParseError
-    return Parse('atomic',f)
+        raise ParseError(item)
+    return Parse(f).expect('atomic')
 
 def var():
     """parser for variables"""
-    return Parse.next_token().if_type(['VAR'])
+    return Parse.next_token().if_type(['VAR']).expect('var')
 
 def var_or_atomic():
     """parser for a var or atomic"""
-    return var() | atomic()
+    return (var() | atomic()).expect('var_or_atomic')
 
 def var_or_atomics():
     """parser for a sequence of one or more var or atomics"""
@@ -558,7 +625,7 @@ def hierarchical_identifier():
 
 def identifier():
     """parser for hierarchical or atomic identifier"""
-    return atomic() | hierarchical_identifier()
+    return (atomic() | hierarchical_identifier()).expect('identifier')
 
 # canned phrases that have small variants
 # lit[w] gives parser for w-like words or phrases
@@ -742,9 +809,9 @@ moreover_statement = next_word('moreover') + balanced() + next_value('.')
 
 axiom = possibly_assumption + balanced() + next_value('.') + moreover_statement.many()
 
-ref_item = and_comma_nonempty_list(lit['location'].possibly() + atomic())
+#ref_item = and_comma_nonempty_list(lit['location'].possibly() + atomic())
 
-by_ref = paren(next_word('by') + ref_item).possibly()
+#by_ref = paren(next_word('by') + ref_item).possibly()
 
 
     

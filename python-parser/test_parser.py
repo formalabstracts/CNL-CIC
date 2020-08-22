@@ -6,6 +6,7 @@ Created on Fri Aug 14 10:35:50 2020
 @author: hales
 """
 import copy
+import ply
 import lib
 import lexer
 import parser_combinator as pc
@@ -104,13 +105,13 @@ def test_or():
     
 test_or()
 
-def test_compose():
-    its = mk_item_stream('Hello there')
-    p = pc.Parse.next_token()
-    p2 = p.compose(p)
-    assert p2.process(its).acc.value == 'there'
+#def test_compose():
+#    its = mk_item_stream('Hello there')
+#    p = pc.Parse.next_token()
+#    p2 = p.compose(p)
+#    assert p2.process(its).acc.value == 'there'
     
-test_compose()
+#test_compose()
 
 def test_nocatch():
     its = mk_item_stream('Hello there')
@@ -341,7 +342,7 @@ def test_brace_semi():
     print(vs)
     #assert vs == ['(', 'hi', 'and', '(', 'yet', '[','+',']',')', '.', ')', 'there', '(', 'bud', ')', '{', '#', '}']
     
-test_brace_semi()  
+#test_brace_semi()  
     
 
 
