@@ -17,6 +17,8 @@ def test_hello():
     print('hi')
     assert 1 == 1
     
+print('test-parser')
+    
 tokenizer = lexer.tokenizer 
 #print(f'tokenizer={tokenizer}')
 tokenizer.input('hello')
@@ -322,7 +324,7 @@ def test_delimit():
 test_delimit()
 
 def test_balanced_condition():
-    its = mk_item_stream('(Hi and (yet[+]) .) there (Bud) {#}.1 ')
+    its = mk_item_stream('(Hi and (yet[+]) .) there (Bud) {#}.2 ')
     p = pc.balanced_condition(pc.can_wordify)
     its1 = p.process(its)
     #print(its1.acc)
@@ -330,19 +332,29 @@ def test_balanced_condition():
     #print(vs)
     assert vs == ['(', 'hi', 'and', '(', 'yet', '[','+',']',')', '.', ')', 'there', '(', 'bud', ')', '{', '#', '}']
     
-test_balanced_condition()
+#test_balanced_condition()
+
+#def show(toks):
+    
+
+#print('starting test_brace_semi')
 
 def test_brace_semi():
+    #its = mk_item_stream('{a1 ; a2 ; a3 ; a4; a5}')
     its = mk_item_stream('{Hi and ; (yet[+]) . ;there (Bud) ; {#;}.1}')
     p = pc.brace_semi()
-    toks = p.process(its).acc
-    toks = lib.flatten(toks.reverse())
-    print(toks)
+    #print("starting_process")
+    its1 = p.process(its)
+    toks = its1.acc
+    #print('stopping_process')
+    #print(its1)
+    toks = toks[::-1][2]
+    #print(f'toks={toks}')
     vs = [t.value for t in toks]
-    print(vs)
-    #assert vs == ['(', 'hi', 'and', '(', 'yet', '[','+',']',')', '.', ')', 'there', '(', 'bud', ')', '{', '#', '}']
+    #print(vs)
+    assert vs == ['(', 'yet', '[', '+', ']', ')', '.']
     
-#test_brace_semi()  
+test_brace_semi()  
     
 
 

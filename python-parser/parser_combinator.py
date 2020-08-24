@@ -54,19 +54,26 @@ def update(acc,item:Item) -> Item:
             acc = acc,
             history = item.history)
 
-def replace_history(item:Item,h) -> Item:
-    """Replace history annotations"""
+#def replace_history(item:Item,h) -> Item:
+#    """Replace history annotations"""
+#    return Item(pos = item.pos,stream = item.stream,
+#            acc = item.acc,
+#            history = h)
+
+def add_history(item:Item,h,drop=0) -> Item:
+    """Add a history annotation"""
+    #debug
+    h1 = item.history
+    if drop > 0:
+        h1 = h1[:-drop]
     return Item(pos = item.pos,stream = item.stream,
             acc = item.acc,
-            history = h)
+            history = h1+h)
 
-def add_history(item:Item,h) -> Item:
-    """Add a history annotation"""
-    return replace_history(item, item.history + h)
-
-def merge_history(name:str,hs):
+def range_history(name:str,hs):
     mn = min((i for (_,i,_) in hs),default=0)
     mx = max((i for (_,_,i) in hs),default=mn)
+    #print(f'min,max=({mn},{mx})')
     return [name,mn,mx]
 
 #exceptions
@@ -138,18 +145,38 @@ class Parse:
         def f(item):
             if item.pos < len(item.stream):
                 vs = [i.value for i in item.stream[item.pos:len(item.stream)]].join(' ')
-                item1 = add_history(item, ['excess tokens:'+ vs,item.pos,item.pos])
+                item1 = add_history(item, [['excess tokens:'+ vs,item.pos,item.pos]])
                 raise ParseError(item1)
             return item
         return Parse(f)
     
+    def probe(self):
+        """run parser but then undo"""
+        def f(item):
+            self.process(item)
+            return item
+        return Parse(f)
+    
     def reparse(self):
-        """Run parser as a reparser on accumulated tokens.  All tokens must be consumed."""
+        """Run parser as a reparser on accumulated tokens.  
+        All tokens must be consumed."""
         def f(item):
             acc = item.acc
             item1 = Item(acc,0,None,[])
             item2 = (self + Parse.finished()).process(item1)
-            return item2
+            item3 = update(item2.acc,item)
+            return item3
+        return Parse(f)
+    
+    def reparse_list(self):
+        """Run parser as reparser on each accumulated list entry.
+        All tokens must be consumed."""
+        def f(item):
+            acc = item.acc
+            its1 = [Item(a,0,None,[]) for a in acc]
+            acc2 = [(self + Parse.finished()).process(it).acc for it in its1]
+            item3 = update(acc2,item)
+            return item3
         return Parse(f)
     
     def expect(self,history_label):
@@ -158,20 +185,30 @@ class Parse:
             try:    
                 return self.process(item)  
             except ParseError as pe:
-                item1 = add_history(pe.args[0],[['expecting:{history_label}',item.pos,item.pos]])
+                item1 = add_history(pe.args[0],[[f'expecting:{history_label}',item.pos,item.pos]])
                 raise ParseError(item1)
+        return Parse(f)
+    
+    def history(self,h,drop=0):
+        def f(item):
+            return add_history(item,h,drop)
+        return Parse(f)
+    
+    def clear_history(self):
+        def f(item):
+            return add_history(item,[],drop=len(item.history))
         return Parse(f)
         
     #def __call__(self,item):
     #    return self.process(item)
-    
+
     def __add__(self,other):
         """combine two parsers in succession, returning pair of results."""
         def f(item:Item):
             item1 = self.process(item)
             item2 = other.process(item1)
-            mh = merge_history('add', item1.history + item2.history)
-            return replace_history(update((item1.acc,item2.acc),item2),item1.history + item2.history + [mh])
+            mh = range_history('add',item2.history)
+            return add_history(update((item1.acc,item2.acc),item2),[mh])
         return Parse(f)
 
     def __or__(self,other):
@@ -224,11 +261,11 @@ class Parse:
         def f(item):
             try:
                 item1 = self.process(item)
-                item2 = self.many().process(item1) #this doesn't fail
-                mh = merge_history('many', item1.history+item2.history)
-                return replace_history(update([item1.acc]+item2.acc,item2),item1.history+item2.history[:-1]+[mh])
             except (ParseError, StopIteration):
                 return add_history(update([],item),[['many',item.pos,item.pos]])
+            item2 = self.many().process(item1) #this doesn't fail
+            mh = range_history('many',item2.history)
+            return add_history(update([item1.acc]+item2.acc,item2),[mh],drop=1)  
         return Parse(f)
     
     def atleast(self,n):
@@ -238,11 +275,11 @@ class Parse:
                 item1 = self.many().process(item)
                 h = item1.history[-1]
                 h[0]= 'plus'
-                return replace_history(item1,item1.history[:-1]+[h])
+                return add_history(item1,[h],drop=1)
             else:
                 item1 = (self + Parse.atleast(self,n-1)).treat(lib.prepend).process(item)
-                h = merge_history('plus',item1.history)
-                return replace_history(item1,item1.history[:-2]+[h])
+                h = range_history('plus',item1.history)
+                return add_history(item1,[h],drop=2)
         return Parse(f)
     
     def plus(self):
@@ -269,7 +306,8 @@ class Parse:
  
     def separated_nonempty_list(self,sep):
         """Sequence of at least one parse with separation sep"""
-        return (self + (sep + self).treat(lib.snd).many()).treat(lib.prepend).expect('list')
+        return (self + 
+                (sep + self).treat(lib.snd).many()).treat(lib.prepend).expect('list')
               
     def separated_list(self,sep):
         """sequence of parses with separation sep"""
@@ -495,12 +533,12 @@ def first_word(ss:str) -> Parse: #was someword
 #            raise ParseNoCatch(msg)
 #    return Parse(f)
 
-#def commit(msg:str,probe:Parse,pr:Parse) -> Parse:
-#    """if trial_parse does not fail, discard, then apply pr without catching"""
-#    def f(item):
-#        probe.process(item)
-#        return pr.nocatch(msg).process(item)
-#    return Parse(f)
+def commit(msg:str,probe:Parse,pr:Parse) -> Parse:
+    """if trial_parse does not fail, discard, then apply pr without catching"""
+    def f(item):
+        probe.process(item)
+        return pr.nocatch(msg).process(item)
+    return Parse(f)
         
 ##def commit_head(msg:str,head:Parse,pr2) -> Parse:
 #    """compose parsers applying head, then pr2(output data) with nocatch"""
@@ -558,12 +596,15 @@ def brace(pr):
 def option_paren(pr):
     return paren(pr) | pr 
 
+def lambda_true(_):
+    return True
+
 def balanced_cases(b):
     #print('bc-toks')
     yield Parse.next_token().if_test(b).plus() #,[b_not_delimiter]
     for left,right in [('(',')'),('[',']'),('{','}')]:
         #print(f'bc-delim-{left}{right}')
-        yield (delimit(balanced_condition(lambda _ : True),left,right)).expect('left delimiter')
+        yield (delimit(balanced_condition(lambda_true),left,right)).expect('left delimiter')
 
 def balanced_condition(b) -> Parse:  #was balanced B
     """get list of balanced delimited tokens, applying token condition at outermost level"""
@@ -573,20 +614,20 @@ def balanced_condition(b) -> Parse:  #was balanced B
     return Parse.gen_first(balanced_cases,[b_not_delimiter]).many().treat(lib.flatten)
 
 def balanced() -> Parse:
-    return balanced_condition(lambda _: True)
+    return balanced_condition(lambda_true)
 
 def brace_semi():
     """construct parser for brace-delimited delimiter-balanced semicolon separated list"""
-    nosemi = balanced_condition(lambda tok: tok.value != ';').expect('no ;')
+    def p(tok):
+        return tok.value != ';'
+    nosemi = balanced_condition(p).expect('no ;')
     return brace(Parse.separated_nonempty_list(nosemi,next_value(';')))
     
 def comma_nonempty_list(pr:Parse) -> Parse:
     """construct parser for comma-separated list"""
     return Parse.separated_nonempty_list(pr,next_value(','))
 
-def andcomma():
-    """parser for 'and' or ','"""
-    return next_value(',') | next_value('and')
+andcomma = next_value(',') | next_value('and')
 
 def andcomma_nonempty_list(pr:Parse) -> Parse:
     """construct parser for and/comma separated list"""

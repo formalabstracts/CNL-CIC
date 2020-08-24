@@ -11,6 +11,7 @@ Created on Sat Aug 22 17:00:38 2020
 import copy
 import word_lists
 import lib
+import lexer
 import parser_combinator as c
 from parser_combinator import (Parse, ParseError, 
                                first_word, 
@@ -23,23 +24,14 @@ def cs_brace(cs_parse:Parse,brace_parse:Parse) -> Parse:
 
 def phrase_list_transition():
     """parser for transition phrases"""
-    prs = [Parse.phrase(s) for s in word_lists.transition]
-    return (Parse.first(prs) + Parse.word('that').possibly()).nil()
+    prs = [next_phrase(s) for s in word_lists.transition]
+    return (Parse.first(prs) + next_word('that').possibly()).nil()
 
 def phrase_list_filler():
     """parser for filler words"""
     return (Parse.word('we').possibly() + first_word('put write have know see') + 
             Parse.word('that').possibly()).nil()
 
-def phrase_list_proof_statement():
-    """parser for canned proof statements"""
-    return (Parse.phrase("we proceed as follows") |
-            (Parse.word('the') + 
-             first_word('result lemma theorem proposition corollary') +
-             Parse.word('now').possibly() +
-             Parse.word('follows')) |
-            Parse.phrase('the other cases are similar') |
-            (Parse.phrase('the proof is')+ first_word('obvious trivial easy routine'))).nil().expect('canned')
 
 # case_sensitive_word -> use next_value(s)
 
@@ -137,12 +129,13 @@ def lit(s):
     if s == 'doc':
         return lit['document'] | lit['end-document']
     if s == 'location':
-        return Parse.first([lit['document'],lit['theorem'],lit['axiom']])
+        return Parse.first([lit_dict['document'],lit_dict['theorem'],lit_dict['axiom']])
     return lit_dict[s]
 
 #others:
 #label = atomic
-#period Parse.value('.')
+
+period = next_value('.').clear_history()
 #renamed map -> call
 
 # instructions do nothing except store for now
@@ -210,6 +203,8 @@ def this_exists():
         return c.andcomma_nonempty_list(Parse.next_token().if_test(adjective))
     return first_phrase(['this exist','this is'])
 
+# 
+
 def post_colon_balanced():
     def p(token):
         return token.value not in ['end','with',':=',';','.',',','|',':']
@@ -233,6 +228,12 @@ def opt_colon_type_meta():
         return acc
     return opt_colon_type().treat(trt)
 
+# differ only in treatment
+opt_colon_sort  = opt_colon_type()
+opt_colon_sort_meta = opt_colon_type_meta
+
+
+
 annotated_var = c.paren(var() + opt_colon_type())
 
 annotated_sort_vars = c.paren(var().plus() + opt_colon_type_meta())
@@ -241,31 +242,167 @@ annotated_vars = c.paren(var().plus() + opt_colon_type_meta())
 
 def let_annotation_prefix():
     return (next_word('let') + c.comma_nonempty_list(var()) +
-     next_word('be') + lit['a'].possibly() +
+     next_word('be') + lit('a').possibly() +
      next_word('fixed').possibly())
     
 def let_annotation():
     return ((first_word( 'fix let') + c.comma_nonempty_list(annotated_sort_vars)) |
      let_annotation_prefix() + post_colon_balanced())
+
+# PROOFS
+
+class Proof:
+    """Parser constructors for proof statements"""
     
-then_prefix = lit['then'].possibly()
+    def canned():
+        """parser for canned proof statements"""
+        return (next_phrase("we proceed as follows") |
+                (next_word('the') + 
+                 first_word('result lemma theorem proposition corollary') +
+                 next_word('now').possibly() +
+                 next_word('follows')) |
+                next_phrase('the other cases are similar') |
+                (next_phrase('the proof is')+ first_word('obvious trivial easy routine'))).nil().expect('canned')
 
-def assumption():
-    assumption_prefix = lit['lets']+ lit['assume'] + next_word('that').possibly()
-    return ((assumption_prefix + c.balanced() + next_value('.')) |
-            let_annotation() + next_value('.'))
+    then_prefix = lit('then').possibly()
+    
+    def assumption():
+        assumption_prefix = lit('lets')+ lit('assume') + next_word('that').possibly()
+        return ((assumption_prefix + c.balanced() + period) |
+                let_annotation() + period)
+    
+    possibly_assumption = (assumption().many() + then_prefix)
+    
+    axiom_preamble = lit('axiom')+ atomic().possibly() + period
+    
+    moreover_statement = next_word('moreover') + c.balanced() + period
+    
+    axiom = axiom_preamble + possibly_assumption + c.balanced() + period + moreover_statement.many()
+    
+    ref_item = c.andcomma_nonempty_list(lit('location').possibly() + atomic())
+    
+    by_ref = c.paren(next_word('by') + ref_item).possibly()
+    
+    def by_method():
+        def no_that(tok):
+            return tok.value == 'that' # exclude avoids goal_prefix ambig.
+        return (next_word('by') + 
+                 (first_phrase(['contradiction','case analysis']) |
+                  (next_word('induction') + 
+                   (next_word('on') + c.balanced_condition(no_that)).possibly())) +
+                 Parse.probe(next_word('that')| period))
+    
+    choose_prefix = then_prefix + lit('lets').possibly() + lit('choose')
+    
+    canned_prefix = c.andcomma_nonempty_list(phrase_list_transition())
+    
+    goal_prefix = ((lit('lets').possibly() + lit('prove') + next_word('that')) |
+                   (by_method() + next_word('that')).possibly())
+    
+    preamble = ((next_word('proof') + by_method().possibly() + period) |
+                      next_word('indeed'))
+    
+    def affirm():
+        return Proof.statement() | Proof.goal()
+    
+    def statement():
+        return Proof.then_prefix + c.balanced() + Proof.by_ref + period + Proof.moreover_statement.many() + Proof.script.possibly()
+    
+    def goal():
+        return Proof.goal_prefix + c.balanced() + Proof.by_ref + period + Proof.script()
 
-possibly_assumption = (assumption().many() + then_prefix)
+    def script():
+        return (Proof.preamble + (Proof.canned_prefix + Proof.body + Proof.canned_prefix + Proof.tail).many() + lit('qed') + period)
+    
+    def body():
+        return (Proof.tail() |  Proof.assumption())
+    
+    def tail():
+        return (Proof.affirm() | Proof.canned | Proof.case() | Proof.choose())
+    
+    def case():
+        return (next_word('case') + c.balanced() + period + Proof.choose_justify())
+    
+    def choose():
+        return (Proof.choose_prefix + c.balanced() + period + Proof.justify())
+    
+    def justify():
+        return (Proof.script().possibly())
 
-axiom_preamble = lit['axiom']+ atomic() + next_value('.')
 
-moreover_statement = next_word('moreover') + c.balanced() + next_value('.')
+# patterns 
 
-axiom = possibly_assumption + c.balanced() + next_value('.') + moreover_statement.many()
+class Pattern:
+    """Parser generators for patterns"""
+    
+    def next_any_unbanned():
+        """Parser for any word except for pattern keywords.  
+        The token must be a WORD."""
+        pattern_banned = [
+            'is','be','are','denote','define','enter','namespace','stand',
+            'if','iff','inferring','the','a','an','we','say','write',
+            'assume','suppose','let','said','defined','or','fix','fixed'
+            ]
+        def not_banned(s):
+            return not (lexer.singularize(s.lower()) in pattern_banned)
+        def p(tok):
+            return tok.type == 'WORD' and not_banned(tok.value)
+        return next_word().if_test(p)
+    
+    def next_any_unbanned_extended():
+        """parser for 'word (or word) (paren stuff)'.
+        (or word) gives a synonym as a parenthetical within
+        a word pattern.  Side effect is a new global synonym."""
+        p = ((Pattern.next_any_unbanned() + 
+             c.paren((next_word('or') + Pattern.next_any_unbanned()).treat(lib.snd).plus()).possibly()) +
+             c.paren(Pattern.next_any_unbanned().plus()).many())
+        def f(item):
+            item1 = p.process(item)
+            ((a,bs),cs) = item1.acc
+            vals = [a.value]+ [i.value for i in bs]
+            c.synonym_add(vals)
+            return c.update((a,cs),item1)
+        return Parse(f)
+    
+    def var():
+        """parser for a variable appearing in a pattern"""
+        return var() | c.paren(var() + opt_colon_sort)
+    
+    words = next_any_unbanned_extended().plus()
+    
+    def word_pattern():
+        """Parser for a word pattern, consisting of variables, 
+        words, and pattern parentheticals"""
+        return Pattern.words + (Pattern.var() + Pattern.words).many() + Pattern.var().possibly()
+        
+    type_word_pattern = lit('a').possibly() + word_pattern()
+    
+    function_word_pattern = next_word('the') + word_pattern()
+    
+    notion_pattern = var() + next_word('is') + lit('a') + word_pattern()
+    
+    adjective_pattern = var() + next_word('is') + next_word('called').possibly() + word_pattern()
+    
+    var_multisubsect_pattern = (
+        (var() + next_value(',') + var()) |
+        c.paren(var() + next_value(',') + var() + opt_colon_type_meta())
+        )
+    
+    adjective_multisubject_pattern = (
+        var_multisubsect_pattern + next_word('are') + next_word('called').possibly() + word_pattern()
+        )
+        
+    verb_pattern = (
+        var() + word_pattern()
+        )
+        
+    verb_multisubject_pattern = (
+        )
+        
+               
+               
 
-#ref_item = and_comma_nonempty_list(lit['location'].possibly() + atomic())
 
-#by_ref = paren(next_word('by') + ref_item).possibly()
 
 
     
