@@ -479,6 +479,11 @@ def next_any_word() -> Parse: #was anyword
     """parser constructor that matches any next word"""
     return word(Parse.next_token())
 
+def next_any_word_except(ss):
+    def p(tok):
+        return not tok.value in ss
+    return next_any_word().if_test(p)
+
 def next_value(v):
     """Parser constructor that accepts a token with given value."""
     return Parse.next_token().if_value(v)
@@ -607,7 +612,7 @@ def balanced_cases(b):
         yield (delimit(balanced_condition(lambda_true),left,right)).expect('left delimiter')
 
 def balanced_condition(b) -> Parse:  #was balanced B
-    """get list of balanced delimited tokens, applying token condition at outermost level"""
+    """get list of balanced delimited tokens, applying token condition b at outermost level"""
     def b_not_delimiter(tok):
         return not(tok.value in ['(',')','{','}','[',']']) and b(tok)  
 #        return r

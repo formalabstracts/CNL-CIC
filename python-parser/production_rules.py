@@ -56,6 +56,15 @@ def atomic():
         raise ParseError(item)
     return Parse(f).expect('atomic')
 
+def pre_expr():
+    def p(tok):
+        # commas can appear in quantified variables
+        return not(tok.value in [';','.'])
+    return balanced_condition(p)
+
+def assign_expr():
+    return next_value(':=') + pre_expr()
+
 def var():
     """parser for variables"""
     return Parse.next_token().if_type(['VAR']).expect('var')
@@ -67,6 +76,12 @@ def var_or_atomic():
 def var_or_atomics():
     """parser for a sequence of one or more var or atomics"""
     return Parse.plus(var_or_atomic())
+
+def var_or_atomic_or_blank():
+    """parser for var or atomic or _"""
+    return var_or_atomic() | next_value('_')
+
+
 
 def hierarchical_identifier():
     """parser for hierarchical identifiers"""
@@ -136,6 +151,10 @@ def lit(s):
 #label = atomic
 
 period = next_value('.').clear_history()
+comma = next_value(',')
+semicolon = next_value(';')
+colon = next_value(':')
+
 #renamed map -> call
 
 # instructions do nothing except store for now
@@ -229,16 +248,20 @@ def opt_colon_type_meta():
     return opt_colon_type().treat(trt)
 
 # differ only in treatment
-opt_colon_sort  = opt_colon_type()
-opt_colon_sort_meta = opt_colon_type_meta
+def opt_colon_sort():
+    return opt_colon_type()
 
+def opt_colon_sort_meta():
+    return opt_colon_type_meta()
 
+def annotated_var()
+    return c.paren(var() + opt_colon_type())
 
-annotated_var = c.paren(var() + opt_colon_type())
+def annotated_sort_vars():
+    return c.paren(var().plus() + opt_colon_type_meta())
 
-annotated_sort_vars = c.paren(var().plus() + opt_colon_type_meta())
-
-annotated_vars = c.paren(var().plus() + opt_colon_type_meta())
+def annotated_vars():
+    return c.paren(var().plus() + opt_colon_type_meta())
 
 def let_annotation_prefix():
     return (next_word('let') + c.comma_nonempty_list(var()) +
@@ -248,6 +271,51 @@ def let_annotation_prefix():
 def let_annotation():
     return ((first_word( 'fix let') + c.comma_nonempty_list(annotated_sort_vars)) |
      let_annotation_prefix() + post_colon_balanced())
+
+def brace_assign():
+    def brace_assign_item():
+        return (var_or_atomic_or_blank()+ opt_colon_sort() + assign_expr().possibly())
+    return c.brace_semi().reparse_list(brace_assign_item)
+
+def brace_noassign():
+    def brace_noassign_item():
+        return (var_or_atomics() + opt_colon_sort_meta())
+    return c.brace_semi().reparse_list(brace_no_assign_item)
+
+def nonkey(): #was not_banned
+    keyword = [
+        'is','be','are','denote','define','enter','namespace','stand',
+        'if','iff','inferring','the','a','an','we','say','write',
+        'assume','suppose','let','said','defined','or','fix','fixed'
+        ]
+    def p(token):
+        return not(singularize(token.value) in keyword)
+    return next_type(['VAR','WORD','ATOMIC_IDENTIFIER']).if_test(p)
+
+def args_template():
+    """Form of arguments to a function declaration"""
+    def required_arg_template_pat():
+        return ( 
+            (paren(var_or_atomics() + opt_colon_sort_meta())) |
+            var_or_atomic()
+            )
+    return (brace_noassign().possibly() + required_arg_template_pat().many())
+
+def any_controlseq(): #was controlseq
+    return next_type(['CONTROLSEQ'])
+
+def controlseq(s): #was the_controlseq
+    """Parser for a particular control sequence 's'.
+    s includes the backslash."""
+    return any_controlseq().if_value(s)
+
+def any_symbol(): # was symbol
+    return next_type(['SYMBOL'])
+
+def symbol(s): # was the_symbol
+    return any_symbol().if_value(s)
+
+
 
 # PROOFS
 
@@ -264,24 +332,31 @@ class Proof:
                 next_phrase('the other cases are similar') |
                 (next_phrase('the proof is')+ first_word('obvious trivial easy routine'))).nil().expect('canned')
 
-    then_prefix = lit('then').possibly()
+    def then_prefix():
+        return lit('then').possibly()
     
     def assumption():
         assumption_prefix = lit('lets')+ lit('assume') + next_word('that').possibly()
         return ((assumption_prefix + c.balanced() + period) |
                 let_annotation() + period)
     
-    possibly_assumption = (assumption().many() + then_prefix)
+    def possibly_assumption():
+        return (Proof.assumption().many() + Proof.then_prefix())
     
-    axiom_preamble = lit('axiom')+ atomic().possibly() + period
+    def axiom_preamble():
+        return lit('axiom')+ atomic().possibly() + period
     
-    moreover_statement = next_word('moreover') + c.balanced() + period
+    def moreover_statement():
+        return next_word('moreover') + c.balanced() + period
     
-    axiom = axiom_preamble + possibly_assumption + c.balanced() + period + moreover_statement.many()
+    def axiom():
+        return Proof.axiom_preamble() + Proof.possibly_assumption() + c.balanced() + period + Proof.moreover_statement.many()
     
-    ref_item = c.andcomma_nonempty_list(lit('location').possibly() + atomic())
+    def ref_item():
+        return c.andcomma_nonempty_list(lit('location').possibly() + atomic())
     
-    by_ref = c.paren(next_word('by') + ref_item).possibly()
+    def by_ref():
+        return c.paren(next_word('by') + Proof.ref_item()).possibly()
     
     def by_method():
         def no_that(tok):
@@ -292,33 +367,37 @@ class Proof:
                    (next_word('on') + c.balanced_condition(no_that)).possibly())) +
                  Parse.probe(next_word('that')| period))
     
-    choose_prefix = then_prefix + lit('lets').possibly() + lit('choose')
+    def choose_prefix():
+        return Proof.then_prefix() + lit('lets').possibly() + lit('choose')
     
-    canned_prefix = c.andcomma_nonempty_list(phrase_list_transition())
+    def canned_prefix():
+        return c.andcomma_nonempty_list(phrase_list_transition())
     
-    goal_prefix = ((lit('lets').possibly() + lit('prove') + next_word('that')) |
-                   (by_method() + next_word('that')).possibly())
+    def goal_prefix():
+        return ((lit('lets').possibly() + lit('prove') + next_word('that')) |
+                   (Proof.by_method() + next_word('that')).possibly())
     
-    preamble = ((next_word('proof') + by_method().possibly() + period) |
+    def preamble():
+        return ((next_word('proof') + Proof.by_method().possibly() + period) |
                       next_word('indeed'))
     
     def affirm():
         return Proof.statement() | Proof.goal()
     
     def statement():
-        return Proof.then_prefix + c.balanced() + Proof.by_ref + period + Proof.moreover_statement.many() + Proof.script.possibly()
+        return Proof.then_prefix() + c.balanced() + Proof.by_ref() + period + Proof.moreover_statement.many() + Proof.script.possibly()
     
     def goal():
-        return Proof.goal_prefix + c.balanced() + Proof.by_ref + period + Proof.script()
+        return Proof.goal_prefix + c.balanced() + Proof.by_ref() + period + Proof.script()
 
     def script():
-        return (Proof.preamble + (Proof.canned_prefix + Proof.body + Proof.canned_prefix + Proof.tail).many() + lit('qed') + period)
+        return (Proof.preamble + (Proof.canned_prefix() + Proof.body() + Proof.canned_prefix + Proof.tail).many() + lit('qed') + period)
     
     def body():
         return (Proof.tail() |  Proof.assumption())
     
     def tail():
-        return (Proof.affirm() | Proof.canned | Proof.case() | Proof.choose())
+        return (Proof.affirm() | Proof.canned() | Proof.case() | Proof.choose())
     
     def case():
         return (next_word('case') + c.balanced() + period + Proof.choose_justify())
@@ -335,27 +414,22 @@ class Proof:
 class Pattern:
     """Parser generators for patterns"""
     
-    def next_any_unbanned():
-        """Parser for any word except for pattern keywords.  
+    def _nonkey():
+        """Parser for any word except for keywords.  
         The token must be a WORD."""
-        pattern_banned = [
-            'is','be','are','denote','define','enter','namespace','stand',
-            'if','iff','inferring','the','a','an','we','say','write',
-            'assume','suppose','let','said','defined','or','fix','fixed'
-            ]
-        def not_banned(s):
-            return not (lexer.singularize(s.lower()) in pattern_banned)
+        def not_key(s):
+            return not (lexer.singularize(s.lower()) in pattern_key)
         def p(tok):
-            return tok.type == 'WORD' and not_banned(tok.value)
+            return tok.type == 'WORD' and not_key(tok.value)
         return next_word().if_test(p)
     
-    def next_any_unbanned_extended():
+    def _nonkey_extended():
         """parser for 'word (or word) (paren stuff)'.
         (or word) gives a synonym as a parenthetical within
         a word pattern.  Side effect is a new global synonym."""
-        p = ((Pattern.next_any_unbanned() + 
-             c.paren((next_word('or') + Pattern.next_any_unbanned()).treat(lib.snd).plus()).possibly()) +
-             c.paren(Pattern.next_any_unbanned().plus()).many())
+        p = ((Pattern._nonkey() + 
+             c.paren((next_word('or') + Pattern._nonkey()).treat(lib.snd).plus()).possibly()) +
+             c.paren(Pattern._nonkey().plus()).many())
         def f(item):
             item1 = p.process(item)
             ((a,bs),cs) = item1.acc
@@ -364,44 +438,170 @@ class Pattern:
             return c.update((a,cs),item1)
         return Parse(f)
     
-    def var():
+    def _var():
         """parser for a variable appearing in a pattern"""
         return var() | c.paren(var() + opt_colon_sort)
     
-    words = next_any_unbanned_extended().plus()
+    def _nonkey_words():
+        return Pattern._nonkey_extended().plus()
     
     def word_pattern():
         """Parser for a word pattern, consisting of variables, 
         words, and pattern parentheticals"""
-        return Pattern.words + (Pattern.var() + Pattern.words).many() + Pattern.var().possibly()
+        return Pattern._nonkey_words() + (Pattern._var() + Pattern._unkey_words()).many() + Pattern._var().possibly()
         
-    type_word_pattern = lit('a').possibly() + word_pattern()
+    def type_word_pattern():
+        return lit('a').possibly() + Pattern.word_pattern()
     
-    function_word_pattern = next_word('the') + word_pattern()
+    def function_word_pattern():
+        return next_word('the') + Pattern.word_pattern()
     
-    notion_pattern = var() + next_word('is') + lit('a') + word_pattern()
+    def notion_pattern(): 
+        return Pattern._var() + next_word('is') + lit('a') + Pattern.word_pattern()
     
-    adjective_pattern = var() + next_word('is') + next_word('called').possibly() + word_pattern()
+    def adjective_pattern():
+        return Pattern._var() + next_word('is') + next_word('called').possibly() + Pattern.word_pattern()
     
-    var_multisubsect_pattern = (
-        (var() + next_value(',') + var()) |
-        c.paren(var() + next_value(',') + var() + opt_colon_type_meta())
+    def var_multisubsect_pattern():
+        return (
+        (Pattern._var() + next_value(',') + Pattern._var()) |
+        c.paren(Pattern._var() + next_value(',') + Pattern._var() + opt_colon_type_meta())
         )
     
-    adjective_multisubject_pattern = (
-        var_multisubsect_pattern + next_word('are') + next_word('called').possibly() + word_pattern()
+    def adjective_multisubject_pattern():
+        return (
+        Pattern.var_multisubsect_pattern() + next_word('are') + next_word('called').possibly() + Pattern.word_pattern()
         )
         
-    verb_pattern = (
-        var() + word_pattern()
-        )
+    def verb_pattern(): 
+        return  Pattern._var() + Pattern.word_pattern()
         
-    verb_multisubject_pattern = (
-        )
+    def verb_multisubject_pattern():
+        return (Patern.var_multisubsect_pattern() + Pattern.word_pattern())
         
-               
-               
+    def predicate_word_pattern():
+        return (
+            Pattern.notion_pattern() |
+            Pattern.adjective_pattern() |
+            Pattern.adjective_multisubject_pattern() |
+            Pattern.verb_pattern() |
+            Pattern.verb_multisubject_pattern()
+            )
+    
+    def controlseq_pattern():
+        return any_controlseq() + brace(Pattern._var()).many()
+    
+    def binary_controlseq_pattern():
+        return Pattern._var() + Pattern.controlseq_pattern() + Pattern._var()
+    
+  
+    def precedence_level(): #was paren_precedence_level
+        """parser for the precedence level.
+        
+        sample input:
+            'with precedence 10 and left associativity'
+        output: (integer,assoc), where assoc in ['left','right','no']."""
 
+        def _precedence_level():
+            def f(raw):
+                ((_,i),pos) = raw
+                if len(pos)= 0:
+                    l = 'no'
+                else:
+                    l = pos[0][0][1]
+                return (int(i),l)
+            return (
+                (next_phrase('with precedence') + next_type('INTEGER')) +
+                (next_word('and') + lit('assoc') + next_word('associtivity')).possibly()
+                ).treat(f)
+
+        return Pattern._precedence_level() | paren(Pattern._precedence_level)
+
+
+    def symbol_pattern():
+        return (
+            Pattern._var().possibly() + symbol() +
+            (Pattern._var() + symbol()).many() + 
+            Pattern._var().possibly() + Pattern.precedence_level().possibly()
+            )
+    
+    def binary_symbol_pattern():
+        """Parser for binary symbol pattern.
+        
+        Sample inputs:
+            x ^^ y with precedence 10 and right associativity
+            x ## y"""
+        return (
+            Pattern._var() + symbol() + Pattern._var() +
+            Pattern.precedence_level().possibly()
+            )
+    
+
+class Macro:
+    
+    def insection():
+        """Parser for in-section scoping.
+        
+        Same inputs:
+            In this section,
+            In this document 
+        """
+        prs = next_phrase('in this') + lit('document') + comma.possibly()
+        
+    def we_record_def():
+        """Parser for registered facts"""
+        def p(tok):
+            return (tok.value not in [',','.',';'])
+        return (
+            lit('we-record') + balanced_condition(p)
+
+    def copula():
+        return (
+            (lit('is') + lit('defined-as').possibly()) |
+            (next_value(':=')) |
+            (lit('denote'))
+            )
+               
+    def function_copula():
+        return (
+            copula() |
+            opt_colon_type() + next_value(':=')
+            )
+
+    def iff_junction():
+        return lit('iff')
+    
+    def opt_say():
+        return lit('we-say').possibly()
+    
+    def opt_record():
+        return lit('we-record').possibly()
+    
+    def opt_define():
+        return (
+            (lit('lets') + next_word('define').possibly()) |
+            opt_record()
+            )
+    
+    def macro_inferring():
+        return paren(next_word_inferring() + var().plus() + opt_colon_sort_meta())
+    
+    def classifier_word_pattern():  # was classifier_words
+        return comma_nonempty_list(c.next_any_word_except(['is','are','be']).plus())
+    
+    def classifier_def():
+        return (
+            next_word('let') + classifier_word_pattern() +
+            lit('is') + lit('a').possibly() + lit('classifier')
+            )
+    
+    def symbol_type_pattern():
+        return symbol_pattern()
+    
+    def identifier_pattern():
+        return (lit('a') + identifier().if_test(p)) | next_value('_')
+    
+    def 
 
 
 

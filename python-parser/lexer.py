@@ -11,13 +11,15 @@ import msg
 import word_lists
 import re
 
-
+# XX we should be able to collapse keyword symbol into a single token class'
+# MID TMID ASSIGN ARROW BLANK ALT COLON APPLYSUB etc.
 tokens = (
     'STRING',
     'CONTROLSEQ',
     'DECIMAL',
     'INTEGER',
     'SYMBOL',
+#    'KEY_SYMBOL',
     'SYMBOL_QED',
     'MAPSTO',
     'MID',
@@ -29,7 +31,7 @@ tokens = (
     'PERIOD',
     'COLON',
     'APPLYSUB',
-    'SLASH',
+    #'SLASH',
     #'SLASHDASH',
     'COERCION',
     'LAMBDA',
