@@ -17,6 +17,46 @@ import word_lists
 import copy
 from collections import namedtuple
 
+
+def copy_token(tok,attr):
+    """make a new token by addding attributes 'attr' to tok"""
+    tcopy = copy.copy(tok)
+    for v in attr:
+        tcopy.__setattr__(v,attr[v])
+    return tcopy 
+
+def mk_token(attr={'type':'INTEGER','value':'1'}):
+    """make a new token with attributes given by dictionary attr
+    For example,
+         mk_token({'type':'COLOR','value':'blue'}).
+    """
+    #tok = copy.copy(mk_token._tok)
+    #for v in attr:
+    #    tok.__setattr__(v,attr[v])
+    #return tok
+    return copy_token(mk_token._tok,attr)
+
+def init_mk_token():
+    """Call this once to initialize mk_token."""
+    lexer.tokenizer.input('1')
+    mk_token._tok = [tok for tok in lexer.tokenizer][0]
+    mk_token._tok.__setattr__('lineno',0)
+    mk_token._tok.__setattr__('lexpos',0)
+    mk_token._tok.__setattr__('lexer',None)
+    pass
+
+init_mk_token()
+
+
+
+#test mk_token()
+#mm = mk_token({'type' : 'RED','value' :'blue'})
+#print(mk_token())
+#print(f'mm={mm}')
+#print(mm.__dict__)
+
+    
+
 # An item is a token embedded at a particular position of the tuple of tokens.
 # The stream and individual tokens remain immutable.  
 # pos changes.
@@ -71,8 +111,8 @@ def add_history(item:Item,h,drop=0) -> Item:
             history = h1+h)
 
 def range_history(name:str,hs):
-    mn = min((i for (_,i,_) in hs),default=0)
-    mx = max((i for (_,_,i) in hs),default=mn)
+    mn = min((i for (_,i,_) in hs if i > 0),default=0)
+    mx = max((i for (_,_,i) in hs if i > 0),default=mn)
     #print(f'min,max=({mn},{mx})')
     return [name,mn,mx]
 
@@ -119,6 +159,10 @@ class ParseNoCatch(BaseException):
      
 #repr not yet used...
 
+
+    
+
+
 class Parse:
     """base class for parsers.
     f:Item->Item processes one or more tokens from the item stream.
@@ -158,10 +202,14 @@ class Parse:
         return Parse(f)
     
     def reparse(self):
-        """Run parser as a reparser on accumulated tokens.  
-        All tokens must be consumed."""
+        """Run parser as a reparser on list of accumulated tokens.  
+        If accumulated tokens == [], then do nothing.
+        All tokens must be consumed.
+        """
         def f(item):
             acc = item.acc
+            if len(acc) == 0:
+                return item
             item1 = Item(acc,0,None,[])
             item2 = (self + Parse.finished()).process(item1)
             item3 = update(item2.acc,item)

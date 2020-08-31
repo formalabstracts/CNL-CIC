@@ -9,6 +9,7 @@ Created on Sat Aug 22 17:00:38 2020
 """production rules for Colada"""
 
 import copy
+import msg
 import word_lists
 import lib
 import lexer
@@ -18,8 +19,31 @@ from parser_combinator import (Parse, ParseError,
                                first_phrase, next_word,
                                next_phrase, next_value)
 
+# globals
+# parse_level determines how complete the parsing is.
+# not in use
+# 
+production_dict = {
+    'level_enum' : {'reparse','reparse','minimal'},
+    'parse_level' : 'full'
+    }
+
+reparser = {
+    'type' : (lambda item : item),
+    'expr' : (lambda item : item)
+    }
+
+def reparse(s:str) -> Parse:
+    try: 
+        return reparser[s]
+    except KeyError as k:
+        msg.error(f'Bad reparse key: {k}')
+        raise k
+        
+
 def cs_brace(cs_parse:Parse,brace_parse:Parse) -> Parse:
-    """control sequence parser including arguments in braces"""
+    """control sequence parser including arguments in braces.
+    cs_parse is used to parse cs and brace_parse to parse each braced arg."""
     return cs_parse + c.brace(brace_parse).many()
 
 def phrase_list_transition():
@@ -56,21 +80,27 @@ def atomic():
         raise ParseError(item)
     return Parse(f).expect('atomic')
 
-def pre_expr():
+def expr():
+    """parse for expression (term, type, or prop)."""
     def p(tok):
         # commas can appear in quantified variables
         return not(tok.value in [';','.'])
-    return balanced_condition(p)
+    return reparse('expr').process(c.balanced_condition(p))
 
 def assign_expr():
-    return next_value(':=') + pre_expr()
+    """parser for := followed by an expression
+    The output is the expression
+    """
+    return (next_value(':=') + expr()).treat(lib.snd)
 
 def var():
-    """parser for variables"""
+    """parser for a single variable.
+    Accepts a single token that is a variable."""
     return Parse.next_token().if_type(['VAR']).expect('var')
 
 def var_or_atomic():
-    """parser for a var or atomic"""
+    """parser for a var or atomic identifier.
+    Output of parser is a single token of one of those types."""
     return (var() | atomic()).expect('var_or_atomic')
 
 def var_or_atomics():
@@ -78,17 +108,18 @@ def var_or_atomics():
     return Parse.plus(var_or_atomic())
 
 def var_or_atomic_or_blank():
-    """parser for var or atomic or _"""
+    """parser for var or atomic or _.
+    The parser output is a single token that is one of those types."""
     return var_or_atomic() | next_value('_')
 
-
-
 def hierarchical_identifier():
-    """parser for hierarchical identifiers"""
+    """parser for hierarchical identifiers.
+    Parser output is a single token."""
     return Parse.next_token().if_type(['HIERARCHICAL_IDENTIFIER'])
 
 def identifier():
-    """parser for hierarchical or atomic identifier"""
+    """parser for hierarchical or atomic identifier.
+    Parser output is a single token"""
     return (atomic() | hierarchical_identifier()).expect('identifier')
 
 # canned phrases that have small variants
@@ -136,15 +167,16 @@ lit_dict = {
 
 def lit(s):
     """parser generator for 's'-like words or phrases"""
-    if s =='record':
-        return (Parse.word('we').possibly() +
-                first_word('record register') +
-                Parse.word('identification').possibly() +
-                Parse.word('that').possibly())
-    if s == 'doc':
-        return lit['document'] | lit['end-document']
-    if s == 'location':
-        return Parse.first([lit_dict['document'],lit_dict['theorem'],lit_dict['axiom']])
+    if s in ['record','doc','location']:
+        if s =='record':
+            return (Parse.word('we').possibly() +
+                    first_word('record register') +
+                    Parse.word('identification').possibly() +
+                    Parse.word('that').possibly())
+        if s == 'doc':
+            return lit['document'] | lit['end-document']
+        if s == 'location':
+            return Parse.first([lit_dict['document'],lit_dict['theorem'],lit_dict['axiom']])
     return lit_dict[s]
 
 #others:
@@ -161,54 +193,56 @@ colon = next_value(':')
 
 instruct = {}
 
-def param_value(ls):
-    if ls == []:
-        return ''
-    tok = ls[0]
-    if tok.type == 'INTEGER':
-        return int(tok.value)
-    if tok.value.lower() in ['yes','true','on']:
-        return True
-    if tok.value.lower() in ['no','false','off']:
-        return False
-    return tok.value
-  
-def expand_slashdash(vs):
-    """expanding synonyms
-    e.g. word/-ing is short for word/wording"""
-    for i in range(len(vs)):
-        if vs[i]== '/-':
-            vs[i]= '/'
-            vs[i+1]= vs[i-1]+vs[i+1]
-    return [v for v in vs if v != '/']
-#test 
-#print(expand_slashdash(['work','/-','ing','/','effort','workaround']))
-#['work', 'working', 'effort', 'workaround']
+class Instruction:
 
-def syn():
-    """parsing synonyms"""
-    def p(tok):
-        tok.value in ['/','/-'] or c.can_wordify(tok)
-    synlist = Parse.next_token().if_test(p).plus()
-    return c.comma_nonempty_list(synlist)
-
-def instruction():
-    """parsing and processing of synonyms and other instructions"""
-    def treat_syn(acc):
-        for ac in acc:
-            vs = [t.value for t in ac]
-            v_expand = expand_slashdash(vs)
-            c.synonym_add(v_expand)
+    def _param_value(ls):
+        if ls == []:
+            return ''
+        tok = ls[0]
+        if tok.type == 'INTEGER':
+            return int(tok.value)
+        if tok.value.lower() in ['yes','true','on']:
+            return True
+        if tok.value.lower() in ['no','false','off']:
+            return False
+        return tok.value
+      
+    def _expand_slashdash(vs):
+        """expanding synonyms
+        e.g. word/-ing is short for word/wording"""
+        for i in range(len(vs)):
+            if vs[i]== '/-':
+                vs[i]= '/'
+                vs[i+1]= vs[i-1]+vs[i+1]
+        return [v for v in vs if v != '/']
+    #test 
+    #print(expand_slashdash(['work','/-','ing','/','effort','workaround']))
+    #['work', 'working', 'effort', 'workaround']
+    
+    def _syn():
+        """parsing synonyms"""
+        def p(tok):
+            tok.value in ['/','/-'] or c.can_wordify(tok)
+        synlist = Parse.next_token().if_test(p).plus()
+        return c.comma_nonempty_list(synlist)
+    
+    def instruction():
+        """parsing and processing of synonyms and other instructions"""
+        def treat_syn(acc):
+            for ac in acc:
+                vs = [t.value for t in ac]
+                v_expand = Instruction._expand_slashdash(vs)
+                c.synonym_add(v_expand)
+                return ()
+        def treat_instruct(acc):
+            keyword,ls = acc
+            instruct[keyword.value] = Instruction._param_value(ls)
             return ()
-    def treat_instruct(acc):
-        keyword,ls = acc
-        instruct[keyword.value] = param_value(ls)
-        return ()
-    keyword_instruct = (first_word("""exit timelimit printgoal dump 
-                     ontored read library error warning""") + 
-                     Parse.next_token().possibly())
-    return (c.bracket(next_word('synonym') + syn().treat(treat_syn) |
-         c.bracket(keyword_instruct.treat(treat_instruct))))
+        keyword_instruct = (first_word("""exit timelimit printgoal dump 
+                         ontored read library error warning""") + 
+                         Parse.next_token().possibly())
+        return (c.bracket(next_word('synonym') + Instruction._syn().treat(treat_syn) |
+             c.bracket(keyword_instruct.treat(treat_instruct))))
  
 def this_exists():
     """parsing of 'this'-directives.
@@ -222,46 +256,88 @@ def this_exists():
         return c.andcomma_nonempty_list(Parse.next_token().if_test(adjective))
     return first_phrase(['this exist','this is'])
 
-# 
-
 def post_colon_balanced():
     def p(token):
         return token.value not in ['end','with',':=',';','.',',','|',':']
     return c.balanced_condition(p)
 
-def opt_colon_type():
-    """parsing ': A'.  No treatment applied"""
-    return (next_value(':') + post_colon_balanced()).treat(lib.snd).possibly().treat(lib.flatten)
-
 def meta_tok():
-    tok = copy.copy(c.init_item.tok)
-    tok.value = str(meta_tok.count)
-    tok.type = 'META'
+    tok = c.mk_token({'type':'META','value':str(meta_tok.count)})
     meta_tok.count += 1
-    return tok 
+    return tok
+#    tok = copy.copy(c.init_item.tok)
+#    tok.value = str(meta_tok.count)
+#    tok.type = 'META'
+#    meta_tok.count += 1
+#    return tok 
 
-def opt_colon_type_meta():
+def colon_annotation(prs):  #was opt_colon_type, opt_colon_sort
+    """Parser for ': A', discarding the colon. 
+    A is parsed by prs.
+    Parser returns an empty list if there is no annotation."""
+    #def trt1(toks):
+    #    if len(toks)==0:
+    #        return toks
+    #    return prs.process(toks)
+    prs1= (next_value(':') + post_colon_balanced()).treat(lib.snd).possibly().treat(lib.fflatten)
+    return prs1.reparse(prs)
+
+def colon_annotation_or_meta(prs): #was opt_colon_type_meta, opt_colon_sort_meta
+    """Parser for annotation ': A', discarding the colon.
+    If no annotation, parser returns a meta-variable.
+    A is parsed using prs."""
     def trt(acc):
-        if acc == []:
+        if acc == [] or acc == None:
             return meta_tok()
         return acc
-    return opt_colon_type().treat(trt)
+    return colon_annotation(prs).treat(trt)
 
 # differ only in treatment
-def opt_colon_sort():
-    return opt_colon_type()
+#def opt_colon_sort():
+#    return opt_colon_type()
 
-def opt_colon_sort_meta():
-    return opt_colon_type_meta()
+#def opt_colon_sort_meta():
+#    return opt_colon_type_meta()
 
-def annotated_var()
-    return c.paren(var() + opt_colon_type())
+def annotated_var(prs):
+    """
+    Parser for annotated variable in parentheses.  
+    Annotation is parsed with prs.
+    Parser output is a var token 
+    annotation is stored in attribute 'annotation' of var token.
+    
+    Sample input to parser:
+        (x : A)
+    """
+    def trt(acc):
+        v,ann = acc 
+        if len(ann) > 0:
+            return c.copy_token(v,{'annotation':ann[0]})
+        return v
+    return c.paren(var() + colon_annotation(prs)).treat(trt)
 
-def annotated_sort_vars():
-    return c.paren(var().plus() + opt_colon_type_meta())
+#def annotated_sort_vars():
+#    return c.paren(var().plus() + opt_colon_type_meta())
 
-def annotated_vars():
-    return c.paren(var().plus() + opt_colon_type_meta())
+def annotated_vars(prs):
+    """Parser for list of annotated variables, parsing annotation with prs
+    
+    Missing annotation added as a metavariable.
+    Variables within the parentheses are constrained to have the same type.
+    
+    Sample input:
+        (x y z : A)
+        (u v)
+        
+    Output is a list of annotated vars using attribute 'annotation'
+    """
+    def trt(acc):
+        vs,ann = acc
+        if len(ann)==0:
+            return vs
+        assert(len(ann)==1)
+        return [c.copy_token(v,ann[0]) for v in vs]
+    return c.paren(var().plus() + colon_annotation_or_meta()).treat(trt)
 
 def let_annotation_prefix():
     return (next_word('let') + c.comma_nonempty_list(var()) +
@@ -269,6 +345,16 @@ def let_annotation_prefix():
      next_word('fixed').possibly())
     
 def let_annotation():
+    """Parser for let_annotations. Terminating punctuation not included.
+    
+    Sample parser inputs:
+        Let G be a group
+        Let G be a fixed group
+        Let (H G : group)
+        Fix (x : R)
+        
+    Issues: No treatment for now, but return to this later.   
+    """
     return ((first_word( 'fix let') + c.comma_nonempty_list(annotated_sort_vars)) |
      let_annotation_prefix() + post_colon_balanced())
 
@@ -280,7 +366,7 @@ def brace_assign():
 def brace_noassign():
     def brace_noassign_item():
         return (var_or_atomics() + opt_colon_sort_meta())
-    return c.brace_semi().reparse_list(brace_no_assign_item)
+    return c.brace_semi().reparse_list(brace_noassign_item())
 
 def nonkey(): #was not_banned
     keyword = [
@@ -289,20 +375,20 @@ def nonkey(): #was not_banned
         'assume','suppose','let','said','defined','or','fix','fixed'
         ]
     def p(token):
-        return not(singularize(token.value) in keyword)
-    return next_type(['VAR','WORD','ATOMIC_IDENTIFIER']).if_test(p)
+        return not(c.singularize(token.value) in keyword)
+    return c.next_type(['VAR','WORD','ATOMIC_IDENTIFIER']).if_test(p)
 
 def args_template():
     """Form of arguments to a function declaration"""
     def required_arg_template_pat():
         return ( 
-            (paren(var_or_atomics() + opt_colon_sort_meta())) |
+            (c.paren(var_or_atomics() + opt_colon_sort_meta())) |
             var_or_atomic()
             )
     return (brace_noassign().possibly() + required_arg_template_pat().many())
 
 def any_controlseq(): #was controlseq
-    return next_type(['CONTROLSEQ'])
+    return c.next_type(['CONTROLSEQ'])
 
 def controlseq(s): #was the_controlseq
     """Parser for a particular control sequence 's'.
@@ -310,7 +396,7 @@ def controlseq(s): #was the_controlseq
     return any_controlseq().if_value(s)
 
 def any_symbol(): # was symbol
-    return next_type(['SYMBOL'])
+    return c.next_type(['SYMBOL'])
 
 def symbol(s): # was the_symbol
     return any_symbol().if_value(s)
@@ -411,6 +497,14 @@ class Proof:
 
 # patterns 
 
+pattern_key = ["is","be","are","denote","define"
+   "enter","namespace",
+   "stand","if","iff","inferring","the","a","an",
+   "we","say","write",
+   "assume","suppose","let",
+   "said","defined","or","fix","fixed" # and (need in 'resultant of f and g')
+  ]
+
 class Pattern:
     """Parser generators for patterns"""
     
@@ -477,7 +571,7 @@ class Pattern:
         return  Pattern._var() + Pattern.word_pattern()
         
     def verb_multisubject_pattern():
-        return (Patern.var_multisubsect_pattern() + Pattern.word_pattern())
+        return (Pattern.var_multisubsect_pattern() + Pattern.word_pattern())
         
     def predicate_word_pattern():
         return (
@@ -489,7 +583,7 @@ class Pattern:
             )
     
     def controlseq_pattern():
-        return any_controlseq() + brace(Pattern._var()).many()
+        return any_controlseq() + c.brace(Pattern._var()).many()
     
     def binary_controlseq_pattern():
         return Pattern._var() + Pattern.controlseq_pattern() + Pattern._var()
@@ -505,17 +599,17 @@ class Pattern:
         def _precedence_level():
             def f(raw):
                 ((_,i),pos) = raw
-                if len(pos)= 0:
+                if len(pos)== 0:
                     l = 'no'
                 else:
                     l = pos[0][0][1]
                 return (int(i),l)
             return (
-                (next_phrase('with precedence') + next_type('INTEGER')) +
+                (next_phrase('with precedence') + c.next_type('INTEGER')) +
                 (next_word('and') + lit('assoc') + next_word('associtivity')).possibly()
                 ).treat(f)
 
-        return Pattern._precedence_level() | paren(Pattern._precedence_level)
+        return Pattern._precedence_level() | c.paren(Pattern._precedence_level())
 
 
     def symbol_pattern():
@@ -542,20 +636,29 @@ class Macro:
     def insection():
         """Parser for in-section scoping.
         
-        Same inputs:
+        Sample inputs:
             In this section,
             In this document 
+        Output:
+            a single token whose value is the location keyword.
         """
-        prs = next_phrase('in this') + lit('document') + comma.possibly()
+        prs = (next_phrase('in this') + lit('document')) + comma.possibly()
+        def tr(acc):
+            return acc[0][1]
+        return prs.treat(tr)
         
     def we_record_def():
-        """Parser for registered facts"""
+        """Parser for registered facts.
+        
+        XX not finished. We need to reparse the balanced tokens
+        """
         def p(tok):
             return (tok.value not in [',','.',';'])
-        return (
-            lit('we-record') + balanced_condition(p)
-
+        return lit('we-record') + c.balanced_condition(p)
+            
     def copula():
+        """Parser for copula in macro declarations.
+        """
         return (
             (lit('is') + lit('defined-as').possibly()) |
             (next_value(':=')) |
@@ -564,7 +667,7 @@ class Macro:
                
     def function_copula():
         return (
-            copula() |
+            Macro.copula() |
             opt_colon_type() + next_value(':=')
             )
 
@@ -580,28 +683,29 @@ class Macro:
     def opt_define():
         return (
             (lit('lets') + next_word('define').possibly()) |
-            opt_record()
+            Macro.opt_record()
             )
     
     def macro_inferring():
-        return paren(next_word_inferring() + var().plus() + opt_colon_sort_meta())
+        return c.paren(next_word_inferring() + var().plus() + opt_colon_sort_meta())
     
     def classifier_word_pattern():  # was classifier_words
-        return comma_nonempty_list(c.next_any_word_except(['is','are','be']).plus())
+        return c.comma_nonempty_list(c.next_any_word_except(['is','are','be']).plus())
     
     def classifier_def():
         return (
-            next_word('let') + classifier_word_pattern() +
+            next_word('let') + Pattern.classifier_word_pattern() +
             lit('is') + lit('a').possibly() + lit('classifier')
             )
     
     def symbol_type_pattern():
-        return symbol_pattern()
+        return Pattern.symbol_pattern()
     
     def identifier_pattern():
+        ##XX
         return (lit('a') + identifier().if_test(p)) | next_value('_')
     
-    def 
+    #def 
 
 
 
