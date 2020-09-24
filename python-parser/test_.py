@@ -5,7 +5,7 @@ Created on Tue Aug 11 08:51:02 2020
 
 @author: thales
 """
-#import lib 
+import lib 
 
 def assert_true(m,r):
     if (r!=True):

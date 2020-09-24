@@ -150,7 +150,7 @@ reserved_symbols = {
     '->' : 'ARROW', 
     '|->': 'MAPSTO', 
     '|'  : 'ALT', 
-    '/'  : 'SLASH', 
+    #'/'  : 'SLASH', 
     #'/-' : 'SLASHDASH',
     '_'  : 'BLANK'
     }
