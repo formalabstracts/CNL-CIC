@@ -9,6 +9,7 @@ Created on Sat Jan  9 13:38:26 2021
 import ply.lex as lex
 #import regex
 
+#ID identifier, REPS rep count on parser, ESCAPED \..., LABEL assign a var
 tokens = (
     'ID',
     'REPS',

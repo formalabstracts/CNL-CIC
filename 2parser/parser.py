@@ -6,96 +6,13 @@ Created on Tue Jan 12 14:39:04 2021
 @author: thales
 """
 
-import msg
-import lib 
-import word_lists
-import copy
+
 from collections import namedtuple
 import inner_lexer as inner
 
-# test
-inner.tokenizer.input(r"hello( ) my:hi [ ] | ! . ? ?3 ?44 + * $ : / my_a/:\abc!\[$")
-'(',')','[',']','|','!','.','+','*','$',':','/'
-
-while True:
-    tok = inner.tokenizer.token()
-    if not tok:
-        break
-    print(tok)
-    
-def copy_token(tok,attr):
-    """make a new token by addding attributes 'attr' to tok"""
-    tcopy = copy.copy(tok)
-    for v in attr:
-        tcopy.__setattr__(v,attr[v])
-    return tcopy 
-
-def mk_token(attr={'type':'INTEGER','value':'1'}):
-    """make a new token with attributes given by dictionary attr
-    For example,
-         mk_token({'type':'COLOR','value':'blue'}).
-    """
-    #tok = copy.copy(mk_token._tok)
-    #for v in attr:
-    #    tok.__setattr__(v,attr[v])
-    #return tok
-    return copy_token(mk_token._tok,attr)
-
-def init_mk_token():
-    """Call this once to initialize mk_token."""
-    inner.tokenizer.input('1')
-    mk_token._tok = [tok for tok in inner.lexer.tokenizer][0]
-    mk_token._tok.__setattr__('lineno',0)
-    mk_token._tok.__setattr__('lexpos',0)
-    mk_token._tok.__setattr__('lexer',None)
-    pass
-
-init_mk_token()
 
 
 
-#test mk_token()
-#mm = mk_token({'type' : 'RED','value' :'blue'})
-#print(mk_token())
-#print(f'mm={mm}')
-#print(mm.__dict__)
-
-    
-
-# An item is a token embedded at a particular position of the tuple of tokens.
-# The stream and individual tokens remain immutable.  
-# pos changes.
-# acc is the accumulator holding the parsed data, with stream range start:stop
-# history is for error-handling, positions refer to positions of toks in stream.
-Item = namedtuple('Item','stream pos acc')
-
-def init_item(s) -> Item:
-    """Intialize item stream with a tuple of tokens"""
-#   # a token used for cloning
-    if len(s) > 0:
-        init_item.tok = s[0]
-    return Item(pos=0,stream=s,acc=None,history=[])
-
-#v = init_item([3,4,5])
-#print(init_item.tok)
-
-def next_item(item:Item) -> Item:
-    """Advance to the next item of the stream.
-    The stream is left unchanged."""
-    if item.pos >= len(item.stream):
-        raise StopIteration
-    return Item(pos = item.pos+1,stream = item.stream,
-                acc = item.stream[item.pos])
-
-class ParseError(BaseException):
-    """Standard parse error. Give item with position at which it fails as arg"""
-    pass
-
-class ParseNoCatch(BaseException):
-    """Exception not caught by other parsers"""
-    
-    def __init__(self,msg=''):
-        self.msg = msg
         
 
 class Parse:
