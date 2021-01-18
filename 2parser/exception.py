@@ -13,6 +13,8 @@ from collections import namedtuple
 # item on which nonterminal/production_rule fails
 ErrorItem = namedtuple('ErrorItem','nonterminal production item')
 
+#add new exceptions to the end of the list
+
 class ParseError(BaseException):
     """Standard parse error. Give data as list of ErrorItem"""
     def __init__(self,error_stack):

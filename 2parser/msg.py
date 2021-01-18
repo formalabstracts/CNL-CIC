@@ -1,4 +1,8 @@
 def error(s):
     print('Error:'+s)
-
-#error('test')
+    
+def setdefault(s,default):
+    if s:
+        return s
+    else:
+        return default

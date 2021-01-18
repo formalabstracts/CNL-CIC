@@ -12,7 +12,7 @@ import ply.lex as lex
 #ID identifier, REPS rep count on parser, ESCAPED \..., LABEL assign a var
 tokens = (
     'ID',
-    'REPS',
+    'TY',
     'ESCAPED',
     'LABEL'
 )
@@ -23,15 +23,7 @@ def t_error(t):
      print("Illegal inner lexer character '%s'" % t.value[0])
      t.lexer.skip(1)
 
-literals = ['(',')','[',']','|','!','.','+','*','$','/']
-
-def t_REPS(t):
-    r'\?\d*'
-    if len(t.value) <= 1:
-        t.value = 1
-    else:
-        t.value = int(t.value[1:])
-    return t
+literals = ['(',')','[',']','|','!','.','+','*','$','/','?']
 
 def t_LABEL(t):
     r'[a-zA-Z_0-9]+:'
@@ -40,6 +32,8 @@ def t_LABEL(t):
 
 def t_ID(t):
     r'[a-zA-Z_0-9]+'
+    if t.value.isupper():
+        t.type = 'TY'
     return t
 
 def t_ESCAPED(t):

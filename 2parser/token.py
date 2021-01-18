@@ -14,6 +14,8 @@ https://www.dabeaz.com/ply/ply.html (Sec 4.1)
 import lexer
 import copy
 from collections import namedtuple
+from exception import ParseError
+from exception import ErrorItem
 
 def copy_token(tok,attr):
     """make a new token by addding attributes 'attr' to tok"""
@@ -63,8 +65,8 @@ Item = namedtuple('Item','stream pos acc')
 def init_item(s) -> Item:
     """Intialize item stream with a tuple of tokens"""
 #   # a token used for cloning
-    if len(s) > 0:
-        init_item.tok = s[0]
+    #if s:
+    #    init_item.tok = s[0]
     return Item(pos=0,stream=s,acc=None)
 
 #v = init_item([3,4,5])
@@ -73,13 +75,18 @@ def init_item(s) -> Item:
 def next_item(item:Item) -> Item:
     """Advance to the next item of the stream.
     The stream is left unchanged.
-    Accumulated tokens discarded, retaining current token.
+    Exception if accumulated nonempty
     """
     if item.pos >= len(item.stream):
         raise StopIteration
+    if item.acc:
+        raise ParseError([ErrorItem(item=item,nonterminal='.',production='')])
     return Item(pos = item.pos+1,stream = item.stream,
                 acc = item.stream[item.pos])
 
+def update(acc,item:Item) -> Item:
+    """Create a new item with replaced accumulator"""
+    return Item(pos = item.pos,stream = item.stream,acc = acc)
 
 if __name__ == "__main__":
     import doctest
