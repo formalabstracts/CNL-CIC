@@ -8,4 +8,5 @@ Created on Sun Jan 17 10:36:45 2021
 
 #State 
 
-class state 
+class state:
+    pass
