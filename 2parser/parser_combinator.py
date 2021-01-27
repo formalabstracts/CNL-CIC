@@ -4,25 +4,44 @@
 Created on Tue Jan 12 14:39:04 2021
 
 @author: thales
+
+This file contains parser combinators.
+The original name was parse.py, but that conflicts with a python lib.
+
+The combinators should preserves tokens; nothings should be discarded.
 """
 
 
-#from collections import namedtuple
-#import inner_lexer as inner
-
-from exception import ParseError, ParseNoCatch, ErrorItem
+from exception import ParseError, ParseNoCatch, DataProcess, ErrorItem
 import copy, lib, msg, word_lists
 import tokenlib
 import inner_lexer
 import lexer
 
 
+def mk_inner_stream(s):
+    """This function is primarily for debugging.
+    It creates an initialized item-stream from a string,
+    which is tokenized with the inner lexer.
+    """
+    inner_lexer.tokenizer.input(s)
+    it = tokenlib.init_item(list(inner_lexer.tokenizer))
+    return it
+
+def mk_stream(s):
+    """This function is primarily for debugging.
+    It creates an initialized item-stream from a string,
+    which is tokenized with the lexer.
+    """
+    lexer.tokenizer.input(s)
+    return tokenlib.init_item(list(lexer.tokenizer))
 
         
 
 class Parse:
     """base class for parsers.
-    f:Item->Item processes one or more tokens from the item stream.
+    Many of the standard combinators are given.
+    process:Item->Item processes one or more tokens from the item stream.
     """
     def __init__(self,process,nonterminal,production=''):
         """r:Item->Item, repr:str"""
@@ -64,36 +83,38 @@ class Parse:
                 raise ParseError(ErrorItem(item=item,production='',nonterminal='probe')) from pe
         return Parse(f,self.nonterminal,self.production)
     
-    def reparse(self):
+    def reparse(self,p2):
         """Run parser as a reparser on list of accumulated tokens.  
         If accumulated tokens == [], then do nothing.
         All tokens must be consumed.
         """
         def f(item):
             try:
-                acc = item.acc
+                item0 = self.process(item)
+                acc = item0.acc
                 if not acc:
                     return item
-                item1 = tokenlib.Item(acc,0,None,[])
-                item2 = (self + Parse.finished()).process(item1)
-                item3 = tokenlib.update(item2.acc,item)
+                item1 = tokenlib.Item(stream=acc,pos=0,acc=None)
+                item2 = (self + Parse.finished()).treat(lib.fst).process(item1)
+                item3 = tokenlib.update(item2.acc,item0)
                 return item3
             except ParseError as pe:
-                raise ParseError(ErrorItem(item=item,production='',nonterminal='reparse')) from pe
+                raise ParseError(ErrorItem(item=item1,production=p2.nonterminal,nonterminal='reparse')) from pe
         return Parse(f,self.nonterminal,self.production)
     
-    def reparse_list(self):
-        """Run parser as reparser on each accumulated list entry.
+    def reparse_list(self,p2):
+        """Run parser p2 as reparser on each accumulated list entry.
         All tokens must be consumed."""
         def f(item):
             try:
-                acc = item.acc
-                its1 = [tokenlib.Item(a,0,None,[]) for a in acc]
-                acc2 = [(self + Parse.finished()).process(it).acc for it in its1]
-                item3 = tokenlib.update(acc2,item)
+                item1 = self.process(item)
+                acc = item1.acc
+                its1 = [tokenlib.Item(stream=a,pos=0,acc=None) for a in acc]
+                acc2 = [(p2 + Parse.finished()).treat(lib.fst).process(it).acc for it in its1]
+                item3 = tokenlib.update(acc2,item1)
                 return item3
             except ParseError as pe:
-                raise ParseError(ErrorItem(item=item,production='',nonterminal='reparse_list')) from pe
+                raise ParseError(ErrorItem(item=item,production=p2.nonterminal,nonterminal='reparse_list')) from pe
         return Parse(f,self.nonterminal,self.production)
 
     def __add__(self,other):
@@ -143,7 +164,7 @@ class Parse:
             except ParseError as pe:
                 nonterminal=msg.setdefault(msg,'treat')
                 raise ParseError(ErrorItem(item=item,nonterminal=nonterminal,production='')) from pe
-        return Parse(f,'treat')
+        return Parse(f,self.nonterminal,self.production)
         
     def many(self):
         """parse zero or more times"""
@@ -191,16 +212,21 @@ class Parse:
         return self.treat(lambda _:[]).name('nil','')
  
     def separated_nonempty_list(self,sep):
-        """Sequence of at least one parse with separation sep"""
+        """Sequence of at least one parse with separation sep
+        Non sep items are obtained by slice [0::2]
+        """
+        def f(acc):
+            (x,xs) = acc
+            return [x]+ lib.flatten(xs)
         return (self + 
-                (sep + self).treat(lib.snd).many()).treat(lib.prepend).name('list')
+                (sep + self).many()).treat(f).name('list',self.nonterminal)
               
     def separated_list(self,sep):
         """sequence of parses with separation sep"""
         return (self.separated_nonempty_list(sep) | Parse.identity().nil()).name('list')
 
     def if_test(self,p): #was some
-        """Next passes boolean test or fail"""
+        """Next token passes boolean test or fail"""
         def f(item):
             item1 = self.process(item)
             if p(item1.acc):
@@ -213,6 +239,16 @@ class Parse:
         """parse if next token has value v or fail"""
         def p(tok):
             return tok.value == v
+        return self.if_test(p).name(self.nonterminal,v)
+    
+    def if_raw_value(self,v): 
+        """parse if next token has value v or fail.
+        
+        >>> Parse.next_token().if_raw_value('True').process(mk_stream('True')).acc
+        LexToken(WORD,'true',1,0)
+        """
+        def p(tok):
+            return tok.rawvalue == v
         return self.if_test(p).name(self.nonterminal,v)
     
     def if_type(self,ts): 
@@ -239,7 +275,7 @@ class Parse:
         def f(item):
             raise ParseError(ErrorItem(item=item,nonterminal='first',production='empty'))
         if not prs:
-            return Parse(f)
+            return Parse(f,'first')
         return Parse.__or__(prs[0],Parse.first(prs[1:])).name('first')
     
     def gen_first(prs_gen,args):
@@ -295,26 +331,30 @@ class LazyParse(Parse):
 
     
 def next_value(v):
-    """Parser constructor that accepts a token with given value."""
+    """Parser constructor that accepts a token with given value.
+    
+    >>> next_value('the').process(mk_stream('the test')).acc
+    LexToken(WORD,'the',1,0)
+    
+    >>> next_value('3').process(mk_stream('3 + test')).acc
+    LexToken(INTEGER,'3',1,0)   
+    """
     return Parse.next_token().if_value(v)
 
 def next_type(t):
+    """Parser constructor that accepts a token with given type.
+    
+    >>> next_type('WORD').process(mk_stream('the test')).acc
+    LexToken(WORD,'the',1,0)
+    """
     return Parse.next_token().if_type([t])
 
 def getvalue(tok):
+    """Extract the string value from a token with default ''"""
     if tok:
         return tok.value 
     else:
         return ''
-    
-def mk_inner_stream(s):
-    inner_lexer.tokenizer.input(s)
-    it = tokenlib.init_item(list(inner_lexer.tokenizer))
-    return it
-
-def mk_stream(s):
-    lexer.tokenizer.input(s)
-    return tokenlib.init_item(list(lexer.tokenizer))
 
 def debug_lazyparse():
     """This procedure is for debugging and testing only.
@@ -458,9 +498,6 @@ class OuterParser(Parse):
     pass
 
 
-# scoping 
-scope_current = {}
-
 # synonym handling uses a global dictionary, must be single words.
 
 synonym = { key: key for key in word_lists.invariable }
@@ -474,14 +511,14 @@ def synonym_add(ts):
     #XX Debug: should check that at most one variant in ts is defined anywhere.
     for s in ts:
         if len(s.split(' '))> 1:
-            return msg.error(f'synonym entries must be single words:{s}')
+            raise DataProcess(f'synonym entries must be single words:{s}')
         if lexer.singularize(s) in synonym:
-            return msg.error(f'synonym already declared: {s}')
+            raise DataProcess(f'synonym already declared: {s}')
         # len restriction prevents VAR from being added to dict.
         if len(s) < MIN_LEN_SYNONYM:
-            return msg.error(f'synonyms must have at least {MIN_LEN_SYNONYM} chars: {s}')
+            raise DataProcess(f'synonyms must have at least {MIN_LEN_SYNONYM} chars: {s}')
         if not(s.isalpha()):
-            return msg.error(f'synonyms must be words: {s}')
+            raise DataProcess(f'synonyms must be words: {s}')
     #make the canonical_form
     ls = [lexer.singularize(s) for s in ts]
     ls.sort()
@@ -492,15 +529,19 @@ def synonym_add(ts):
         
 def synonymize(s:str) -> str:
     """return canonical form of s in a synonym group. 
-    string s assumed lower case singular."""
+    string s assumed lower case singular.
+    
+    >>> synonym_add(['xxxworld','vvandulux','uuawayto'])
+    >>> synonym_add(['Rxxeal','Wvvorldly','cuuryptos'])
+    >>> synonymize('vvandulux')
+    'uuawayto vvandulux xxxworld'
+ 
+    >>> synonymize('cuurypto')
+    'cuurypto rxxeal wvvorldly'
+    """
     if len(s) < MIN_LEN_SYNONYM:
         return s
     return synonym.get(s,s)
-
-#debug 
-#synonym_add(['world','andulux','awayto'])
-#synonym_add(['Real','Worldly','crypto'])
-#print(synonymize('Andulux'))
 
 def synw(tok) -> str:
     """get synonym of a word token"""
@@ -510,53 +551,109 @@ def synw(tok) -> str:
     return synonymize(s)
 
 def can_wordify(tok) -> bool:
-    """True if token can be converted to a word token"""
-    return tok.type == 'WORD' | (tok.type == 'VAR' and len(tok.value)==1 and tok.value.isalpha())
+    """True if token can be converted to a word token
+    
+    >>> can_wordify(tokenlib.mk_token({'type':'WORD'}))
+    True
+    
+    >>> can_wordify(tokenlib.mk_token({'type':'VAR','value':'x'}))
+    True
+    """
+    return (tok.type == 'WORD') or (tok.type == 'VAR' and len(tok.value)==1 and tok.value.isalpha())
 
 def wordify(tok):
-    """convert a var/word token to word token up to synonym"""
+    """convert a var/word token to word token up to synonym
+    
+    >>> wordify(tokenlib.mk_token({'type':'UNKNOWN','value':'3'}))
+    LexToken(WORD,'3',0,0)
+    """
     # need to (shallow) clone because of backtracking.
     value = synw(tok)
     if tok.type == 'WORD' and tok.value == value:
         return tok
     clone = copy.copy(tok)
     clone.type = 'WORD'
-    clone.value = value
+    clone.value = str(value)
     return clone
 
 def word(p:Parse) -> Parse:
-    """Parser treatment attempts to coerce token to a word token up to synonym."""
+    """Parser treatment attempts to coerce token to a word token up to synonym.
+    
+    >>> word(next_value('x')).process(mk_stream('x + 4')).acc
+    LexToken(WORD,'x',1,0)
+    """
     return p.if_test(can_wordify).treat(wordify).name('word')
 
 def next_any_word() -> Parse: #was anyword
-    """parser constructor that matches any next word"""
+    """parser constructor that matches any next word
+    
+    >>> next_any_word().process(mk_stream('x + 4')).acc
+    LexToken(WORD,'x',1,0)
+    """
     return word(Parse.next_token())
 
 def next_word(s:str) -> Parse: #was_next_word_syn
-    """parser constructor that matches next word s, up to synonym"""
-    syn = synonymize(lexer.singularize(s))
-    return next_any_word().if_value(syn).name(s)
+    """parser constructor that matches next word s, 
+    up to synonym, singularization, and case.
+    
+    >>> next_word('trial').process(mk_stream('Trials x')).acc
+    LexToken(WORD,'trial',1,0)
+    """
+    syn = synonymize(lexer.singularize(s.lower()))
+    def p(tok):
+        return syn == synonymize(tok.value.lower())
+    return next_any_word().if_test(p).name(s)
 
 def next_any_word_except(banned) -> Parse:
     """parser constructor that matches any next word except banned.
-    Matching on banned words is up to synonym."""
-    bansyn = [synonymize(lexer.singularize(b)) for b in banned]
+    Matching is up to synonym, singularization, and case.
+    
+    >>> try:
+    ...     next_any_word_except(['trial']).process(mk_stream('Trials x')).acc
+    ... except:
+    ...     print('exception')
+    exception
+    
+    >>> next_any_word_except(['trail']).process(mk_stream('Trials x')).acc
+    LexToken(WORD,'trial',1,0)
+    """
+    bansyn = [synonymize(lexer.singularize(b.lower())) for b in banned]
     def p(tok):
-        return not(tok.value in bansyn)
+        return not(synonymize(tok.value.lower()) in bansyn)
     return next_any_word().if_test(p)
 
 def next_phrase(ss:str)-> Parse:
-    """parser constructor that matches word phrase up to white space and synonyms."""
+    """parser constructor that matches word phrase 
+    up to white space and syn-sing-case.
+    
+    >>> next_phrase('this test').process(mk_stream(' This   test. and...')).acc
+    [LexToken(WORD,'this',1,1), LexToken(WORD,'test',1,8)]
+    """
     phrase = [next_word(s) for s in ss.split()]
     return Parse.all(phrase).name('phrase',ss)
 
 def first_phrase(phs)-> Parse: #was somephrase
-    """parser constructor for the first matching phrase up to white space and synonyms"""
-    return Parse.first([next_phrase(ph) for ph in phs]).expect('first:'+ '/'.join(phs))
+    """parser constructor for the first matching phrase 
+    up to white space and syn-sing-case
+    
+    production_rules.next_word_net is more efficient than this.
+    
+    >>> first_phrase(['this','that','the other']).process(mk_stream('The  Other. + ..')).acc
+    [LexToken(WORD,'the',1,0), LexToken(WORD,'other',1,5)]
+    """
+    return Parse.first([next_phrase(ph) for ph in phs]).name('first:'+ '/'.join(phs))
 
 def first_word(ss:str) -> Parse: #was someword
-    """parser constructor for the first matching word up to white space and syns"""
-    return Parse.first([next_word(s) for s in ss.split(' ')]).expect('first:'+ss)
+    """parser constructor for the first matching word up to white space and syn-sing-case
+    
+    >>> first_word('this that the').process(mk_stream('That Other. + ..')).acc
+    LexToken(WORD,'that',1,0)
+    """
+    s1 = ss.split(' ')
+    def p(tok):
+        return tok.value in s1
+    return next_any_word().if_test(p).name('first_word:'+ss)
+    #return Parse.first([next_word(s) for s in ]).name('first:'+ss)
 
 def commit(probe:Parse,pr:Parse,msg='') -> Parse:
     """if trial_parse does not fail, discard, then apply pr without catching"""
@@ -585,29 +682,50 @@ def if_then_else(probe:Parse,pr1:Parse,pr2:Parse)-> Parse:
     return Parse(f,'if_then_else')
 
 def delimit(pr:Parse,left:str,right:str) -> Parse:
-    """delimit a parser"""
+    """delimit a parser with left and right strings."""
     def flat(acc):
         ((a,b),c)=acc
-        return [a]+list(b)+[c]
+        return (a,b,c)
     return (next_value(left)+pr+next_value(right)).treat(flat)
 
-def delimit_strip(pr:Parse,left:str,right:str) -> Parse:
-    """delimit a parser, discarding delimiters"""
-    def take_middle(acc):
-        return acc[1:-1]  #discarding head.
-    return delimit(pr,left,right).treat(take_middle)
+#def headtok(tok,htok):
+#    """
+#    For debugging purposes, we might want to record the token at the head
+#    of a phrase, even when it no longer serves a purpose in the parsing.
+#    """
+#    return tokenlib.copy_token(tok,{'headtok':htok})
+
+#def delimit_strip(pr:Parse,left:str,right:str) -> Parse:
+#    """delimit a parser, discarding delimiters"""
+#    def take_middle(acc):
+#        a1 = acc[1:-1]  #record discarded head.
+#        # This is an error, when a1[0] is a *list* of tokens.
+#        #if a1:
+#        #    #print(acc[0])
+#        #    a1[0] = headtok(a1[0],acc[0])
+#        return a1
+#    return delimit(pr,left,right).treat(take_middle)
+
+def strip_delim(acc):
+    """treatment to remove outer delimiters"""
+    return list(acc)[1]
 
 def paren(pr): 
-    return delimit_strip(pr,'(',')')
+    """Parse an expression in parentheses, keeping parentheses.
+    
+    >>> paren(next_any_word().many()).process(mk_stream('(this that the other)')).acc
+    (LexToken((,'(',1,0), [LexToken(WORD,'this',1,1),...
+    """
+    return delimit(pr,'(',')')
     
 def bracket(pr): 
-    return delimit_strip(pr,'[',']')
+    """Parse an expression in brackets, keeping brackets."""
+    return delimit(pr,'[',']')
         
 def brace(pr):
-    return delimit_strip(pr,'{','}')
+    """Parse an expression in braces, keeping braces."""
+    return delimit(pr,'{','}')
 
-def option_paren(pr):
-    return paren(pr) | pr 
 
 def lambda_true(_):
     return True
@@ -642,25 +760,54 @@ def balanced() -> Parse:
     return balanced_condition(lambda_true)
 
 def brace_semi():
-    """construct parser for brace-delimited delimiter-balanced semicolon separated list"""
+    """construct parser for brace-delimited delimiter-balanced semicolon separated list
+    
+    >>> brace_semi().process(mk_stream('{ a ; b { b1 ; (d) } ; c }')).acc
+    (LexToken({,'{',1,0), [[LexToken(VAR,'a',1,2)], LexToken(;,';',1,4),...
+    """
     def p(tok):
         return tok.value != ';'
-    nosemi = balanced_condition(p).name('no ;')
+    nosemi = balanced_condition(p).name('balanced-semi')
     return brace(Parse.separated_nonempty_list(nosemi,next_value(';')))
     
 def comma_nonempty_list(pr:Parse) -> Parse:
     """construct parser for comma-separated list"""
-    return Parse.separated_nonempty_list(pr,next_value(','))
+    return pr.separated_nonempty_list(next_value(','))
 
-andcomma = next_value(',') | next_value('and')
+def comma_list(pr:Parse) -> Parse:
+    """parser for comma separated list
+    
+    >>> comma_list(next_any_word()).process(mk_stream('this,that,other')).acc
+    [LexToken(WORD,'this',1,0), LexToken(,,',',1,4), LexToken(WORD,'that',1,5),...
+    """
+    return pr.separated_list(next_value(','))
+
+def andcomma():
+    """parse a comma or the value 'and'
+    
+    >>> andcomma().process(mk_stream(', ...')).acc
+    LexToken(,,',',1,0)
+                                                                
+    >>> andcomma().process(mk_stream('and ...')).acc
+    LexToken(WORD,'and',1,0)
+    """
+    return (next_value(',') | next_value('and'))
 
 def andcomma_nonempty_list(pr:Parse) -> Parse:
-    """construct parser for and/comma separated list"""
-    return Parse.separated_nonempty_list(pr,andcomma)
+    """construct parser for and/comma separated list
+
+    >>> andcomma_nonempty_list(next_any_word()).process(mk_stream('this , that and other')).acc
+    [LexToken(WORD,'this',1,0), LexToken(,,',',1,5), LexToken(WORD,'that',1,7),...
+    """
+    return pr.separated_nonempty_list(andcomma())
 
 def or_nonempty_list(pr:Parse) -> Parse:
-    """construct parser for 'or' separated list"""
-    return Parse.separated_nonempty_list(pr,next_value('or'))
+    """construct parser for 'or' separated list
+    
+    >>> or_nonempty_list(next_any_word()).process(mk_stream('this or that or other')).acc
+    [LexToken(WORD,'this',1,0), LexToken(WORD,'or',1,5), LexToken(WORD,'that',1,8)...
+    """
+    return pr.separated_nonempty_list(next_value('or'))
 
 
 if __name__ == "__main__":

@@ -27,3 +27,9 @@ class ParseNoCatch(BaseException):
     
     def __init__(self,error_stack):
         self.error_stack = error_stack
+        
+class DataProcess(BaseException):
+    """Exception raised during post-parsing processing"""
+    
+    def __init(self,str):
+        self.str = str

@@ -12,6 +12,7 @@ def flatten(ls):
     """
     return [v for sub in ls for v in sub]
 
+
 def fflatten(ls):
     """Recursively flatten nested iterables.
     Treat strings as atomic noniterable objects.
@@ -25,12 +26,36 @@ def fflatten(ls):
     >>> fflatten([3,[4,5,[6,7]],8,[9,10],(11,(12,13))])
     [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
     """
-    def rec_f(vs):
-        if not(iterable(vs)) or isinstance(vs,str):
-            return [vs]
-        return fflatten(vs)
-    return flatten([rec_f(v) for v in ls ])
+    if iterable(ls) and not(isinstance(ls,str)):
+        return flatten([fflatten(a) for a in ls])
+    return [ls]
+#    def rec_f(vs):
+#        if not(iterable(vs)) or isinstance(vs,str):
+#            return [vs]
+#        return fflatten(vs)
+#    return flatten([rec_f(v) for v in ls ])
 
+# same as fflatten
+#def gather(acc):
+#    """gather the raw tokens from nested accumulated parsed material.
+#    
+#    >>> gather(['a','b','c'])
+#    ['a', 'b', 'c']
+#    
+#    >>> gather(['a',['b','c'],[['d']]])
+#    ['a', 'b', 'c', 'd']
+#    """
+#    #if isinstance(acc,dict):
+#    #    return acc['raw']
+#    if iterable(acc) and not(isinstance(acc,str)):
+#        return flatten([gather(a) for a in acc])
+#    return [acc]
+
+def listify(a):
+    """Wrap a non-iterable in []"""
+    if not(iterable(a)) or isinstance(a,str):
+        return [a]
+    return a
 
 def compress(ls,ind):
     """create sublist from given indices

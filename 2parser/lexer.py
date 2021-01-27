@@ -132,7 +132,7 @@ def t_ATOMIC_IDENTIFIER(t):
     elif is_word.fullmatch(t.value):
         t.type = 'WORD'
         t.rawvalue = t.value
-        t.value = singularize(t.value)
+        t.value = singularize(t.value.lower())
     return t
 
 def rawvalue(tok):
