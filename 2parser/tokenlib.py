@@ -62,6 +62,12 @@ init_mk_token()
 
 Item = namedtuple('Item','stream pos acc')
 
+def item_repr(self):
+    s = self.stream[0:self.pos] + ['***'] + self.stream[self.pos:]
+    return (f'Item({s},acc={self.acc}')
+
+Item.__repr__ = item_repr
+
 def init_item(s) -> Item:
     """Intialize item stream with a tuple of tokens"""
 #   # a token used for cloning
@@ -75,12 +81,12 @@ def init_item(s) -> Item:
 def next_item(item:Item) -> Item:
     """Advance to the next item of the stream.
     The stream is left unchanged.
-    Exception if accumulated nonempty
+    NoCatch Exception if accumulated nonempty.  Nonempty would be a bug in this program.
     """
     if item.pos >= len(item.stream):
-        raise StopIteration
+        raise ParseError(ErrorItem(item=item,nonterminal='eof',production=''))  #StopIteration
     if item.acc:
-        raise ParseError([ErrorItem(item=item,nonterminal='.',production='')])
+        raise ParseNoCatch([ErrorItem(item=item,nonterminal='.',production='')])
     return Item(pos = item.pos+1,stream = item.stream,
                 acc = item.stream[item.pos])
 

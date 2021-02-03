@@ -36,12 +36,13 @@ def mk_stream(s):
     lexer.tokenizer.input(s)
     return tokenlib.init_item(list(lexer.tokenizer))
 
-        
+
 
 class Parse:
     """base class for parsers.
     Many of the standard combinators are given.
     process:Item->Item processes one or more tokens from the item stream.
+    We refer to process as the 'item transformer'.
     """
     def __init__(self,process,nonterminal,production=''):
         """r:Item->Item, repr:str"""
@@ -166,7 +167,7 @@ class Parse:
                 raise ParseError(ErrorItem(item=item,nonterminal=nonterminal,production='')) from pe
         return Parse(f,self.nonterminal,self.production)
         
-    def many(self):
+    def many(self,sep=None):
         """parse zero or more times"""
         def f(item):
             try:
@@ -174,9 +175,10 @@ class Parse:
             except (ParseError, StopIteration):
                 return tokenlib.update([],item) #all returns must be a list
             acc1 = item1.acc
-            item2 = self.many().process(tokenlib.update(None,item1)) #this doesn't fail
+            #
+            item2 = f(tokenlib.update(None,item1)) #this doesn't fail
             return tokenlib.update([acc1]+item2.acc,item2)  
-        return Parse(f,'*')
+        return Parse(f,self.nonterminal+'*')
     
     def atleast(self,n):
         """parse at least n times"""
@@ -187,9 +189,13 @@ class Parse:
             else:
                 item1 = (self + Parse.atleast(self,n-1)).treat(lib.prepend).process(item)
                 return item1
-        return Parse(f,f'+{n}')
+        if n==1:
+            supp = ''
+        else:
+            supp = f'{n}'
+        return Parse(f,f'{self.nonterminal}+'+supp)
     
-    def plus(self):
+    def plus(self,sep=None):
         """parse at least once"""
         return self.atleast(1)
     
@@ -232,30 +238,30 @@ class Parse:
             if p(item1.acc):
                 return item1
             else:
-                raise ParseError(ErrorItem(item=item,production='',nonterminal='if_test'))
+                raise ParseError(ErrorItem(item=item,production=self.production,nonterminal=f'{self.nonterminal}if'))
         return Parse(f,'if')
     
     def if_value(self,v): #was a
         """parse if next token has value v or fail"""
         def p(tok):
             return tok.value == v
-        return self.if_test(p).name(self.nonterminal,v)
+        return self.name(self.nonterminal,v).if_test(p)
     
-    def if_raw_value(self,v): 
+    def if_rawvalue(self,v): 
         """parse if next token has value v or fail.
         
-        >>> Parse.next_token().if_raw_value('True').process(mk_stream('True')).acc
+        >>> pstream(Parse.next_token().if_rawvalue('True'),'True')
         LexToken(WORD,'true',1,0)
         """
         def p(tok):
-            return tok.rawvalue == v
-        return self.if_test(p).name(self.nonterminal,v)
+            return lexer.rawvalue(tok) == v
+        return self.name(self.nonterminal,v).if_test(p)
     
     def if_type(self,ts): 
         """parse if next type is in ts or fail"""
         def p(tok):
             return tok.type in ts
-        return self.if_test(p).name('if'+list(ts)[0])
+        return self.name(list(ts)[0]).if_test(p)
  
     # class methods
     def all(prs):
@@ -318,7 +324,6 @@ class LazyParse(Parse):
     is time to apply the parser to the token stream.   An eager parser
     is constructed when needed by a function call fn(data).
     """
-    
     def __init__(self,fn,data,nonterminal='thunk',production=''):
         super().__init__(self._process,nonterminal,production)
         self.fn = fn
@@ -327,16 +332,28 @@ class LazyParse(Parse):
     def _process(self,item):
         par = self.fn(self.data)
         return par.process(item)
+    
+def lazy_call(pr):
+    """pr is a function with output a parser.
+    Output is a parser, with lazy evaluation"""
+    return LazyParse((lambda p: p()),pr)
 
-
+def pstream(p:Parse,s):
+    """For reunning test cases on different parsers.
+    p is a parser
+    s:str is input to parser
+    
+    output is the output of p applied to s.
+    """
+    return (p.process(mk_stream(s)).acc)
     
 def next_value(v):
     """Parser constructor that accepts a token with given value.
     
-    >>> next_value('the').process(mk_stream('the test')).acc
+    >>> pstream(next_value('the'),'the test')
     LexToken(WORD,'the',1,0)
     
-    >>> next_value('3').process(mk_stream('3 + test')).acc
+    >>> pstream(next_value('3'),'3 + test')
     LexToken(INTEGER,'3',1,0)   
     """
     return Parse.next_token().if_value(v)
@@ -344,7 +361,7 @@ def next_value(v):
 def next_type(t):
     """Parser constructor that accepts a token with given type.
     
-    >>> next_type('WORD').process(mk_stream('the test')).acc
+    >>> pstream(next_type('WORD'),'the test')
     LexToken(WORD,'the',1,0)
     """
     return Parse.next_token().if_type([t])
@@ -355,11 +372,25 @@ def getvalue(tok):
         return tok.value 
     else:
         return ''
+    
+def retreat_list(p2,ls):
+    """Convert list ls to a list of items.
+    Run the parser p2 on each item, requiring full consumption.
+    Collect the accumulated output and return.
+    
+    >>> acc = pstream(Parse.next_token().plus(),'a b c')
+    >>> ls = [[a] for a in acc]
+    >>> retreat_list(next_type('VAR'),ls)
+    [LexToken(VAR,'a',1,0), LexToken(VAR,'b',1,2), LexToken(VAR,'c',1,4)]
+    """
+    its1 = [tokenlib.Item(stream=a,pos=0,acc=None) for a in ls]
+    acc2 = [(p2 + Parse.finished()).treat(lib.fst).process(it).acc for it in its1]
+    return acc2
 
 def debug_lazyparse():
     """This procedure is for debugging and testing only.
 
-    >>> item = mk_inner_stream("hello there")
+    >>> item = mk_stream("hello there")
     >>> lazy = LazyParse(lambda p:p(),Parse.next_token)
     >>> lazy.process(item).acc.value
     'hello'
@@ -368,11 +399,11 @@ def debug_lazyparse():
     2
     
     >>> Parse.next_token().plus().process(item)
-    Item(... pos=2, ...)
+    Item(...***...
     
     >>> lazy = LazyParse(lambda p:p().many(),Parse.next_token)
     >>> lazy.process(item)
-    Item(... pos=2, ...)  
+    Item(...***...  
     """
     pass
 
@@ -579,7 +610,7 @@ def wordify(tok):
 def word(p:Parse) -> Parse:
     """Parser treatment attempts to coerce token to a word token up to synonym.
     
-    >>> word(next_value('x')).process(mk_stream('x + 4')).acc
+    >>> pstream(word(next_value('x')),'x + 4')
     LexToken(WORD,'x',1,0)
     """
     return p.if_test(can_wordify).treat(wordify).name('word')
@@ -587,7 +618,7 @@ def word(p:Parse) -> Parse:
 def next_any_word() -> Parse: #was anyword
     """parser constructor that matches any next word
     
-    >>> next_any_word().process(mk_stream('x + 4')).acc
+    >>> pstream(next_any_word(),'x + 4')
     LexToken(WORD,'x',1,0)
     """
     return word(Parse.next_token())
@@ -596,7 +627,7 @@ def next_word(s:str) -> Parse: #was_next_word_syn
     """parser constructor that matches next word s, 
     up to synonym, singularization, and case.
     
-    >>> next_word('trial').process(mk_stream('Trials x')).acc
+    >>> pstream(next_word('trial'),'Trials x')
     LexToken(WORD,'trial',1,0)
     """
     syn = synonymize(lexer.singularize(s.lower()))
@@ -609,12 +640,12 @@ def next_any_word_except(banned) -> Parse:
     Matching is up to synonym, singularization, and case.
     
     >>> try:
-    ...     next_any_word_except(['trial']).process(mk_stream('Trials x')).acc
+    ...     pstream(next_any_word_except(['trial']),'Trials x')
     ... except:
     ...     print('exception')
     exception
     
-    >>> next_any_word_except(['trail']).process(mk_stream('Trials x')).acc
+    >>> pstream(next_any_word_except(['trail']),'Trials x')
     LexToken(WORD,'trial',1,0)
     """
     bansyn = [synonymize(lexer.singularize(b.lower())) for b in banned]
@@ -626,7 +657,7 @@ def next_phrase(ss:str)-> Parse:
     """parser constructor that matches word phrase 
     up to white space and syn-sing-case.
     
-    >>> next_phrase('this test').process(mk_stream(' This   test. and...')).acc
+    >>> pstream(next_phrase('this test'),' This   test. and...')
     [LexToken(WORD,'this',1,1), LexToken(WORD,'test',1,8)]
     """
     phrase = [next_word(s) for s in ss.split()]
@@ -638,7 +669,7 @@ def first_phrase(phs)-> Parse: #was somephrase
     
     production_rules.next_word_net is more efficient than this.
     
-    >>> first_phrase(['this','that','the other']).process(mk_stream('The  Other. + ..')).acc
+    >>> pstream(first_phrase(['this','that','the other']),'The  Other. + ..')
     [LexToken(WORD,'the',1,0), LexToken(WORD,'other',1,5)]
     """
     return Parse.first([next_phrase(ph) for ph in phs]).name('first:'+ '/'.join(phs))
@@ -646,7 +677,7 @@ def first_phrase(phs)-> Parse: #was somephrase
 def first_word(ss:str) -> Parse: #was someword
     """parser constructor for the first matching word up to white space and syn-sing-case
     
-    >>> first_word('this that the').process(mk_stream('That Other. + ..')).acc
+    >>> pstream(first_word('this that the'),'That Other. + ..')
     LexToken(WORD,'that',1,0)
     """
     s1 = ss.split(' ')
@@ -706,14 +737,11 @@ def delimit(pr:Parse,left:str,right:str) -> Parse:
 #        return a1
 #    return delimit(pr,left,right).treat(take_middle)
 
-def strip_delim(acc):
-    """treatment to remove outer delimiters"""
-    return list(acc)[1]
 
 def paren(pr): 
     """Parse an expression in parentheses, keeping parentheses.
     
-    >>> paren(next_any_word().many()).process(mk_stream('(this that the other)')).acc
+    >>> pstream(paren(next_any_word().many()),'(this that the other)')
     (LexToken((,'(',1,0), [LexToken(WORD,'this',1,1),...
     """
     return delimit(pr,'(',')')
@@ -761,15 +789,33 @@ def balanced() -> Parse:
 
 def brace_semi():
     """construct parser for brace-delimited delimiter-balanced semicolon separated list
+ 
+    output {,(b,;),}, where b[i] is a list of (possibly highly nested list) of tokens.
+
+    Use brace_semif instead to flatten out the nested lists.
     
-    >>> brace_semi().process(mk_stream('{ a ; b { b1 ; (d) } ; c }')).acc
+    >>> pstream(brace_semi(),'{ a ; b { b1 ; (d) } ; c }')
     (LexToken({,'{',1,0), [[LexToken(VAR,'a',1,2)], LexToken(;,';',1,4),...
     """
     def p(tok):
         return tok.value != ';'
     nosemi = balanced_condition(p).name('balanced-semi')
     return brace(Parse.separated_nonempty_list(nosemi,next_value(';')))
+
+def _brace_semi_fflatten(acc):
+    """Treatment to remove nesting in the Token lists produced
+    by brace_semi.
     
+    >>> pstream(brace_semi().treat(_brace_semi_fflatten),'{ a ; b { b1 ; (d) } ; c }')
+    (LexToken({,'{',1,0), [[LexToken(VAR,'a',1,2)], LexToken(;,';',1,4), [LexToken(VAR,'b',1,6), LexToken({,'{',1,8), LexToken(VAR,'b1',1,10)...
+    """
+    (a,b,c) = acc 
+    b[0::2] = [lib.fflatten(u) for u in b[0::2]] # semi at odds
+    return (a,b,c)
+
+def brace_semif():
+    return brace_semi().treat(_brace_semi_fflatten)
+
 def comma_nonempty_list(pr:Parse) -> Parse:
     """construct parser for comma-separated list"""
     return pr.separated_nonempty_list(next_value(','))
@@ -777,7 +823,7 @@ def comma_nonempty_list(pr:Parse) -> Parse:
 def comma_list(pr:Parse) -> Parse:
     """parser for comma separated list
     
-    >>> comma_list(next_any_word()).process(mk_stream('this,that,other')).acc
+    >>> pstream(comma_list(next_any_word()),'this,that,other')
     [LexToken(WORD,'this',1,0), LexToken(,,',',1,4), LexToken(WORD,'that',1,5),...
     """
     return pr.separated_list(next_value(','))
@@ -785,10 +831,10 @@ def comma_list(pr:Parse) -> Parse:
 def andcomma():
     """parse a comma or the value 'and'
     
-    >>> andcomma().process(mk_stream(', ...')).acc
+    >>> pstream(andcomma(),', ...')
     LexToken(,,',',1,0)
                                                                 
-    >>> andcomma().process(mk_stream('and ...')).acc
+    >>> pstream(andcomma(),'and ...')
     LexToken(WORD,'and',1,0)
     """
     return (next_value(',') | next_value('and'))
@@ -796,7 +842,7 @@ def andcomma():
 def andcomma_nonempty_list(pr:Parse) -> Parse:
     """construct parser for and/comma separated list
 
-    >>> andcomma_nonempty_list(next_any_word()).process(mk_stream('this , that and other')).acc
+    >>> pstream(andcomma_nonempty_list(next_any_word()),'this , that and other')
     [LexToken(WORD,'this',1,0), LexToken(,,',',1,5), LexToken(WORD,'that',1,7),...
     """
     return pr.separated_nonempty_list(andcomma())
@@ -804,7 +850,7 @@ def andcomma_nonempty_list(pr:Parse) -> Parse:
 def or_nonempty_list(pr:Parse) -> Parse:
     """construct parser for 'or' separated list
     
-    >>> or_nonempty_list(next_any_word()).process(mk_stream('this or that or other')).acc
+    >>> pstream(or_nonempty_list(next_any_word()),'this or that or other')
     [LexToken(WORD,'this',1,0), LexToken(WORD,'or',1,5), LexToken(WORD,'that',1,8)...
     """
     return pr.separated_nonempty_list(next_value('or'))

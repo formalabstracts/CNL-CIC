@@ -136,7 +136,7 @@ def t_ATOMIC_IDENTIFIER(t):
     return t
 
 def rawvalue(tok):
-    if tok.value == 'WORD':
+    if tok.type == 'WORD':
         return tok.rawvalue
     return tok.value
 

@@ -433,8 +433,11 @@ app_args :  (* can be empty *)
 
 
 (* function and binder parameters. *)
-
-args_template : option( brace_noassign {}) required_args_template {()}
+  
+(* rename required_args_template -> annotated_args 
+  required_arg_template -> annotated_arg
+*)
+args_template : option( brace_noassign {}) annotated_args {()}
 
          (* A brace_semi as the first argument to a function is
             ambiguious: it could be either a brace_noassign or a required
@@ -443,10 +446,10 @@ args_template : option( brace_noassign {}) required_args_template {()}
             contains a field name that is not an optional argument,
             then it is interpreted as a make_term. *)
 
-  required_args_template : list(required_arg_template) {}
+  annotated_args : list(annotated_arg) {}
 
   (* convention - all types are the same within parentheses *)
-    required_arg_template :
+    annotated_arg :
     | paren(var_or_atomics opt_colon_type {})
     | var_or_atomic {}
 
@@ -554,7 +557,7 @@ const_type : prim_identifier_type {()}
 field_type : tightest_term prim_field_type_accessor {}
 
 overstructure_type :
-| prim_structure app_args option(LIT_OVER over_args {}) {()}
+| prim_structure app_args option(over_args {}) {()}
 
   over_args :
   | LIT_OVER brace_semi(var_or_atomic assign_expr {})
@@ -567,7 +570,7 @@ var_type :
 | VAR 
 | paren(VAR COLON ID_TYPE {}) {()}
 
-subtype :  brace(term holding_var TMID statement {}) {()}
+subtype :  brace(term option(holding_var) TMID statement {}) {()}
 
 app_type : 
 | tightest_type app_args 
@@ -596,9 +599,9 @@ binop_type :
 
   type_operand :
   | binder_type
-  | agda_dependent_vars {} (* for Agda style dependent typing *)
+  | agda_vars {} (* for Agda style dependent typing *)
 
-  agda_dependent_vars : 
+  agda_vars : 
     nonempty_list(annotated_vars) {}
 
 opentail_type :
@@ -642,7 +645,7 @@ inductive_type : LIT_INDUCTIVE identifier args_template
   opt_colon_sort list(opt_alt_constructor) LIT_END {()}
 
   opt_alt_constructor : ALT identifier args_template opt_colon_type {}
-  alt_constructor : ALT identifier args_template colon_type {}
+
 
 (* 11/25/2019. Break mutual inductive into separate inductive types.
 mutual_inductive_type : LIT_INDUCTIVE
@@ -651,7 +654,8 @@ mutual_inductive_type : LIT_INDUCTIVE
        list(alt_constructor) {}) 
   LIT_END
   {()}
- *)
+*)
+  (*  alt_constructor : ALT identifier args_template colon_type {} *)
 
 (** structure *)
 
@@ -681,9 +685,11 @@ structure : option(LIT_NOTATIONAL) LIT_STRUCTURE
   | var_or_atomic opt_colon_sort
   | var_or_atomic opt_colon_type {}
 
-  field_prefix : option(lit_a) 
-                   option(paren(comma_nonempty_list(lit_field_key) {})) {}
+  field_prefix : option(option(lit_a) 
+                   comma_nonempty_list(lit_field_key) {}) {}
 
+  (* We are departing from these rules in Python implementation *)
+  
   satisfying_preds : brace_semi(satisfying_pred) {}
   satisfying_pred : option(atomic COLON {}) prop {}
 
@@ -703,20 +709,21 @@ proof_expr :
    x APPLYSUB {(f j)} is equivalent to x (f j).
  *)
 
-(* terms *)
+(* Terms *)
 
 
 
-(** tightest terms *)
-tightest_post_term :
- | APPLYSUB tightest_terms
+(** tightest_term was tightest_post_term *)
+tightest_suffix :
+ | APPLYSUB tightest_subscript
  | prim_field_term_accessor (* FIELD_ACCESSOR *) {}
 
 tightest_term : 
- | tightest_prefix list(tightest_post_term)
+ | tightest_prefix list(tightest_suffix)
 {()}
 
-  tightest_terms : paren(nonempty_list(tightest_term)) {()}
+  (* was tightest_terms *)
+  tightest_subscript : paren(nonempty_list(tightest_term)) {()}
 
   tightest_prefix :
   | DECIMAL
@@ -805,7 +812,7 @@ lambda_term :
 | prim_lambda_binder tightest_args lit_binder_comma opentail_term
 (* MAPSTO takes a single arg, but the argument can be a more general pattern than other
    function specifications.  *)
-| tdop_term  MAPSTO opentail_term 
+| tdop_term  MAPSTO opentail_term
 {()}
 
 lambda_fun : LIT_FUN tightest_args 
@@ -843,7 +850,7 @@ terms : and_comma_nonempty_list(term) {}
   Also, in dependent types, the terms should be plain.
   *)
 
- (* NOT_IMPLEMENTED 
+ (* Not_IMPLEMENTED 
     When implemented, this should give a check 
     that the term is plain *) 
 plain_term : plain(term) {}
