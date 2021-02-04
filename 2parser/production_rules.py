@@ -1718,13 +1718,13 @@ def term():
 def terms():
     def f(acc):
         return Etok(name='terms',etoks=acc[0::2],raw=acc)
-    return and_comma_nonempty_list(term()).treat(f)
+    return c.and_comma_nonempty_list(term()).treat(f)
 
 def isplain(etok):
     """Test if an Etok is plain."""
     if etok.name=='any_name':
-        return false
-    return all(plain(e) for e in lib.fflatten(etok.etoks))
+        return False
+    return all(isplain(e) for e in lib.fflatten(etok.etoks))
 
 def plain_term():
     """
@@ -1793,13 +1793,13 @@ def left_attribute():
 def is_right_attribute():
     def f(acc):
         return Etok(name='is_right_attribute',etoks=acc[0::2],raw=acc)
-    return c.and_comma_nonempty_list(get_lookup_parse('is_pred')).treat(f)
+    return c.andcomma_nonempty_list(get_lookup_parse('is_pred')).treat(f)
 
 def does_right_attribute():
     def f(acc):
         (_,t)=acc
         return Etok(name='does_right_attribute',etoks=t[0::2],raw=acc)
-    return (next_word('that') + c.and_comma_nonempty_list(get_lookup_parse('does_pred'))).treat(f)
+    return (next_word('that') + c.andcomma_nonempty_list(get_lookup_parse('does_pred'))).treat(f)
 
 def such_that_right_attribute():
     def f(acc):
@@ -1816,6 +1816,13 @@ def attribute(p):
     def f(acc):
         return Etok(name='attribute',etoks=acc,raw=acc)
     return (left_attribute().many() + p + right_attribute().possibly()).treat(f)
+
+def general_type():
+    """parser for a general type. 
+    This is one of the main nonterminals.
+    It subsumes all specialized type nonterminals.    
+    """
+    return attribute(opentail_type())
 
 # return later to pseudoterms
 
@@ -1851,8 +1858,237 @@ def tdop_rel_prop():
         return Etok(name='tdop_rel_prop',etoks=op0+op1,raw=acc)
     return (c.comma_nonempty_list(tdop_term()) + (binary_relation_op() + tdop_term()).plus()).treat(f)
 
+def prop_op():
+    """Parser for propositional connectives
+    
+    >>> pstream(prop_op(),'prim_propositional_op')
+    Etok(prim_propositional_op,default,'prim_propositional_op')
+    """
+    return (get_lookup_parse('prim_propositional_op') | 
+            cs_brace(get_lookup_parse('prim_propositional_op_controlseq'))
+            )
+    
+def tdop_prop():
+    """Parser for operators among props, such
+    as and, or, implies.
+    
+    precedence is negative.
+    It must be infix (possibly with multiple ops).
+    For example, a symbolic negation is not included.
+    
+    subsumes binder_prop
+    
+    output etoks: binder_props in even positions, ops in odd positions
+    
+    >>> pstream(tdop_prop(),'binder_prop prim_propositional_op binder_prop')
+    Etok(tdop_prop,'binder_prop prim_propositional_op binder_prop')
+    """
+    def f(acc):
+        (b,m)=acc
+        return Etok(name='tdop_prop',etoks=[b]+lib.flatten(m),raw=acc)
+    return (get_lookup_parse('binder_prop') +
+            (prop_op().plus() + get_lookup_parse('binder_prop')).many()).treat(f)
+            
+def identifier_prop():
+    """Parser for identifiers of type prop"""
+    return get_lookup_parse('prim_relation')
 
+def annotated_prop():
+    """Parser for prop, annotated as prop
+    
+    >>> pstream(annotated_prop(),'(prop : Prop)')
+    Etok(annotated_prop,'( prop : prop )')
+    """
+    def f(acc):
+        (_,((p,_),_),_) =acc
+        return Etok('annotated_prop',etoks=[p],raw=acc)
+    return c.paren(get_lookup_parse('prop')+colon + Parse.next_token().if_rawvalue('Prop')).treat(f)
 
+def field_prop():
+    """
+    Parser for prop obtained as dotted c.f, where the field f has type prop
+
+    Debug: should we add app_args (and move to app_args): c.f (x)?
+    """
+    def f(acc):
+        return Etok(name='field_prop',etoks=acc,raw=acc)
+    return (tightest_term() + get_lookup_parse('prim_field_prop_accessor')).treat(f)
+
+def prop_var():
+    """parser for propositional var"""
+    def f(acc):
+        return Etok(name='prop_var',etoks=[acc],raw=acc)
+    return var().treat(f)
+
+def tightest_prop():
+    """Parser for tightly bound propositional statements"""
+    def f(acc):
+        (_,s,_)=acc
+        return s.update({'raw':acc})
+    return (c.paren(get_lookup_parse('statement')).treat(f) |
+            identifier_prop() |
+            prop_var() |
+            annotated_prop() |
+            field_prop()
+        )
+
+def app_prop():
+    """parser for predicate application"""
+    def f(acc):
+        return Etok(name='app_prop',etoks=acc,raw=acc)
+    return (tightest_prop() + app_args()).treat(f)
+
+def lambda_predicate():
+    """parser for lambda term with values in prop
+    
+    >>> pstream(lambda_predicate(),'fun tightest_expr : Prop := (statement)')
+    Etok(lambda_predicate,'fun tightest_expr : prop := ( statement )')
+    """
+    def f(acc):
+        #return acc
+        (((((_,t),_),_),_),p)=acc
+        return Etok(name='lambda_predicate',etoks=(t,p),raw=acc)
+    return (next_word('fun')+ tightest_args() + colon + 
+            Parse.next_token().if_rawvalue('Prop') + 
+            c.next_type('ASSIGN') + tightest_prop()
+            ).treat(f)
+
+def binder_prop():
+    """Recursive parser for props with (optional) binders (universal, etc.)
+    Subsumes various other kinds of props.
+    
+    >>> pstream(binder_prop(),'prim_binder_prop tightest_expr , A')
+    Etok(binder_prop,'prim_binder_prop tightest_expr , A')
+    """
+    def f(acc):
+        (((b,a),_),b2)=acc
+        return Etok(name='binder_prop',etoks=(b,a,b2),raw=acc)
+    return (app_prop() |
+            tdop_rel_prop() |
+            lambda_predicate() |
+            (  get_lookup_parse('prim_binder_prop') + 
+               args_template() + binder_comma + 
+               c.lazy_call(binder_prop)
+               ).treat(f)
+            )
+
+def prop():
+    """Parser for prop.  
+    This is one of the main nonterminals.
+    It subsumes all specialized prop nonterminals.
+    
+    The classifier is a sort of meta sort, which is currently ignored.
+    It might be a word such as 'predicate'
+    """
+    def f(acc):
+        (_,t)=acc 
+        return t
+    (lit('classifier').possibly() + tdop_prop()).treat(f)
+    
+# install binder_prop,prop
+
+# statements...
+
+def possessed_noun():
+    return (attribute(get_lookup_parse('prim_possessed_noun')))
+
+def has_pred():
+    """Parser for has_pred or its negation.
+    
+    Note that commas may appear in both attributes 
+    and the list of has_pred, but the parse should be unambiguous
+    because of the articles.
+    
+    >>> pstream(has_pred(),'the prim_possessed_noun and the prim_possessed_noun')
+    Etok(has_pred,'the prim_possessed_noun and the prim_possessed_noun')
+    """
+    def f1(acc):
+        t = [p for (_,p) in acc[0::2]] # drop commas, articles
+        return Etok(name='has_pred',etoks=t,raw=acc)
+    def f2(acc):
+        return Etok(name='no_has_pred',etoks=acc,raw=acc)
+    return (c.andcomma_nonempty_list(lit('article') + possessed_noun()).treat(f1) |
+     (next_word('no') + possessed_noun()).treat(f2)
+     )
+
+enot = next_word('not').treat(Etok.etok)
+     
+def is_aPred():
+    """Parser for nominal predicates
+    
+    >>> pstream(is_aPred(),'not a tightest_type')
+    Etok(indefinite_pred,'not a tightest_type')
+    """
+    def f1(acc):
+        ((n,_),g)=acc 
+        return Etok(name='indefinite_pred',etoks=(n,g),raw=acc)
+    def f2(acc):
+        return Etok(name='definite_pred',etoks=acc,raw=acc)
+    return ((enot.possibly() + lit('a').possibly() + general_type()).treat(f1) |
+            (enot.possibly() + definite_term()).treat(f2)
+            )
+
+def is_pred():
+    """Parser for adjectival predicates
+    
+    >>> pstream(is_pred(),'not prim_adjective')
+    Etok(is_adjective,'not prim_adjective')
+    
+    >>> pstream(is_pred(),'not pairwise prim_adjective_multisubject')
+    Etok(is_adjective_multisubject,'not pairwise prim_adjective_multisubject')
+    
+    >>> pstream(is_pred(),'having the prim_possessed_noun')
+    Etok(is_with,'having the prim_possessed_noun')
+    """
+    def f1(acc):
+        return Etok(name='is_adjective',etoks=acc,raw=acc)
+    def f2(acc):
+        ((n,p),m)=acc
+        return Etok(name='is_adjective_multisubject',etoks=(n,p,m),raw=acc)
+    def f3(acc):
+        return Etok(name='is_with',etoks=acc[1:],raw=acc) ##
+    return (
+        (enot.possibly() + get_lookup_parse('prim_adjective')).treat(f1) |
+        (enot.possibly() + next_word('pairwise').treat(Etok.etok).possibly() + get_lookup_parse('prim_adjective_multisubject')).treat(f2) |
+        (lit('with') + has_pred()).treat(f3)
+        )
+
+def does_pred():
+    """Parser for verbal predicates.
+    Umbrella for various verbal, adjectival, nominal predicates.
+    """
+    def f1(acc):
+        ((_,n),v)=acc
+        return Etok(name='do_verb',etoks=(n,v),raw=acc)
+    def f2(acc):
+        ((_,n),v)=acc
+        return Etok(name='do_verb_multisubject',etoks=(n,v),raw=acc)
+    def f3(acc):
+        (_,h)=acc
+        return Etok(name='do_has_pred',etoks=[h],raw=acc)
+    def f4(acc):
+        (_,ps)=acc
+        return Etok(name='does_is_adj',etoks=ps,raw=acc)
+    def f5(acc):
+        (_,ps)=acc
+        return Etok(name='is_nominal',etoks=ps,raw=acc)
+    return (
+        (lit('do').possibly() + enot.possibly() + get_lookup_parse('prim_verb')).treat(f1) |
+        (lit('do').possibly() + enot.possibly() + get_lookup_parse('prim_verb_multisubject')).treat(f2) |
+        (lit('has') + has_pred()).treat(f3)
+        (lit('is') + c.andcomma_nonempty_list(is_pred())).treat(f4)
+        (lit('is') + c.andcomma_nonempty_list(is_aPred())).treat(f5)
+        )
+
+# insert pseudoterms here
+
+def plain_pred_pseudoterm():
+    """
+    xxd to here.
+    """
+    return c.option_paren(tdop_rel_prop() + holding_vars()).treat(f)
+    
+    
 def this_exists():
     """parsing of 'this'-directives.
     DEBUG: Remove this feature. Deprecated Unfinished"""
@@ -1927,7 +2163,7 @@ def let_annotation():
         
     Issues: No treatment for now, but return to this later.   
     """
-    return ((first_word( 'fix let') + c.comma_nonempty_list(annotated_sort_vars)) |
+    return ((first_word( 'fix let') + c.comma_nonempty_list(annotated(sort_vars()))) |
      let_annotation_prefix() + post_colon_balanced())
 
 
