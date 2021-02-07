@@ -58,13 +58,14 @@ init_mk_token()
 # An item is a token embedded at a particular position of the tuple of tokens.
 # The stream and individual tokens remain immutable.  
 # pos changes (position index into stream).
-# acc is the accumulator holding the parsed data
+# acc (which appears ubiquitously) 
+#  is the accumulator holding the parsed data
 
 Item = namedtuple('Item','stream pos acc')
 
 def item_repr(self):
     s = self.stream[0:self.pos] + ['***'] + self.stream[self.pos:]
-    return (f'Item({s},acc={self.acc}')
+    return (f'Item({s},acc={self.acc})')
 
 Item.__repr__ = item_repr
 
@@ -78,15 +79,19 @@ def init_item(s) -> Item:
 #v = init_item([3,4,5])
 #print(init_item.tok)
 
+def eof(item):
+    """True if at end of stream"""
+    return item.pos >= len(item.stream)
+
 def next_item(item:Item) -> Item:
     """Advance to the next item of the stream.
     The stream is left unchanged.
     NoCatch Exception if accumulated nonempty.  Nonempty would be a bug in this program.
     """
     if item.pos >= len(item.stream):
-        raise ParseError(ErrorItem(item=item,nonterminal='eof',production=''))  #StopIteration
+        raise ParseError(ErrorItem(item=item,nonterminal='eof'))  #StopIteration
     if item.acc:
-        raise ParseNoCatch([ErrorItem(item=item,nonterminal='.',production='')])
+        raise ParseNoCatch([ErrorItem(item=item,nonterminal='.')])
     return Item(pos = item.pos+1,stream = item.stream,
                 acc = item.stream[item.pos])
 

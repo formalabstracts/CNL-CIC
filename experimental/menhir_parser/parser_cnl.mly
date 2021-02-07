@@ -873,35 +873,6 @@ attribute(X) : list(left_attribute) X option(right_attribute) {}
   | LIT_THAT and_comma_nonempty_list(does_pred) {}
   | LIT_SUCH LIT_THAT statement {}
 
-(* XX something is wrong here.  We don't want attributes around tvar?? 
-   Doch! n that is positive.  G with finite order. *)
-attribute_pseudoterm : attribute(typed_name_without_attribute) {}
-  typed_name_without_attribute : 
-  | prim_typed_name
-  | tvar
-  | prim_classifier tvar 
-  | VAR lit_with ID_TYPE opentail_type (* don't include nested attribute in general_type *)
-  | paren(typed_name_without_attribute)
-{}
-
-predicate_pseudoterm : attribute(plain_pred_pseudoterm) {}
-
-  plain_pred_pseudoterm : 
-  | opt_paren(tdop_rel_prop holding_var {}) {}
-
- (* A pseudoterm is not a term in the grammar. 
-    It is a term-like entity that can be 
-    quantified over by extracting the
-    free variables from the pseudoterm and
-    quantifying over them.
-    For example, 'for all x,y < 5'.
-  *)      
-
-pseudoterm :
-  | attribute_pseudoterm
-  | predicate_pseudoterm {} 
-
-pseudoterms : and_comma_nonempty_list(option(lit_a) pseudoterm {}) {}
 
 any_name : 
   | lit_any comma_nonempty_list(any_arg) 
@@ -1020,6 +991,38 @@ has_pred :
 
   possessed_noun : attribute(prim_possessed_noun) {()}
 
+(* XX something is wrong here.  We don't want attributes around tvar?? 
+   Doch! n that is positive.  G with finite order. *)
+
+  (* was typed_name_without_attribute *)
+  attribute_pseudoterm : attribute(pseudoterm_without_attribute) {}
+
+  pseudoterm_without_attribute : 
+  | prim_typed_name
+  | tvar
+  | prim_classifier tvar 
+  | VAR lit_with ID_TYPE opentail_type (* don't include nested attribute in general_type *)
+  | paren(pseudoterm_without_attribute)
+{}
+
+predicate_pseudoterm : attribute(plain_pred_pseudoterm) {}
+
+  plain_pred_pseudoterm : 
+  | opt_paren(tdop_rel_prop holding_var {}) {}
+
+ (* A pseudoterm is not a term in the grammar. 
+    It is a term-like entity that can be 
+    quantified over by extracting the
+    free variables from the pseudoterm and
+    quantifying over them.
+    For example, 'for all x,y < 5'.
+  *)      
+
+pseudoterm :
+  | attribute_pseudoterm
+  | predicate_pseudoterm {} 
+
+pseudoterms : and_comma_nonempty_list(option(lit_a) pseudoterm {}) {}
 
 
 (** statement *)
@@ -1058,7 +1061,7 @@ primary_statement :
   simple_statement : terms separated_nonempty_list(LIT_AND, does_pred) {()}
 
   there_is_statement : LIT_THERE lit_exist pseudoterms {}
-  | LIT_THERE lit_exist LIT_NO pseudoterm {()}
+  | LIT_THERE lit_exist option(LIT_NO) pseudoterm {()}
 
   const_statement : option(LIT_THE) LIT_THESIS {}
   | option(LIT_THE) LIT_CONTRARY
@@ -1101,16 +1104,19 @@ synonym_item :
 
 mutual_inductive_type_item :
        lit_declare_mutual_inductive_type
-         comma_nonempty_list(WORD) 
+         comma_nonempty_list(atomic) 
          option(lit_param args_template {})
+	 PERIOD
          {}
 
 mutual_inductive_def_item :
        lit_declare_mutual_inductive_def  
-         comma_nonempty_list(WORD) 
+         comma_nonempty_list(atomic) 
          option(lit_param args_template {})
+	 PERIOD
          {}
 
+(* deprecate *)
 moreover_implements : 
          LIT_MOREOVER COMMA general_type LIT_IMPLEMENTS brace_semi(field) PERIOD {}
 

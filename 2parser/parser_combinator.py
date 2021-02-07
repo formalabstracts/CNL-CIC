@@ -9,14 +9,20 @@ This file contains parser combinators.
 The original name was parse.py, but that conflicts with a python lib.
 
 The combinators should preserves tokens; nothings should be discarded.
+
+The bottom part of this module contains
+various parsers for words, phrases, and delimited matters.
+
 """
 
-
+import logging
 from exception import ParseError, ParseNoCatch, DataProcess, ErrorItem
 import copy, lib, msg, word_lists
 import tokenlib
 import inner_lexer
 import lexer
+
+logger = logging.getLogger(__name__)
 
 
 def mk_inner_stream(s):
@@ -36,7 +42,20 @@ def mk_stream(s):
     lexer.tokenizer.input(s)
     return tokenlib.init_item(list(lexer.tokenizer))
 
+def pstream(p:'Parse',s):
+    """For reunning test cases on different parsers.
+    p is a parser
+    s:str is input to parser
+    
+    output is the output of p applied to s.
+    """
+    #try:
+    return (p.process(mk_stream(s)).acc)
+    #except ParseError as pe:
+    #    logger.exception(pe)
+    #    raise pe
 
+        #raise #traceback.print_stack()
 
 class Parse:
     """base class for parsers.
@@ -44,35 +63,85 @@ class Parse:
     process:Item->Item processes one or more tokens from the item stream.
     We refer to process as the 'item transformer'.
     """
-    def __init__(self,process,nonterminal,production=''):
+    def __init__(self,process,nonterminal,production='',show_up=('',[])):
         """r:Item->Item, repr:str"""
-        self.process = process
+        self._process = process
         self.nonterminal = nonterminal
         self.production = production
+        self.show_up=show_up
 
     def __repr__(self):
         if self.production:
-            return self.nonterminal + '/' + self.production
+            return self.nonterminal + '-' + self.production
         else:
             return self.nonterminal
         
+    def process(self,item):
+        try:
+            return self._process(item)
+        except ParseError as pe:
+            ei = pe.error_stack
+            nt = ei.nonterminal
+            if self.nonterminal or self.production:
+                nt = f'({nt}; {self})'   
+            raise ParseError(ErrorItem(item=ei.item, nonterminal=nt))
+
+    def preprocess(self,pre):
+        """Use pre if possible for process."""
+        def f(item):
+            try:
+                return pre(item)
+            except:
+                self.process(item)
+        return Parse(f,nonterminal=self.nonterminal,production=self.production,show_up=self.show_up)
+
     def name(self,nonterminal,production=''):
         self.nonterminal=nonterminal
         self.production=msg.setdefault(production,self.production)
         return self
-        
+    
+    def show(self,level=1):
+        """Generate the parse tree (in words) of the parser,
+        down to given level"""
+        if (level==0):
+            return (f'{self}',[])
+        if self.show_up==('',[]):
+            return ('',[])
+        (comb,ps)=self.show_up 
+        if comb[0:4]=='pass':
+            return ps[0].show(level)
+        if (level==1):
+            pass  ## DEBUG FIX
+                  
     def next_token(): # constructor for next token
-        def f(tok):
-            return tokenlib.next_item(tok)
+        """The work horse of parsing.
+        Parser to fetch the next token.
+        """
+        def f(item):
+            return tokenlib.next_item(item)
         return Parse(f,'.')
     
     def finished():
         """fails if tokens remain in stream, otherwise do nothing"""
         def f(item):
             if item.pos < len(item.stream):
-                raise ParseError(ErrorItem(item=item,nonterminal='$',production=''))
+                raise ParseError(ErrorItem(item=item,nonterminal='$'))
             return item
         return Parse(f,'$')
+
+    def identity(): #was nothing
+        """Does no parsing, identity parser"""
+        return Parse(lambda item:item,'identity')
+    
+    def fail():
+        """This parser always fails"""
+        def f(item):
+            raise ParseError(ErrorItem(item=item,nonterminal='fail'))
+        return Parse(f,'fail')
+    
+#    def nil(self):
+#        """replaces output with nil list"""
+#        return self.treat(lambda _:[]).name('nil','')
     
     def probe(self):
         """run parser but then undo"""
@@ -81,8 +150,35 @@ class Parse:
                 self.process(item)
                 return item
             except ParseError as pe:
-                raise ParseError(ErrorItem(item=item,production='',nonterminal='probe')) from pe
+                raise ParseError(ErrorItem(item=item,nonterminal='-probe')) from pe
+        return Parse(f,self.nonterminal,self.production,show_up=('pass',[self]))
+
+    def nocatch(self,nt=''): 
+        """No catch error if failure"""
+        def f(item):
+            try:
+                return self.process(item)
+            except ParseError as pe:
+                nonterminal= msg.setdefault(nt,'nocatch')
+                raise ParseNoCatch(ErrorItem(item=item,nonterminal=nonterminal)) from pe
+        return Parse(f,'nocatch',show_up=('pass',[self]))
+
+    def commit(self,probe:'Parse',msg='') -> 'Parse':
+        """if trial_parse does not fail, discard, 
+        then apply pr without catching"""
+        def f(item):
+            probe.process(item)
+            return self.nocatch(msg).process(item)
         return Parse(f,self.nonterminal,self.production)
+        # more directly
+        # try:
+        #    return pr.process(item)
+        # except pe:
+        #   try:
+        #       probe.process(item)
+        #       raise NoCatch(pe.args[0])
+        #   except:
+        #       raise pe
     
     def reparse(self,p2):
         """Run parser as a reparser on list of accumulated tokens.  
@@ -100,8 +196,8 @@ class Parse:
                 item3 = tokenlib.update(item2.acc,item0)
                 return item3
             except ParseError as pe:
-                raise ParseError(ErrorItem(item=item1,production=p2.nonterminal,nonterminal='reparse')) from pe
-        return Parse(f,self.nonterminal,self.production)
+                raise ParseError(ErrorItem(item=item1,nonterminal='reparse-'+p2.nonterminal)) from pe
+        return Parse(f,self.nonterminal,self.production,show_up=('reparse',[p2]))
     
     def reparse_list(self,p2):
         """Run parser p2 as reparser on each accumulated list entry.
@@ -115,17 +211,24 @@ class Parse:
                 item3 = tokenlib.update(acc2,item1)
                 return item3
             except ParseError as pe:
-                raise ParseError(ErrorItem(item=item,production=p2.nonterminal,nonterminal='reparse_list')) from pe
-        return Parse(f,self.nonterminal,self.production)
+                raise ParseError(ErrorItem(item=item,nonterminal='reparse_list-'+p2.nonterminal)) from pe
+        return Parse(f,self.nonterminal,self.production,show_up=('reparse_list',[p2]))
 
     def __add__(self,other):
         """combine two parsers in succession, returning pair of results."""
         def f(item:tokenlib.Item):
             item1 = self.process(item)
             acc1 = item1.acc
-            item2 = other.process(tokenlib.update(None,item1))
+            #try:
+            item2 = other.name(f'({self}_+_{other})').process(tokenlib.update(None,item1))
+            #except ParseError:
+            #    raise ParseError(ErrorItem(item=item1,nonterminal= f'{other.nonterminal}-{other.production}'))
             return tokenlib.update((acc1,item2.acc),item2)
-        return Parse(f,'_+_')
+        if (self.show_up[0]=='add'):
+            show_up = ('add',self.show_up[1]+[other])
+        else:
+            show_up = ('add',[self,other])
+        return Parse(f,'',show_up=show_up)
 
     def __or__(self,other):
         """try first parser then next. Lower precedence than +"""
@@ -137,25 +240,19 @@ class Parse:
                     return other.process(item)
                 except ParseError as pe2:
                     #debug:print(f'pe1={pe1.args}')
-                    parse_error1 = pe1.args[0]
+                    parse_error1 = pe1.error_stack #args[0]
                     item1 = parse_error1.item
-                    item2 = pe2.args[0].item
+                    item2 = pe2.error_stack.item # args[0].item
                     if item2.pos > item1.pos: #raise the most progressed
                         raise pe2
                     raise pe1
-        return Parse(f,'_or_')
+        if (self.show_up[0]=='or'):
+            show_up = ('or',self.show_up[1]+[other])
+        else:
+            show_up = ('or',[self,other])
+        return Parse(f,'',show_up=show_up)
     
-    def nocatch(self,msg=''): 
-        """No catch error if failure"""
-        def f(item):
-            try:
-                return self.process(item)
-            except ParseError as pe:
-                nonterminal= msg.setdefault(msg,'nocatch')
-                raise ParseNoCatch(ErrorItem(item=item,nonterminal=nonterminal,production='')) from pe
-        return Parse(f,'nocatch')
-
-    def treat(self,treatment,msg=''):
+    def treat(self,treatment,name=''):
         """apply treatment to parser output."""
         def f(item):
             item1 = self.process(item)
@@ -163,11 +260,14 @@ class Parse:
                 item2 = tokenlib.update(treatment(item1.acc),item1)
                 return item2
             except ParseError as pe:
-                nonterminal=msg.setdefault(msg,'treat')
-                raise ParseError(ErrorItem(item=item,nonterminal=nonterminal,production='')) from pe
-        return Parse(f,self.nonterminal,self.production)
+                nonterminal=msg.setdefault(name,'treat')
+                raise ParseError(ErrorItem(item=item,nonterminal=nonterminal)) from pe
+        pr = Parse(f,self.nonterminal,self.production,show_up=('pass',[self]))
+        if name:
+            return pr.name(name)     
+        return pr
         
-    def many(self,sep=None):
+    def _many_nosep(self):
         """parse zero or more times"""
         def f(item):
             try:
@@ -177,11 +277,14 @@ class Parse:
             acc1 = item1.acc
             #
             item2 = f(tokenlib.update(None,item1)) #this doesn't fail
-            return tokenlib.update([acc1]+item2.acc,item2)  
-        return Parse(f,self.nonterminal+'*')
+            return tokenlib.update([acc1]+item2.acc,item2) 
+        show_up=(f'{self}*',self.show_up[1])
+        return Parse(f,self.nonterminal+'*',show_up=show_up)
     
     def atleast(self,n):
-        """parse at least n times"""
+        """parse at least n times.
+        Output acc is a list
+        """
         def f(item):
             if n < 1:
                 item1 = self.many().process(item)
@@ -195,9 +298,34 @@ class Parse:
             supp = f'{n}'
         return Parse(f,f'{self.nonterminal}+'+supp)
     
-    def plus(self,sep=None):
+    def _plus_nosep(self):
         """parse at least once"""
         return self.atleast(1)
+    
+    def plus(self,sep=None):
+        """Sequence of at least one parse with 
+        optional separation sep
+        
+        Output is a list
+        If sep, then non sep items are obtained by slice [0::2]
+        """
+        if not(sep):
+            return self._plus_nosep()
+        def f(acc):
+            (x,xs) = acc
+            return [x]+ lib.flatten(xs)
+        return (self + 
+                (sep + self).many()).treat(f).name('list',self.nonterminal)
+              
+    def many(self,sep=None):
+        """sequence of parses with optional separation sep
+        
+        """
+        def f(_):
+            return []
+        if not(sep):
+            return self._many_nosep()
+        return (self.plus(sep) | Parse.identity().treat(f))
     
     def possibly(self):
         """zero or one parses. It never fails.
@@ -209,27 +337,6 @@ class Parse:
                 return item
         return Parse(f,'?')
     
-    def identity(): #was nothing
-        """Does no parsing, identity parser"""
-        return Parse(lambda item:item,'identity')
-    
-    def nil(self):
-        """replaces output with nil list"""
-        return self.treat(lambda _:[]).name('nil','')
- 
-    def separated_nonempty_list(self,sep):
-        """Sequence of at least one parse with separation sep
-        Non sep items are obtained by slice [0::2]
-        """
-        def f(acc):
-            (x,xs) = acc
-            return [x]+ lib.flatten(xs)
-        return (self + 
-                (sep + self).many()).treat(f).name('list',self.nonterminal)
-              
-    def separated_list(self,sep):
-        """sequence of parses with separation sep"""
-        return (self.separated_nonempty_list(sep) | Parse.identity().nil()).name('list')
 
     def if_test(self,p): #was some
         """Next token passes boolean test or fail"""
@@ -238,7 +345,7 @@ class Parse:
             if p(item1.acc):
                 return item1
             else:
-                raise ParseError(ErrorItem(item=item,production=self.production,nonterminal=f'{self.nonterminal}if'))
+                raise ParseError(ErrorItem(item=item,nonterminal=f'{self.nonterminal}-if-{self.production}'))
         return Parse(f,'if')
     
     def if_value(self,v): #was a
@@ -248,13 +355,13 @@ class Parse:
         return self.name(self.nonterminal,v).if_test(p)
     
     def if_rawvalue(self,v): 
-        """parse if next token has value v or fail.
+        """parse if token has rawvalue v or fail.
         
         >>> pstream(Parse.next_token().if_rawvalue('True'),'True')
         LexToken(WORD,'true',1,0)
         """
         def p(tok):
-            return lexer.rawvalue(tok) == v
+            return (lexer.rawvalue(tok) == v)
         return self.name(self.nonterminal,v).if_test(p)
     
     def if_type(self,ts): 
@@ -279,40 +386,40 @@ class Parse:
     def first(prs): #was parse_some 
         """parse first in a list that does not fail"""
         def f(item):
-            raise ParseError(ErrorItem(item=item,nonterminal='first',production='empty'))
+            raise ParseError(ErrorItem(item=item,nonterminal='first-empty'))
         if not prs:
             return Parse(f,'first')
         return Parse.__or__(prs[0],Parse.first(prs[1:])).name('first')
     
-    def gen_first(prs_gen,args):
-        """Repeat (lazy) parse generator until first non-failure.
-        Yields of generator function prs_gen should be a parser.
-        Generator formed by prs_gen(*args).
-        Deprecated.  Use LazyParser instead.
-        """
-        def f(item):
-            gen = prs_gen(*args) 
-            #print(f'\nentering first on {item.stream[item.pos].value}\n')
-            item_max = item
-            while True:
-                try:
-                    prs = next(gen)
-                    #print(f'{prs}--start on {item.stream[item.pos].value}')
-                    item1 = prs.process(item)
-                    del gen
-                    #print(f'{prs}--works')
-                    return item1
-                except ParseError as pe:
-                    #print(f'{prs}--fails')
-                    item_e = pe.args[0]
-                    if item_e.pos > item_max.pos:
-                        item_max = item_e
-                    pass
-                except StopIteration:
-                    #print(f'{prs}--stop')
-                    del gen
-                    raise ParseError(ErrorItem(item=item,nonterminal='gen_first'))
-        return Parse(f,'gen_first')
+#    def gen_first(prs_gen,args):
+#        """Repeat (lazy) parse generator until first non-failure.
+#        Yields of generator function prs_gen should be a parser.
+#        Generator formed by prs_gen(*args).
+#        Deprecated.  Use LazyParser instead.
+#        """
+#        def f(item):
+#            gen = prs_gen(*args) 
+#            #print(f'\nentering first on {item.stream[item.pos].value}\n')
+#            item_max = item
+#            while True:
+#                try:
+#                    prs = next(gen)
+#                    #print(f'{prs}--start on {item.stream[item.pos].value}')
+#                    item1 = prs.process(item)
+#                    del gen
+#                    #print(f'{prs}--works')
+#                    return item1
+#                except ParseError as pe:
+#                    #print(f'{prs}--fails')
+#                    item_e = pe.args[0]
+#                    if item_e.pos > item_max.pos:
+#                        item_max = item_e
+#                    pass
+#                except StopIteration:
+#                    #print(f'{prs}--stop')
+#                    del gen
+#                    raise ParseError(ErrorItem(item=item,nonterminal='gen_first'))
+#        return Parse(f,'gen_first')
     
 class LazyParse(Parse):
     """
@@ -324,7 +431,7 @@ class LazyParse(Parse):
     is time to apply the parser to the token stream.   An eager parser
     is constructed when needed by a function call fn(data).
     """
-    def __init__(self,fn,data,nonterminal='thunk',production=''):
+    def __init__(self,fn,data,nonterminal='lazy',production=''):
         super().__init__(self._process,nonterminal,production)
         self.fn = fn
         self.data = data
@@ -336,16 +443,8 @@ class LazyParse(Parse):
 def lazy_call(pr):
     """pr is a function with output a parser.
     Output is a parser, with lazy evaluation"""
-    return LazyParse((lambda p: p()),pr)
+    return LazyParse((lambda p: p()),pr,nonterminal='lazy')
 
-def pstream(p:Parse,s):
-    """For reunning test cases on different parsers.
-    p is a parser
-    s:str is input to parser
-    
-    output is the output of p applied to s.
-    """
-    return (p.process(mk_stream(s)).acc)
     
 def next_value(v):
     """Parser constructor that accepts a token with given value.
@@ -377,6 +476,7 @@ def retreat_list(p2,ls):
     """Convert list ls to a list of items.
     Run the parser p2 on each item, requiring full consumption.
     Collect the accumulated output and return.
+    The len is preserved in output.
     
     >>> acc = pstream(Parse.next_token().plus(),'a b c')
     >>> ls = [[a] for a in acc]
@@ -444,7 +544,7 @@ class Inner():
         def f(acc):
             ((_,a),_) = acc
             return ('OPT',a)
-        return (next_type('(') + Inner.annotated().separated_nonempty_list(next_value('|')) + next_type(')')).treat(f).name('opt')
+        return (next_type('(') + Inner.annotated().plus(next_value('|')) + next_type(')')).treat(f).name('opt')
     
     def ending():
         def f(acc):
@@ -508,8 +608,8 @@ def debug_lazyparse2():
     >>> next_type('*').process(mk_inner_stream(r"*")).acc
     LexToken(*,'*',1,0)
     
-    >>> Inner.ending().process(mk_inner_stream(r"?")).acc
-    {'rep': '?'}
+    #>>> Inner.ending().process(mk_inner_stream(r"?")).acc
+    #{'rep': '?'}
     
     >>> Inner.annotated().process(mk_inner_stream(r"rgb:ochre")).acc
     {'parser': ('ID', 'ochre'), 'label': 'rgb'}
@@ -641,7 +741,7 @@ def next_any_word_except(banned) -> Parse:
     
     >>> try:
     ...     pstream(next_any_word_except(['trial']),'Trials x')
-    ... except:
+    ... except ParseError:
     ...     print('exception')
     exception
     
@@ -686,21 +786,6 @@ def first_word(ss:str) -> Parse: #was someword
     return next_any_word().if_test(p).name('first_word:'+ss)
     #return Parse.first([next_word(s) for s in ]).name('first:'+ss)
 
-def commit(probe:Parse,pr:Parse,msg='') -> Parse:
-    """if trial_parse does not fail, discard, then apply pr without catching"""
-    def f(item):
-        probe.process(item)
-        return pr.nocatch(msg).process(item)
-    return Parse(f)
-    # more directly
-    # try:
-    #    return pr.process(item)
-    # except pe:
-    #   try:
-    #       probe.process(item)
-    #       raise NoCatch(pe.args[0])
-    #   except:
-    #       raise pe
 
 def if_then_else(probe:Parse,pr1:Parse,pr2:Parse)-> Parse:
     """if probe fails do pr2, otherwise pr1"""
@@ -794,13 +879,15 @@ def brace_semi():
 
     Use brace_semif instead to flatten out the nested lists.
     
+    The empty brace {} is not permitted.
+    
     >>> pstream(brace_semi(),'{ a ; b { b1 ; (d) } ; c }')
     (LexToken({,'{',1,0), [[LexToken(VAR,'a',1,2)], LexToken(;,';',1,4),...
     """
     def p(tok):
-        return tok.value != ';'
+        return not(tok.value in  [';','.'])
     nosemi = balanced_condition(p).name('balanced-semi')
-    return brace(Parse.separated_nonempty_list(nosemi,next_value(';')))
+    return brace(nosemi.plus(next_value(';')))
 
 def _brace_semi_fflatten(acc):
     """Treatment to remove nesting in the Token lists produced
@@ -816,17 +903,17 @@ def _brace_semi_fflatten(acc):
 def brace_semif():
     return brace_semi().treat(_brace_semi_fflatten)
 
-def comma_nonempty_list(pr:Parse) -> Parse:
+def plus_comma(pr:Parse) -> Parse:
     """construct parser for comma-separated list"""
-    return pr.separated_nonempty_list(next_value(','))
+    return pr.plus(next_value(','))
 
-def comma_list(pr:Parse) -> Parse:
+def many_comma(pr:Parse) -> Parse:
     """parser for comma separated list
     
-    >>> pstream(comma_list(next_any_word()),'this,that,other')
+    >>> pstream(many_comma(next_any_word()),'this,that,other')
     [LexToken(WORD,'this',1,0), LexToken(,,',',1,4), LexToken(WORD,'that',1,5),...
     """
-    return pr.separated_list(next_value(','))
+    return pr.many(next_value(','))
 
 def andcomma():
     """parse a comma or the value 'and'
@@ -839,21 +926,21 @@ def andcomma():
     """
     return (next_value(',') | next_value('and'))
 
-def andcomma_nonempty_list(pr:Parse) -> Parse:
+def plus_andcomma(pr:Parse) -> Parse:
     """construct parser for and/comma separated list
 
-    >>> pstream(andcomma_nonempty_list(next_any_word()),'this , that and other')
+    >>> pstream(plus_andcomma(next_any_word()),'this , that and other')
     [LexToken(WORD,'this',1,0), LexToken(,,',',1,5), LexToken(WORD,'that',1,7),...
     """
-    return pr.separated_nonempty_list(andcomma())
+    return pr.plus(andcomma())
 
-def or_nonempty_list(pr:Parse) -> Parse:
+def plus_or(pr:Parse) -> Parse:
     """construct parser for 'or' separated list
     
-    >>> pstream(or_nonempty_list(next_any_word()),'this or that or other')
+    >>> pstream(plus_or(next_any_word()),'this or that or other')
     [LexToken(WORD,'this',1,0), LexToken(WORD,'or',1,5), LexToken(WORD,'that',1,8)...
     """
-    return pr.separated_nonempty_list(next_value('or'))
+    return pr.plus(next_value('or'))
 
 
 if __name__ == "__main__":
