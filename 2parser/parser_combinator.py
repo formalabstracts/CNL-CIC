@@ -3,7 +3,7 @@
 """
 Created on Tue Jan 12 14:39:04 2021
 
-@author: thales
+@author: Thomas Hales
 
 This file contains parser combinators.
 The original name was parse.py, but that conflicts with a python lib.

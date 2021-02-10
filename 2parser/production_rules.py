@@ -3,7 +3,7 @@
 """
 Created on Sat Aug 22 17:00:38 2020
 
-@author: thales
+@author: Thomas Hales
 
 
 production rules for Colada
@@ -3049,7 +3049,7 @@ class Macro:
     def classifier_def():
         """Parser for defining classifiers.
         
-        >>> pstream(Macro.classifier_def(),'Let function, symbol, object be classifiers.')
+        >>> pstream(Macro.classifier_def(),'Let function, symbol, object be classifiers')
         Etok(classifier_def,'let function , symbol , object be classifier')
         """
         def f(acc):
