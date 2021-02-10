@@ -25,6 +25,9 @@ def fflatten(ls):
     
     >>> fflatten([3,[4,5,[6,7]],8,[9,10],(11,(12,13))])
     [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+    
+    >>> fflatten(a for a in [3,4,5])
+    [3, 4, 5]
     """
     if iterable(ls) and not(isinstance(ls,str)):
         return flatten([fflatten(a) for a in ls])

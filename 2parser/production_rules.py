@@ -19,22 +19,24 @@ Inner functions f(item)->item are item transformers.
 The parsers are generally implemented as function calls
 rather than values.  This gives uniform style and helps
 to prevent infinite recursive expansion of parsers.
+
+DEBUG. Not implemented: namespace, record, this_exists, 
 """
 
 #import copy
 #import msg
-import traceback
+#import traceback
 from exception import ParseError, ParseNoCatch, ErrorItem
 import lib, word_lists
 import tokenlib
 import lexer
-from ply.lex import LexToken #import ply.lex.LexToken as LexToken
+#from ply.lex import LexToken #import ply.lex.LexToken as LexToken
 
 
 
 import parser_combinator as c
 
-from parser_combinator import (Parse, 
+from parser_combinator import (Parse, Etok,
                                first_word, 
                                first_phrase, next_word, next_any_word,
                                next_phrase, next_value,
@@ -47,156 +49,6 @@ def memo(f):
             m[f]= f()
         return m[f]
     return wrapper # f to run tests.
-
-class Etok:
-    """
-    This is the class that represents the nodes 
-    in the abstract syntax tree.  I'm not using subclasses for now.
-    So the representation is rather basic.  Subclasses can be simulated
-    by the name of the Etok.
-    
-    name: convention- uppercase if the 'type' of a terminal token
-        This means that the rule acts as the value
-          lowercase if the name of the nonterminal.
-        
-    rule = '': optional production_rule string
-    raw = [LexToken]: flat token list from the original text, for error messages
-    misc = None: optional additional data, not belong anywhere else.
-        For ease of traversal,
-        misc should not contain any Etoks at any level of nesting.
-    altrepr = '': optional string reprsentation of Etok, can be value of a Tok
-    etoks: (nested) Etok list, children in AST
-    
-    We generally expect a production rule to output a single Etok.
-    
-    We should try to avoid having to extract essential data from raw.
-    Otherwise, there should be no redundant information in Etok.
-    
-    >>> try:
-    ...     Etok(['hi'],[],[])
-    ... except TypeError as e:
-    ...     print(e) 
-    Etok string expected in name:['hi']
-    """
-    def __init__(self,name,etoks,raw,rule='',misc=None,altrepr='',):
-        self.name = name
-        self.etoks = etoks
-        if isinstance(etoks,Etok):
-            self.etoks = [etoks]
-        self.raw = Etok.get_raw(raw)
-        self.rule = rule
-        self.altrepr = altrepr
-        self.misc = misc
-        self.validate()
-        
-    def __repr__(self):
-        if self.altrepr:
-            return f"Etok({self.altrepr})"
-        name2 = self.name
-        if self.rule:
-            name2 += ','+self.rule
-        return f"Etok({name2},'{self.rawstring()}')"
-    
-    def s_expression(self):
-        def s2(es):
-            if not(es):
-                return ''
-            if isinstance(es,Etok):
-                return es.s_expression()
-            if lib.iterable(es):
-                return '['+' '.join([s2(e) for e in es if e ])+']'
-        name2 = self.name 
-        if self.rule:
-            name2 += '-'+self.rule 
-        re = ''
-        if lib.fflatten(self.etoks):
-            re = s2(self.etoks)
-        #' '.join([e.s_expression() for e in lib.fflatten(self.etoks) if e])
-        if re:
-            re = ' '+re
-        return (f"({name2}"+re+')')
-    
-    def rawstring(self):
-        return ' '.join([tok.value for tok in self.raw])
-    
-    def validate(self):
-        if not(isinstance(self.name,str)):
-            raise TypeError('Etok string expected in name:'+str(self.name))
-        if not(isinstance(self.altrepr,str)):
-            raise TypeError('Etok string expected in altrepr:'+str(self.altrepr))
-        if not(isinstance(self.rule,str)):
-            raise TypeError('Etok string expected in rule:'+str(self.rule))
-        for e in self.raw:
-            if not(isinstance(e,LexToken)):
-                raise TypeError(f'raw must be list of Tok in {self.name}, not {str(e)}')
-        for e in lib.fflatten(self.etoks):
-            if e and not(isinstance(e,Etok)): 
-                raise TypeError(f'etoks must be a list of Etok in {self.name}, not {e}:{type(e).__name__}')
-        pass
-    
-    @property
-    def type(self):
-        """Augment Etok with fields of token"""
-        return self.name 
-    
-    @property 
-    def value(self):
-        return self.rule 
-    
-    @property 
-    def lineno(self):
-        return self.raw[0].lineno 
-    
-    @property 
-    def lexpos(self):
-        return self.raw[0].lexpos
-    
-    def update(self,d:dict ={}):
-        """Use a dictionary d to update self.
-        If the dictionary is empty, a copy of self is made.
-        """
-        e1 = Etok(name=self.name,etoks=self.etoks,raw=self.raw,rule=self.rule,misc=self.misc,altrepr=self.altrepr)
-        for key,value in d.items():
-            if key=='raw':
-                value = Etok.get_raw(value)
-            setattr(e1,key,value)
-        e1.validate()
-        return e1
-    
-    def _get_raw1(tok):
-        if (isinstance(tok,Etok)):
-            return tok.raw
-        if isinstance(tok,LexToken):
-            return [tok]
-        return []
-    
-    def get_raw(etoks):
-
-        """extract the raw fields from a 
-        nested list of Etoks and LexTokens"""
-        return lib.flatten([Etok._get_raw1(e) for e in lib.fflatten(etoks)])
-
-    def etok(tok):
-        """convert a token to Etok"""
-        return Etok(tok.type,[],[tok],rule=tok.value)
-    
-    def parse(p : Parse):
-        """Promote a LexToken parser to a Etok parser.
-        This is the same as p.treat(Etok.etok)
-        """
-        return p.treat(Etok.etok)
-    
-def backdoor(pr):
-    """Add a backdoor to parser to allow the
-    nonterminal to be parsed as a terminal Etok."""
-    def pre(item):
-        if not(tokenlib.eof(item)):
-            item1 = tokenlib.next_item(item)
-            if item1.acc.value == pr.nonterminal:
-                acc = Etok.etok(item1.acc)
-                return tokenlib.update(acc,item1)
-        raise ParseError(ErrorItem(item,'backdoor'))
-    return pr.preprocess(pre)
     
 def strip_delim(acc):
     """treatment to remove outer delimiters
@@ -251,9 +103,9 @@ def get_lookup_parse(nonterminal):
     """
     def f(acc):
         return Etok.etok(acc).update({'name':nonterminal,'rule':'default'})
-    ps = lookup_parse.get(nonterminal,[])
-    ps.append(Etok.parse(Parse.next_token().if_value(nonterminal)).treat(f,nonterminal))
-    #get_lookup_parse_history['nonterminal']=None
+    backdoor=Etok.parse(Parse.next_token().if_value(nonterminal)).treat(f,nonterminal)
+    
+    ps = [backdoor] +lookup_parse.get(nonterminal,[])
     return Parse.first(ps).name(nonterminal,production='lookup')
 
     
@@ -352,37 +204,41 @@ lit_dict = {
     'axiom': first_word('axiom conjecture hypothesis equation formula'),
     'choose': first_word('take choose pick'),
     'contradiction' : first_word('contradiction contrary'),
+    'declare_mutual_inductive_decl': next_phrase('mutual inductive'),
+    'declare_mutual_inductive_def': next_phrase('mutual inductive def'),
     'def': first_word('def definition'),
     'defined_as' : first_phrase(['said to be','defined as','defined to be']),
     'denote': first_phrase(['denote','stand for']),
     'do': first_word('do does'),
+    'done': first_word('done quit'),
     'equal': next_phrase('equal to'),
     'exist': (next_word('there').possibly() + next_word('exist')).treat(lib.snd,'lit_exist'),
     'false': first_word('off false no'),
-    'forall': (next_word('forall') | next_phrase('for all')),
     'fix': first_word('fix let'),
+    'forall': (next_word('forall') | next_phrase('for all')),
     'has': first_word('has have had'),
-    'is' : first_phrase(['is','are','be','to be']),
-    'iff':  (first_phrase(['iff','if and only if']) | 
+    'iff':  (first_phrase(['iff','if and only if']) |              
              (first_phrase(['is','are','be','to be']) + next_word('the').possibly() + next_word('predicate'))),
-    'with': first_word('with of having'),
-    'true': first_word('on true yes'),
-    'wrong': next_phrase('it is wrong that'),
-    'lets': first_phrase(['let','let us','we','we can']),
-    'then': first_word('then therefore hence'),
-    'prove': first_word('prove show'),
-    'say': first_word('say write'),
-    'satisfy' : first_phrase(['satisfy','give rise to','determine']),
-    'we-say': (next_word('we').possibly() +
-            first_word('say write') +
-            next_word('that').possibly()
-            ),
-    'qed': first_word('end qed obvious literal'),
-    'with_property': next_phrase('with property'),
+    'is' : first_phrase(['is','are','be','to be']),
+    'lets': first_phrase(['let us','let','we can','we']),
     'param': next_phrase('with parameter'),
+    'prove': first_word('prove show'),
+    'qed': first_word('end qed obvious literal'),
+    'satisfy' : first_phrase(['satisfy','give rise to','determine']),
+    'say': first_word('say write'),
+    'then': first_word('then therefore hence'),
     'theorem': first_word('proposition theorem lemma corollary'),
-    # type proposition property classsifier atomic 
-    }
+    'true': first_word('on true yes'),
+    'we-record': next_phrase('we record'),
+    'we-say': (next_word('we').possibly() +            
+               first_word('say write') +            
+               next_word('that').possibly()            
+               ),
+    'with': first_word('with of having'),
+    'with_property': next_phrase('with property'),
+    'wrong': next_phrase('it is wrong that'),
+} 
+    
 
 def lit(s):
     """parser generator for 's'-like words or phrases
@@ -407,12 +263,12 @@ def lit(s):
     
 
 
-def lit_read(s):
+def read_keyword(s): #was lit_read
     """parser generator for s-like words or phrases.
     
     Output is an etok with name = s, rule = response, 
     
-    >>> pstream(lit_read('assoc'),'right')
+    >>> pstream(read_keyword('assoc'),'right')
     Etok(ASSOC,right,'right')
     """
     def f(acc):
@@ -497,7 +353,7 @@ def atomic():
         else:
             rule = acc.value
         return Etok(name='ATOMIC',etoks=[],raw=[acc],rule=rule)
-    return Parse.next_token().if_type(['INTEGER','WORD','ATOMIC_IDENTIFIER']).name('atomic').treat(f,'atomic')
+    return Parse.next_token().if_types(['INTEGER','WORD','ATOMIC_IDENTIFIER']).name('atomic').treat(f,'atomic')
 
 @memo
 def label():
@@ -512,33 +368,23 @@ def primitive(primitive_nonterminal):
 
     return Parse(f,primitive_nonterminal,'!')
 
-def _add_prim1():
-    def equal():
-        return next_value('=').treat(Etok.etok)
-    add_lookup_parse('prim_binary_relation_op',equal())
-    
-    def bool():
-        return (rawtrue | rawfalse)
-    add_lookup_parse('prim_relation', bool().name('prim_relation','True-False'))
-    pass
 
-_add_prim1()
 
 @memo
-def section_preamble():
+def section_label():
     """Section label.
     
     Output Etok.etoks = [section,label?]
     
-    >>> pstream(section_preamble(),'Section 3.')
-    Etok(section_preamble,'section 3 .')
+    >>> pstream(section_label(),'Section 3.')
+    Etok(section_label,'section 3 .')
     """
     def f(acc):
         (e,_) = acc
-        return Etok(name='section_preamble',etoks=e,raw=acc)
+        return Etok(name='section_label',etoks=e,raw=acc)
     def section_tag():
-        return (lit_read('doc'))
-    return (section_tag() + label().possibly() + period).name('section_preamble').treat(f,'section_preamble')
+        return (read_keyword('doc'))
+    return (section_tag() + label().possibly() + period).name('section_label').treat(f,'section_label')
 
 class Instruction:
     """Construct a parser that creates an Etok for a given instruction.
@@ -727,7 +573,7 @@ def annotated(p):
         (x : A)
         
     >>> pstream(annotated(var()),'(x:post_colon_type)')
-    Etok(annotated,VAR,'( x : post_colon_type )')   
+    Etok(annotated,...,'( x : post_colon_type )')
     """
     def f(acc):
         (_,(v,ann),_)  = acc
@@ -754,7 +600,8 @@ def annotateds(p):
         (u v)
 
     >>> pstream(annotateds(var().plus()),'(x y:post_colon_type)')
-    Etok(annotateds,VAR+,'( x y : post_colon_type )')
+    Etok(annotateds,...,'( x y : post_colon_type )')
+    
     """
     def f(acc):
         (_,(vs,ann),_) = acc
@@ -988,7 +835,6 @@ def proof_expr():
     """
     return c.next_type('SYMBOL_QED').treat(Etok.etok,'proof_expr')
 
-add_lookup_parse('proof_expr',proof_expr())
 
 @memo
 def tightest_expr():
@@ -1010,9 +856,8 @@ def sort_expr():
         (m,s) = acc
         m1 = [a for (a,_) in m]
         return Etok(name='sort_expr',etoks=(m1,s),raw=acc)
-    return c.LazyParse((lambda s:((get_lookup_parse(s) + c.next_type('ARROW')).many() + lit_read('sort')).treat(f,'sort_expr')),'binder_type')
+    return c.LazyParse((lambda s:((get_lookup_parse(s) + c.next_type('ARROW')).many() + read_keyword('sort')).treat(f,'sort_expr')),'binder_type')
 
-add_lookup_parse('sort_expr',sort_expr())
 
 # colon_sort above
 
@@ -1293,7 +1138,6 @@ def post_colon_type():
   
 # general_type - implement after attribute
 
-add_lookup_parse('post_colon_type', c.lazy_call(post_colon_type))
 
 @memo
 def hierarchical_identifier():
@@ -1313,8 +1157,8 @@ def identifier():
 def _opt_alt_constructor():
     """Parser for a single constructor in an inductive type declaration.
     
-    >>> pstream(_opt_alt_constructor(),'| id : general_type')
-    Etok(alt_constructor,'| id : general_type')
+    >>> pstream(_opt_alt_constructor(),'| id : post_colon_type')
+    Etok(alt_constructor,'| id : post_colon_type')
     """
     def f(acc):
         (((_,i),a),t)=acc
@@ -1330,23 +1174,6 @@ def not_end(tok):
     """boolean token test for not keyword 'end'"""
     return not(tok.value == 'end') and not_period(tok)
 
-@memo
-def inductive_type():
-    """Parser for declaration of induction types.
-    It terminates with 'end' keyword.
-    
-    Identifier must be located internally because of recursion.
-        
-    >>> pstream(inductive_type(),'inductive integer | id : general_type end')
-    Etok(inductive_type,'inductive integer | id : general_type end')
-    """
-    def f(acc):
-        (((((_,i),a),s),c1),_)=acc
-        #print(f'c1={c1}')
-        c1 = c.retreat_list(_opt_alt_constructor().many(),[lib.fflatten(c1)])
-        return Etok(name='inductive_type',etoks=(i,a,s,c1),raw=acc)
-    return (c.next_word('inductive') + identifier() + args_template() + opt_colon_sort() +
-            c.balanced_condition(not_end) + c.next_word('end')).treat(f,'inductive_type')
 
 @memo    
 def field_prefix():
@@ -1375,7 +1202,7 @@ def field_prefix():
             keys = keys[0::2]
         return Etok(name='field_prefix',etoks=keys,raw=acc)
     return (lit('a').possibly() + 
-            c.plus_comma(lit_read('field_key'))).possibly().treat(f,'field_prefix')
+            c.plus_comma(read_keyword('field_key'))).possibly().treat(f,'field_prefix')
 
 @memo
 def field_identifier():
@@ -1384,8 +1211,8 @@ def field_identifier():
     The word 'proof' or '_' can be used as 
     anonymous field identifiers for props.
     
-    >>> pstream(field_identifier(),'x : Type')
-    Etok(field_identifier,'x : type')
+    >>> pstream(field_identifier(),'x : post_colon_type')
+    Etok(field_identifier,'x : post_colon_type')
     
     >>> pstream(field_identifier(),'proof')
     Etok(PROOF,proof,'proof')
@@ -1396,8 +1223,9 @@ def field_identifier():
         return Etok(name='field_identifier',etoks=acc,raw=acc)
     return (get_lookup_parse('prim_structure') |
             (next_word('proof')|c.next_value('_')).treat(fp) | 
-            ((var_or_atomic() + opt_colon_sort()) |
-            (var_or_atomic() + opt_colon_type())).treat(f,'field_identifier')
+            (var_or_atomic() + 
+              (colon_type() | colon_sort()).possibly()
+              ).treat(f,'field_identifier')
             )
 
 @memo
@@ -1454,7 +1282,7 @@ def tightest_prefix():
     >>> pstream(tightest_prefix(),'1799')
     Etok(INTEGER,1799,'1799')
     """
-    return (Parse.next_token().if_type(['DECIMAL','INTEGER','STRING','BLANK','VAR']).treat(Etok.etok,'tightest_prefix') |
+    return (Parse.next_token().if_types(['DECIMAL','INTEGER','STRING','BLANK','VAR']).treat(Etok.etok,'tightest_prefix') |
             get_lookup_parse('prim_identifier_term') |
             controlseq_term() |
             get_lookup_parse('delimited_term') |  #future reference
@@ -1836,7 +1664,7 @@ def any_name():
     """
     def f(acc):
         return Etok(name='any_name',etoks=acc,raw=acc)
-    return (lit_read('any') +
+    return (read_keyword('any') +
             (any_args() |
              get_lookup_parse('pseudoterm') |
              get_lookup_parse('general_type'))).treat(f,'any_name')
@@ -2415,7 +2243,8 @@ def and_chain():
 @memo
 def andor_chain():
     """Parser for chain of and/or statements"""
-    return (and_chain() | or_chain() | primary_statement())
+    return (and_chain() | or_chain() | primary_statement()
+            ).name('andor_statement')
 
 @memo
 def chain_statement():
@@ -2425,7 +2254,7 @@ def chain_statement():
         return Etok('iff_statement',etoks=(ao,s),raw=acc) 
     return (andor_chain () |
             (c.paren(andor_chain) + lit('iff') + get_lookup_parse('statement')).treat(f,'iff_statement')
-            )
+            ).name('chain_statement')
 
 @memo
 def head_statement():
@@ -2445,13 +2274,13 @@ def head_statement():
         (next_word('for') + c.plus_andcomma(any_name()) + binder_comma + get_lookup_parse('statement')).treat(f_for,'for_statement') |
         (next_word('if')+ get_lookup_parse('statement') + comma + next_word('then') + get_lookup_parse('statement')).treat(f_ifthen,'if_then_statement') |
         (lit('wrong') + get_lookup_parse('statement')).treat(f_wrong,'wrong_statement')
-        )
+        ).name('head_statement')
 
 @memo
 def statement():
     """Parser for statement.
     This subsumes other specialized statements."""
-    return head_statement() | chain_statement()
+    return (head_statement() | chain_statement()).name('statement')
 
 # next texts
  
@@ -2475,17 +2304,35 @@ def synonym_item():
     return (pre + c.balanced_condition(not_period) + period).commit(pre).treat(f)
 
 @memo
-def mutual_inductive_type_item():
+def inductive_decl():
+    """Parser for declaration of induction types.
+    It terminates with 'end' keyword.
+    
+    Identifier must be located internally because of recursion.
+        
+    >>> pstream(inductive_decl(),'inductive integer | id : post_colon_type end')
+    Etok(inductive_decl,'inductive integer | id : post_colon_type end')
+    """
+    def f(acc):
+        (((((_,i),a),s),c1),_)=acc
+        #print(f'c1={c1}')
+        c1 = c.retreat_list(_opt_alt_constructor().many(),[lib.fflatten(c1)])
+        return Etok(name='inductive_decl',etoks=(i,a,s,c1),raw=acc)
+    return (c.next_word('inductive') + identifier() + args_template() + opt_colon_sort() +
+            c.balanced_condition(not_end) + c.next_word('end')).treat(f,'inductive_decl')
+
+@memo
+def mutual_inductive_decl_item():
     """DEBUG: not tested"""
-    pre = lit('declare_mutual_inductive_type')
+    pre = lit('declare_mutual_inductive_decl')
     def f(acc):
         (((_,w),pa),_)=acc 
         if pa:
             pa = pa[1]
-        return Etok('mutual_inductive_type_item',etoks=(w[0::2],pa),raw=acc)
+        return Etok('mutual_inductive_decl_item',etoks=(w[0::2],pa),raw=acc)
     return (pre + atomic().plus_comma() + 
             (lit('param') + args_template()).possibly() + period
-            ).commit(pre).treat(f,'mutual_inductive_type_item')
+            ).commit(pre).treat(f,'mutual_inductive_decl_item')
 
 @memo
 def mutual_inductive_def_item():
@@ -2500,8 +2347,7 @@ def mutual_inductive_def_item():
             (lit('param') + args_template()).possibly() + period
             ).commit(pre).treat(f,'mutual_inductive_def_item')
 
-@memo
-def moreover_implements():
+def moreover_implements_deprecated():
     """DEBUG: not tested.
     Deprecated. Add predicate satisfaction instead.
     Parser for an item that extends a structure or
@@ -2511,7 +2357,23 @@ def moreover_implements():
         b = c.reparse_list(field(),b[0::2])
         return (g,b)
     return (next_word('moreover') + comma + general_type() +
-            lit('implement') + c.brace_semif() + period).treat(f,'moreover_implements')
+            lit('implement') + c.brace_semif() + 
+            period).treat(f,'moreover_implements')
+
+def this_exists_deprecated():
+    """parsing of 'this'-directives.
+    DEBUG: Remove this feature. Deprecated Unfinished.
+    """
+    def adjective(tok):
+        s1 = tok.value.lower.replace('_','')
+        return s1 in ['unique','canonical','welldefined','wellpropped','total','exhaustive']
+    def this_directive_right_attr():
+        return next_phrase('by recursion')
+    def this_directive_pred():
+        # debug, need to slice [0::2]
+        return c.plus_andcomma(Parse.next_token().if_test(adjective))
+    return first_phrase(['this exist','this is'])
+
 
 @memo
 def satisfy_item():
@@ -2537,113 +2399,48 @@ def satisfy_item():
     pre = next_word('every') + pseudoterm() +lit('satisfy')  
     return (pre + opt_paren(field_prefix()).possibly() + statement() + period).commit(pre,'satisfy_item').treat(f,'satisfy_item')
 
-@memo
-def misc_text_item():
-    """
-    synonym_item ends in period!
-    """
-    return (
-        synonym_item() |
-        mutual_inductive_type_item() |
-        mutual_inductive_def_item () |
-        #moreover_implements() | # deprecated
-        namespace() |
-        satisfy_item()
-        )
+    
 
 @memo
-def text_item():
-    """A text item is a major block of texts
-    in a document.
-    Every item must end with a '.' or be an
-    instruction in [].
-    """
-    return (
-        section_preamble() |
-        Instruction.instruction() |
-        get_lookup_parse('declaration') |
-        get_lookup_parse('macro') |
-        misc_text_item()
-        )
-  
-def this_exists_deprecated():
-    """parsing of 'this'-directives.
-    DEBUG: Remove this feature. Deprecated Unfinished.
-    """
-    def adjective(tok):
-        s1 = tok.value.lower.replace('_','')
-        return s1 in ['unique','canonical','welldefined','wellpropped','total','exhaustive']
-    def this_directive_right_attr():
-        return next_phrase('by recursion')
-    def this_directive_pred():
-        # debug, need to slice [0::2]
-        return c.plus_andcomma(Parse.next_token().if_test(adjective))
-    return first_phrase(['this exist','this is'])
-
-#def post_colon_balanced():
-#    def p(token):
-#        return token.value not in ['end','with',':=',';','.',',','|',':']
-#    return c.balanced_condition(p)
-
-#def meta_tok():
-#    tok = c.mk_token({'type':'META','value':str(meta_tok.count)})
-#    meta_tok.count += 1
-#    return tok
-
-
-#    tok = copy.copy(c.init_item.tok)
-#    tok.value = str(meta_tok.count)
-#    tok.type = 'META'
-#    meta_tok.count += 1
-#    return tok 
-
-#def colon_annotation(prs):  #was opt_colon_type, opt_colon_sort
-#    """Parser for ': A', discarding the colon. 
-#    A is parsed by prs.
-#    Parser returns an empty list if there is no annotation."""
-#    #def trt1(toks):
-#    #    if len(toks)==0:
-#    #        return toks
-#   #    return prs.process(toks)
-#    prs1= (next_value(':') + post_colon_balanced()).treat(lib.snd).possibly().treat(lib.fflatten)
-#    return prs1.reparse(prs)
-
-#def colon_annotation_or_meta(prs): #was opt_colon_type_meta, opt_colon_sort_meta
-#    """Parser for annotation ': A', discarding the colon.
-#    If no annotation, parser returns a meta-variable.
-#    A is parsed using prs."""
-#    def trt(acc):
-#        if acc == [] or acc == None:
-#            return meta_tok()
-#        return acc
-#    return colon_annotation(prs).treat(trt)
-
-# differ only in treatment
-#def opt_colon_sort():
-#    return opt_colon_type()
-
-#def opt_colon_sort_meta():
-#    return opt_colon_type_meta()
-
 def then_prefix():
     return lit('then').possibly()
 
-def axiom_preamble():
+# no memo, takes an argument
+def decl_label(s:str):
+    """
+    Sample input for decl_label('axiom')
+    Axiom.
+    Conjecture Riemann.
+    
+    Sample input for decl_label('theorem')
+    Theorem Pappus.
+    
+    >>> pstream(decl_label('axiom'),'Equation 90.')
+    Etok(decl_label,'equation 90 .')
+    """
     def f(acc):
         ((a,l),_)=acc
-        return Etok(name='axiom_preamble',etoks=(a,l),raw=acc)
-    return (lit('axiom')+label().possibly() + period).treat(f)
+        return Etok(name='decl_label',etoks=(a,l),raw=acc)
+    return (lit(s)+label().possibly() + period).treat(f)
 
-# to here.
-def axiom():
-    return 0 # (axiom_preamble() + )
-
+@memo
 def let_annotation_prefix():
-    # debug need to slice [0::2]
+    """Parser for initial segment of a let statement.
+    
+    >>> pstream(let_annotation_prefix(),'let u,v,w be fixed ...')
+    Etok(let_annotation_prefix,'let u , v , w be fixed')
+    """
+    def f(acc):
+        ((((l,vs),_),_),f)=acc
+        if f:
+            l=f
+        vs = vs[0::2]
+        return Etok(name='let_annotation_prefix',etoks=(Etok.etok(l),vs),raw=acc)
     return (next_word('let') + c.plus_comma(var()) +
      next_word('be') + lit('a').possibly() +
-     next_word('fixed').possibly())
-    
+     next_word('fixed').possibly()).treat(f)
+
+@memo
 def let_annotation():
     """Parser for let_annotations. Terminating punctuation not included.
     
@@ -2655,10 +2452,81 @@ def let_annotation():
         
     Issues: No treatment for now, but return to this later.   
     """
-    return ((first_word( 'fix let') + c.plus_comma(annotated(sort_vars()))) |
-     let_annotation_prefix() + post_colon_balanced())
+    return (
+        (first_word( 'fix let') + annotated_vars()) |
+        (let_annotation_prefix() + general_type()) | 
+        (let_annotation_prefix() + (rawtype|rawprop))
+        )
 
+@memo
+def assumption_prefix():
+    """Parser for prefix of assumption.
+    
+    >>> pstream(assumption_prefix(),'We assume that')
+    ((Etok(LIT,lets,'we'), Etok(LIT,assume,'assume')), LexToken(WORD,'that',1,10))
+    """
+    def f(acc):
+        return Etok(name='assumption_prefix',etoks=[],raw=acc)
+    return (
+        lit('lets') + lit('assume') + next_word('that').possibly()
+        )
 
+@memo
+def assumption():
+    """Parser for assumptions in theorems and axioms.
+    There are two varieties:  'We assume that'  or type annotations.
+    
+    >>> pstream(assumption(),'We assume that binder_prop.')
+    Etok(assumption,'we assume that binder_prop .')
+    """
+    def f(acc):
+        ((_,s),_)=acc
+        return Etok(name='assumption',etoks=[s],raw=acc)
+    def f2(acc):
+        (l,_)=acc
+        return l.update({'raw':acc})
+    pre = lit('lets') + lit('assume')
+    pre2 = first_word('let fix')
+    return ((assumption_prefix() + statement() + period).commit(pre).treat(f,'assumption') |
+            (let_annotation() + period).commit(pre2).treat(f2,'assumption')
+        )
+
+@memo    
+def axiom():
+    """Parser for axioms and other statements without proof.
+    
+    We need unambiguous lines between assumptions and claims.
+    'Then' and 'Moreover' always belong to claims.
+    
+    Sentences starting with let, fix, assumption_prefix are assumptions.
+    
+    >>> pstream(axiom(),'Conjecture. We assume that binder_prop.  Then binder_prop.')
+    Etok(axiom,'conjecture . we assume that binder_prop . then binder_prop .')
+    """
+    def f(acc):
+        (((((_,aa),_),s),_),ms) = acc
+        ms = [s for ((_,s),_) in ms]
+        return Etok(name='axiom',etoks=(aa,[s]+ms),raw=acc)
+    return (
+        decl_label('axiom') + assumption().many() +
+        then_prefix() + statement() + period +
+        (next_word('moreover') + statement() + period).many()
+        ).treat(f,'axiom')
+
+@memo
+def theorem():
+    """Parser for theorem and proof.
+    
+    >>> pstream(theorem(),'Theorem 1. affirm_proof')
+    Etok(theorem,'theorem 1 . affirm_proof')
+    """
+    def f(acc):
+        ((_,aa),p)=acc
+        return Etok(name='theorem',etoks=(aa,p),raw=acc)
+    return (decl_label('theorem') + assumption().many() +
+            get_lookup_parse('affirm_proof')).treat(f,'theorem')
+
+@memo
 def nonkey(): #was not_banned
     keyword = [
         'is','be','are','denote','define','enter','namespace','stand',
@@ -2669,125 +2537,173 @@ def nonkey(): #was not_banned
         return not(c.singularize(token.value) in keyword)
     return c.next_type(['VAR','WORD','ATOMIC_IDENTIFIER']).if_test(p)
 
-# deprecated version
-#def args_template():
-#    """Form of arguments to a function declaration"""
-#    def required_arg_template_pat():
-#        return ( 
-#            (c.paren(var_or_atomics() + opt_colon_sort_meta())) |
-#            var_or_atomic()
-#            )
-#    return (brace_noassign().possibly() + required_arg_template_pat().many())
-
+@memo
 def any_controlseq(): #was controlseq
-    return c.next_type(['CONTROLSEQ'])
+    r""" 
+    >>> pstream(any_controlseq(),r'\include')
+    Etok(CONTROLSEQ,\include,'\include')
+    """
+    return c.next_type('CONTROLSEQ').treat(Etok.etok)
 
+@memo
 def controlseq(s): #was the_controlseq
     """Parser for a particular control sequence 's'.
     s includes the backslash."""
     return any_controlseq().if_value(s)
 
-def any_symbol(): # was symbol
-    return c.next_type(['SYMBOL'])
-
-def symbol(s): # was the_symbol
-    return any_symbol().if_value(s)
-
-
-
 # PROOFS
 
-class Proof:
-    """Parser constructors for proof statements"""
+class Proof_step:
+    """Parser constructors for proof steps
+
     
+    Everything in this class is non-recursive in terms of
+    the lookup 'proof_script' 'affirm_proof'
+    """
+    def kill(acc):
+        """Currently proof statements are not being 
+        saved into the AST. Parse then discard."""
+        return Etok(name='proof-step',etoks=[],raw=acc)
+    
+    def canned_prefix():
+        """ 
+        >>> pstream(Proof_step.canned_prefix(),'Of course, it is trivial to see,')
+        Etok(proof-step,'of course , it is trivial to see ,')
+        """
+        # debug need slice [0::2]
+        return (c.plus_andcomma(phrase_list_transition()) +
+                comma.possibly()
+                ).treat(Proof_step.kill,'canned_prefix')
+
     def canned():
-        """parser for canned proof statements"""
+        """parser for canned proof statements
+        >>> pstream(Proof_step.canned(),'The proof is routine')
+        Etok(proof-step,'the proof is routine')
+        
+        >>> pstream(Proof_step.canned(),'The corollary follows')
+        Etok(proof-step,'the corollary follow')
+        """
         return (next_phrase("we proceed as follows") |
                 (next_word('the') + 
                  first_word('result lemma theorem proposition corollary') +
                  next_word('now').possibly() +
                  next_word('follows')) |
                 next_phrase('the other cases are similar') |
-                (next_phrase('the proof is')+ first_word('obvious trivial easy routine'))).nil().expect('canned')
-
-    def then_prefix():
-        return lit('then').possibly()
-    
-    def assumption():
-        assumption_prefix = lit('lets')+ lit('assume') + next_word('that').possibly()
-        return ((assumption_prefix + c.balanced() + period) |
-                let_annotation() + period)
-    
-    def possibly_assumption():
-        return (Proof.assumption().many() + Proof.then_prefix())
-    
-    def axiom_preamble():
-        return lit('axiom')+ atomic().possibly() + period
-    
-    def moreover_statement():
-        return next_word('moreover') + c.balanced() + period
-    
-    def axiom():
-        return Proof.axiom_preamble() + Proof.possibly_assumption() + c.balanced() + period + Proof.moreover_statement.many()
+                (next_phrase('the proof is')+ first_word('obvious trivial easy routine'))).treat(Proof_step.kill,'canned')
     
     def ref_item():
-        # debug need slice [0::2]
-        return c.plus_andcomma(lit('location').possibly() + atomic())
+        """
+        >>> pstream(Proof_step.ref_item(),'theorem 33')
+        Etok(proof-step,'theorem 33')
+        """
+        return c.plus_andcomma(read_keyword('location').possibly() + atomic()).treat(Proof_step.kill,'ref_item')
     
     def by_ref():
-        return c.paren(next_word('by') + Proof.ref_item()).possibly()
+        """ 
+        >>> pstream(Proof_step.by_ref(),'(by Theorem 1)')
+        Etok(proof-step,'( by theorem 1 )')
+        """
+        return c.paren(next_word('by') + Proof_step.ref_item()).possibly().treat(Proof_step.kill,'by_ref')
     
     def by_method():
-        def no_that(tok):
-            return tok.value == 'that' # exclude avoids goal_prefix ambig.
+        """
+        menhir/ocaml doc describes an ambiguity here.
+        I'm hoping it goes away now that plain_term is implemented.'
+        
+        >>> pstream(Proof_step.by_method(),'by induction on tdop_term. ')
+        Etok(proof-step,'by induction on tdop_term')
+        """
         return (next_word('by') + 
-                 (first_phrase(['contradiction','case analysis']) |
-                  (next_word('induction') + 
-                   (next_word('on') + c.balanced_condition(no_that)).possibly())) +
-                 Parse.probe(next_word('that')| period))
+                (first_phrase(['contradiction','case analysis']) |
+                (next_word('induction') + 
+                 (next_word('on') + plain_term()).possibly()) +
+                (next_word('that')| period).probe()).name('post_by_method')
+                ).treat(Proof_step.kill,'by_method')
     
     def choose_prefix():
-        return Proof.then_prefix() + lit('lets').possibly() + lit('choose')
-    
-    def canned_prefix():
-        # debug need slice [0::2]
-        return c.plus_andcomma(phrase_list_transition())
-    
-    def goal_prefix():
-        return ((lit('lets').possibly() + lit('prove') + next_word('that')) |
-                   (Proof.by_method() + next_word('that')).possibly())
-    
-    def preamble():
-        return ((next_word('proof') + Proof.by_method().possibly() + period) |
-                      next_word('indeed'))
-    
-    def affirm():
-        return Proof.statement() | Proof.goal()
-    
-    def statement():
-        return Proof.then_prefix() + c.balanced() + Proof.by_ref() + period + Proof.moreover_statement.many() + Proof.script.possibly()
-    
-    def goal():
-        return Proof.goal_prefix + c.balanced() + Proof.by_ref() + period + Proof.script()
+        """ 
+        >>> pstream(Proof_step.choose_prefix(),'We choose')
+        Etok(proof-step,'we choose')
+        """
+        return (then_prefix() + lit('lets').possibly() + lit('choose')).treat(Proof_step.kill,'choose_prefix')
 
-    def script():
-        return (Proof.preamble + (Proof.canned_prefix() + Proof.body() + Proof.canned_prefix + Proof.tail).many() + lit('qed') + period)
-    
-    def body():
-        return (Proof.tail() |  Proof.assumption())
-    
-    def tail():
-        return (Proof.affirm() | Proof.canned() | Proof.case() | Proof.choose())
-    
-    def case():
-        return (next_word('case') + c.balanced() + period + Proof.choose_justify())
+    def opt_proof():
+        return get_lookup_parse('proof_script').possibly().treat(Proof_step.kill,'opt_proof')
     
     def choose():
-        return (Proof.choose_prefix + c.balanced() + period + Proof.justify())
+        """ 
+        >>> pstream(Proof_step.choose(),'We choose x and y.')
+        Etok(proof-step,'we choose x and y .')
+        """
+        return (Proof_step.choose_prefix() + c.plus_andcomma(pseudoterm()) + 
+                Proof_step.by_ref() + period + 
+                Proof_step.opt_proof()
+                ).treat(Proof_step.kill,'choose')
     
-    def justify():
-        return (Proof.script().possibly())
+    def proof_preamble():
+        """ 
+        >>> pstream(Proof_step.proof_preamble(),'Proof by contradiction.')
+        Etok(proof-step,'proof by contradiction .')
+        """
+        return (
+            (next_word('proof') + Proof_step.by_method().possibly() + period) |
+            next_word('indeed')
+            ).treat(Proof_step.kill,'proof_preamble')
+  
+    def goal_prefix():
+        """ 
+        >>> pstream(Proof_step.goal_prefix(),'We prove that ...')
+        Etok(proof-step,'we prove that')
+        """
+        return ((lit('lets').possibly() + lit('prove') + next_word('that')) |
+                   (Proof_step.by_method() + next_word('that')).possibly()
+                   ).treat(Proof_step.kill,'goal_prefix')
 
+    def goal_proof():
+        """ 
+        >>> pstream(Proof_step.goal_proof(),'We prove that head_statement (by theorem 3). proof_script ...')
+        Etok(proof-step,'we prove that head_statement ( by theorem 3 ) . proof_script')
+        """
+        return (Proof_step.goal_prefix() + statement() + Proof_step.by_ref() + period +
+                get_lookup_parse('proof_script')
+                ).treat(Proof_step.kill,'goal_proof')
+    
+    def statement_proof():
+        return (then_prefix() + statement() + Parse.by_ref() + period +
+                (next_word('moreover') + statement() + Parse.by_ref() + period).many()
+                ).treat(Proof_step.kill,'statement_proof')
+
+    def case():
+        """ 
+        >>> pstream(Proof_step.case(),'Case head_statement.')
+        Etok(proof-step,'case head_statement .')
+        """
+        return (next_word('case') + statement() + period + Proof_step.opt_proof()
+                ).treat(Proof_step.kill,'case')
+
+    def proof_body():
+        """Forthel prohibits the last proof-body in a proof
+        from being an assumption.  We do not prohibit this.
+        """
+        return (
+                assumption() |
+                Proof_step.canned() |
+                Proof_step.case() | 
+                Proof_step.choose() |
+                get_lookup_parse('affirm_proof')
+                ).treat(Proof_step.kill,'proof_body')
+
+@memo
+def affirm_proof():
+    return (c.lazy_call(Proof_step.statement_proof) |
+            c.lazy_call(Proof_step.goal_proof))
+
+@memo
+def proof_script():
+    return (Proof_step.proof_preamble() + 
+            c.lazy_call(Proof_step.proof_body).plus() +
+            lit('qed') + period
+            )
 
 # patterns 
 
@@ -2802,70 +2718,126 @@ pattern_key = ["is","be","are","denote","define"
 class Pattern:
     """Parser generators for patterns"""
     
-    def _nonkey():
-        """Parser for any word except for keywords.  
-        The token must be a WORD."""
-        def not_key(s):
-            return not (lexer.singularize(s.lower()) in pattern_key)
-        def p(tok):
-            return tok.type == 'WORD' and not_key(tok.value)
-        return next_word().if_test(p)
+    def word_nonkey():
+        """Parser for any WORD token except for keywords.""" 
+        return c.next_any_word_except(pattern_key).treat(Etok.etok).name('word_nonkey')
     
-    def _nonkey_extended():
-        """parser for 'word (or word) (paren stuff)'.
-        (or word) gives a synonym as a parenthetical within
-        a word pattern.  Side effect is a new global synonym."""
-        p = ((Pattern._nonkey() + 
-             c.paren((next_word('or') + Pattern._nonkey()).treat(lib.snd).plus()).possibly()) +
-             c.paren(Pattern._nonkey().plus()).many())
-        def f(item):
-            item1 = p.process(item)
-            ((a,bs),cs) = item1.acc
-            vals = [a.value]+ [i.value for i in bs]
-            c.synonym_add(vals)
-            return c.update((a,cs),item1)
-        return Parse(f)
+    def word_extended():
+        """parser for 'word (or word) (word pattern)'.
+        words cannote be key words 
+        (or word) gives a synonym as a parenthetical.
+        (word pattern) is an optional recursive word pattern.
+        
+        >>> pstream(Pattern.word_extended(),'unsupported (or empty) (word_pattern)')
+        Etok(word_extended,'unsupported ( or empty ) ( word_pattern )')
+        """
+        def f(acc):
+            ((w,o),wp)=acc
+            if o:
+                (_,(_,o),_)=o
+            wp = (w for (_,w,_) in wp)
+            return Etok('word_extended',etoks=(w,o,wp),raw=acc)
+        return (Pattern.word_nonkey() + 
+                    c.paren(next_word('or') + Pattern.word_nonkey()).possibly() +
+                    c.paren(get_lookup_parse('word_pattern')).many()
+                    ).treat(f,'word_extended')
+    
+    def words_extended():
+        return Pattern.word_extended().plus()
     
     def _var():
-        """parser for a variable appearing in a pattern"""
+        """parser for a variable appearing in a pattern
+        
+        >>> pstream(Pattern._var(),'x')
+        Etok(VAR,x,'x')
+        """
         return var() | c.paren(var() + opt_colon_sort)
     
-    def _nonkey_words():
-        return Pattern._nonkey_extended().plus()
-    
     def word_pattern():
-        """Parser for a word pattern, consisting of variables, 
-        words, and pattern parentheticals"""
-        return Pattern._nonkey_words() + (Pattern._var() + Pattern._unkey_words()).many() + Pattern._var().possibly()
+        """Parser for an (extended) word pattern, 
+        starting with an (extended) word.
+        
+        Extended words appear in even positions and
+        variables appear in odd positions.
+        
+        >>> pstream(Pattern.word_pattern(),'integrable with respect to x')
+        Etok(word_pattern,'integrable with respect to x')
+        """
+        def f(acc):
+            ((w,vws),v)=acc
+            vws = [w]+vws
+            if v:
+                vws = vws + [v]
+            return Etok('word_pattern',etoks=vws,raw=acc)
+        return (Pattern.words_extended() + 
+                (Pattern._var() + Pattern.words_extended()).many() + 
+                Pattern._var().possibly()).treat(f,'word_pattern')
         
     def type_word_pattern():
-        return lit('a').possibly() + Pattern.word_pattern()
+        def f(acc):
+            (_,wp)=acc
+            return wp
+        return (lit('a').possibly() + Pattern.word_pattern()).treat(f,'type_word_pattern')
     
     def function_word_pattern():
-        return next_word('the') + Pattern.word_pattern()
+        def f(acc):
+            (_,wp)=acc
+            return wp
+        return (next_word('the') + Pattern.word_pattern()).treat(f,'function_word_pattern')
     
     def notion_pattern(): 
-        return Pattern._var() + next_word('is') + lit('a') + Pattern.word_pattern()
+        def f(acc):
+            (((v,_),_),wp)=acc
+            return Etok('notion_pattern',etoks=(v,wp),raw=acc)
+        return (Pattern._var() + next_word('is') + lit('a') + 
+                Pattern.word_pattern()
+                ).treat(f,'notion_pattern')
     
     def adjective_pattern():
-        return Pattern._var() + next_word('is') + next_word('called').possibly() + Pattern.word_pattern()
+        def f(acc):
+            (((v,_),_),wp)=acc
+            return Etok('adjective_pattern',etoks=(v,wp),raw=acc)
+        return (Pattern._var() + next_word('is') + 
+                next_word('called').possibly() + 
+                Pattern.word_pattern()
+                ).treat(f,'adjective_pattern')
     
     def var_multisubsect_pattern():
+        """
+        Debug: The variables in a multisubject must have the same type.
+        """
+        def f1(acc):
+            ((v1,_),v2)=acc
+            return Etok(name='var_multisubject_pattern',etoks=(v1,v2,None),raw=acc)
+        def f2(acc):
+            (_,(((v1,_),v2),o),_)=acc
+            return Etok(name='var_multisubject_pattern',etoks=(v1,v2,o),raw=acc)
         return (
-        (Pattern._var() + next_value(',') + Pattern._var()) |
-        c.paren(Pattern._var() + next_value(',') + Pattern._var() + opt_colon_type_meta())
-        )
+            (Pattern._var() + comma + 
+                 Pattern._var()).treat(f1,'var_multisubject_pattern') |
+            c.paren(Pattern._var() + comma + Pattern._var() + 
+                opt_colon_type()).treat(f2,'var_multisubject_pattern')
+            )   
     
     def adjective_multisubject_pattern():
+        def f(acc):
+            (((v,_),_),w)=acc
+            return Etok('adjective_multisubject_pattern',etoks=(v,w),raw=acc)
         return (
-        Pattern.var_multisubsect_pattern() + next_word('are') + next_word('called').possibly() + Pattern.word_pattern()
-        )
+            Pattern.var_multisubsect_pattern() + next_word('are') + 
+            next_word('called').possibly() + Pattern.word_pattern()
+            ).treat(f,'adjective_multisubject_pattern')
         
     def verb_pattern(): 
-        return  Pattern._var() + Pattern.word_pattern()
+        def f(acc):
+            return Etok('verb_pattern',etoks=acc,raw=acc)
+        return  (Pattern._var() + Pattern.word_pattern()).treat(f,'verb_pattern')
         
     def verb_multisubject_pattern():
-        return (Pattern.var_multisubsect_pattern() + Pattern.word_pattern())
+        def f(acc):
+            return Etok('verb_multisubject_pattern',etoks=acc,raw=acc)
+        return (Pattern.var_multisubsect_pattern() + 
+                Pattern.word_pattern()).treat(f,'verb_multisubject_pattern')
         
     def predicate_word_pattern():
         return (
@@ -2874,139 +2846,505 @@ class Pattern:
             Pattern.adjective_multisubject_pattern() |
             Pattern.verb_pattern() |
             Pattern.verb_multisubject_pattern()
-            )
+            ).name('predicate_word_pattern')
     
     def controlseq_pattern():
-        return any_controlseq() + c.brace(Pattern._var()).many()
+        r""" 
+        >>> pstream(Pattern.controlseq_pattern(),r'\tie {x} {y} [z]')
+        Etok(controlseq_pattern,'\tie { x } { y }')
+        """
+        def f(acc):
+            (a,vs)=acc 
+            vs = [v for (_,v,_) in vs]
+            return Etok('controlseq_pattern',etoks=(a,vs),raw=acc)
+        return (
+            any_controlseq() + c.brace(Pattern._var()).many()
+            ).treat(f,'controlseq_pattern')
     
     def binary_controlseq_pattern():
-        return Pattern._var() + Pattern.controlseq_pattern() + Pattern._var()
+        def f(acc):
+            ((v,c),v2)=acc
+            return Etok('binary_controlseq_pattern',etoks=(v,c,v2),raw=acc)
+        return (
+            Pattern._var() + Pattern.controlseq_pattern() + Pattern._var()
+            ).treat(f,'binary_controlseq_pattern')
     
+    def identifier_pattern():
+        def f(acc):
+            return Etok('identifier_pattern',etoks=acc,raw=acc)
+        return (
+            (identifier() + args_template()) |
+            (c.next_type('BLANK').treat(Etok.etok) + args_template())
+            ).treat(f)
   
     def precedence_level(): #was paren_precedence_level
         """parser for the precedence level.
+        output: (INTEGER,ASSOC), where ASSOC in ['left','right','no'].
+        integer conversion is not performed.
         
-        sample input:
-            'with precedence 10 and left associativity'
-        output: (integer,assoc), where assoc in ['left','right','no']."""
-
-        def _precedence_level():
-            def f(raw):
-                ((_,i),pos) = raw
-                if len(pos)== 0:
-                    l = 'no'
-                else:
-                    l = pos[0][0][1]
-                return (int(i),l)
-            return (
-                (next_phrase('with precedence') + c.next_type('INTEGER')) +
-                (next_word('and') + lit('assoc') + next_word('associtivity')).possibly()
+        >>> pstream(Pattern.precedence_level(),'with precedence 10 and left associativity ...')
+        Etok(precedence_level,'with precedence 10 and left associativity')
+        """
+        def f(acc):
+            ((_,i),a)=acc 
+            if a:
+                ((_,a),_)=a
+            return Etok('precedence_level',etoks=(i,a),raw=acc)
+        return opt_paren(
+                (next_phrase('with precedence') + c.next_type('INTEGER').treat(Etok.etok)) +
+                (next_word('and') + read_keyword('assoc').treat(Etok.etok) + next_word('associativity')).possibly()
                 ).treat(f,'precedence_level')
 
-        return Pattern._precedence_level() | c.paren(Pattern._precedence_level())
+    def get_precedence_level(e):
+        """helper function that computes the precedence of Etok e
+        as integer,assoc"""
+        (i,a)=e.etoks
+        i = int(i)
+        if not(a):
+            return (i,'no')
+        return (i,c.getvalue(a))
+        
+    def any_symbol(): # was symbol
+        return (
+            c.next_type('SYMBOL').treat(Etok.etok) |
+            Pattern.controlseq_pattern()
+            )
 
+    def symbol(s): # was the_symbol
+        return c.next_type('SYMBOL').treat(Etok.etok).if_value(s)
 
     def symbol_pattern():
+        """Parser for general symbol pattern. Alternating S/V.
+        At least one symbol appears, but possibly no variables.
+        
+        V? S (VS)* V?   where   V=var, S=symbol.
+        
+        The symbols can occupy either even or add positions.
+
+        >>> pstream(Pattern.symbol_pattern(),'x ## y ## z')
+        Etok(symbol_pattern,'x ## y ## z')
+ 
+        >>> pstream(Pattern.symbol_pattern(),'x ## y ## z with precedence 5')
+        Etok(symbol_pattern,'x ## y ## z with precedence 5')
+        """
+        def f(acc):
+            ((((v1,s1),vs),v2),p)=acc 
+            vs = [s1]+vs
+            if v1:
+                vs = [v1]+vs
+            if v2:
+                vs = vs + [v2]
+            return Etok('symbol_pattern',etoks=(vs,p),raw=acc)
         return (
-            Pattern._var().possibly() + symbol() +
-            (Pattern._var() + symbol()).many() + 
+            Pattern._var().possibly() + Pattern.any_symbol() +
+            (Pattern._var() + Pattern.any_symbol()).many() + 
             Pattern._var().possibly() + Pattern.precedence_level().possibly()
-            )
+            ).treat(f,'symbol_pattern')
     
     def binary_symbol_pattern():
         """Parser for binary symbol pattern.
         
-        Sample inputs:
-            x ^^ y with precedence 10 and right associativity
-            x ## y"""
+        VSV (V=var, S=symbol)
+        
+        Special case of symbol_pattern.
+            
+        >>> pstream(Pattern.binary_symbol_pattern(),'x ^^ y with precedence 10 and right associativity')    
+        Etok(binary_symbol_pattern,'x ^^ y with precedence 10 and right associativity')
+        
+        >>> pstream(Pattern.binary_symbol_pattern(),'x ## y')
+        Etok(binary_symbol_pattern,'x ## y')
+        """
+        def f(acc):
+            ((v,s),v2)=acc
+            return Etok('binary_symbol_pattern',etoks=(v,s,v2),raw=acc)            
         return (
-            Pattern._var() + symbol() + Pattern._var() +
+            Pattern._var() + Pattern.any_symbol() + Pattern._var() +
             Pattern.precedence_level().possibly()
-            )
+            ).treat(f,'binary_symbol_pattern')
     
 
 class Macro:
     
-    def insection():
+    def in_section():
         """Parser for in-section scoping.
         
-        Sample inputs:
-            In this section,
-            In this document 
+        >>> pstream(Macro.in_section(),'In this section,')
+        Etok(in_section,'in this section ,')
+        
         Output:
-            a single token whose value is the location keyword.
+            Etok whose value is the location keyword.
         """
-        prs = (next_phrase('in this') + lit('document')) + comma.possibly()
-        def tr(acc):
-            return acc[0][1]
-        return prs.treat(tr,'insection')
+        def f(acc):
+            ((_,d),_)=acc
+            return Etok(name='in_section',etoks=[d],raw=acc)
+        return (next_phrase('in this') + read_keyword('doc') + 
+                comma.possibly()).treat(f,'in_section')
         
-    def we_record_def():
-        """Parser for registered facts.
-        
-        XX not finished. We need to reparse the balanced tokens
-        """
-        def p(tok):
-            return (tok.value not in [',','.',';'])
-        return lit('we-record') + c.balanced_condition(p)
-            
+    #def we_record_def_deprecated():
+    #    """Parser for registered facts.
+           
     def copula():
         """Parser for copula in macro declarations.
+        
+        >>> pstream(Macro.copula(),'is defined as')
+        Etok(copula,'is defined as')
         """
+        def f(acc):
+            return Etok('copula',etoks=[],raw=acc)
         return (
-            (lit('is') + lit('defined-as').possibly()) |
+            (lit('is') + lit('defined_as').possibly()) |
             (next_value(':=')) |
             (lit('denote'))
-            )
+            ).treat(f,'copula')
                
     def function_copula():
+        """Parser for function_copula with possible type annotation
+        
+        >>> pstream(Macro.function_copula(),': post_colon_type := ...')
+        Etok(function_copula,': post_colon_type :=')
+        """
+        def f2(acc):
+            (o,_)=acc 
+            return Etok(name='function_copula',etoks=[o],raw=acc)
         return (
             Macro.copula() |
-            opt_colon_type() + next_value(':=')
+            (opt_colon_type() + next_value(':=')).treat(f2,'function_copula')
             )
 
     def iff_junction():
         return lit('iff')
     
     def opt_say():
+        """ 
+        >>> pstream(Macro.opt_say(),'We say')
+        Etok(LIT,we-say,'we say')        
+        """
         return lit('we-say').possibly()
     
-    def opt_record():
-        return lit('we-record').possibly()
+    #def opt_record_deprecated():
+    #    return lit('we-record').possibly()
     
     def opt_define():
+        """ 
+        >>> pstream(Macro.opt_define(),'Let us define ...')
+        Etok(opt_define,'let us define')
+        """
+        def f(acc):
+            return Etok('opt_define',etoks=[],raw=acc)
         return (
-            (lit('lets') + next_word('define').possibly()) |
-            Macro.opt_record()
-            )
+            (lit('lets') + next_word('define').possibly()) # |
+            #Macro.opt_record()
+            ).treat(f,'opt_define')
     
-    def macro_inferring():
-        return c.paren(next_word_inferring() + var().plus() + opt_colon_sort_meta())
+    #def macro_inferring():
+    #¯    return c.paren(next_word_inferring() + var().plus() + opt_colon_sort_meta())
     
     def classifier_word_pattern():  # was classifier_words
-        # debug need slice [0::2]
-        return c.plus_andcomma(c.next_any_word_except(['is','are','be']).plus())
+        def f(acc):
+            return Etok(name='classifier_word_pattern',etoks=acc[0::2],raw=acc)
+        return (
+            c.plus_andcomma(c.next_any_word_except(['is','are','be']).treat(Etok.etok))
+            ).treat(f,'classifier_word_pattern')
     
     def classifier_def():
+        """Parser for defining classifiers.
+        
+        >>> pstream(Macro.classifier_def(),'Let function, symbol, object be classifiers.')
+        Etok(classifier_def,'let function , symbol , object be classifier')
+        """
+        def f(acc):
+            ((((_,ws),_),_),_)=acc 
+            return Etok(name='classifier_def',etoks=ws,raw=acc)
         return (
-            next_word('let') + Pattern.classifier_word_pattern() +
+            next_word('let') + Macro.classifier_word_pattern() +
             lit('is') + lit('a').possibly() + next_word('classifier')
+            ).treat(f,'classifier_def')
+        
+    def type_head():
+        """ 
+        Parser for the LHS pattern of a type def.
+        
+        The symbol pattern has fixed precedence, right assoc
+        """
+        return (
+            Pattern.symbol_pattern() |
+            Pattern.type_word_pattern() |
+            Pattern.identifier_pattern() |
+            Pattern.controlseq_pattern()
             )
     
-    def symbol_type_pattern():
-        return Pattern.symbol_pattern()
+    def type_def():
+        """ 
+        Parser for a type definition.
+        
+        >>> pstream(Macro.type_def(),'We define x ## y : Type to be tightest_type')
+        Etok(type_def,'we define x ## y : type to be tightest_type')
+        
+        >>> pstream(Macro.type_def(),'We define x ## y to be the type tightest_type')
+        Etok(type_def,'we define x ## y to be the type tightest_type')
+        """
+        def f1(acc):
+            ((((((_,h),_),_),_),_),t)=acc
+            return Etok('type_def',etoks=(h,t),raw=acc)
+        def f2(acc):
+            ((((_,h),_),_),t)=acc
+            return Etok('type_def',etoks=(h,t),raw=acc)            
+        """Parser for a type definition"""
+        return (
+            (Macro.opt_define() + Macro.type_head() + colon + rawtype +
+            Macro.copula() + lit('a').possibly() + general_type()).treat(f1,'type_def') |
+            (Macro.opt_define() + Macro.type_head() + Macro.copula() + 
+             c.next_phrase('the type') + general_type()).treat(f2,'type_def')
+            )
     
-    def identifier_pattern():
-        ##XX
-        return (lit('a') + identifier().if_test(p)) | next_value('_')
+    def function_head():
+        """ 
+        Parser for the LHS pattern of a function def.
+        
+        """
+        return (
+            Pattern.function_word_pattern() |
+            Pattern.symbol_pattern() |
+            Pattern.identifier_pattern()
+            )
+
+    def function_def():
+        """ 
+        Parser for function definitions.
+        
+        >>> pstream(Macro.function_def(),'We define x ## y := where_term')
+        Etok(function_def,'we define x ## y := where_term')
+        """
+        def f(acc):
+            #return acc
+            ((((((_,h),_),_),_),p))=acc 
+            return Etok('function_def',etoks=(h,p),raw=acc)
+        return (
+            Macro.opt_define() + Macro.function_head() + 
+            Macro.function_copula() + lit('equal').possibly() +
+            next_word('the').possibly() + plain_term()
+            ).treat(f,'function_def')
     
-    #def 
+    def predicate_head():
+        """Parser for the LHS pattern of a predicate def"""
+        return (
+            Pattern.identifier_pattern() | #before word pattern 
+            Pattern.word_pattern() |
+            Pattern.symbol_pattern()
+            )
+    
+    def predicate_def():
+        """Parser for predicate definitions
+        
+        >>> pstream(Macro.predicate_def(),'We write x >> y iff head_statement')
+        Etok(predicate_def,'we write x >> y iff head_statement')
+        """
+        def f(acc):
+            (((_,h),_),s)=acc 
+            return Etok('predicate_def',etoks=(h,s),raw=acc)
+        return (
+            Macro.opt_say() + Macro.predicate_head() +
+            Macro.iff_junction() + statement()
+            ).treat(f,'predicate_def')
+    
+    def binder_def():
+        """Parser for definition of new binders (quantifiers)
+        
+        >>> pstream(Macro.binder_def(),'Let the binder ## (x : post_colon_type), P denote head_statement ')
+        Etok(binder_def,'let the binder ## ( x : post_colon_type ) , P denote head_statement')
+        """
+        def f(acc):
+            ((((((_,s),(_,(v,t),_)),_),v2),_),p)=acc 
+            return Etok('binder_def',etoks=(s,v,t,v2,p),raw=acc)
+        return (
+            next_phrase('let the binder') + Pattern.any_symbol() +
+            c.paren(var() + opt_colon_type()) +
+            comma + var() + 
+            lit('denote') + statement()
+            ).treat(f,'binder_def')
+
+    def definition_statement():
+        """Parser for classifier, type, function, predicate defs
+        """
+        return (
+            Macro.classifier_def() |
+            Macro.type_def() |
+            Macro.function_def() |
+            Macro.predicate_def()
+             )
+     
+    def definition_affirm():
+        """Definition + period"""
+        def f(acc):
+            (d,_)=acc
+            return d.update({'raw':acc})
+        return (Macro.definition_statement() + period).treat(f,'definition_affirm')
+    
+    def definition_label():
+        """ 
+        >>> pstream (Macro.definition_label(),'Definition XX.')
+        Etok(ATOMIC,XX,'definition XX .')
+        """
+        def f(acc):
+            ((_,l),_) = acc 
+            return l.update({'raw':acc})
+        return (lit('def') + label().possibly() + period).treat(f,'definition_label')
+
+    def definition():
+        """ 
+        Main parser for definitions.
+        
+
+        Disambiguation:
+        predicates use iff_junction.
+        identifier patterns start with an identifier.
+        predicate word patterns contains words
+        binary symbol patterns contain start with tvar then a symbol.
+      
+        Functions use the copula.
+        word patterns starts with LIT_THE word ...
+        symbol patterns contain a symbol or CONTROLSEQ.
+        identifier patterns start with an identifier.
+      
+        Types use the copula.
+        type_def from function_def distinguished by COLON ID_TYPE
+        before the copula. 
+
+        
+        >>> pstream(Macro.definition(),'Definition XX.  We say x >> y iff head_statement.')
+        Etok(definition,'definition XX . we say x >> y iff head_statement .')
+        """
+        def f(acc):
+            ((p,a),d)=acc
+            return Etok('definition',etoks=(p,a,d),raw=acc)
+        return (
+            Macro.definition_label() + assumption().many() +
+            Macro.definition_affirm()
+            ).treat(f,'definition')
+    
+    def macro_body():
+        """Parser for macro classifier, type, function def, 
+        let annotation, etc."""
+        return (
+            Macro.classifier_def() |
+            Macro.type_def() |
+            Macro.function_def() |
+            Macro.predicate_def() |
+            let_annotation() |
+            Macro.binder_def() 
+            # record_def 
+            # enter_namespace
+            )
+        
+    
+    def macro():
+        """A macros are like definitions, but they
+        can have local scope, they can be chained,
+        they include binder defs and let annotations,
+        and they does not have a label.
+        
+        >>> pstream(Macro.macro(),'In this section, we write x << y iff head_statement.')
+        Etok(macro,'in this section , we write x << y iff head_statement .')
+        """
+        sep = semicolon + next_word('and').possibly()
+        def f(acc):
+            ((s,b),_)=acc
+            return Etok('macro',etoks=(s,b[0::2]),raw=acc)
+        return (
+            Macro.in_section().possibly() +
+            Macro.macro_body().plus(sep) + period 
+            ).treat(f,'macro')
+
+@memo    
+def declaration():
+    """Parser for axiom, definition, or theorem
+    """
+    return (
+        theorem() |
+        axiom() |
+        Macro.definition()
+        )
+
+@memo
+def text_item():
+    """A text item is a major block of texts
+    in a document.
+    Every item must end with a period or be an
+    instruction in [].
+    """
+    return (
+        section_label() |
+        namespace() | 
+        Instruction.instruction() |
+        synonym_item() | 
+        declaration() |
+        Macro.macro() |
+        inductive_decl() |
+        mutual_inductive_decl_item() |
+        mutual_inductive_def_item() |
+        satisfy_item()
+        )
+
+@memo
+def text():
+    """Parse a sequence of text_item
+    
+    Normally, we work at the level of text_items,
+    processing each in turn, before moving to the next.
+    The text Parser skips the processing.
+    
+    """
+    return text_item().many() + lit('done').possibly()
+
+@memo
+def program_text():
+    return text() + Parse.finished()
 
 
+# initialize lookup tables
 
+def _add_prim1():
+    def equal():
+        return next_value('=').treat(Etok.etok)
+    add_lookup_parse('prim_binary_relation_op',equal())
     
-    
-    
+    def bool():
+        return (rawtrue | rawfalse)
+    add_lookup_parse('prim_relation', bool().name('prim_relation','True-False'))
+    pass
+
+_add_prim1()
+
+lookup = {
+    'affirm_proof':affirm_proof,
+    'alt_term': alt_term,
+    'binder_prop': binder_prop,
+    'delimited_term':delimited_term,
+    'does_pred':does_pred,
+    'general_type':general_type,
+    'head_statement':head_statement,
+    'is_pred':is_pred,
+    'opentail_term':opentail_term,
+    'plain_term':plain_term,
+    'post_colon_type':post_colon_type,
+    'proof_script':proof_script,
+    'prop':prop,
+    'pseudoterm':pseudoterm,
+    'sort_expr':sort_expr,
+    'statement':statement,
+    'tdop_term':tdop_term,
+    'term':term,
+    'tightest_expr':tightest_expr,
+    'word_pattern':Pattern.word_pattern,
+    }
+
+def _init_lookup_parse():
+    for s in {}:
+        add_lookup_parse(s,c.lazy_call(lookup[s]))
+
+_init_lookup_parse()
+
+
 
 if __name__ == "__main__":
     import doctest

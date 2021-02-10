@@ -188,7 +188,9 @@ lit_with_properties : LIT_WITH lit_property {}
 lit_declare_mutual : 
 option(LIT_WE) LIT_DECLARE LIT_MUTUAL LIT_INDUCTIVE {}
 
-lit_declare_mutual_inductive_type :
+(* rename inductive_type -> inductive_decl 2/8/2021 *)
+
+lit_declare_mutual_inductive_decl :
 lit_declare_mutual lit_type {}
 
 lit_declare_mutual_inductive_def :
@@ -357,7 +359,7 @@ prim_relation :
 
 (* sections test:Sections *)
 
-section_preamble : section_tag option(label) PERIOD {}
+section_label : section_tag option(label) PERIOD {}
   section_tag : 
   | lit_document
   | lit_enddocument {}
@@ -540,8 +542,8 @@ tightest_type :
 | const_type
 | var_type
 | subtype
-| inductive_type
-(* moved to text_item : mutual_inductive_type *)
+(* | inductive_decl : move to text_item *)
+(* moved to text_item : mutual_inductive_decl *)
 | structure (* declaration *)
 | field_type 
 {()}
@@ -639,23 +641,6 @@ opt_colon_type : option(colon_type) {}
 
 
 
-(** inductive types *)
-
-inductive_type : LIT_INDUCTIVE identifier args_template 
-  opt_colon_sort list(opt_alt_constructor) LIT_END {()}
-
-  opt_alt_constructor : ALT identifier args_template opt_colon_type {}
-
-
-(* 11/25/2019. Break mutual inductive into separate inductive types.
-mutual_inductive_type : LIT_INDUCTIVE
-  comma_nonempty_list(identifier) args_template 
-  list(LIT_WITH identifier args_template opt_colon_type
-       list(alt_constructor) {}) 
-  LIT_END
-  {()}
-*)
-  (*  alt_constructor : ALT identifier args_template colon_type {} *)
 
 (** structure *)
 
@@ -1083,27 +1068,33 @@ primary_statement :
 text : list(text_item) {}
 
 text_item : 
- | section_preamble
+ | section_label
+ | namespace
  | instruction
+ | synonym_item 
  | declaration
  | macro
- | misc_text_item 
-     {}
 
-misc_text_item : 
- | synonym_item 
- | mutual_inductive_type_item 
+ | mutual_inductive_decl_item 
  | mutual_inductive_def_item 
+ | inductive_decl
  | moreover_implements
- | namespace
+
      {}
 
 synonym_item :
      option(LIT_WE) option(LIT_INTRODUCE) LIT_SYNONYMS 
        separated_nonempty_list(instruct_sep,nonempty_list(WORD)) PERIOD {}
 
-mutual_inductive_type_item :
-       lit_declare_mutual_inductive_type
+(** inductive types *)
+
+inductive_decl : LIT_INDUCTIVE identifier args_template 
+  opt_colon_sort list(opt_alt_constructor) LIT_END {()}
+
+  opt_alt_constructor : ALT identifier args_template opt_colon_type {}
+
+mutual_inductive_decl_item :
+       lit_declare_mutual_inductive_decl
          comma_nonempty_list(atomic) 
          option(lit_param args_template {})
 	 PERIOD
@@ -1115,6 +1106,16 @@ mutual_inductive_def_item :
          option(lit_param args_template {})
 	 PERIOD
          {}
+
+(* 11/25/2019. Break mutual inductive into separate inductive types.
+mutual_inductive_decl : LIT_INDUCTIVE
+  comma_nonempty_list(identifier) args_template 
+  list(LIT_WITH identifier args_template opt_colon_type
+       list(alt_constructor) {}) 
+  LIT_END
+  {()}
+*)
+  (*  alt_constructor : ALT identifier args_template colon_type {} *)
 
 (* deprecate *)
 moreover_implements : 
@@ -1130,16 +1131,17 @@ fiat : NOT_IMPLEMENTED {}
 declaration : axiom | definition | theorem | fiat {}
 
 (** axiom *)
-axiom : axiom_preamble list(assumption) 
+axiom : axiom_label list(assumption) 
   then_prefix statement PERIOD 
   list(LIT_MOREOVER statement PERIOD {})
   {}
 
-  axiom_preamble : lit_axiom option(label) PERIOD {}
+  axiom_label : lit_axiom option(label) PERIOD {}
 
   assumption :
   | assumption_prefix statement PERIOD
   | let_annotation PERIOD {}
+
   assumption_prefix : 
 (*  | LIT_LET. Remove ambiguity with statement starting with let_term. *)
   | lit_lets lit_assume option(LIT_THAT) {}
@@ -1147,9 +1149,35 @@ axiom : axiom_preamble list(assumption)
   then_prefix : option(lit_then) {}
 
 
+  (* if LIT_FIX is used in let_annotation, it plays the role of a Lean
+     parameter, so that it inserted as an implicit parameter in every
+     macro where the variable appears on the right-hand side but not
+     the left.
+
+     If LIT_LET is used, the type information is associated with the
+     variable wherever it is used, but there is no automatic insertion. 
+
+  *)
+
+  let_annotation_prefix :
+  LIT_LET comma_nonempty_list(VAR) LIT_BE option(lit_a) option(LIT_FIXED) {}
+
+  let_annotation : 
+  | lit_fix comma_nonempty_list(annotated_vars) {}
+  | let_annotation_prefix general_type {} 
+  | let_annotation_prefix type_or_prop {}
+
+  type_or_prop : lit_type | lit_proposition {}
+
+  (* Recording is used to register type-class inference.
+     We deprecate this for now.  It might be better to use labels.  *)
+  we_record_def : lit_we_record comma_nonempty_list(plain_term) {}
+
+
+
 (** theorem *)
-theorem : theorem_preamble list(assumption) affirm_proof {}
-  theorem_preamble : lit_theorem option(label) PERIOD {}
+theorem : theorem_label list(assumption) affirm_proof {}
+  theorem_label : lit_theorem option(label) PERIOD {}
 
 (** affirm *)
 affirm_proof : 
@@ -1185,10 +1213,12 @@ proof_script : proof_preamble option(list(canned_prefix proof_body {})
 
   case : LIT_CASE statement PERIOD proof_script {}
 
-  choose : choose_prefix pseudoterms by_ref PERIOD choose_justify {}
-  choose_justify : 
-  | option(proof_script {}) {}
+  choose : choose_prefix pseudoterms by_ref PERIOD opt_proof {}
+
   choose_prefix : then_prefix option(lit_lets) lit_choose {}
+
+  opt_proof : 
+  | option(proof_script {}) {}
 
   (* changed slightly in ocaml parser to remove a grammar ambiguity *)
   by_method : option(LIT_BY proof_method {}) {}
@@ -1198,7 +1228,7 @@ proof_script : proof_preamble option(list(canned_prefix proof_body {})
   by_ref : option(paren(LIT_BY ref_item {})) {}
   ref_item : and_comma_nonempty_list(option(lit_location) label {}) {}
 
-(** This exists and is well-defined. *)
+(** This exists and is well-defined. Deprecated. *)
 this_exists : LIT_THIS
   and_comma_nonempty_list(this_directive_pred) PERIOD {()}
 
@@ -1219,10 +1249,10 @@ this_exists : LIT_THIS
   this_directive_verb : LIT_EXISTS option(this_directive_right_attr){}
 
 (* definition *)
-definition : definition_preamble list(assumption) 
+definition : definition_label list(assumption) 
   definition_affirm {}
 
-  definition_preamble : lit_def option(label) PERIOD {}
+  definition_label : lit_def option(label) PERIOD {}
   definition_affirm : definition_statement PERIOD 
     list(this_exists) {}
 
@@ -1234,18 +1264,25 @@ definition_statement :
 {()}
 
   copula : lit_is option(lit_defined_as) | lit_denote {}
+
   function_copula : copula | opt_colon_type ASSIGN {}
+
   iff_junction : lit_iff {}
+
   opt_say : option(lit_we_say) {}
+
   opt_record : option(lit_we_record) {}
+
   opt_define : 
   | option(lit_lets) option(LIT_DEFINE)
   | opt_record {}
+
+  (* deprecated *)
   macro_inferring : paren(LIT_INFERRING nonempty_list(VAR) opt_colon_type {}) {}
 
 
-  classifier_def : LIT_LET classifier_words lit_is option(lit_a) lit_classifier {}
-    classifier_words : comma_nonempty_list(WORD) {}
+  classifier_def : LIT_LET classifier_word_pattern lit_is option(lit_a) lit_classifier {}
+    classifier_word_pattern : comma_nonempty_list(WORD) {}
 
   type_def : 
   | opt_define type_head COLON ID_TYPE copula option(lit_a) general_type
@@ -1277,9 +1314,9 @@ definition_statement :
   structure_def : option(lit_a) identifier_pattern LIT_IS 
     lit_a structure {}
 
-  inductive_def : opt_define inductive_type {}
+  inductive_def : opt_define inductive_decl {}
   
-  mutual_inductive_def : opt_define mutual_inductive_type {}
+  mutual_inductive_def : opt_define mutual_inductive_decl {}
   *)
 
  (*
@@ -1336,31 +1373,10 @@ macro : option(insection) macro_bodies {()}
   | enter_namespace
   {}
 
-  (* if LIT_FIX is used in let_annotation, it plays the role of a Lean
-     parameter, so that it inserted as an implicit parameter in every
-     macro where the variable appears on the right-hand side but not
-     the left.
-
-     If LIT_LET is used, the type information is associated with the
-     variable wherever it is used, but there is no automatic insertion. 
-
-  *)
-
-  let_annotation_prefix :
-  LIT_LET comma_nonempty_list(VAR) LIT_BE option(lit_a) option(LIT_FIXED) {}
-
-  let_annotation : 
-  | lit_fix comma_nonempty_list(annotated_vars) {}
-  | let_annotation_prefix general_type {} 
-  | let_annotation_prefix type_or_prop {}
-  type_or_prop : lit_type | lit_proposition {}
-
-  we_record_def : lit_we_record comma_nonempty_list(plain_term) {}
-
   enter_namespace : LIT_WE LIT_ENTER LIT_THE LIT_NAMESPACE identifier {}                    
 
   binder_def : LIT_LET LIT_THE LIT_BINDER symbol paren(VAR opt_colon_type {})
-                 lit_denote plain_term {}
+                 lit_denote statement {}
 
 
  (* subsumed by type_def, function_def, etc. 
