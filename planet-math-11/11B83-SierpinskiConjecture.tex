@@ -1,0 +1,120 @@
+\documentclass[12pt]{article}
+\usepackage{pmmeta}
+\pmcanonicalname{SierpinskiConjecture}
+\pmcreated{2013-03-22 13:34:16}
+\pmmodified{2019-12-06}
+\pmowner{yark}{2760}
+\pmmodifier{yark}{2760}
+\pmformalizer{chaunguyen}{}
+\pmtitle{Sierpi\'nski conjecture}
+\pmrecord{12}{34184}
+\pmprivacy{1}
+\pmauthor{yark}{2760}
+\pmtype{Conjecture}
+\pmcomment{trigger rebuild}
+\pmclassification{msc}{11B83}
+\pmsynonym{Sierpinski conjecture}{SierpinskiConjecture}
+\pmdefines{composite}
+
+\endmetadata
+
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{cnl}
+\usepackage{xcolor}
+%\usepackage{graphicx}
+%%%%\usepackage{xypic}
+
+%- DOCUMENT
+
+
+\begin{document}
+\parskip =\baselineskip
+	
+% Local Defs 
+\def\natdiv#1#2{{#1}\mathrel{|}{#2}}
+\def\intpow#1#2{{#1}^{#2}}
+
+
+\begin{cnl}
+		
+\Cnlinput{../Tex2CNL/package/cnlinit}
+		
+\bigskip
+		
+%-% BEGIN
+
+\lsection{SierpinskiConjecture}
+
+In this section, let $d,\ m,\ p,\ q$ be integers.
+
+%-% Definition
+
+\dfn{ We say that $d$ is \df{positive } iff $d > 0$. }
+		
+\dfn{ We say that $d$ \df{divides} $m$ iff $d\ne 0$ and there
+ exists an integer $r$ such that $m= d\*r$. }
+	
+\dfn{ We write  $\natdiv{d}{m}$ iff $d$ divides $m$. }
+
+\dfn{ We say  $d$ is a \df{divisor} of $m$ iff $d$ divides $m$. }
+
+\dfn{ Assume that $p$ is greater than $1$.  Then we say that $p$
+ is a \df{prime} iff each positive divisor of $p$ is equal to $1$
+ or equal to $p$. }
+
+\dfn{ We say $k$ is a composite iff $k$ is a positive integer and
+ $k$ is not a prime. }
+
+\dfn{ We say that $d$ is an \df{odd number} iff there exists an
+ integer $m$ such that $d=2\*m+1$. }
+
+\dfn{ Assume that $b$ is an integer and $n$ is a natural number.  
+Then we define
+$\intpow{b}{n}\assign$
+\par$\match\ n$ with
+\begin{envMatch}
+	\firstmatchitem $0$ &$\assign$& $1$
+	\matchitem $m + 1$ &$\assign$& $b \* \intpow{b}{m}$\texstop
+\end{envMatch}\cnlstop
+This exists by recursion.
+}
+
+\dfn{ We say that $k$ is a \df{Sierpinski number} iff $k$ is an 
+odd integer and for every integer $n$ greater than $1$ we have 
+$k\*\intpow {2}{n} + 1$ is a composite. }
+
+\begin{remark}
+In 1960 Wac{\l}aw Sierpi\'nski (1882-1969) proved the following 
+interesting result:
+\end{remark}
+
+\begin{theorem}
+For every Sierpinski number $k$ there exists some Sierpinski number 
+$r$ such that $r>k$. 
+\end{theorem}
+
+\begin{remark}
+The Sierpi\'nski problem consists in determining the smallest 
+Sierpi\'nski number. In 1962, John Selfridge discovered the 
+Sierpi\'nski number $k = 78557$, which is now believed to be in fact
+ the smallest such number. 
+\end{remark}
+
+\begin{conjecture}
+$78557$ is a Sierpi\'nski number and there exists no Sierpi\'nski 
+number smaller than $78557$.
+\end{conjecture}
+
+\begin{remark}
+To prove the conjecture, it would be sufficient to exhibit
+a prime $k2^n+1$ for each $k < 78557$.
+\end{remark}
+
+
+\end{cnl}
+
+
+\end{document}

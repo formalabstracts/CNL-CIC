@@ -1,0 +1,123 @@
+\documentclass[12pt]{article}
+\usepackage{pmmeta}
+\pmcanonicalname{Interprime}
+\pmcreated{2013-03-22 18:08:25}
+\pmmodified{2019-12-06}
+\pmowner{PrimeFan}{13766}
+\pmmodifier{PrimeFan}{13766}
+\pmformalizer{chaunguyen}{}
+\pmtitle{interprime}
+\pmrecord{5}{40695}
+\pmprivacy{1}
+\pmauthor{PrimeFan}{13766}
+\pmtype{Definition}
+\pmcomment{trigger rebuild}
+\pmclassification{msc}{11A51}
+\pmrelated{MinimalAndMaximalNumber}
+\pmdefines{interprime}
+\pmdefines{consecutive primes}
+\pmdefines{twin primes}
+\pmdefines{prime twin}
+\pmdefines{prime quadruplet}
+\endmetadata
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{cnl}
+\usepackage{xcolor}
+%\usepackage{graphicx}
+%%%%\usepackage{xypic}
+
+%- DOCUMENT
+
+\begin{document}
+\parskip =\baselineskip
+	
+% Local Defs 
+\def\natdiv#1#2{{#1}\mathrel{|}{#2}}
+	
+\begin{cnl}
+		
+\Cnlinput{../Tex2CNL/package/cnlinit}
+		
+\bigskip
+		
+%-% BEGIN
+
+\lsection{Interprime}
+		
+In this section, let $d,\ m,\ p,\ q,\ n$ be integers.
+		
+\dfn{ We say that $d$ is \df{positive } iff $d > 0$. }
+		
+\dfn{ We say that $d$ \df{divides} $m$ iff $d\ne 0$ and there
+ exists an integer $r$ such that $m= d\*r$. }
+	
+\dfn{ We write  $\natdiv{d}{m}$ iff $d$ divides $m$. }
+
+\dfn{ We say  $d$ is a \df{divisor} of $m$ iff $d$ divides $m$. }
+
+\dfn{ Assume that $p$ is greater than $1$.  Then we say that $p$
+ is a \df{prime} iff each positive divisor of $p$ is equal to $1$
+ or equal to $p$.}
+
+\dfn{ Assume that $p,\ q$ are primes. Then we say that $p,\ q$ 
+are \df{consecutive primes} iff there exists no prime $r$ such 
+that $r>p$ and $r<q$. }
+
+\dfn{ We say $d$ is an \df{odd number} iff there exists an 
+integer $m$ such that $d=2\*m+1$. }
+
+\dfn{ We say $d$ is an \df{even number} iff there exists an 
+integer $m$ such that $d=2\*m$. }
+
+\dfn{ We say $n$ is an \df{interprime} between $p$ and $q$ iff
+ $p,\q$ are odd consecutive primes and $n = (p + q)/2$. }
+
+\deflabel {prime twin}
+We say $p,\ q$ form a \df{prime twin} iff $p,\ q$ are primes 
+and (p=q-2$ or $p=q+2$).
+\end{definition}
+
+\dfn{ We say $p$ is a \df{twin prime} iff there exists $q$ such 
+that $p,\ q$ form a prime twin. }
+
+\begin{theorem}[Prop1]
+If $p,\ q$ form a prime twin then the interprime between 
+$p$ and $q$ is even. 
+\end{theorem}
+
+\dfn{ We say $p$ and $q$ and $r$ and $s$ form a \df{prime quadruplet} 
+iff $p=q-2$ and $q=r-4$ and $r=s-2$. }
+
+\begin{theorem}[Prop2]
+If $(p,\ q,\ r,\ s)$ form a prime quadruplet then the 
+interprime $n$ between $q$ and $r$ is odd and $\natdiv{5}{n}$.
+\end{theorem}
+
+\begin{remark}
+Given two consecutive odd primes, the $i$th prime $p_i$ and
+ the next one, $p_{i + 1}$, an {\em interprime} $n$ is the
+ arithmetic mean of the two: $$n = \frac{p_i + p_{i + 1}}{2}$$ 
+Thus, $n - p_i = p_{i + 1} - n$, so alternatively $$n = p_i + 
+\frac{p_{i + 1} - p_i}{2} = p_{i + 1} - \frac{p_{i + 1} 
+- p_i}{2}.$$ For example, given the 269th and 270th primes, 
+1723 and 1733, the interprime is 1728, and indeed 
+$1728 - 1723 = 1733 - 1728 = 5$. Interprimes themselves 
+are of course always composite, though not always even. 
+An interprime between a twin prime will always be even, while 
+an interprime between the second (ending in 3 in base 10) 
+and third (ending in 7 in base 10) member of a prime quadruplet
+ will always be odd and be divisible by 5.
+
+The first few interprimes are 4, 6, 9, 12, 15, 18, 21, 26, 30, 
+34, 39, 42, 45, 50, 56, 60, 64, 69, 72, 76, 81, 86, 93, 99, etc., 
+listed in A024675 of Sloane's OEIS.
+\end{remark}
+
+\end{cnl}
+
+
+
+
+\end{document}
