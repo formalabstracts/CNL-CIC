@@ -1,0 +1,97 @@
+\documentclass[12pt]{article}
+ \usepackage{pmmeta}
+ \pmcanonicalname{PrimitiveRoot}
+ \pmcreated{2013-03-22 16:04:33}
+ \pmmodified{2013-03-22 16:04:33}
+ \pmowner{CWoo}{3771}
+ \pmmodifier{CWoo}{3771}
+ \pmformalizer{NguyenNhung}{hoangnhung227}
+ \pmtitle{primitive root}
+ \pmrecord{12}{38133}
+ \pmprivacy{1}
+ \pmauthor{CWoo}{3771}
+ \pmtype{Definition}
+ \pmcomment{trigger rebuild}
+ \pmclassification{msc}{11-00}
+ \pmsynonym{primitive root modulo n}{PrimitiveRoot}
+ \pmsynonym{primitive element}{PrimitiveRoot}
+ \pmrelated{MultiplicativeOrderOfAnIntegerModuloM}
+ \pmrelated{PrimeResidueClass}
+ \pmrelated{UsingPrimitiveRootsAndIndexToSolveCongruences}
+
+  \endmetadata
+
+  % this is the default PlanetMath preamble.  as your knowledge
+ % of TeX increases, you will probably want to edit this, but
+ % it should be fine as is for beginners.
+
+  % almost certainly you want these
+ \newcommand{\notequiv}{\not\equiv}
+ \usepackage{amssymb}
+ \usepackage{amsmath}
+ \usepackage{amsfonts}
+
+  \usepackage{cnl}
+ \usepackage{xcolor}
+
+ 
+  % TITLE AUTHOR DATE
+ \title{Number Theory,\\ 11-00-PrimitiveRoot}
+ \date{February 27, 2020}
+ \author{Nguyen Nhung (hoangnhung227)}
+
+  % there are many more packages, add them here as you need them
+
+  % define commands here
+ \newcommand{\intpow}[2]{{#1}^{#2}}
+
+  % LOCAL DEFS FOR SYLOWS THEOREMS
+
+ 
+  \begin{document}
+
+  \parskip=\baselineskip
+
+  \begin{cnl}
+ \Cnlinput{../TeX2CNL/package/cnlinit}
+
+  \bigskip
+
+  In this section, let $a$, $b$, $c$, $d$, $m$, $n$, $r$ be integers.
+
+  \begin{remark}
+ 	\begin{itemize}
+ 	\item We need divisibility concept.
+ 	\item We need greatest common divisor (GCD) concept.
+ 	\item We need prime concept.
+ 	\item We need relatively prime.
+ 	\end{itemize}
+ \end{remark}
+
+  %Define Congruent Modulo
+ \dfn{
+ 	Assume that $b, c$ are integers. Suppose $m$ is a positive integer. Then we say that $b$ is congruent to $c$ modulo $m$ iff m divides their difference b-c.
+ }
+
+  We write $ b \equiv c \mod m$ iff $b$ is congruent to $c$ modulo $m$.
+
+  We write $ b \notequiv c \mod m$ iff $b$ is not congruent to $c$ modulo $m$.
+
+  % define primitive root modulo
+ \dfn{We say that $r$ is a \df{primitive root modulo} $m$ iff for every integer $n$ that is relatively prime to $m$, there exists a natural number $i$ such that $ r^i \equiv n \mod m$.
+ }
+
+  \begin{remark}
+ For example, 2 is a primitive root modulo 5, since
+ $1,\; 2,\; 2^2 = 4,\; 2^3 = 8 \equiv 3 \pmod{5}$
+ are all with 5 coprime positive integers less than 5.\\
+ \end{remark}
+
+  \begin{remark}
+ The generalized Riemann hypothesis implies that every prime number $p$ has a primitive root below $70(\ln p)^2$.
+ \end{remark}
+
+  %%%%%
+ %%%%%
+ \end{cnl}
+ \end{document}
