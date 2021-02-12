@@ -1,0 +1,143 @@
+\documentclass[12pt]{article}
+\usepackage{pmmeta}
+\pmcanonicalname{LeastCommonMultiple}
+\pmcreated{2015-05-06 19:07:25}
+\pmmodified{2020-02-09}
+\pmowner{pahio}{2872}
+\pmmodifier{pahio}{2872}
+\pmformalizer{ngonga}{}
+\pmtitle{least common multiple}
+\pmrecord{32}{35723}
+\pmprivacy{1}
+\pmauthor{pahio}{2872}
+\pmtype{Definition}
+\pmcomment{trigger rebuild}
+\pmclassification{msc}{11-00}
+\pmsynonym{least common dividend}{LeastCommonMultiple}
+\pmsynonym{lcm}{LeastCommonMultiple}
+\pmrelated{Divisibility}
+\pmrelated{PruferRing}
+\pmrelated{SumOfIdeals}
+\pmrelated{IdealOfElementsWithFiniteOrder}
+
+\pmdefines{divides}
+\pmdefines{multiple}
+\pmdefines{common multiple}
+\pmdefines{least common multiple}
+
+
+\endmetadata
+
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
+\usepackage{cnl}
+\usepackage{xcolor}
+
+\DeclareMathOperator{\lcm}{lcm}
+
+% TITLE AUTHOR DATE
+\title{Number Theory,\\ LeastCommonMultiple}
+\date{February 09, 2020}
+\author{Ngo Nga (ngongatlu)}
+
+
+%- DOCUMENT
+
+\begin{document}
+\parskip=\baselineskip
+
+% Local Defs 
+\def\natdiv#1#2{{#1}\mathrel{|}{#2}}
+\parindent=0pt
+
+\begin{cnl}
+
+\Cnlinput{../TeX2CNL/package/cnlinit}
+
+\bigskip
+
+%-% BEGIN
+
+\lsection{LeastCommonMultiple}
+In this section, let $m,\ d$ be integers.
+
+\deflabel{divides}
+Assume that $m, \d$ are integers. Then we say that $d$ \df{divides} $m$ iff $d\ne 0$ and there 
+exists an integer $r$ such that $m= d\*r$.
+\end{definition}
+
+\dfn{
+We write $\natdiv{d}{m}$ iff $d$ divides $m$.
+}
+
+\dfn{
+We say that $m$ is a \df{mutiple of} $d$ iff $d$ divides $m$.
+}
+
+\dfn{
+We say that $d$ is \df{positive} iff $d > 0$.
+}
+
+\dfn{
+Assume that $f,\ p,\ q$ are integers. Then we say $f$ is a \df{common\~multiple} of $p$ and $q$ 
+iff $p$ divides $f$ and $q$ divides $f$.}
+
+
+\begin{remark}
+We now introduce the least common multiple: 
+\end{remark}
+
+\dfn{Assume that $p,\ q, \ f$ are positive integers. Then we say that $f$ is a 
+\df{least\~common\~multiple} of $p$ and $q$  iff $f$ is a positive common\~multiple of $p$ and
+ $q$ such that for every common\~multiple $r$ of $p$ and $q$ we have $\natdiv{f}{r}$.}
+
+\dfn{ Assume that  $p,\ q$ are positive integers. Let $\h{\df{lcm}}\ p\ q$ denote the 
+least\~common\~multiple of $p$ and $q$. This exists and is unique.}
+
+
+
+
+\begin{demark}
+\textbf{Note:} \, The definition can be generalized for several 
+numbers. \,The positive {lcm of positive integers is 
+uniquely determined. (Its negative satisfies the same two 
+conditions.)
+
+\subsection*{Properties}
+
+\begin{enumerate} 
+  \item If\, $a = \prod_{i=1}^{m}p_i^{\alpha_i}$\, and\, 
+  $b = \prod_{i=1}^{m}p_i^{\beta_i}$\, are the prime factor 
+  \PMlinkescapetext{presentations} of the positive integers $a$ and $b$ ($\alpha_{i} \geqq 0$, \,$\beta_{i} \geqq 0$ \,$\forall i$), then 
+        $$\mathrm{lcm}\!(a,\,b)= 
+        \prod_{i=1}^{m}p_i^{\max\{\alpha_i,\,\beta_i\}}.$$ 
+This can be generalized for lcm of several numbers.
+  \item  Because the greatest common divisor has the expression\, 
+  $\gcd(a,\,b) = \prod_{i=1}^{m}p_i^{\min\{\alpha_i,\,\beta_i\}}$, we see that  
+  $$\gcd(a,\,b)\cdot \mathrm{lcm}\!(a,\,b) = ab.$$
+This formula is sensible only for two integers; it can not be 
+generalized for several numbers, i.e., for example,
+       $$\gcd(a,\,b,\,c)\cdot \mathrm{lcm}(a,\,b,\,c) \neq abc.$$
+  \item The preceding formula may be presented in 
+  \PMlinkescapetext{terms} of ideals of $\mathbb{Z}$; we may 
+  replace the integers with the corresponding principal ideals.\, 
+  The formula acquires the form
+      $$((a)+(b))((a)\cap(b)) = (a)(b).$$
+  \item The recent formula is valid also for other than principal ideals and even in so general systems as the Pr\"ufer rings; in fact, it could be taken as defining property of these rings: \, Let $R$ be a commutative ring with non-zero unity. \,$R$ is a Pr\"ufer ring iff {\em Jensen's formula}
+ $$(\mathfrak{a}+\mathfrak{b})(\mathfrak{a}\cap\mathfrak{b}) = \mathfrak{ab}$$
+is true for all ideals $\mathfrak{a}$ and $\mathfrak{b}$ of $R$, with at least one of them having \PMlinkname{non-zero-divisors}{ZeroDivisor}.
+\end{enumerate}
+
+\end{demark}
+
+\begin{thebibliography}{9}
+\bibitem{Larsen & McCarthy} M. Larsen and P. McCarthy: {\em Multiplicative theory of ideals}. Academic Press. New York (1971).
+\end{thebibliography}
+%%%%%
+%%%%%
+
+\end{cnl}
+\end{document}

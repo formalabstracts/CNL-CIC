@@ -1,0 +1,88 @@
+\documentclass[12pt]{article}
+\usepackage{pmmeta}
+\pmcanonicalname{PoliteNumber}
+\pmcreated{2013-03-22 18:09:54}
+\pmmodified{2020-02-25 18:09:54}
+\pmowner{PrimeFan}{13766}
+\pmmodifier{PrimeFan}{13766}
+\pmformalizer{ngonga}{}
+\pmtitle{polite number}
+\pmrecord{6}{40725}
+\pmprivacy{1}
+\pmauthor{PrimeFan}{13766}
+\pmtype{Definition}
+\pmcomment{trigger rebuild}
+\pmclassification{msc}{11A25}
+
+
+\defines{polite number}
+
+\endmetadata
+
+% this is the default PlanetMath preamble.  as your knowledge
+% of TeX increases, you will probably want to edit this, but
+% it should be fine as is for beginners.
+
+% almost certainly you want these
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
+\usepackage{cnl}
+\usepackage{xcolor}
+
+
+% TITLE AUTHOR DATE
+\title{Number Theory,\\ PoliteNumber}
+\date{February 25, 2020}
+\author{Ngo Nga (ngongatlu)}
+
+
+
+%- DOCUMENT
+
+\begin{document}
+\parskip=\baselineskip
+
+% Local Defs 
+\parindent=0pt
+
+\begin{cnl}
+
+\Cnlinput{../TeX2CNL/package/cnlinit}
+
+\bigskip
+
+%-% BEGIN
+
+
+\lsection{}
+In this section, let $d,\ m,\ k ,\ a$ be integers.
+
+\dfn{
+We say that $d$ is \df{positive} iff $d > 0$.
+}
+
+\dfn{We say $a$ is a \df{polite\~number} iff there exist positive integer $k$ and positive integer $m$ such that $k\geq 2$
+ and $2\*a=k\*(2\*m+k-1)$. 
+}
+
+\begin{demark}
+A {\em polite number} $n$ is an integer that is the sum of two or more consecutive nonnegative integers in 
+at least one way.
+
+ To put it algebraically, if $n$ is polite then there is a solution to $$n = \sum_{i = a}^b i$$ with 
+$b > a$ and $a > -1$. For example, 42 is a polite number since it is the sum of the integers from 3 to 9. 
+The first few polite numbers are 3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 
+25, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36, 37, 38, 39, 40, etc.
+
+Obviously all triangular numbers are polite numbers. So are all odd numbers. In fact, the numbers that are
+ not polite are the powers of 2.
+\end{demark}
+
+
+
+\end{cnl}
+%%%%%
+%%%%%
+\end{document}
