@@ -9,4 +9,8 @@ Created on Sun Jan 17 10:36:45 2021
 #State 
 
 class state:
-    pass
+    mk_sample = False
+    
+
+    
+

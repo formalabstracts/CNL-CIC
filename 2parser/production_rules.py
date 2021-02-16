@@ -26,21 +26,25 @@ DEBUG. Not implemented: namespace, record, this_exists,
 #import copy
 #import msg
 #import traceback
-from exception import ParseError, ParseNoCatch, ErrorItem
+from exception import (ParseError, ParseNoCatch, ErrorItem)
 import lib, word_lists
 import tokenlib
 import lexer
+from tokenlib import Etok
 #from ply.lex import LexToken #import ply.lex.LexToken as LexToken
 
 
 
 import parser_combinator as c
 
-from parser_combinator import (Parse, Etok,
+from parser_combinator import (Parse, 
                                first_word, 
                                first_phrase, next_word, next_any_word,
                                next_phrase, next_value,
                                pstream)
+
+def first(*args):
+    return Parse.first(args)
 
 def memo(f):
     m = {}
@@ -195,6 +199,9 @@ rawfalse = next_any_word().if_rawvalue('False')
 period = next_value('.')
 comma = next_value(',')
 semicolon = next_value(';')
+
+# :as means to 'coerce as'
+colon_as = next_value(':')+next_word('as').possibly()
 colon = next_value(':')
 
 lit_dict = {
@@ -512,18 +519,22 @@ def expr():
         return f
     def get(nonterminal):
         return get_lookup_parse(nonterminal).treat(f1(nonterminal),nonterminal)
-    return (get('general_type') |
-            get('term') |
-            get('prop') |
-            get('proof_expr') |
-            get('sort_expr'))
+    return first(
+            get('general_type'),
+            get('term'),
+            get('prop'),
+            get('proof_expr'),
+            get('sort_expr')
+           )
 
 @memo
 def colon_sort():
     def f(acc):
-        (_,e) = acc
-        return e.update({'raw':acc})    
-    return (colon + get_lookup_parse('sort_expr')).treat(f,'colon_sort')
+        ((_,a),e) = acc
+        if not a:
+            return e.update({'raw':acc})
+        return Etok('coerce_as',etoks=[e],raw=acc)
+    return (colon_as + get_lookup_parse('sort_expr')).treat(f,'colon_sort')
 
 @memo
 def opt_colon_sort():
@@ -539,13 +550,19 @@ def colon_type():
     Etok(post_colon_type,default,': post_colon_type')
     """
     def f(acc):
-        (_,e) = acc
-        return Etok.update(e,{'raw':acc})
-    return (colon + get_lookup_parse('post_colon_type')).treat(f,'colon_type')
+        ((_,a),e) = acc
+        if not a:
+            return Etok.update(e,{'raw':acc})
+        return Etok('coerce_as',etoks=[e],raw=acc)
+    return (colon_as + get_lookup_parse('post_colon_type')).treat(f,'colon_type')
 
 @memo
 def opt_colon_type():
     return colon_type().possibly()
+
+@memo
+def opt_colon_sort_or_type():
+    return (colon_sort() | colon_type()).possibly()
 
 @memo
 def var():
@@ -580,7 +597,7 @@ def annotated(p):
         if not ann:
             return v.update({'raw':acc})
         return Etok('annotated',etoks=(v,ann),raw=acc,rule=p.nonterminal)
-    return c.paren(p + opt_colon_type()).treat(f,'annotated')
+    return c.paren(p + opt_colon_sort_or_type()).treat(f,'annotated')
 
 @memo
 def annotated_var():
@@ -804,7 +821,7 @@ def tightest_arg():
         return Etok(name='tightest_arg',etoks=(vs,o),raw=acc)
     return (get_lookup_parse('tightest_expr') | 
         c.paren(var_or_atomic().atleast(2) + 
-                (colon_sort() | colon_type()).possibly()).treat(f,'tightest_arg'))
+                opt_colon_sort_or_type()).treat(f,'tightest_arg'))
 
 @memo
 def tightest_args():
@@ -841,9 +858,10 @@ def tightest_expr():
     """
     Parser for expressions in which the boundaries are clear.
     """
-    return (get_lookup_parse('tightest_term') | 
-            get_lookup_parse('tightest_prop') | 
-            get_lookup_parse('tightest_type') | proof_expr())
+    return first(get_lookup_parse('tightest_term'), 
+            get_lookup_parse('tightest_prop'), 
+            get_lookup_parse('tightest_type'), 
+            proof_expr())
 
 @memo
 def sort_expr():
@@ -950,7 +968,7 @@ def over_args():
             (_,(_,b),_)=acc
             return Etok(name='over_args',etoks=b[0::2],raw=acc,rule='3')
         return (c.paren(over + c.plus_comma(tightest_expr()))).treat(f3,'over_args3')
-    return (over_args1() | over_args2() | over_args3())
+    return first(over_args1() , over_args2() , over_args3())
 
 @memo
 def overstructure_type():
@@ -1121,7 +1139,7 @@ def coerced_type():
 @memo      
 def opentail_type():
     """Parser for binop, quotient, or coercion type"""
-    return binop_type() | quotient_type() | coercion_type()
+    return first(binop_type() , quotient_type() , coercion_type())
 
 @memo
 def post_colon_type():
@@ -1132,8 +1150,8 @@ def post_colon_type():
     """
     def f2(acc):
         return Etok(name='post_colon_type',etoks=acc,raw=acc,rule='2')
-    return (get_lookup_parse('general_type') |
-     (get_lookup_parse('prim_relation') + app_args()).treat(f2,'post_colon_type-2') |
+    return first(get_lookup_parse('general_type') ,
+     (get_lookup_parse('prim_relation') + app_args()).treat(f2,'post_colon_type-2') ,
      coerced_type())
   
 # general_type - implement after attribute
@@ -1221,10 +1239,10 @@ def field_identifier():
         return Etok(name='PROOF',etoks=[],raw=acc,rule='proof')
     def f(acc):
         return Etok(name='field_identifier',etoks=acc,raw=acc)
-    return (get_lookup_parse('prim_structure') |
-            (next_word('proof')|c.next_value('_')).treat(fp) | 
+    return first(get_lookup_parse('prim_structure') ,
+            (next_word('proof')|c.next_value('_')).treat(fp) ,
             (var_or_atomic() + 
-              (colon_type() | colon_sort()).possibly()
+             opt_colon_sort_or_type()
               ).treat(f,'field_identifier')
             )
 
@@ -1282,10 +1300,10 @@ def tightest_prefix():
     >>> pstream(tightest_prefix(),'1799')
     Etok(INTEGER,1799,'1799')
     """
-    return (Parse.next_token().if_types(['DECIMAL','INTEGER','STRING','BLANK','VAR']).treat(Etok.etok,'tightest_prefix') |
-            get_lookup_parse('prim_identifier_term') |
-            controlseq_term() |
-            get_lookup_parse('delimited_term') |  #future reference
+    return first(Parse.next_token().if_types(['DECIMAL','INTEGER','STRING','BLANK','VAR']).treat(Etok.etok,'tightest_prefix') ,
+            get_lookup_parse('prim_identifier_term') ,
+            controlseq_term() ,
+            get_lookup_parse('delimited_term') ,  #future reference
             get_lookup_parse('alt_term')) #future reference
     
 @memo
@@ -1294,7 +1312,7 @@ def tightest_suffix():
     
     The suffix can be a .field (field accessor) or subscript
     """
-    return (get_lookup_parse('prim_field_term_accessor') |
+    return first(get_lookup_parse('prim_field_term_accessor') ,
             (c.lazy_call(tightest_subscript))
             )
 
@@ -1430,12 +1448,12 @@ def delimited_term():
     >>> pstream(delimited_term(),'(term)')
     Etok(term,default,'( term )')
     """
-    return (paren_term() |
-            annotated_term() |
-            make_term() |
-            list_term() |
-            tuple_term() |
-            set_enum_term() |
+    return first(paren_term() ,
+            annotated_term() ,
+            make_term() ,
+            list_term() ,
+            tuple_term() ,
+            set_enum_term() ,
             set_comprehension_term())
 
 @memo
@@ -1516,7 +1534,7 @@ def match_function():
 @memo
 def alt_term():
     """Parser for term following the '| ... end' template"""
-    return (case_term() | match_term() | match_function())
+    return first(case_term() , match_term() , match_function())
 
 # opentail_term - later
 
@@ -1539,8 +1557,8 @@ def lambda_term():
     def f3(acc):
         (((_,t),_),o)=acc
         return Etok(name='fun_term',etoks=(t,o),raw=acc)
-    return ((get_lookup_parse('tdop_term') + c.next_type('MAPSTO') + get_lookup_parse('opentail_term')).treat(f1,'mapsto') |
-            (get_lookup_parse('prim_lambda_binder') + tightest_args() + binder_comma() + get_lookup_parse('opentail_term')).treat(f2,'lambda_term') |
+    return first((get_lookup_parse('tdop_term') + c.next_type('MAPSTO') + get_lookup_parse('opentail_term')).treat(f1,'mapsto') ,
+            (get_lookup_parse('prim_lambda_binder') + tightest_args() + binder_comma() + get_lookup_parse('opentail_term')).treat(f2,'lambda_term') ,
             (next_word('fun')+ tightest_args() + c.next_type('ASSIGN') + get_lookup_parse('opentail_term')).treat(f3,'fun_term')
             )
 
@@ -1583,9 +1601,9 @@ def opentail_term():
     >>> pstream(opentail_term(),'let x := plain_term in opentail_term')
     Etok(let,'let x := plain_term in opentail_term')
     """
-    return (c.lazy_call(lambda_term) |
-            c.lazy_call(let_term) |
-            c.lazy_call(if_then_else_term) |
+    return first(c.lazy_call(lambda_term) ,
+            c.lazy_call(let_term) ,
+            c.lazy_call(if_then_else_term) ,
             get_lookup_parse('tdop_term')
             )
 
@@ -1623,7 +1641,7 @@ def term_op():
     >>> pstream(term_op(),'prim_term_op_controlseq { term } {term }')
     Etok(cs_brace,prim_term_op_controlseq,'prim_term_op_controlseq { term } { term }')
     """
-    return (get_lookup_parse('prim_term_op') | 
+    return first(get_lookup_parse('prim_term_op') ,
             cs_brace(get_lookup_parse('prim_term_op_controlseq'))
             )
 
@@ -1641,7 +1659,7 @@ def definite_term():
     def f(acc):
         (_,t)=acc
         return t.update({'raw':acc})
-    return (where_term() | 
+    return first(where_term() ,
             (next_word('the') + get_lookup_parse('prim_definite_noun')).treat(f,'definite_term')
             )
 
@@ -1665,8 +1683,8 @@ def any_name():
     def f(acc):
         return Etok(name='any_name',etoks=acc,raw=acc)
     return (read_keyword('any') +
-            (any_args() |
-             get_lookup_parse('pseudoterm') |
+            first(any_args() ,
+             get_lookup_parse('pseudoterm') ,
              get_lookup_parse('general_type'))).treat(f,'any_name')
 
 @memo    
@@ -1675,7 +1693,7 @@ def term():
     def f(acc):
         (_,t)=acc 
         return t.update({'raw':acc})
-    return ((get_lookup_parse('prim_classifier').possibly() + definite_term()).treat(f,'term') |
+    return first((get_lookup_parse('prim_classifier').possibly() + definite_term()).treat(f,'term') ,
             any_name())
 
 @memo
@@ -1746,9 +1764,9 @@ def tdop_term():
         if tp:
             r=r+[tp]
         return Etok('tdop_term',etoks=r,raw=acc)
-    return ((app_term().possibly() + term_ops() + 
+    return first((app_term().possibly() + term_ops() + 
             (app_term() + term_ops()).many() + 
-            app_term().possibly()).treat(f,'tdop_term') |
+            app_term().possibly()).treat(f,'tdop_term') ,
             app_term()
             )
 
@@ -1764,7 +1782,7 @@ def multisubject_left_attribute():
 
 @memo
 def left_attribute():
-    return (adjective_left_attribute() |
+    return first(adjective_left_attribute() ,
             multisubject_left_attribute())
 
 @memo
@@ -1789,7 +1807,7 @@ def such_that_right_attribute():
 
 @memo
 def right_attribute():
-    return (is_right_attribute() | does_right_attribute() | such_that_right_attribute())
+    return first(is_right_attribute() , does_right_attribute() , such_that_right_attribute())
 
 def attribute(p):
     """Parser for a term with left and right attributes
@@ -1809,7 +1827,7 @@ def general_type():
 @memo
 def binary_relation_op():
     """binary relation symbols"""
-    return (get_lookup_parse('prim_binary_relation_op') | 
+    return first(get_lookup_parse('prim_binary_relation_op') ,
             cs_brace(get_lookup_parse('prim_binary_relation_controlseq'))
             )
 
@@ -1847,7 +1865,8 @@ def prop_op():
     >>> pstream(prop_op(),'prim_propositional_op')
     Etok(prim_propositional_op,default,'prim_propositional_op')
     """
-    return (get_lookup_parse('prim_propositional_op') | 
+    return first(
+            get_lookup_parse('prim_propositional_op') ,
             cs_brace(get_lookup_parse('prim_propositional_op_controlseq'))
             )
 
@@ -1914,10 +1933,10 @@ def tightest_prop():
     def f(acc):
         (_,s,_)=acc
         return s.update({'raw':acc})
-    return (c.paren(get_lookup_parse('statement')).treat(f) |
-            identifier_prop() |
-            prop_var() |
-            annotated_prop() |
+    return first(c.paren(get_lookup_parse('statement')).treat(f) ,
+            identifier_prop() ,
+            prop_var() ,
+            annotated_prop() ,
             field_prop()
         )
 
@@ -1954,9 +1973,9 @@ def binder_prop():
     def f(acc):
         (((b,a),_),b2)=acc
         return Etok(name='binder_prop',etoks=(b,a,b2),raw=acc)
-    return (app_prop() |
-            tdop_rel_prop() |
-            lambda_predicate() |
+    return first(app_prop() ,
+            tdop_rel_prop() ,
+            lambda_predicate() ,
             (  get_lookup_parse('prim_binder_prop') + 
                args_template() + binder_comma() + 
                c.lazy_call(binder_prop)
@@ -2004,7 +2023,7 @@ def has_pred():
         return Etok(name='has_pred',etoks=t,raw=acc)
     def f2(acc):
         return Etok(name='no_has_pred',etoks=acc,raw=acc)
-    return (c.plus_andcomma(lit('article') + possessed_noun()).treat(f1,'has_pred') |
+    return first(c.plus_andcomma(lit('article') + possessed_noun()).treat(f1,'has_pred') ,
      (next_word('no') + possessed_noun()).treat(f2,'has_no_pred')
      )
 
@@ -2022,7 +2041,7 @@ def is_aPred():
         return Etok(name='indefinite_pred',etoks=(n,g),raw=acc)
     def f2(acc):
         return Etok(name='definite_pred',etoks=acc,raw=acc)
-    return ((enot.possibly() + lit('a').possibly() + general_type()).treat(f1,'indefinite_pred') |
+    return first((enot.possibly() + lit('a').possibly() + general_type()).treat(f1,'indefinite_pred') ,
             (enot.possibly() + definite_term()).treat(f2,'definite_pred')
             )
 
@@ -2046,9 +2065,9 @@ def is_pred():
         return Etok(name='is_adjective_multisubject',etoks=(n,p,m),raw=acc)
     def f3(acc):
         return Etok(name='is_with',etoks=acc[1:],raw=acc) ##
-    return (
-        (enot.possibly() + get_lookup_parse('prim_adjective')).treat(f1,'is_adjective') |
-        (enot.possibly() + next_word('pairwise').treat(Etok.etok).possibly() + get_lookup_parse('prim_adjective_multisubject')).treat(f2,'is_adjective_multisubject') |
+    return first(
+        (enot.possibly() + get_lookup_parse('prim_adjective')).treat(f1,'is_adjective') ,
+        (enot.possibly() + next_word('pairwise').treat(Etok.etok).possibly() + get_lookup_parse('prim_adjective_multisubject')).treat(f2,'is_adjective_multisubject') ,
         (lit('with') + has_pred()).treat(f3,'is_with')
         )
 
@@ -2072,11 +2091,11 @@ def does_pred():
     def f5(acc):
         (_,ps)=acc
         return Etok(name='is_nominal',etoks=ps,raw=acc)
-    return (
-        (lit('do').possibly() + enot.possibly() + get_lookup_parse('prim_verb')).treat(f1,'do_verb') |
-        (lit('do').possibly() + enot.possibly() + get_lookup_parse('prim_verb_multisubject')).treat(f2,'do_verb_multisubject') |
-        (lit('has') + has_pred()).treat(f3,'do_has_pred') |
-        (lit('is') + c.plus_andcomma(is_pred())).treat(f4,'does_is_adj') |
+    return first(
+        (lit('do').possibly() + enot.possibly() + get_lookup_parse('prim_verb')).treat(f1,'do_verb') ,
+        (lit('do').possibly() + enot.possibly() + get_lookup_parse('prim_verb_multisubject')).treat(f2,'do_verb_multisubject') ,
+        (lit('has') + has_pred()).treat(f3,'do_has_pred') ,
+        (lit('is') + c.plus_andcomma(is_pred())).treat(f4,'does_is_adj') ,
         (lit('is') + c.plus_andcomma(is_aPred())).treat(f5,'is_nominal')
         )
 
@@ -2127,10 +2146,10 @@ def pseudoterm_without_attribute():
     def f5(acc):
         (_,ps,_)=acc
         return ps.update({'raw':acc})
-    return (get_lookup_parse('prim_typed_name') |
-            (get_lookup_parse('prim_classifier') + tvar()).treat(f2,'pseudoterm-2') |
-            (var() + (lit('with') + next_word('type')) + opentail_type()).treat(f3,'pseudoterm-3') |
-            tvar() | #after: var with...
+    return first(get_lookup_parse('prim_typed_name') ,
+            (get_lookup_parse('prim_classifier') + tvar()).treat(f2,'pseudoterm-2') ,
+            (var() + (lit('with') + next_word('type')) + opentail_type()).treat(f3,'pseudoterm-3') ,
+            tvar() , #after: var with...
             c.paren(c.lazy_call(pseudoterm_without_attribute)).treat(f5,'pseudoterm-5')
             )
 
@@ -2143,7 +2162,7 @@ def pseudoterm():
     """
     def f(acc):
         return Etok(name='pseudoterm',etoks=acc,raw=acc)
-    return (attribute(pseudoterm_without_attribute()) |
+    return first(attribute(pseudoterm_without_attribute()) ,
             attribute(plain_pred_pseudoterm()) ).treat(f,'pseudoterm')
 
 # statements 
@@ -2172,7 +2191,7 @@ def there_is_statement():
 def const_statement():
     def f(acc):
         return Etok(name='const_statement',etoks=acc,raw=acc)
-    return ((next_word('the').possibly() + next_word('thesis')) | 
+    return first((next_word('the').possibly() + next_word('thesis')) , 
             (lit('article').possibly() + lit('contradiction')))
 
 @memo
@@ -2201,27 +2220,27 @@ def symbol_statement():
     def f(acc):
         (_,s,_)=acc
         return s.update({'raw':acc})
-    return (
-        prop() |
-        (lit('forall') + pseudoterm() + binder_comma() + c.lazy_call(symbol_statement)).treat(f_forall,'forall_statement') | 
-        (lit('exist') + pseudoterm() + binder_comma() + c.lazy_call(symbol_statement)).treat(f_exist,'exist') | 
-        (next_word('not') + c.lazy_call(symbol_statement)).treat(f_not,'not') |
+    return first(
+        prop() ,
+        (lit('forall') + pseudoterm() + binder_comma() + c.lazy_call(symbol_statement)).treat(f_forall,'forall_statement') , 
+        (lit('exist') + pseudoterm() + binder_comma() + c.lazy_call(symbol_statement)).treat(f_exist,'exist') , 
+        (next_word('not') + c.lazy_call(symbol_statement)).treat(f_not,'not') ,
         (c.paren(c.lazy_call(symbol_statement))).treat(f,'symbol_statement') 
         )
 
 @memo
 def primary_statement():
     """Parser for primary statement"""
-    return (
-        simple_statement() |
-        there_is_statement() |
-        (filler + const_statement()).treat(lib.snd) |
+    return first(
+        simple_statement() ,
+        there_is_statement() ,
+        (filler + const_statement()).treat(lib.snd) ,
         (filler + symbol_statement()).treat(lib.snd) 
         )
 
 @memo
 def head_primary():
-    return (get_lookup_parse('head_statement') |
+    return first(get_lookup_parse('head_statement') ,
             primary_statement())
 
 @memo
@@ -2243,7 +2262,7 @@ def and_chain():
 @memo
 def andor_chain():
     """Parser for chain of and/or statements"""
-    return (and_chain() | or_chain() | primary_statement()
+    return first(and_chain() , or_chain() , primary_statement()
             ).name('andor_statement')
 
 @memo
@@ -2252,7 +2271,7 @@ def chain_statement():
     def f(acc):
         (((_,ao,_),_),s)=acc
         return Etok('iff_statement',etoks=(ao,s),raw=acc) 
-    return (andor_chain () |
+    return first(andor_chain () ,
             (c.paren(andor_chain) + lit('iff') + get_lookup_parse('statement')).treat(f,'iff_statement')
             ).name('chain_statement')
 
@@ -2269,10 +2288,10 @@ def head_statement():
         return Etok(name='if_then_statement',etoks=(s,s2),raw=acc)
     def f_wrong(acc):
         return Etok(name='wrong_statement',etoks=acc[1:],raw=acc)
-    return (
+    return first(
         # DEBUG: use quasiterm instead of any_name?
-        (next_word('for') + c.plus_andcomma(any_name()) + binder_comma + get_lookup_parse('statement')).treat(f_for,'for_statement') |
-        (next_word('if')+ get_lookup_parse('statement') + comma + next_word('then') + get_lookup_parse('statement')).treat(f_ifthen,'if_then_statement') |
+        (next_word('for') + c.plus_andcomma(any_name()) + binder_comma + get_lookup_parse('statement')).treat(f_for,'for_statement') ,
+        (next_word('if')+ get_lookup_parse('statement') + comma + next_word('then') + get_lookup_parse('statement')).treat(f_ifthen,'if_then_statement') ,
         (lit('wrong') + get_lookup_parse('statement')).treat(f_wrong,'wrong_statement')
         ).name('head_statement')
 
@@ -2280,7 +2299,7 @@ def head_statement():
 def statement():
     """Parser for statement.
     This subsumes other specialized statements."""
-    return (head_statement() | chain_statement()).name('statement')
+    return first(head_statement() , chain_statement()).name('statement')
 
 # next texts
  
@@ -2452,9 +2471,9 @@ def let_annotation():
         
     Issues: No treatment for now, but return to this later.   
     """
-    return (
-        (first_word( 'fix let') + annotated_vars()) |
-        (let_annotation_prefix() + general_type()) | 
+    return first(
+        (first_word( 'fix let') + annotated_vars()) ,
+        (let_annotation_prefix() + general_type()) , 
         (let_annotation_prefix() + (rawtype|rawprop))
         )
 
@@ -2487,7 +2506,7 @@ def assumption():
         return l.update({'raw':acc})
     pre = lit('lets') + lit('assume')
     pre2 = first_word('let fix')
-    return ((assumption_prefix() + statement() + period).commit(pre).treat(f,'assumption') |
+    return first((assumption_prefix() + statement() + period).commit(pre).treat(f,'assumption') ,
             (let_annotation() + period).commit(pre2).treat(f2,'assumption')
         )
 
@@ -2583,12 +2602,12 @@ class Proof_step:
         >>> pstream(Proof_step.canned(),'The corollary follows')
         Etok(proof-step,'the corollary follow')
         """
-        return (next_phrase("we proceed as follows") |
+        return first(next_phrase("we proceed as follows") ,
                 (next_word('the') + 
                  first_word('result lemma theorem proposition corollary') +
                  next_word('now').possibly() +
-                 next_word('follows')) |
-                next_phrase('the other cases are similar') |
+                 next_word('follows')) ,
+                next_phrase('the other cases are similar') ,
                 (next_phrase('the proof is')+ first_word('obvious trivial easy routine'))).treat(Proof_step.kill,'canned')
     
     def ref_item():
@@ -2645,8 +2664,8 @@ class Proof_step:
         >>> pstream(Proof_step.proof_preamble(),'Proof by contradiction.')
         Etok(proof-step,'proof by contradiction .')
         """
-        return (
-            (next_word('proof') + Proof_step.by_method().possibly() + period) |
+        return first(
+            (next_word('proof') + Proof_step.by_method().possibly() + period) ,
             next_word('indeed')
             ).treat(Proof_step.kill,'proof_preamble')
   
@@ -2655,7 +2674,7 @@ class Proof_step:
         >>> pstream(Proof_step.goal_prefix(),'We prove that ...')
         Etok(proof-step,'we prove that')
         """
-        return ((lit('lets').possibly() + lit('prove') + next_word('that')) |
+        return first((lit('lets').possibly() + lit('prove') + next_word('that')) ,
                    (Proof_step.by_method() + next_word('that')).possibly()
                    ).treat(Proof_step.kill,'goal_prefix')
 
@@ -2685,17 +2704,17 @@ class Proof_step:
         """Forthel prohibits the last proof-body in a proof
         from being an assumption.  We do not prohibit this.
         """
-        return (
-                assumption() |
-                Proof_step.canned() |
-                Proof_step.case() | 
-                Proof_step.choose() |
+        return first(
+                assumption() ,
+                Proof_step.canned() ,
+                Proof_step.case() , 
+                Proof_step.choose() ,
                 get_lookup_parse('affirm_proof')
                 ).treat(Proof_step.kill,'proof_body')
 
 @memo
 def affirm_proof():
-    return (c.lazy_call(Proof_step.statement_proof) |
+    return first(c.lazy_call(Proof_step.statement_proof) ,
             c.lazy_call(Proof_step.goal_proof))
 
 @memo
@@ -2736,7 +2755,7 @@ class Pattern:
             if o:
                 (_,(_,o),_)=o
             wp = (w for (_,w,_) in wp)
-            return Etok('word_extended',etoks=(w,o,wp),raw=acc)
+            return Etok('word_extended',etoks=(w,wp,o),raw=acc)
         return (Pattern.word_nonkey() + 
                     c.paren(next_word('or') + Pattern.word_nonkey()).possibly() +
                     c.paren(get_lookup_parse('word_pattern')).many()
@@ -2751,7 +2770,7 @@ class Pattern:
         >>> pstream(Pattern._var(),'x')
         Etok(VAR,x,'x')
         """
-        return var() | c.paren(var() + opt_colon_sort)
+        return var() | annotated_var()
     
     def word_pattern():
         """Parser for an (extended) word pattern, 
@@ -2794,6 +2813,9 @@ class Pattern:
                 ).treat(f,'notion_pattern')
     
     def adjective_pattern():
+        """
+        profile ('adjective_pattern' ('var','word_pattern'))
+        """
         def f(acc):
             (((v,_),_),wp)=acc
             return Etok('adjective_pattern',etoks=(v,wp),raw=acc)
@@ -2812,9 +2834,9 @@ class Pattern:
         def f2(acc):
             (_,(((v1,_),v2),o),_)=acc
             return Etok(name='var_multisubject_pattern',etoks=(v1,v2,o),raw=acc)
-        return (
+        return first(
             (Pattern._var() + comma + 
-                 Pattern._var()).treat(f1,'var_multisubject_pattern') |
+                 Pattern._var()).treat(f1,'var_multisubject_pattern') ,
             c.paren(Pattern._var() + comma + Pattern._var() + 
                 opt_colon_type()).treat(f2,'var_multisubject_pattern')
             )   
@@ -2840,11 +2862,11 @@ class Pattern:
                 Pattern.word_pattern()).treat(f,'verb_multisubject_pattern')
         
     def predicate_word_pattern():
-        return (
-            Pattern.notion_pattern() |
-            Pattern.adjective_pattern() |
-            Pattern.adjective_multisubject_pattern() |
-            Pattern.verb_pattern() |
+        return first(
+            Pattern.notion_pattern() ,
+            Pattern.adjective_pattern() ,
+            Pattern.adjective_multisubject_pattern() ,
+            Pattern.verb_pattern() ,
             Pattern.verb_multisubject_pattern()
             ).name('predicate_word_pattern')
     
@@ -2872,8 +2894,8 @@ class Pattern:
     def identifier_pattern():
         def f(acc):
             return Etok('identifier_pattern',etoks=acc,raw=acc)
-        return (
-            (identifier() + args_template()) |
+        return first(
+            (identifier() + args_template()) ,
             (c.next_type('BLANK').treat(Etok.etok) + args_template())
             ).treat(f)
   
@@ -2905,8 +2927,8 @@ class Pattern:
         return (i,c.getvalue(a))
         
     def any_symbol(): # was symbol
-        return (
-            c.next_type('SYMBOL').treat(Etok.etok) |
+        return first(
+            c.next_type('SYMBOL').treat(Etok.etok) ,
             Pattern.controlseq_pattern()
             )
 
@@ -2991,9 +3013,9 @@ class Macro:
         """
         def f(acc):
             return Etok('copula',etoks=[],raw=acc)
-        return (
-            (lit('is') + lit('defined_as').possibly()) |
-            (next_value(':=')) |
+        return first(
+            (lit('is') + lit('defined_as').possibly()) ,
+            (next_value(':=')) ,
             (lit('denote'))
             ).treat(f,'copula')
                
@@ -3006,8 +3028,8 @@ class Macro:
         def f2(acc):
             (o,_)=acc 
             return Etok(name='function_copula',etoks=[o],raw=acc)
-        return (
-            Macro.copula() |
+        return first(
+            Macro.copula() ,
             (opt_colon_type() + next_value(':=')).treat(f2,'function_copula')
             )
 
@@ -3037,7 +3059,6 @@ class Macro:
             ).treat(f,'opt_define')
     
     #def macro_inferring():
-    #¯    return c.paren(next_word_inferring() + var().plus() + opt_colon_sort_meta())
     
     def classifier_word_pattern():  # was classifier_words
         def f(acc):
@@ -3049,12 +3070,14 @@ class Macro:
     def classifier_def():
         """Parser for defining classifiers.
         
+        profile: ('classifier_word_pattern' 'WORD'*)
+        
         >>> pstream(Macro.classifier_def(),'Let function, symbol, object be classifiers')
-        Etok(classifier_def,'let function , symbol , object be classifier')
+        Etok(classifier_word_pattern,'let function , symbol , object be classifier')
         """
         def f(acc):
-            ((((_,ws),_),_),_)=acc 
-            return Etok(name='classifier_def',etoks=ws,raw=acc)
+            ((((_,w),_),_),_)=acc 
+            return w.update({'raw':acc})
         return (
             next_word('let') + Macro.classifier_word_pattern() +
             lit('is') + lit('a').possibly() + next_word('classifier')
@@ -3066,10 +3089,10 @@ class Macro:
         
         The symbol pattern has fixed precedence, right assoc
         """
-        return (
-            Pattern.symbol_pattern() |
-            Pattern.type_word_pattern() |
-            Pattern.identifier_pattern() |
+        return first(
+            Pattern.symbol_pattern() ,
+            Pattern.type_word_pattern() ,
+            Pattern.identifier_pattern() ,
             Pattern.controlseq_pattern()
             )
     
@@ -3090,9 +3113,9 @@ class Macro:
             ((((_,h),_),_),t)=acc
             return Etok('type_def',etoks=(h,t),raw=acc)            
         """Parser for a type definition"""
-        return (
+        return first(
             (Macro.opt_define() + Macro.type_head() + colon + rawtype +
-            Macro.copula() + lit('a').possibly() + general_type()).treat(f1,'type_def') |
+            Macro.copula() + lit('a').possibly() + general_type()).treat(f1,'type_def') ,
             (Macro.opt_define() + Macro.type_head() + Macro.copula() + 
              c.next_phrase('the type') + general_type()).treat(f2,'type_def')
             )
@@ -3102,9 +3125,9 @@ class Macro:
         Parser for the LHS pattern of a function def.
         
         """
-        return (
-            Pattern.function_word_pattern() |
-            Pattern.symbol_pattern() |
+        return first(
+            Pattern.function_word_pattern() ,
+            Pattern.symbol_pattern() ,
             Pattern.identifier_pattern()
             )
 
@@ -3127,9 +3150,9 @@ class Macro:
     
     def predicate_head():
         """Parser for the LHS pattern of a predicate def"""
-        return (
-            Pattern.identifier_pattern() | #before word pattern 
-            Pattern.word_pattern() |
+        return first(
+            Pattern.identifier_pattern() , #before word pattern 
+            Pattern.predicate_word_pattern() ,
             Pattern.symbol_pattern()
             )
     
@@ -3166,10 +3189,10 @@ class Macro:
     def definition_statement():
         """Parser for classifier, type, function, predicate defs
         """
-        return (
-            Macro.classifier_def() |
-            Macro.type_def() |
-            Macro.function_def() |
+        return first(
+            Macro.classifier_def() ,
+            Macro.type_def() ,
+            Macro.function_def() ,
             Macro.predicate_def()
              )
      
@@ -3225,12 +3248,12 @@ class Macro:
     def macro_body():
         """Parser for macro classifier, type, function def, 
         let annotation, etc."""
-        return (
-            Macro.classifier_def() |
-            Macro.type_def() |
-            Macro.function_def() |
-            Macro.predicate_def() |
-            let_annotation() |
+        return first(
+            Macro.classifier_def() ,
+            Macro.type_def() ,
+            Macro.function_def() ,
+            Macro.predicate_def() ,
+            let_annotation() ,
             Macro.binder_def() 
             # record_def 
             # enter_namespace
@@ -3242,6 +3265,12 @@ class Macro:
         can have local scope, they can be chained,
         they include binder defs and let annotations,
         and they does not have a label.
+        
+        Macros are expanded immediately, but definitions
+        create a new constant and are not expanded.
+        
+        The expansion of a macro must be a plain_term,
+        but a definition may contain bound variables.
         
         >>> pstream(Macro.macro(),'In this section, we write x << y iff head_statement.')
         Etok(macro,'in this section , we write x << y iff head_statement .')
@@ -3259,9 +3288,9 @@ class Macro:
 def declaration():
     """Parser for axiom, definition, or theorem
     """
-    return (
-        theorem() |
-        axiom() |
+    return first(
+        theorem() ,
+        axiom() ,
         Macro.definition()
         )
 
@@ -3272,16 +3301,16 @@ def text_item():
     Every item must end with a period or be an
     instruction in [].
     """
-    return (
-        section_label() |
-        namespace() | 
-        Instruction.instruction() |
-        synonym_item() | 
-        declaration() |
-        Macro.macro() |
-        inductive_decl() |
-        mutual_inductive_decl_item() |
-        mutual_inductive_def_item() |
+    return first(
+        section_label() ,
+        namespace() , 
+        Instruction.instruction() ,
+        synonym_item() , 
+        declaration() ,
+        Macro.macro() ,
+        inductive_decl() ,
+        mutual_inductive_decl_item() ,
+        mutual_inductive_def_item() ,
         satisfy_item()
         )
 
