@@ -21,8 +21,9 @@ import copy, lib, msg, word_lists
 import tokenlib
 import inner_lexer
 import lexer
-from tokenlib import (mk_stream , Etok)
+from tokenlib import (mk_stream , Etok, Item)
 from ply.lex import LexToken
+import sample
 #import sample
 from state import state
 
@@ -55,14 +56,15 @@ class Parse:
     We refer to process as the 'item transformer'.
     
     A sample is a function that returns a random parse
-    on input tokenlib.random. 
+    on input tokenlib.random.
+    It is a function sample:acc -> acc transforming accumulated toks.
     """
     def __init__(self,process,nonterminal,production='',sample=None,show_up=('',[])):
         """r:Item->Item, repr:str"""
         self._process = process
         self.nonterminal = nonterminal
         self.production = production
-        self.sample = sample
+        self._sample = sample
         self.show_up=show_up
 
     def __repr__(self):
@@ -71,12 +73,21 @@ class Parse:
         else:
             return self.nonterminal
         
+    empty_item = Item(stream=[],pos=0,acc=None)
+        
+    def sample(self):
+        if not(self._sample):
+            raise ParseError(ErrorItem(item=Parse.empty_item,nonterminal=f'sample not installed: {self.nonterminal}'))
+        return self._sample()
+        
     def process(self,item):
         
-        if state.mk_sample and self.sample:
-            return tokenlib.update(self.sample(),item)
+        # sample mode
+        if state.mk_sample:
+            acc = self.sample()
+            return tokenlib.update(acc,item)
         
-        # the front door.
+        # process mode, the front door.
         try:
             return self._process(item)
         except ParseError as pe:
@@ -108,6 +119,10 @@ class Parse:
             setattr(self,key,value)
         return self
     
+    def setsample(self,s):
+        self._sample = s
+        return self
+    
     def name(self,nonterminal,production=''):
         self.nonterminal=nonterminal
         if production:
@@ -135,7 +150,7 @@ class Parse:
         """
         def f(item):
             return tokenlib.next_item(item)
-        return Parse(f,'.')
+        return Parse(f,'.',sample=sample.next_token)
     
     def finished():
         """fails if tokens remain in stream, otherwise do nothing"""
@@ -143,11 +158,11 @@ class Parse:
             if item.pos < len(item.stream):
                 raise ParseError(ErrorItem(item=item,nonterminal='$'))
             return item
-        return Parse(f,'$')
+        return Parse(f,'$',sample=sample.none)
 
     def identity(): #was nothing
         """Does no parsing, identity parser"""
-        return Parse(lambda item:item,'identity')
+        return Parse(lambda item:item,'identity',sample=sample.none)
     
     def fail():
         """This parser always fails"""
@@ -167,7 +182,7 @@ class Parse:
                 return item
             except ParseError as pe:
                 raise ParseError(ErrorItem(item=item,nonterminal='-probe')) from pe
-        return Parse(f,self.nonterminal,self.production,show_up=('pass',[self]))
+        return Parse(f,self.nonterminal,self.production,sample=sample.none,show_up=('pass',[self]))
 
     def nocatch(self,nt=''): 
         """No catch error if failure"""
@@ -177,7 +192,7 @@ class Parse:
             except ParseError as pe:
                 nonterminal= msg.setdefault(nt,'nocatch')
                 raise ParseNoCatch(ErrorItem(item=item,nonterminal=nonterminal)) from pe
-        return Parse(f,'nocatch',show_up=('pass',[self]))
+        return Parse(f,'nocatch',sample=self.sample,show_up=('pass',[self]))
 
     def commit(self,probe:'Parse',msg='') -> 'Parse':
         """if trial_parse does not fail, discard, 
@@ -185,7 +200,7 @@ class Parse:
         def f(item):
             probe.process(item)
             return self.nocatch(msg).process(item)
-        return Parse(f,self.nonterminal,self.production)
+        return Parse(f,self.nonterminal,self.production,sample=self.sample)
         # more directly
         # try:
         #    return pr.process(item)
@@ -244,7 +259,7 @@ class Parse:
             show_up = ('add',self.show_up[1]+[other])
         else:
             show_up = ('add',[self,other])
-        return Parse(f,'',show_up=show_up)
+        return Parse(f,'',sample=sample.add_sample(self,other),show_up=show_up)
 
     def __or__(self,other):
         """try first parser then next. Lower precedence than +"""
@@ -266,10 +281,11 @@ class Parse:
             show_up = ('or',self.show_up[1]+[other])
         else:
             show_up = ('or',[self,other])
-        return Parse(f,'',show_up=show_up)
+        return Parse(f,'',sample=sample.or_sample(self,other),show_up=show_up)
     
     def treat(self,treatment,name=''):
-        """apply treatment to parser output."""
+        """apply treatment to parser output.
+        The treatment transforms the accumulator."""
         def f(item):
             item1 = self.process(item)
             try:
@@ -278,7 +294,7 @@ class Parse:
             except ParseError as pe:
                 nonterminal=msg.setdefault(name,'treat')
                 raise ParseError(ErrorItem(item=item,nonterminal=nonterminal)) from pe
-        pr = Parse(f,self.nonterminal,self.production,show_up=('pass',[self]))
+        pr = Parse(f,self.nonterminal,self.production,sample=sample.treat_sample(self,treatment),show_up=('pass',[self]))
         if name:
             return pr.name(name)     
         return pr
@@ -295,7 +311,7 @@ class Parse:
             item2 = f(tokenlib.update(None,item1)) #this doesn't fail
             return tokenlib.update([acc1]+item2.acc,item2) 
         show_up=(f'{self}*',self.show_up[1])
-        return Parse(f,self.nonterminal+'*',show_up=show_up)
+        return Parse(f,self.nonterminal+'*',sample=sample.many(self,None),show_up=show_up)
     
     def atleast(self,n):
         """parse at least n times.
@@ -312,7 +328,7 @@ class Parse:
             supp = ''
         else:
             supp = f'{n}'
-        return Parse(f,f'{self.nonterminal}+'+supp)
+        return Parse(f,f'{self.nonterminal}+'+supp,sample=sample.atleast(self,n))
     
     def _plus_nosep(self):
         """parse at least once"""
@@ -331,7 +347,7 @@ class Parse:
             (x,xs) = acc
             return [x]+ lib.flatten(xs)
         return (self + 
-                (sep + self).many()).treat(f).name('list',self.nonterminal)
+                (sep + self).many()).treat(f).name('list',self.nonterminal).setsample(sample.plus(self,sep))
               
     def many(self,sep=None):
         """sequence of parses with optional separation sep
@@ -341,7 +357,7 @@ class Parse:
             return []
         if not(sep):
             return self._many_nosep()
-        return (self.plus(sep) | Parse.identity().treat(f))
+        return (self.plus(sep) | Parse.identity().treat(f)).setsample(sample.many(self,sep))
     
     def possibly(self):
         """zero or one parses. It never fails.
@@ -351,7 +367,7 @@ class Parse:
                 return self.process(item)
             except (ParseError,StopIteration):
                 return item
-        return Parse(f,'?')
+        return Parse(f,'?',sample=sample.possibly)
     
 
     def if_test(self,p): #was some
@@ -362,13 +378,13 @@ class Parse:
                 return item1
             else:
                 raise ParseError(ErrorItem(item=item,nonterminal=f'{self.nonterminal}-if-{self.production}'))
-        return Parse(f,'if')
+        return Parse(f,'if',sample=sample.if_test(self,p))
     
     def if_value(self,v): #was a
         """parse if next token has value v or fail"""
         def p(tok):
             return tok.value == v
-        return self.name(self.nonterminal,v).if_test(p)
+        return self.name(self.nonterminal,v).if_test(p).setsample(sample.if_value(v))
     
     def if_rawvalue(self,v): 
         """parse if token has rawvalue v or fail.
@@ -378,13 +394,13 @@ class Parse:
         """
         def p(tok):
             return (lexer.rawvalue(tok) == v)
-        return self.name(self.nonterminal,v).if_test(p)
+        return self.name(self.nonterminal,v).if_test(p).setsample(sample.if_rawvalue(v))
     
     def if_types(self,ts): 
         """parse if next type is in ts or fail"""
         def p(tok):
             return tok.type in ts
-        return self.name(list(ts)[0]).if_test(p)
+        return self.name(list(ts)[0]).if_test(p).setsample(sample.if_types(ts))
  
     # class methods
     def all(prs):
@@ -397,7 +413,7 @@ class Parse:
                 acc1 = item1.acc
                 item2 = Parse.all(prs[1:]).process(tokenlib.update(None,item1))
                 return tokenlib.update([acc1]+item2.acc,item2)
-        return Parse(f,'all')
+        return Parse(f,'all',sample=sample.all_sample(prs))
     
     def first(prs): #was parse_some 
         """parse first in a list that does not fail"""
@@ -405,7 +421,7 @@ class Parse:
             raise ParseError(ErrorItem(item=item,nonterminal='first-empty'))
         if not prs:
             return Parse(f,'first')
-        return Parse.__or__(prs[0],Parse.first(prs[1:])).name('first')
+        return Parse.__or__(prs[0],Parse.first(prs[1:])).name('first').setsample(sample.first(prs))
     
 #    def gen_first(prs_gen,args):
 #        """Repeat (lazy) parse generator until first non-failure.
@@ -456,10 +472,14 @@ class LazyParse(Parse):
         par = self.fn(self.data)
         return par.process(item)
     
+    def sample(self):
+        par = self.fn(self.data)
+        return par.sample()
+    
 def lazy_call(pr):
     """pr is a function with output a parser.
     Output is a parser, with lazy evaluation"""
-    return LazyParse((lambda p: p()),pr,nonterminal='lazy')
+    return LazyParse((lambda p: p()),pr,nonterminal='lazy',sample=sample.lazy_call(pr))
 
     
 def next_value(v):
@@ -494,8 +514,8 @@ def retreat_list(p2,ls):
     Collect the accumulated output and return.
     The len is preserved in output.
     
-    >>> acc = pstream(Parse.next_token().plus(),'a b c')
-    >>> ls = [[a] for a in acc]
+    >>> acc = pstream(Parse.next_token().plus(),'a b c')  
+    >>> ls = [[a] for a in acc]   
     >>> retreat_list(next_type('VAR'),ls)
     [LexToken(VAR,'a',1,0), LexToken(VAR,'b',1,2), LexToken(VAR,'c',1,4)]
     """
@@ -610,7 +630,7 @@ def word(p:Parse) -> Parse:
     >>> pstream(word(next_value('x')),'x + 4')
     LexToken(WORD,'x',1,0)
     """
-    return p.if_test(can_wordify).treat(wordify).name('word')
+    return p.if_test(can_wordify).treat(wordify).name('word').setsample(sample.if_types(['WORD']))
 
 def next_any_word() -> Parse: #was anyword
     """parser constructor that matches any next word
@@ -630,7 +650,7 @@ def next_word(s:str) -> Parse: #was_next_word_syn
     syn = synonymize(lexer.singularize(s.lower()))
     def p(tok):
         return syn == synonymize(tok.value.lower())
-    return next_any_word().if_test(p).name(s)
+    return next_any_word().if_test(p).name(s).setsample(sample.if_value(s))
 
 def next_any_word_except(banned) -> Parse:
     """parser constructor that matches any next WORD token except banned.
@@ -648,7 +668,7 @@ def next_any_word_except(banned) -> Parse:
     bansyn = [synonymize(lexer.singularize(b.lower())) for b in banned]
     def p(tok):
         return not(synonymize(tok.value.lower()) in bansyn)
-    return Parse.next_token().if_types(['WORD']).if_test(p)
+    return Parse.next_token().if_types(['WORD']).if_test(p).setsample(sample.if_types(['WORD']))
 
 def next_phrase(ss:str)-> Parse:
     """parser constructor that matches word phrase 
@@ -680,22 +700,25 @@ def first_word(ss:str) -> Parse: #was someword
     s1 = ss.split(' ')
     def p(tok):
         return tok.value in s1
-    return next_any_word().if_test(p).name('first_word:'+ss)
+    return next_any_word().if_test(p).name('first_word:'+ss).setsample(sample.first_word(ss))
     #return Parse.first([next_word(s) for s in ]).name('first:'+ss)
 
-
-def if_then_else(probe:Parse,pr1:Parse,pr2:Parse)-> Parse:
-    """if probe fails do pr2, otherwise pr1"""
-    def f(item):
-        try:
-            probe.process(item)
-        except:
-            return pr2.process(item)
-        return pr1.process(item)
-    return Parse(f,'if_then_else')
+#not used
+#def if_then_else(probe:Parse,pr1:Parse,pr2:Parse)-> Parse:
+#    """if probe fails do pr2, otherwise pr1"""
+#    def f(item):
+#        try:
+#            probe.process(item)
+#        except:
+#            return pr2.process(item)
+#        return pr1.process(item)
+#    return Parse(f,'if_then_else')
 
 def delimit(pr:Parse,left:str,right:str) -> Parse:
-    """delimit a parser with left and right strings."""
+    """delimit a parser with left and right strings.
+    >>> pstream(delimit(next_word('hello'),'(',')'),'(hello)')
+    (LexToken((,'(',1,0), LexToken...
+    """
     def flat(acc):
         ((a,b),c)=acc
         return (a,b,c)
@@ -759,12 +782,16 @@ def balanced_condition(b):
     The outermost tokens must satisfy condition b.
     """
     def b_not_delimiter(tok):
-        return not(tok.value in ['(',')','{','}','[',']']) and b(tok)  
-    return (
-        Parse.next_token().if_test(b_not_delimiter).plus() |
-        LazyParse((lambda p: delimit(p(lambda_true),'(',')')),balanced_condition,'balanced','paren') | 
-        LazyParse((lambda p: delimit(p(lambda_true),'[',']')),balanced_condition,'balanced','brack') | 
-        LazyParse((lambda p: delimit(p(lambda_true),'{','}')),balanced_condition,'balanced','curly')).many().treat(lib.flatten)
+        return not(tok.value in ['(',')','{','}','[',']']) and b(tok) 
+    def dot(pr):
+        pr_sample = Parse.next_token().if_test(b_not_delimiter)
+        return (pr.many().treat(lib.flatten).
+                setsample(sample.many(pr_sample,None)))
+    return dot(Parse.first([
+        Parse.next_token().if_test(b_not_delimiter).plus() ,
+        LazyParse((lambda p: delimit(p(lambda_true),'(',')')),balanced_condition,'balanced','paren') ,
+        LazyParse((lambda p: delimit(p(lambda_true),'[',']')),balanced_condition,'balanced','brack') ,
+        LazyParse((lambda p: delimit(p(lambda_true),'{','}')),balanced_condition,'balanced','curly')]))
 
 def balanced() -> Parse:
     return balanced_condition(lambda_true)
@@ -842,6 +869,7 @@ def plus_or(pr:Parse) -> Parse:
 
 if __name__ == "__main__":
     import doctest
+    from tokenlib import Item
     doctest.testmod(optionflags=doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE)
 #    doctest.testmod(verbose=True, optionflags=doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE)
 #    doctest.testmod()

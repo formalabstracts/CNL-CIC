@@ -107,7 +107,7 @@ def get_lookup_parse(nonterminal):
     """
     def f(acc):
         return Etok.etok(acc).update({'name':nonterminal,'rule':'default'})
-    backdoor=Etok.parse(Parse.next_token().if_value(nonterminal)).treat(f,nonterminal)
+    backdoor=Etok.parse(next_value(nonterminal)).treat(f,nonterminal)
     
     ps = [backdoor] +lookup_parse.get(nonterminal,[])
     return Parse.first(ps).name(nonterminal,production='lookup')
@@ -2933,7 +2933,7 @@ class Pattern:
             )
 
     def symbol(s): # was the_symbol
-        return c.next_type('SYMBOL').treat(Etok.etok).if_value(s)
+        return c.next_type('SYMBOL').if_value(s).treat(Etok.etok)
 
     def symbol_pattern():
         """Parser for general symbol pattern. Alternating S/V.

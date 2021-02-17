@@ -239,7 +239,7 @@ class Etok:
 
     def etok(tok):
         """convert a token to Etok"""
-        return Etok(tok.type,[],[tok],rule=tok.value)
+        return Etok(name=tok.type,etoks=[],raw=[tok],rule=tok.value)
     
     def parse(p : 'Parse'):
         """Promote a LexToken parser to a Etok parser.
