@@ -77,7 +77,7 @@ class Parse:
         
     def sample(self):
         if not(self._sample):
-            raise ParseError(ErrorItem(item=Parse.empty_item,nonterminal=f'sample not installed: {self.nonterminal}'))
+            raise ParseError(ErrorItem(item=None,nonterminal=f'sample not installed: {self.nonterminal}-{self.production}'))
         return self._sample()
         
     def process(self,item):
@@ -347,7 +347,7 @@ class Parse:
             (x,xs) = acc
             return [x]+ lib.flatten(xs)
         return (self + 
-                (sep + self).many()).treat(f).name('list',self.nonterminal).setsample(sample.plus(self,sep))
+                (sep + self).many()).treat(f).name('plus',self.nonterminal).setsample(sample.plus(self,sep))
               
     def many(self,sep=None):
         """sequence of parses with optional separation sep
@@ -367,7 +367,7 @@ class Parse:
                 return self.process(item)
             except (ParseError,StopIteration):
                 return item
-        return Parse(f,'?',sample=sample.possibly)
+        return Parse(f,'?',sample=sample.possibly(self))
     
 
     def if_test(self,p): #was some
@@ -463,7 +463,7 @@ class LazyParse(Parse):
     is time to apply the parser to the token stream.   An eager parser
     is constructed when needed by a function call fn(data).
     """
-    def __init__(self,fn,data,nonterminal='lazy',production=''):
+    def __init__(self,fn,data,nonterminal='lazy',production='',sample=None):
         super().__init__(self._process,nonterminal,production)
         self.fn = fn
         self.data = data
@@ -479,7 +479,7 @@ class LazyParse(Parse):
 def lazy_call(pr):
     """pr is a function with output a parser.
     Output is a parser, with lazy evaluation"""
-    return LazyParse((lambda p: p()),pr,nonterminal='lazy',sample=sample.lazy_call(pr))
+    return LazyParse((lambda p: p()),pr,nonterminal='lazy')
 
     
 def next_value(v):
@@ -697,7 +697,9 @@ def first_word(ss:str) -> Parse: #was someword
     >>> pstream(first_word('this that the'),'That Other. + ..')
     LexToken(WORD,'that',1,0)
     """
-    s1 = ss.split(' ')
+    s1 = ss.split()
+    if not s1:
+        raise IndexError(f'first_word empty: {ss}')
     def p(tok):
         return tok.value in s1
     return next_any_word().if_test(p).name('first_word:'+ss).setsample(sample.first_word(ss))
@@ -722,7 +724,7 @@ def delimit(pr:Parse,left:str,right:str) -> Parse:
     def flat(acc):
         ((a,b),c)=acc
         return (a,b,c)
-    return (next_value(left)+pr+next_value(right)).treat(flat)
+    return (next_value(left)+pr+next_value(right)).treat(flat,f'{left}{pr.nonterminal}{right}')
 
 #def headtok(tok,htok):
 #    """
@@ -750,6 +752,20 @@ def paren(pr):
     (LexToken((,'(',1,0), [LexToken(WORD,'this',1,1),...
     """
     return delimit(pr,'(',')')
+
+def opt_paren(pr):
+    """
+    Parse an expression optionally in parentheses. 
+    
+    Input pr : An etok parser.
+    Output: (_,pr-output,_), padding with None if no parentheses exist
+    
+    >>> pstream(opt_paren(Parse.next_token().treat(Etok.etok)),'(hello)')
+    (LexToken((,'(',1,0), Etok(WORD,hello,'hello'), LexToken(),')',1,6))
+    """
+    def f(acc):
+        return (None,acc,None)
+    return (paren(pr) | pr.treat(f) )
     
 def bracket(pr): 
     """Parse an expression in brackets, keeping brackets."""
@@ -786,7 +802,7 @@ def balanced_condition(b):
     def dot(pr):
         pr_sample = Parse.next_token().if_test(b_not_delimiter)
         return (pr.many().treat(lib.flatten).
-                setsample(sample.many(pr_sample,None)))
+                setsample(sample.plus(pr_sample,None)))
     return dot(Parse.first([
         Parse.next_token().if_test(b_not_delimiter).plus() ,
         LazyParse((lambda p: delimit(p(lambda_true),'(',')')),balanced_condition,'balanced','paren') ,
@@ -825,7 +841,7 @@ def _brace_semi_fflatten(acc):
     return (a,b,c)
 
 def brace_semif():
-    return brace_semi().treat(_brace_semi_fflatten)
+    return brace_semi().treat(_brace_semi_fflatten,'brace_semif')
 
 def plus_comma(pr:Parse) -> Parse:
     """construct parser for comma-separated list"""

@@ -49,6 +49,9 @@ def init_mk_token():
     mk_token._tok.__setattr__('lexer',None)
     pass
 
+def is_lex(e):
+    return isinstance(e,LexToken)
+
 init_mk_token()
 
 # A derived token has the token fields + nonterminal + production (rule)
@@ -141,7 +144,7 @@ class Etok:
     """
     def __init__(self,name,etoks,raw,rule='',misc=None,altrepr=''):
         self.name = name
-        self.etoks = etoks
+        self.etoks = Etok.etokenize(etoks)
         if isinstance(etoks,Etok):
             self.etoks = [etoks]
         self.raw = Etok.get_raw(raw)
@@ -157,6 +160,20 @@ class Etok:
         if self.rule:
             name2 += ','+self.rule
         return f"Etok({name2},'{self.rawstring()}')"
+    
+    def etokenize(etoks):
+        """Convert all LexToken to Etok"""
+        if not etoks:
+            return etoks
+        if isinstance(etoks,Etok):
+            return etoks 
+        if isinstance(etoks,LexToken):
+            return Etok.etok(etoks)
+        if isinstance(etoks,tuple):
+            return tuple(Etok.etokenize(e) for e in etoks)
+        if lib.nonstringiterable(etoks):
+            return list(Etok.etokenize(e) for e in etoks)
+        raise TypeError(f'etoks cannot be {etoks}:{type(etoks).__name}')
     
     def s_expression(self):
         def s2(es):
@@ -236,6 +253,11 @@ class Etok:
         """extract the raw fields from a 
         nested list of Etoks and LexTokens"""
         return lib.flatten([Etok._get_raw1(e) for e in lib.fflatten(etoks)])
+    
+    def rawupdate(e,acc):
+        if is_lex(e):
+            e = Etok.etok(e)
+        return e.update({'raw':acc})
 
     def etok(tok):
         """convert a token to Etok"""

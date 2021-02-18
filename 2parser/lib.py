@@ -4,6 +4,9 @@ from collections.abc import Iterable
 def iterable(obj):
     return isinstance(obj, Iterable)
 
+def nonstringiterable(obj):
+    return iterable(obj) and not(isinstance(obj,str))
+
 def flatten(ls):
     """flatten a list one level
     

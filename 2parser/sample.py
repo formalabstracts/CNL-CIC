@@ -20,12 +20,20 @@ def bernoulli(p):
 
 def ran(ls):
     if not ls:
+        raise TypeError(f'ran, expected nonempty list {ls}')
         return ls
     return ls[randint(0,len(ls))]
 
 def mk_tok(v):
     toks = mk_stream(v)
-    return toks.stream[0]
+    try: 
+        return toks.stream[0]
+    except:
+        raise IndexError(f'List index out of range. Empty list mk_tok({v})')
+        
+def mk_toks(vs):
+    toks = mk_stream(vs)
+    return toks.stream
 
 def next_token():
     return mk_tok('blah')
@@ -35,9 +43,12 @@ def none():
 
 def add_sample(self,other):
     def sample():
-        acc1 = self.sample()
-        acc2 = other.sample()
-        return (acc1,acc2)
+        try: # debug
+            acc1 = self.sample()
+            acc2 = other.sample()
+            return (acc1,acc2)
+        except AttributeError as ex:
+            raise AttributeError(f'MyAttributeError {other}')
     return sample
 
 def or_sample(self,other):
@@ -62,13 +73,13 @@ def some(self,sep,m):
     return sample
 
 def plus(self,sep):
-    return some(self,sep,1 + poisson(3))
+    return some(self,sep,1 + poisson(0.5))
          
 def many(self,sep):
-    return some(self,sep,0 + poisson(3))
+    return some(self,sep,0 + poisson(0.5))
 
 def atleast(self,n):
-    return some(self,None,n + poisson(3))
+    return some(self,None,n + poisson(0.5))
 
 def possibly(self):
     def sample():
@@ -103,7 +114,7 @@ def type_sample(ty:str):
     d = {'STRING': ['"'+s+'"' for s in 'hello world so little time'.split()],
          'CONTROLSEQ':['\\'+s for s in 'alpha beta gamma delta sum prod deg circ ast lneg times rtimes'],
          'DECIMAL':['3.14','2.718','1.0','4.96'],
-         'INTEGER': list(range(0,10)) ,
+         'INTEGER': [str(i) for i in range(0,10)] ,
          'SYMBOL':['<','>','!=','+','-','*','^'],
          'SYMBOL_QED':['\\qed'],
          'MAPSTO':['\mapsto'],
@@ -120,7 +131,7 @@ def type_sample(ty:str):
          'LAMBDA':['\\lambda'],
          'PITY':['\\Pity'],
          'QUANTIFIER':['\\forall','\\exists'],
-         'VAR':'a b c x y z a1 a2 x1 x33 y7 u v w'.split(),
+         'VAR':[ f'{x}{n}' for x in 'b c x y z u v w'.split() for n in range(0,5)],
          'WORD':"""estimate equation solution expression inequality random sample 
              mean pair ordered function evaluate order operation property divisible 
              exponent base multiple square common prime form factorization point 
@@ -154,20 +165,37 @@ def all_sample(prs):
 
 def first(prs):
     def sample():
+        if not prs:
+            return None
         i = randint(0,len(prs))
         return prs[i].sample()
     return sample
 
-def lazy_call(pr):
-    def sample():
-        return pr().sample()
-    return sample
+#def lazy_call(pr):
+#    def sample():
+#        return pr().sample()
+#    return sample
 
 def first_word(ss):
+    #DEBUG if not(ss):
+    #    raise IndexError(f'Index out of range, split first_word({ss})')
+    s = ran(ss.split())
     def sample():
-        s = ran(ss.split(' '))
         return mk_tok(s)
     return sample
+
+def word_net_string(wn):
+    s = ran([k for k in wn])
+    if not s:
+        return ''
+    return s + ' ' + word_net_string(wn[s])
+
+def word_net(wn):
+    def sample():
+        s = word_net_string(wn)
+        return mk_toks(s)
+    return sample
+
 
 if __name__ == "__main__":
     import doctest

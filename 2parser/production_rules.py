@@ -20,7 +20,12 @@ The parsers are generally implemented as function calls
 rather than values.  This gives uniform style and helps
 to prevent infinite recursive expansion of parsers.
 
-DEBUG. Not implemented: namespace, record, this_exists, 
+DEBUG. Not implemented: namespace, record, this_exists,
+
+DEBUG. Currently inconsistent in when LexToken is converted to Etok.  Duplicated effort
+It is always performed by the Etok constructor.
+It is always performed by Etok.rawupdate.
+We may need it earlier when we apply v.update(), which raises an error on LexToken
 """
 
 #import copy
@@ -38,10 +43,13 @@ from tokenlib import Etok
 import parser_combinator as c
 
 from parser_combinator import (Parse, 
+                               next_word, next_any_word, next_value,
                                first_word, 
-                               first_phrase, next_word, next_any_word,
-                               next_phrase, next_value,
+                               first_phrase, 
+                               next_phrase,
                                pstream)
+
+import sample
 
 def first(*args):
     return Parse.first(args)
@@ -54,12 +62,12 @@ def memo(f):
         return m[f]
     return wrapper # f to run tests.
     
-def strip_delim(acc):
-    """treatment to remove outer delimiters
-    We assume inner material is an Etok.
-    """
-    (_,b,_) = acc
-    return b.update({'raw':acc}) 
+#def strip_delim_deprecated(acc):
+#    """treatment to remove outer delimiters
+#    Deprecated, because we assume inner material is an Etok.
+#    """
+#    (_,b,_) = acc
+#    return Etok.rawupdate(b,acc) 
 
 lookup_parse = {}  # dictionary of parses, used for forward refs
     
@@ -117,6 +125,8 @@ def build_word_net(phrase_list):
     """build a word net (discrimination net) from a list of phrases.
     No normalization of words is performed, except case.
     
+    End of phrase is marked with {'':{}}. Eventually, we stop at key ''.
+    
     >>> build_word_net(['this and','this or','that and','this or that'])
     {'this': {'and': {'': {}}, 'or': {'': {}, 'that': {'': {}}}}, 'that': {'and': {'': {}}}}
     """
@@ -164,7 +174,7 @@ def next_word_net(wn):
         item2 = next_word_net(wn1).process(tokenlib.update(None,item1))
         return tokenlib.update([acc1]+item2.acc,item2)
     
-    return Parse(f,'next_word_net')
+    return Parse(f,'next_word_net',sample=sample.word_net(wn))
         
 #print(build_word_net(word_lists.transition))
 
@@ -271,7 +281,8 @@ def lit(s):
 
 
 def read_keyword(s): #was lit_read
-    """parser generator for s-like words or phrases.
+    """parser generator for s-like word.
+    Must be a single word.
     
     Output is an etok with name = s, rule = response, 
     
@@ -279,9 +290,8 @@ def read_keyword(s): #was lit_read
     Etok(ASSOC,right,'right')
     """
     def f(acc):
-        return Etok(s.upper(),[],[acc],acc.value)
+        return Etok(name=s.upper(),etoks=[],raw=acc,rule=acc.value)
     local_lit_dict = {
-            'any':(first_phrase(['each and every','some and every']) | first_word('every each all any some no')),
             'sort': (rawtype | rawsort),
             'assoc': first_word('left right no'),
             'field_key': first_word('coercion notationless notation parameter type call'), #renamed map -> call
@@ -294,25 +304,10 @@ def read_keyword(s): #was lit_read
         return Parse.first([local_lit_dict['document'],lit_dict['theorem'],lit_dict['axiom']]).treat(f,'location')
     return local_lit_dict[s].treat(f,s)
 
-
-
-def opt_paren(pr):
-    """
-    Parse an expression optionally in parentheses, 
-    discarding parentheses.  
-    
-    Input pr : An etok parser.
-    Output: An etok parser.
-    
-    >>> pstream(opt_paren(Parse.next_token().treat(Etok.etok)),'(hello)')
-    Etok(WORD,hello,'( hello )')
-    """
+def lit_any():
     def f(acc):
-        (_,t,_)=acc
-        return t.update({'raw':acc})   # (left,acc[1],right)
-    return (c.paren(pr).treat(f) | pr )
-
-
+        return Etok(name='any',etoks=acc,raw=acc)
+    return (first_phrase(['each and every','some and every']) | first_word('every each all any some no')).treat(f,'any')
 
 def cs_brace(cs_parse):
     """control sequence parser including arguments in braces.
@@ -325,12 +320,11 @@ def cs_brace(cs_parse):
     >>> pstream(cs_brace(Etok.parse(next_any_word())),'cs {term} {term} c')
     Etok(cs_brace,word,'cs { term } { term }')
     """
-    n_acc = None
     def f(acc):
-        nonlocal n_acc
-        n_acc = acc
-        return Etok(name='cs_brace',etoks=acc,raw=[acc],rule=cs_parse.nonterminal)      
-    return (cs_parse + c.brace(expr()).treat(strip_delim).many()).treat(f,'cs_brace')
+        (cs,bs)=acc 
+        bs = [b for (_,b,_) in bs]
+        return Etok(name='cs_brace',etoks=(cs,bs),raw=acc,rule=cs_parse.nonterminal)      
+    return (cs_parse + c.brace(expr()).many()).treat(f,'cs_brace')
 
 # case_sensitive_word -> use next_value(s)
 
@@ -500,7 +494,7 @@ class Instruction:
         """
         def f(acc):
             (_,(_,s),_)=acc 
-            return s.update({'raw':acc})
+            return Etok.rawupdate(s, acc)
         return (c.bracket(next_word('synonym') + Instruction.syn()).treat(f) |
              c.bracket(Instruction._keyword_instruct).treat(Instruction._treat_instruct))
 
@@ -532,7 +526,7 @@ def colon_sort():
     def f(acc):
         ((_,a),e) = acc
         if not a:
-            return e.update({'raw':acc})
+            return Etok.rawupdate(e,acc)
         return Etok('coerce_as',etoks=[e],raw=acc)
     return (colon_as + get_lookup_parse('sort_expr')).treat(f,'colon_sort')
 
@@ -552,7 +546,7 @@ def colon_type():
     def f(acc):
         ((_,a),e) = acc
         if not a:
-            return Etok.update(e,{'raw':acc})
+            return Etok.rawupdate(e,acc)
         return Etok('coerce_as',etoks=[e],raw=acc)
     return (colon_as + get_lookup_parse('post_colon_type')).treat(f,'colon_type')
 
@@ -593,10 +587,10 @@ def annotated(p):
     Etok(annotated,...,'( x : post_colon_type )')
     """
     def f(acc):
-        (_,(v,ann),_)  = acc
-        if not ann:
-            return v.update({'raw':acc})
-        return Etok('annotated',etoks=(v,ann),raw=acc,rule=p.nonterminal)
+        (_,vs,_)  = acc
+        #if not ann:  
+        #    return Etok.rawupdate(v,acc) # cannot guarantee that v is a single Etok.
+        return Etok('annotated',etoks=vs,raw=acc,rule=p.nonterminal)
     return c.paren(p + opt_colon_sort_or_type()).treat(f,'annotated')
 
 @memo
@@ -650,7 +644,7 @@ def assign_expr():
     """
     def f(acc):
         (_,e) = acc
-        return e.update({'raw':acc})
+        return Etok.rawupdate(e,acc)
     return (next_value(':=') + expr()).name('assign_expr').treat(f,'assign_expr')
 
 def var_or_atomic(omit=[]):
@@ -688,20 +682,27 @@ def brace_assign():
     >>> pstream(brace_assign(),'{ x := term ; y : post_colon_type := term }')
     Etok(brace_assign,'{ x := term ; y : post_colon_type := term }')
     """
-    def f_item(acc):
-        ((v,o),p) = acc
-        return (v,o,p)
-    n_acc = []
-    def f_brace(acc):
-        nonlocal n_acc
-        (_,b,_) = acc
-        n_acc = acc # keep full list of tokens
-        return b[0::2]
-    def f_final(acc):
-        return Etok(name='brace_assign',etoks=acc,raw=n_acc)
-    def brace_assign_item():
-        return (var_or_atomic_or_blank()+ opt_colon_type() + assign_expr().possibly()).name('brace_assign_item').treat(f_item)
-    return c.brace_semif().treat(f_brace).reparse_list(brace_assign_item()).treat(f_final,'brace_assign')
+    #def f_item(acc):
+    #    ((v,o),p) = acc
+    #    return (v,o,p)
+    #n_acc = []
+    #def f_brace(acc):
+    #    nonlocal n_acc
+    #    (_,b,_) = acc
+    #    n_acc = acc # keep full list of tokens
+    #    return b[0::2]
+    #def f_final(acc):
+    #    return Etok(name='brace_assign',etoks=acc,raw=n_acc)
+    #def brace_assign_item():
+    #    return (var_or_atomic_or_blank()+ opt_colon_type() + assign_expr().possibly()).name('brace_assign_item').treat(f_item)
+    #return c.brace_semif().treat(f_brace,'f_brace').reparse_list(brace_assign_item()).treat(f_final,'brace_assign')
+
+    def f(acc):
+        (_,ps,_)=acc
+        ps = [(v,o,p) for ((v,o),p) in ps[0::2]]
+        return Etok(name='brace_assign',etoks=ps,raw=acc)
+    p = (var_or_atomic_or_blank()+ opt_colon_type() + assign_expr().possibly()).name('brace_assign_item')    
+    return c.brace(p.plus(semicolon)).treat(f,'brace_assign_item')
 
 @memo
 def brace_noassign():
@@ -715,17 +716,25 @@ def brace_noassign():
     >>> pstream(brace_noassign(),'{x:post_colon_type;y}')
     Etok(brace_noassign,'{ x : post_colon_type ; y }')
     """
-    n_acc = []
-    def f_brace(acc):
-        nonlocal n_acc
-        (_,b,_) = acc
-        n_acc = acc
-        return b[0::2] #remove semi
-    def f_final(acc):
-        return Etok(name='brace_noassign',etoks=acc,raw=n_acc)
-    def brace_noassign_item():
-        return (var_or_atomics_() + opt_colon_type())
-    return c.brace_semif().treat(f_brace).reparse_list(brace_noassign_item()).treat(f_final,'brace_noassign')
+    #n_acc = []
+    #def f_brace(acc):
+    #    nonlocal n_acc
+    #    (_,b,_) = acc
+    #    n_acc = acc
+    #    return b[0::2] #remove semi
+    #def f_final(acc):
+    #    return Etok(name='brace_noassign',etoks=acc,raw=n_acc)
+    #def brace_noassign_item():
+    #    return (var_or_atomics_() + opt_colon_type())
+    #return c.brace_semif().treat(f_brace,'f_brace').reparse_list(brace_noassign_item()).treat(f_final,'brace_noassign')
+
+    def f(acc):
+        (_,ps,_)=acc
+        ps = ps[0::2]
+        return Etok(name='brace_noassign',etoks=ps,raw=acc)
+    p = (var_or_atomics_() + opt_colon_type()).name('brace_noassign_item')    
+    return c.brace(p.plus(semicolon)).treat(f,'brace_noassign_item')
+
 
 @memo
 def app_args():
@@ -935,8 +944,8 @@ def over_args():
     
     output Etok(over_args,1 2 or 3)
     
-    >>> pstream(over_args(),'over { a := term }')
-    Etok(over_args,1,'over { a := term }')
+    >>> pstream(over_args(),'over { a := term ; b := term }')
+    Etok(over_args,1,'over { a := term ; b := term }')
     
     >>> pstream(over_args(),'over tightest_term')
     Etok(over_args,2,'over tightest_term')
@@ -947,15 +956,21 @@ def over_args():
     over = next_word('over')
 
     def over_args1():
-        n_acc = []
-        def f_brace(acc):
-            nonlocal n_acc
-            (_,(_,b,_)) = acc
-            n_acc = acc
-            return b[0::2] #remove semi
-        def f1(acc):
-            return Etok(name='over_args',etoks=acc[0::2],raw=n_acc,rule='1')
-        return ((over + c.brace_semif()).treat(f_brace).reparse_list(var_or_atomic() + assign_expr())).treat(f1,'over_args1')
+        #n_acc = []
+        #def f_brace(acc):
+        #    nonlocal n_acc
+        #    (_,(_,b,_)) = acc
+        #    n_acc = acc
+        #    return b[0::2] #remove semi
+        #def f1(acc):
+        #    return Etok(name='over_args',etoks=acc[0::2],raw=n_acc,rule='1')
+        #return ((over + c.brace_semif()).treat(f_brace).reparse_list(var_or_atomic() + assign_expr())).treat(f1,'over_args1')
+
+        def f(acc):
+            (_,(_,b,_))=acc
+            return Etok(name='over_args',etoks=b[0::2],raw=acc,rule='1')
+        p = (var_or_atomic() + assign_expr())
+        return (over + c.brace(p.plus(semicolon))).treat(f,'over_args1')
 
     def over_args2():
         def f2(acc):
@@ -998,7 +1013,7 @@ def var_type():
         return acc.update({'name':'VAR_TYPE'})
     def f2(acc):
         (_,((v,_),_),_) = acc
-        return v.update({'raw':acc})
+        return Etok.rawupdate(v,acc)
     return (var() | c.paren(var() + colon + rawtype).treat(f2)).treat(f,'var_type')
 
 @memo
@@ -1266,17 +1281,16 @@ def structure():
     Etok(structure,'notational structure with parameter { x : post_colon_type } with { parameter y := term }')
     """
     def f(acc):
-        ((((n,_),(_,t)),_),(_,b,_))=acc
-        b = c.retreat_list(field(),b[0::2]) #remove semi
-        if n:
-            n = Etok.etok(n)
-        return Etok(name='structure',etoks=(n,t,b),raw=acc)
+        ((((n,_),t),_),(_,b,_))=acc
+        if t:
+            (_,t)=t
+        return Etok(name='structure',etoks=(n,t,b[0::2]),raw=acc)
     # Prohibit identifiers named 'with' to avoid grammar ambiguity.
-    return (next_word('notational').possibly() +
+    return (next_word('notational').treat(Etok.etok).possibly() +
             next_word('structure') +
             (lit('param').possibly() + nonempty_args_template(omit=['with'])).possibly() +
             next_word('with').possibly() +
-            c.brace_semif()).treat(f,'structure')
+            c.brace(field().plus(semicolon))).treat(f,'structure')
 
 proof_expr # implemented above
 
@@ -1414,17 +1428,26 @@ def make_term():
     >>> pstream(make_term(),'make { it : post_colon_type := term }')
     Etok(make_term,'make { it : post_colon_type := term }')
     """
-    def fp(acc):
-        ((a,b),c)=acc
-        return (a,b,c)
+    #def fp(acc):
+    #    ((a,b),c)=acc
+    #    return (a,b,c)
+    #def f(acc):
+    #    ((_,t),(_,b,_)) = acc
+    #    p = (var_or_atomic_or_blank() + opt_colon_type() + 
+    #         assign_expr().possibly()).treat(fp)
+    #    b = c.retreat_list(p,b)
+    #    return Etok('make_term',etoks=(t,b),raw=acc)
+    #return (next_word('make') + get_lookup_parse('tightest_type').possibly() +
+    #        c.brace_semif()).treat(f,'make_term')
+
     def f(acc):
-        ((_,t),(_,b,_)) = acc
-        p = (var_or_atomic_or_blank() + opt_colon_type() + 
-             assign_expr().possibly()).treat(fp)
-        b = c.retreat_list(p,b)
-        return Etok('make_term',etoks=(t,b),raw=acc)
+        ((_,t),(_,bs,_))=acc 
+        bs = [(a,b,c) for ((a,b),c) in bs[0::2]]
+        return Etok('make_term',etoks=(t,bs),raw=acc)
+    p = (var_or_atomic_or_blank() + opt_colon_type() + 
+             assign_expr().possibly())
     return (next_word('make') + get_lookup_parse('tightest_type').possibly() +
-            c.brace_semif()).treat(f,'make_term')
+            c.brace(p.plus(semicolon))).treat(f,'make_term')
 
 @memo
 def paren_term():
@@ -1435,7 +1458,7 @@ def paren_term():
     """
     def f(acc):
         (_,t,_)=acc
-        return t.update({'raw':acc})
+        return Etok.rawupdate(t,acc)
     return c.paren(get_lookup_parse('term')).treat(f,'paren_term')
 
 @memo
@@ -1614,14 +1637,21 @@ def where_suffix():
     >>> pstream(where_suffix(),'where { x : post_colon_type := term ; y := term }')
     Etok(where_suffix,'where { x : post_colon_type := term ; y := term }')
     """
-    def f_inner(acc):
-        ((a,b),c)=acc
-        return (a,b,c)
+    #def f_inner(acc):
+    #    ((a,b),c)=acc
+    #    return (a,b,c)
+    #def f(acc):
+    #    (_,(_,b,_))=acc 
+    #    b=c.retreat_list((var()+opt_colon_type()+assign_expr().possibly()).treat(f_inner),b[0::2])
+    #    return Etok(name='where_suffix',etoks=b,raw=acc)
+    #return (next_word('where') + c.brace_semif()).treat(f,'where_suffix')
+
     def f(acc):
-        (_,(_,b,_))=acc 
-        b=c.retreat_list((var()+opt_colon_type()+assign_expr().possibly()).treat(f_inner),b[0::2])
-        return Etok(name='where_suffix',etoks=b,raw=acc)
-    return (next_word('where') + c.brace_semif()).treat(f,'where_suffix')
+        (_,(_,bs,_))=acc 
+        bs = [(a,b,c) for ((a,b),c) in bs[0::2]]
+        return Etok(name='where_suffix',etoks=bs,raw=acc)
+    p = (var()+opt_colon_type()+assign_expr().possibly())
+    return (next_word('where') + c.brace(p.plus(semicolon))).treat(f,'where_suffix')
 
 @memo
 def where_term():
@@ -1658,7 +1688,7 @@ def definite_term():
     """
     def f(acc):
         (_,t)=acc
-        return t.update({'raw':acc})
+        return Etok.rawupdate(t,acc)
     return first(where_term() ,
             (next_word('the') + get_lookup_parse('prim_definite_noun')).treat(f,'definite_term')
             )
@@ -1682,7 +1712,7 @@ def any_name():
     """
     def f(acc):
         return Etok(name='any_name',etoks=acc,raw=acc)
-    return (read_keyword('any') +
+    return (lit_any() +
             first(any_args() ,
              get_lookup_parse('pseudoterm') ,
              get_lookup_parse('general_type'))).treat(f,'any_name')
@@ -1692,7 +1722,7 @@ def term():
     """parser for terms, subsuming all other terms (through definite_term)"""
     def f(acc):
         (_,t)=acc 
-        return t.update({'raw':acc})
+        return Etok.rawupdate(t,acc)
     return first((get_lookup_parse('prim_classifier').possibly() + definite_term()).treat(f,'term') ,
             any_name())
 
@@ -1712,6 +1742,8 @@ def isplain(etok):
     """Boolean test if an Etok is plain.
     Input must be an Etok.
     """
+    if tokenlib.is_lex(etok):
+        return True
     if etok.name=='any_name':
         return False
     return isplains(etok.etoks)
@@ -1774,7 +1806,7 @@ def tdop_term():
 def adjective_left_attribute():
     def f(acc):
         return Etok(name='adjective_left_attribute',etoks=acc,raw=acc)
-    return (next_word('non').possibly() + get_lookup_parse('prim_simple_adjective')).treat(f,'adjective_left_attribute')
+    return (next_word('non').treat(Etok.etok).possibly() + get_lookup_parse('prim_simple_adjective')).treat(f,'adjective_left_attribute')
 
 @memo
 def multisubject_left_attribute():
@@ -1802,7 +1834,7 @@ def does_right_attribute():
 def such_that_right_attribute():
     def f(acc):
         (_,t)=acc
-        return t.update({'raw':acc})
+        return Etok.rawupdate(t,acc)
     return (c.next_phrase('such that') + get_lookup_parse('statement')).treat(f,'such_that_right_attribute')
 
 @memo
@@ -1932,7 +1964,7 @@ def tightest_prop():
     """Parser for tightly bound propositional statements"""
     def f(acc):
         (_,s,_)=acc
-        return s.update({'raw':acc})
+        return Etok.rawupdate(s,acc)
     return first(c.paren(get_lookup_parse('statement')).treat(f) ,
             identifier_prop() ,
             prop_var() ,
@@ -1960,7 +1992,7 @@ def lambda_predicate():
         return Etok(name='lambda_predicate',etoks=(t,p),raw=acc)
     return (next_word('fun')+ tightest_args() + colon + rawprop +
             c.next_type('ASSIGN') + tightest_prop()
-            ).treat(f,'lambad_predicate')
+            ).treat(f,'lambda_predicate')
 
 @memo
 def binder_prop():
@@ -2117,8 +2149,9 @@ def plain_pred_pseudoterm():
     Etok(plain_pred_pseudoterm,'x , y = u , holding x')
     """
     def f(acc):
-        return Etok(name='plain_pred_pseudoterm',etoks=acc,raw=acc)
-    return opt_paren(tdop_rel_prop() + holding_vars().possibly()).if_test(isplains).treat(f,'plain_pred_pseudo_term')
+        (_,t,_)=acc
+        return Etok(name='plain_pred_pseudoterm',etoks=t,raw=acc)
+    return c.opt_paren(tdop_rel_prop() + holding_vars().possibly()).if_test(isplains).treat(f,'plain_pred_pseudo_term')
  
 #def predicate_pseudoterm():
 #    """Parse a plain_pred_pseudoterm with attribute"""
@@ -2139,13 +2172,13 @@ def pseudoterm_without_attribute():
     """
     def f2(acc):
         (_,t)=acc 
-        return t.update({'raw':acc})
+        return Etok.rawupdate(t,acc)
     def f3(acc):
         ((v,_),ann)=acc 
         return Etok('annotated',etoks=(v,ann),raw=acc)
     def f5(acc):
         (_,ps,_)=acc
-        return ps.update({'raw':acc})
+        return Etok.rawupdate(ps,acc)
     return first(get_lookup_parse('prim_typed_name') ,
             (get_lookup_parse('prim_classifier') + tvar()).treat(f2,'pseudoterm-2') ,
             (var() + (lit('with') + next_word('type')) + opentail_type()).treat(f3,'pseudoterm-3') ,
@@ -2213,13 +2246,13 @@ def symbol_statement():
         (((_,a),_),s)=acc
         return Etok(name='forall_symbol_statement',etoks=(a,s),raw=acc)
     def f_exist(acc):
-        (((_,a,_),s))=acc
+        (((_,a),_),s)=acc
         return Etok(name='exist_symbol_statement',etoks=(a,s),raw=acc)
     def f_not(acc):
-        return Etok(name='not_symbol_statement',etoks=acc,raw=acc)
+        return Etok(name='not_symbol_statement',etoks=acc[1],raw=acc)
     def f(acc):
         (_,s,_)=acc
-        return s.update({'raw':acc})
+        return Etok.rawupdate(s,acc)
     return first(
         prop() ,
         (lit('forall') + pseudoterm() + binder_comma() + c.lazy_call(symbol_statement)).treat(f_forall,'forall_statement') , 
@@ -2272,7 +2305,7 @@ def chain_statement():
         (((_,ao,_),_),s)=acc
         return Etok('iff_statement',etoks=(ao,s),raw=acc) 
     return first(andor_chain () ,
-            (c.paren(andor_chain) + lit('iff') + get_lookup_parse('statement')).treat(f,'iff_statement')
+            (c.paren(andor_chain()) + lit('iff') + get_lookup_parse('statement')).treat(f,'iff_statement')
             ).name('chain_statement')
 
 @memo
@@ -2290,7 +2323,7 @@ def head_statement():
         return Etok(name='wrong_statement',etoks=acc[1:],raw=acc)
     return first(
         # DEBUG: use quasiterm instead of any_name?
-        (next_word('for') + c.plus_andcomma(any_name()) + binder_comma + get_lookup_parse('statement')).treat(f_for,'for_statement') ,
+        (next_word('for') + c.plus_andcomma(any_name()) + binder_comma() + get_lookup_parse('statement')).treat(f_for,'for_statement') ,
         (next_word('if')+ get_lookup_parse('statement') + comma + next_word('then') + get_lookup_parse('statement')).treat(f_ifthen,'if_then_statement') ,
         (lit('wrong') + get_lookup_parse('statement')).treat(f_wrong,'wrong_statement')
         ).name('head_statement')
@@ -2319,7 +2352,7 @@ def synonym_item():
     def f(acc):
         ((_,b),_)=acc
         b1 = c.retreat_list(Instruction.syn(),[b])
-        return b1[0].update({'raw':acc})
+        return Etok.rawupdate(b1[0],acc)
     return (pre + c.balanced_condition(not_period) + period).commit(pre).treat(f)
 
 @memo
@@ -2413,10 +2446,12 @@ def satisfy_item():
     Etok(satisfy_item,'every ( G : post_colon_type ) satisfy binder_prop .')
     """
     def f(acc):
-        (((((_,p),_),f),s),_)=acc 
+        (((p,f),s),_)=acc
+        if f:
+            (_,f,_)=f
         return Etok('satisfy_item',etoks=(p,f,s),raw=acc)
     pre = next_word('every') + pseudoterm() +lit('satisfy')  
-    return (pre + opt_paren(field_prefix()).possibly() + statement() + period).commit(pre,'satisfy_item').treat(f,'satisfy_item')
+    return (pre + c.opt_paren(field_prefix()).possibly() + statement() + period).commit(pre,'satisfy_item').treat(f,'satisfy_item')
 
     
 
@@ -2503,7 +2538,7 @@ def assumption():
         return Etok(name='assumption',etoks=[s],raw=acc)
     def f2(acc):
         (l,_)=acc
-        return l.update({'raw':acc})
+        return Etok.rawupdate(l,acc)
     pre = lit('lets') + lit('assume')
     pre2 = first_word('let fix')
     return first((assumption_prefix() + statement() + period).commit(pre).treat(f,'assumption') ,
@@ -2908,11 +2943,11 @@ class Pattern:
         Etok(precedence_level,'with precedence 10 and left associativity')
         """
         def f(acc):
-            ((_,i),a)=acc 
+            (_,((_,i),a),_) =acc 
             if a:
                 ((_,a),_)=a
             return Etok('precedence_level',etoks=(i,a),raw=acc)
-        return opt_paren(
+        return c.opt_paren(
                 (next_phrase('with precedence') + c.next_type('INTEGER').treat(Etok.etok)) +
                 (next_word('and') + read_keyword('assoc').treat(Etok.etok) + next_word('associativity')).possibly()
                 ).treat(f,'precedence_level')
@@ -3077,7 +3112,7 @@ class Macro:
         """
         def f(acc):
             ((((_,w),_),_),_)=acc 
-            return w.update({'raw':acc})
+            return Etok.rawupdate(w,acc)
         return (
             next_word('let') + Macro.classifier_word_pattern() +
             lit('is') + lit('a').possibly() + next_word('classifier')
@@ -3200,17 +3235,17 @@ class Macro:
         """Definition + period"""
         def f(acc):
             (d,_)=acc
-            return d.update({'raw':acc})
+            return Etok.rawupdate(d,acc)
         return (Macro.definition_statement() + period).treat(f,'definition_affirm')
     
     def definition_label():
         """ 
         >>> pstream (Macro.definition_label(),'Definition XX.')
-        Etok(ATOMIC,XX,'definition XX .')
+        Etok(definition_label,'definition XX .')
         """
         def f(acc):
             ((_,l),_) = acc 
-            return l.update({'raw':acc})
+            return Etok(name='definition_label',etoks=l,raw=acc)
         return (lit('def') + label().possibly() + period).treat(f,'definition_label')
 
     def definition():
@@ -3295,7 +3330,7 @@ def declaration():
         )
 
 @memo
-def text_item():
+def utterance():
     """A text item is a major block of texts
     in a document.
     Every item must end with a period or be an
@@ -3316,14 +3351,14 @@ def text_item():
 
 @memo
 def text():
-    """Parse a sequence of text_item
+    """Parse a sequence of utterance
     
-    Normally, we work at the level of text_items,
+    Normally, we work at the level of utterances,
     processing each in turn, before moving to the next.
     The text Parser skips the processing.
     
     """
-    return text_item().many() + lit('done').possibly()
+    return utterance().many() + lit('done').possibly()
 
 @memo
 def program_text():
