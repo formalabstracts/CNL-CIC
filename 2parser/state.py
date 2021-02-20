@@ -10,6 +10,7 @@ Created on Sun Jan 17 10:36:45 2021
 
 class state:
     mk_sample = False
+    include_possibly = True
     
 
     

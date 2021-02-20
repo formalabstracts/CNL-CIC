@@ -1,5 +1,10 @@
 singular = [
-    'this','as','is','thesis','hypothesis','less','obvious','us','yes'
+    'this','as','is','thesis','hypothesis','less','obvious','us','yes','cos',
+    'always','perhaps','alias','plus','apropos',
+    'was','its','bus','his','is','us',
+    'this','thus','axis','bias','minus','basis',
+    'praxis','status','modulus','analysis',
+    'aparatus'
     ]
 
 invariable = [  #frozen_list - cannot be given a synonym

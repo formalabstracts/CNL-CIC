@@ -15,6 +15,8 @@ from tokenlib import (Item , Etok, mk_stream)
 
 import lib
 
+import state
+
 def bernoulli(p):
     return binomial(1,p)
 
@@ -83,6 +85,8 @@ def atleast(self,n):
 
 def possibly(self):
     def sample():
+        if state.state.include_possibly:
+            return self.sample()
         if bernoulli(0.5):
             return self.sample()
         return None
@@ -112,25 +116,25 @@ def type_sample(ty:str):
     '...'
     """
     d = {'STRING': ['"'+s+'"' for s in 'hello world so little time'.split()],
-         'CONTROLSEQ':['\\'+s for s in 'alpha beta gamma delta sum prod deg circ ast lneg times rtimes'],
+         'CONTROLSEQ':['\\'+s for s in 'alpha beta gamma delta sum prod deg circ ast lneg times rtimes'.split()],
          'DECIMAL':['3.14','2.718','1.0','4.96'],
          'INTEGER': [str(i) for i in range(0,10)] ,
          'SYMBOL':['<','>','!=','+','-','*','^'],
-         'SYMBOL_QED':['\\qed'],
-         'MAPSTO':['\mapsto'],
-         'MID':['\mid'],
-         'TMID':['\tmid'],
+         'SYMBOL_QED':[r'\qed'],
+         'MAPSTO':[r'\mapsto'],
+         'MID':[r'\mid'],
+         'TMID':[r'\tmid'],
          'ASSIGN':[':='],
-         'ARROW':['\to'],
+         'ARROW':[r'\to'],
          'BLANK':['_'],
          'ALT':['|'],
          'PERIOD':['.'],
          'COLON':[':'],
-         'APPLYSUB':['\\sub'],
-         'COERCION': ['\\^'],
-         'LAMBDA':['\\lambda'],
-         'PITY':['\\Pity'],
-         'QUANTIFIER':['\\forall','\\exists'],
+         'APPLYSUB':[r'\sub'],
+         'COERCION': [r'\^'],
+         'LAMBDA':[r'\lambda'],
+         'PITY':[r'\Pity'],
+         'QUANTIFIER':[r'\forall',r'\exists'],
          'VAR':[ f'{x}{n}' for x in 'b c x y z u v w'.split() for n in range(0,5)],
          'WORD':"""estimate equation solution expression inequality random sample 
              mean pair ordered function evaluate order operation property divisible 
@@ -144,7 +148,7 @@ def type_sample(ty:str):
          'HIERARCHICAL_IDENTIFIER':['math.pi','math.ceil','math.abs'],
          'FIELD_ACCESSOR':['.assoc','.distrib'],
          'UNKNOWN':['?'],
-         'TEX_ERROR':['\\error']
+         'TEX_ERROR':[r'\error']
          }
     return ran(d[ty])
 

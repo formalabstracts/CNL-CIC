@@ -131,8 +131,8 @@ class Parse:
         return self
 
     
-    def show(self,level=1):
-        """Generate the parse tree (in words) of the parser,
+    def show(self,level):
+        """DEBUG Not implemented. Generate the parse tree (in words) of the parser,
         down to given level"""
         if (level==0):
             return (f'{self}',[])

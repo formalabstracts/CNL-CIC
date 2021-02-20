@@ -13,11 +13,11 @@ import inner_lexer
 inner_lexer.tokenizer.input(r"hello( ) my:hi [ ] | ! . ? ?3 ?44 + * $ : / my_a/:\abc!\[$")
 '(',')','[',']','|','!','.','+','*','$',':','/'
 
-while True:
-    tok = inner_lexer.tokenizer.token()
-    if not tok:
-        break
-    print(tok)
+#while True:
+#    tok = inner_lexer.tokenizer.token()
+#    if not tok:
+#        break
+#    print(tok)
     
-
+print('the'.upper())
     

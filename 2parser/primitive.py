@@ -64,20 +64,79 @@ from parser_combinator import (Parse, Etok,
 #DataProcess (line,etok,str,...)
 
 def line(etok):
+    """String giving the starting line number of Etok."""
     raw = etok.raw
     if raw:
         return f'line={raw[0].lineno}.'
     return ''
 
 def unwrap(etok,s):
+    """Raise DataProcess if the etok is not s
+    Return etoks
+    """
     if not(s):
         return etok
     if (not(etok.name)==s):
         raise DataProcess((line(etok),etok,f'{s} expected, found {etok}'))
     return etok.etoks
 
-def drill(etok,f):
+def traverse_tree(etok,f):
+    """Recursively traverse over etok tree 
+    replacing e -> f(e).
+    Has side effect on etok.
+    Return f(etok-recursively-modified))
+    """
+    if not etok:
+        return etok
+    if lib.nonstringiterable(etok):
+        return [traverse_tree(e,f) for e in etok]
+    etok.etoks = traverse_tree(etok.etoks,f)
+    return f(etok)
+
+def all_tree(p,etok):
+    """Recursively check predicate p is true on etok tree"""
+    return p(etok) and all(p(e) for e in lib.fflatten(etok.etoks) if e)
+    
+def collect_tree(etok,f):
+    """Recursively call f on etok tree. No return.
+    State can be stored in f to collect data.
+    """
+    f(etok)
+    for e in lib.fflatten(etok.etoks):
+        if e:
+            collect_tree(e,f)
     pass
+
+def collect_list(etok,f=None):
+    """Specialization of collect_tree.
+    Collect f from etok tree into a list
+    
+    f:Etok -> A 
+    
+    >>> list(set(collect_list(pstream(r.tdop_rel_prop(),'x,y,z PRIM_BINARY_RELATION_OP u PRIM_BINARY_RELATION_OP x'))))
+    ['app_term', 'VAR', 'prim_binary_relation_op', 'app_args', 'tdop_rel_prop', 'tightest_term']
+    """
+    data=[]
+    if not(f):
+        f= (lambda e: e.name)
+    collect_tree(etok,(lambda e: data.append(f(e))))
+    return data
+
+def collect_name(etok,s):
+    """
+    Make a list of all subtokens with name s.
+    >>> collect_name(pstream(r.tdop_rel_prop(),'x,y,z PRIM_BINARY_RELATION_OP u PRIM_BINARY_RELATION_OP x'),'VAR')
+    [Etok(VAR,x,'x'), Etok(VAR,u,'u'), Etok(VAR,y,'y'), Etok(VAR,u,'u'), Etok(VAR,z,'z'), Etok(VAR,u,'u'), Etok(VAR,u,'u'), Etok(VAR,x,'x')]
+
+    ## get duplicates because binary relation processing does de-chaining.
+    """
+    data = []
+    def action(e):
+        if e.name==s:
+            data.append(e)
+    collect_tree(etok,action)
+    return data
+    
 
 class Prim_data:
     """primitive dict has keys (ptype:str,ikey:str)
@@ -117,45 +176,7 @@ def prim_classifier_parse():
         return ('prim_classifier',c.getvalue(tok)) in Prim_data.prim_dict
     return c.next_any_word().if_test(p).treat(Etok.etok,'prim_classifier_parse')
 
-def traverse_tree(etok,f):
-    """Recursively traverse over etok tree 
-    replacing e -> f(e).
-    Has side effect on etok.
-    """
-    etok.etoks = [traverse_tree(e,f) for e in etok.etoks]
-    return f(etok)
 
-def all_tree(etok,p):
-    """Recursively check predicate p is true on etok tree"""
-    return p(etok) and all(p(e) for e in lib.fflatten(etok.etoks) if e)
-    
-def collect_tree(etok,f):
-    """Recursively call f on etok tree. No return.
-    State can be stored in f to collect data.
-    """
-    for e in lib.fflatten(etok.etoks):
-        f(e)
-    f(etok)
-    pass
-
-def collect_list(etok,f=None):
-    """Specialization of collect_tree.
-    Collect f from etok tree into a list
-    
-    f:Etok -> A 
-    
-    >>> list(set(collect_list(pstream(r.tdop_rel_prop(),'x,y,z prim_binary_relation_op u prim_binary_relation_op x'))))
-    ['app_term', 'prim_binary_relation_op', 'tdop_rel_prop']
-    """
-    data=[]
-    if not(f):
-        f= (lambda e: e.name)
-    collect_tree(etok,(lambda e: data.append(f(e))))
-    return data
-
-
-
-    
     
 def strip_syn_from_word_extended(etok):
     """Action for processing synonyms.
@@ -165,7 +186,7 @@ def strip_syn_from_word_extended(etok):
     
     >>> etok = pstream(Pattern.word_extended(),'syntax (or semantics)')
     >>> strip_syn_from_word_extended(etok).s_expression()
-    '(word_extended [(WORD-syntax) []])'
+    '(word_extended [(WORD-syntax)])'
     
     >>> c.synonymize('syntax')
     'semantic syntax'
@@ -179,8 +200,44 @@ def strip_syn_from_word_extended(etok):
             return etok.update({'etoks':(w,wp,None)})
     return etok 
 
-def prim_adjective_add(etok):
-    """Add a parser production rule for prim_adjective"""
+def get_prim_adjective_pattern(etok):
+    """
+    prim_adjective_pattern with
+    (no synonyms, no optional material, no annotation)
+    
+    >>> e=pstream(Pattern.word_pattern(),'integrable with respect to x')
+    >>> traverse_tree(e,get_prim_adjective_pattern).s_expression()
+
+    """
+    if not etok:
+        return etok
+    if etok.name=='word_extended':
+        (w,x,y)=etok.etoks
+        if x or y:
+            raise DataProcess(f'simple word_pattern expected {etok}')
+        return w
+    if etok.name=='annotated':
+        raise DataProcess(f'simple word_pattern expected (no annotation) {etok}')
+    return etok
+    
+    
+
+def quick_prim_adjective_add(etok):
+    """Add a parser production rule for prim_adjective.
+    Word pattern only. 
+    No definition.
+    No synonmyms.
+    No optional material."""
+    e1 = get_prim_adjective_pattern(etok)
+    vars = collect_name(e1, 'VAR')
+    if not (len(vars)==len(list(set(vars)))):
+        raise DataProcess(f'linear variable patter expected in {etok}')
+    d = {v : 'TERM' for v in vars}
+    Prim_data.add(etok,('prim_adjective',), value)
+    
+    
+    
+    
     
 
 

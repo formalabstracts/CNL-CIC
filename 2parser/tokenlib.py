@@ -263,11 +263,11 @@ class Etok:
         """convert a token to Etok"""
         return Etok(name=tok.type,etoks=[],raw=[tok],rule=tok.value)
     
-    def parse(p : 'Parse'):
-        """Promote a LexToken parser to a Etok parser.
-        This is the same as p.treat(Etok.etok)
-        """
-        return p.treat(Etok.etok)
+#    def parse(p : 'Parse'):
+#        """Promote a LexToken parser to a Etok parser.
+#        This is the same as p.treat(Etok.etok)
+#        """
+#        return p.treat(Etok.etok)
 
 
 

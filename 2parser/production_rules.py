@@ -110,14 +110,22 @@ def get_lookup_parse(nonterminal):
     word string.  This last resort rule might give strange behavior but it
     is probably quite harmless.  The last resort helps with debugging.
     
+    # DEBUG. Should not this fail, requiring a string in caps?
     >>> pstream(get_lookup_parse('hello'),'hello and')
-    Etok(hello,default,'hello')
+    Etok(WORD,hello,'hello')
+    
+    >>> pstream(get_lookup_parse('STATEMENT'),'[STATEMENT x > y]')
+    Etok(STATEMENT,backdoor2,'[ STATEMENT x > y ]')
     """
     def f(acc):
-        return Etok.etok(acc).update({'name':nonterminal,'rule':'default'})
-    backdoor=Etok.parse(next_value(nonterminal)).treat(f,nonterminal)
+        return Etok.etok(acc).update({'name':nonterminal,'rule':'backdoor1'})
+    def f2(acc):
+        (_,(_,b),_)=acc
+        return Etok(name=nonterminal,etoks=b,raw=acc,rule='backdoor2')
+    backdoor1=Parse.next_token().if_rawvalue(nonterminal.upper()).treat(f,nonterminal)
+    backdoor2= c.bracket(Parse.next_token().if_rawvalue(nonterminal.upper()) + c.balanced()).treat(f2,nonterminal)
     
-    ps = [backdoor] +lookup_parse.get(nonterminal,[])
+    ps = [backdoor1,backdoor2] +lookup_parse.get(nonterminal,[])
     return Parse.first(ps).name(nonterminal,production='lookup')
 
     
@@ -317,8 +325,8 @@ def cs_brace(cs_parse):
     Output: Etok(name='cs_brace') etoks=(cs_brace,braces).
     
     
-    >>> pstream(cs_brace(Etok.parse(next_any_word())),'cs {term} {term} c')
-    Etok(cs_brace,word,'cs { term } { term }')
+    >>> pstream(cs_brace(next_any_word()),'cs {TERM} {TERM} c')
+    Etok(cs_brace,word,'cs { TERM } { TERM }')
     """
     def f(acc):
         (cs,bs)=acc 
@@ -360,7 +368,7 @@ def atomic():
 def label():
     return atomic()
 
-@memo
+# no memo, parameter
 def primitive(primitive_nonterminal):
     def f(item):
         if not(primitive_nonterminal in word_lists.prim_list):
@@ -504,8 +512,8 @@ def expr():
     
     Output Etok(expr,...)
     
-    >>> pstream(expr(),'term')
-    Etok(expr,term,'term')
+    >>> pstream(expr(),'TERM')
+    Etok(expr,term,'TERM')
     """
     def f1(nonterminal):  #currying
         def f(acc):
@@ -540,8 +548,8 @@ def colon_type():
     
     output Etok
     
-    >>> pstream(colon_type(),':post_colon_type')
-    Etok(post_colon_type,default,': post_colon_type')
+    >>> pstream(colon_type(),':POST_COLON_TYPE')
+    Etok(post_colon_type,backdoor1,': POST_COLON_TYPE')
     """
     def f(acc):
         ((_,a),e) = acc
@@ -583,8 +591,8 @@ def annotated(p):
     Sample input to parser:
         (x : A)
         
-    >>> pstream(annotated(var()),'(x:post_colon_type)')
-    Etok(annotated,...,'( x : post_colon_type )')
+    >>> pstream(annotated(var()),'(x:POST_COLON_TYPE)')
+    Etok(annotated,...,'( x : POST_COLON_TYPE )')
     """
     def f(acc):
         (_,vs,_)  = acc
@@ -610,8 +618,8 @@ def annotateds(p):
         (x y z : A)
         (u v)
 
-    >>> pstream(annotateds(var().plus()),'(x y:post_colon_type)')
-    Etok(annotateds,...,'( x y : post_colon_type )')
+    >>> pstream(annotateds(var().plus()),'(x y:POST_COLON_TYPE)')
+    Etok(annotateds,...,'( x y : POST_COLON_TYPE )')
     
     """
     def f(acc):
@@ -629,8 +637,8 @@ def tvar():
     >>> pstream(tvar(),'x')
     Etok(VAR,x,'x')
     
-    >>> pstream(tvar(),'(x : post_colon_type)')
-    Etok(annotated,VAR,'( x : post_colon_type )')
+    >>> pstream(tvar(),'(x : POST_COLON_TYPE)')
+    Etok(annotated,VAR,'( x : POST_COLON_TYPE )')
     """
     return var() | annotated_var()
 
@@ -639,8 +647,8 @@ def assign_expr():
     """parser for := followed by an expression
     The output is the expression at Etok
     
-    >>> pstream(assign_expr(),':= general_type')
-    Etok(expr,general_type,':= general_type')
+    >>> pstream(assign_expr(),':= GENERAL_TYPE')
+    Etok(expr,general_type,':= GENERAL_TYPE')
     """
     def f(acc):
         (_,e) = acc
@@ -679,8 +687,8 @@ def brace_assign():
     Etok.etoks: list of (lhs,type annotation,assigned expr)
     the last two can be None.
     
-    >>> pstream(brace_assign(),'{ x := term ; y : post_colon_type := term }')
-    Etok(brace_assign,'{ x := term ; y : post_colon_type := term }')
+    >>> pstream(brace_assign(),'{ x := TERM ; y : POST_COLON_TYPE := TERM }')
+    Etok(brace_assign,'{ x := TERM ; y : POST_COLON_TYPE := TERM }')
     """
     #def f_item(acc):
     #    ((v,o),p) = acc
@@ -713,8 +721,8 @@ def brace_noassign():
     
     Etok.etoks list of (lhs,typ annotation or None)
     
-    >>> pstream(brace_noassign(),'{x:post_colon_type;y}')
-    Etok(brace_noassign,'{ x : post_colon_type ; y }')
+    >>> pstream(brace_noassign(),'{x:POST_COLON_TYPE;y}')
+    Etok(brace_noassign,'{ x : POST_COLON_TYPE ; y }')
     """
     #n_acc = []
     #def f_brace(acc):
@@ -743,8 +751,8 @@ def app_args():
     
     output Etok.toks (brace_assign?,[expr])
     
-    >>> pstream(app_args(),'{ x:= term } tightest_expr tightest_expr ...')
-    Etok(app_args,'{ x := term } tightest_expr tightest_expr')
+    >>> pstream(app_args(),'{ x:= TERM } TIGHTEST_EXPR TIGHTEST_EXPR ...')
+    Etok(app_args,'{ x := TERM } TIGHTEST_EXPR TIGHTEST_EXPR')
     """
     def f(acc):
         return Etok(name='app_args',etoks=acc,raw=acc)
@@ -770,8 +778,8 @@ def annotated_args(omit=[]):
     >>> pstream(annotated_args(),'x vv tt')
     Etok(annotated_args,'x vv tt')
     
-    >>> pstream(annotated_args(),'x (uu v w : post_colon_type) y')
-    Etok(annotated_args,'x ( uu v w : post_colon_type ) y')
+    >>> pstream(annotated_args(),'x (uu v w : POST_COLON_TYPE) y')
+    Etok(annotated_args,'x ( uu v w : POST_COLON_TYPE ) y')
     """
     def f(acc):
         return Etok(name='annotated_args',etoks=acc,raw=acc)
@@ -819,8 +827,8 @@ def tightest_arg():
         
     This allows too much.  We should restrict to admissible patterns.
 
-    >>> pstream(tightest_arg(),'tightest_expr')
-    Etok(tightest_expr,default,'tightest_expr')
+    >>> pstream(tightest_arg(),'TIGHTEST_EXPR')
+    Etok(tightest_expr,backdoor1,'TIGHTEST_EXPR')
     
     >>> pstream(tightest_arg(),'(x uu : sort_expr)')
     Etok(tightest_arg,'( x uu : sort_expr )')
@@ -876,8 +884,8 @@ def tightest_expr():
 def sort_expr():
     """Parser for arrows ending in rawvalue Sort or Type
     
-    >>> pstream(sort_expr(),'binder_type -> Type')
-    Etok(sort_expr,'binder_type -> type')
+    >>> pstream(sort_expr(),'BINDER_TYPE -> Type')
+    Etok(sort_expr,'BINDER_TYPE -> type')
     """
     def f(acc):
         (m,s) = acc
@@ -894,8 +902,8 @@ def sort_expr():
 def paren_type():
     """Parser for a type wrapped in parentheses
     
-    >>> pstream(paren_type(),'(general_type)')
-    Etok(general_type,default,'general_type')
+    >>> pstream(paren_type(),'(GENERAL_TYPE)')
+    Etok(general_type,backdoor1,'GENERAL_TYPE')
     """
     def f(acc):
         (_,a,_) = acc 
@@ -906,8 +914,8 @@ def paren_type():
 def annotated_type():
     """Parser for an annotated type
     
-    >>> pstream(annotated_type(),'(general_type : Type)')
-    Etok(general_type,default,'general_type')
+    >>> pstream(annotated_type(),'(GENERAL_TYPE : Type)')
+    Etok(general_type,backdoor1,'GENERAL_TYPE')
     """
     def f(acc):
         (_,((a,_),_),_)=acc
@@ -918,8 +926,8 @@ def annotated_type():
 def controlseq_type():
     """Parser for a control sequence type
     
-    >>> pstream(controlseq_type(),'prim_type_controlseq { term }')
-    Etok(cs_brace,prim_type_controlseq,'prim_type_controlseq { term }')
+    >>> pstream(controlseq_type(),'PRIM_TYPE_CONTROLSEQ { TERM }')
+    Etok(cs_brace,prim_type_controlseq,'PRIM_TYPE_CONTROLSEQ { TERM }')
     """
     return cs_brace(get_lookup_parse('prim_type_controlseq'))
 
@@ -944,14 +952,14 @@ def over_args():
     
     output Etok(over_args,1 2 or 3)
     
-    >>> pstream(over_args(),'over { a := term ; b := term }')
-    Etok(over_args,1,'over { a := term ; b := term }')
+    >>> pstream(over_args(),'over { a := TERM ; b := TERM }')
+    Etok(over_args,1,'over { a := TERM ; b := TERM }')
     
-    >>> pstream(over_args(),'over tightest_term')
-    Etok(over_args,2,'over tightest_term')
+    >>> pstream(over_args(),'over TIGHTEST_TERM')
+    Etok(over_args,2,'over TIGHTEST_TERM')
     
-    >>> pstream(over_args(),'(over tightest_term,tightest_term)')
-    Etok(over_args,3,'( over tightest_term , tightest_term )')
+    >>> pstream(over_args(),'(over TIGHTEST_TERM,TIGHTEST_TERM)')
+    Etok(over_args,3,'( over TIGHTEST_TERM , TIGHTEST_TERM )')
     """
     over = next_word('over')
 
@@ -990,8 +998,8 @@ def overstructure_type():
     """Parser for overstructure.
     The structure name must be a primitive identitifer.
     
-    >>> pstream(overstructure_type(),'prim_structure { x:= term } tightest_expr over tightest_term')
-    Etok(overstructure_type,'prim_structure { x := term } tightest_expr over tightest_term')
+    >>> pstream(overstructure_type(),'PRIM_STRUCTURE { x:= TERM } TIGHTEST_EXPR over TIGHTEST_TERM')
+    Etok(overstructure_type,'PRIM_STRUCTURE { x := TERM } TIGHTEST_EXPR over TIGHTEST_TERM')
     """
     def f(acc):
         return Etok(name='overstructure_type',etoks=acc,raw=acc)
@@ -1021,8 +1029,8 @@ def subtype():
     r""" 
     Parser for a subtype comprehension { x // P(x)}
     
-    >>> pstream(subtype(),r'{ term, holding x \tmid statement }')
-    Etok(subtype,'{ term , holding x \tmid statement }')
+    >>> pstream(subtype(),r'{ TERM, holding x \tmid STATEMENT }')
+    Etok(subtype,'{ TERM , holding x \tmid STATEMENT }')
     """
     def f(acc):
         (_,(((t,h),_),s),_)=acc
@@ -1033,8 +1041,8 @@ def subtype():
 def app_type():
     """Parser for the application of a type to its arguments 
     
-    >>> pstream(app_type(),'tightest_type tightest_expr')
-    Etok(app_type,tightest_type,'tightest_type tightest_expr')
+    >>> pstream(app_type(),'TIGHTEST_TYPE TIGHTEST_EXPR')
+    Etok(app_type,tightest_type,'TIGHTEST_TYPE TIGHTEST_EXPR')
     """
     def f(acc):
         return Etok(name='app_type',etoks=acc,raw=acc,rule='tightest_type')
@@ -1052,8 +1060,8 @@ def binder_comma():
 def binder_type():
     """Recursive parser for type binders (Pi-types, etc.)
     
-    >>> pstream(binder_type(),'prim_pi_binder tightest_expr, tightest_type')
-    Etok(binder_type,'prim_pi_binder tightest_expr , tightest_type')
+    >>> pstream(binder_type(),'PRIM_PI_BINDER TIGHTEST_EXPR, TIGHTEST_TYPE')
+    Etok(binder_type,'PRIM_PI_BINDER TIGHTEST_EXPR , TIGHTEST_TYPE')
     """
     def f(acc):
         (((p,a),_),b)=acc
@@ -1066,8 +1074,8 @@ def binder_type():
 def agda_vars():
     """
     Agda style dependent type variables (a : A ) -> B(a)
-    >>> pstream(agda_vars(),'(x : post_colon_type) (z u : post_colon_type)')
-    Etok(agda_vars,'( x : post_colon_type ) ( z u : post_colon_type )')
+    >>> pstream(agda_vars(),'(x : POST_COLON_TYPE) (z u : POST_COLON_TYPE)')
+    Etok(agda_vars,'( x : POST_COLON_TYPE ) ( z u : POST_COLON_TYPE )')
     """
     def f(acc):
         return Etok(name='agda_vars',etoks=acc,raw=acc)
@@ -1084,11 +1092,11 @@ def _type_operand():
 def _type_op():
     """Parser for a binary type operator
     
-    >>> pstream(_type_op(),'prim_type_op')
-    Etok(prim_type_op,default,'prim_type_op')
+    >>> pstream(_type_op(),'PRIM_TYPE_OP')
+    Etok(prim_type_op,backdoor1,'PRIM_TYPE_OP')
     
-    >>> pstream(_type_op(),'prim_type_op_controlseq { term }')
-    Etok(cs_brace,prim_type_op_controlseq,'prim_type_op_controlseq { term }')
+    >>> pstream(_type_op(),'PRIM_TYPE_OP_CONTROLSEQ { TERM }')
+    Etok(cs_brace,prim_type_op_controlseq,'PRIM_TYPE_OP_CONTROLSEQ { TERM }')
     """
     return (get_lookup_parse('prim_type_op') |
             cs_brace(get_lookup_parse('prim_type_op_controlseq')))
@@ -1106,8 +1114,8 @@ def binop_type():
     N.B. binder_types is tighter than binop_type, which might be non-intuitive.
     Operators appear in etoks[1] odd positions.
     
-    >>> pstream(binop_type(),'tightest_type prim_type_op tightest_type')
-    Etok(binop_type,'tightest_type prim_type_op tightest_type')
+    >>> pstream(binop_type(),'TIGHTEST_TYPE PRIM_TYPE_OP TIGHTEST_TYPE')
+    Etok(binop_type,'TIGHTEST_TYPE PRIM_TYPE_OP TIGHTEST_TYPE')
     """
     def f(acc):
         ((p,m),b) = acc
@@ -1118,8 +1126,8 @@ def binop_type():
 def quotient_type():
     """parser for quotient types
     
-    >>> pstream(quotient_type(),'quotient of general_type by term')
-    Etok(quotient_type,'quotient of general_type by term')
+    >>> pstream(quotient_type(),'quotient of GENERAL_TYPE by TERM')
+    Etok(quotient_type,'quotient of GENERAL_TYPE by TERM')
     """
     def f(acc):
         ((((_,_),g),_),t) = acc
@@ -1132,8 +1140,8 @@ def quotient_type():
 def coercion_type():
     r"""parser for coercion of a term to type
     
-    >>> pstream(coercion_type(),r'\^term')
-    Etok(coercion_type,'\^ term')
+    >>> pstream(coercion_type(),r'\^TERM')
+    Etok(coercion_type,'\^ TERM')
     """
     def f(acc):
         (_,t)=acc
@@ -1144,8 +1152,8 @@ def coercion_type():
 def coerced_type():
     """parser for (possibly implicit) coercion from term to type
     
-    >>> pstream(coerced_type(),'term')
-    Etok(coercion_type,'term')
+    >>> pstream(coerced_type(),'TERM')
+    Etok(coercion_type,'TERM')
     """
     def f(acc):
         return Etok(name='coercion_type',etoks=[acc],raw=acc)
@@ -1160,8 +1168,8 @@ def opentail_type():
 def post_colon_type():
     """parser for type appearing after a colon
     
-    >>> pstream(post_colon_type(),'prim_relation')
-    Etok(post_colon_type,2,'prim_relation')
+    >>> pstream(post_colon_type(),'PRIM_RELATION')
+    Etok(post_colon_type,2,'PRIM_RELATION')
     """
     def f2(acc):
         return Etok(name='post_colon_type',etoks=acc,raw=acc,rule='2')
@@ -1190,8 +1198,8 @@ def identifier():
 def _opt_alt_constructor():
     """Parser for a single constructor in an inductive type declaration.
     
-    >>> pstream(_opt_alt_constructor(),'| id : post_colon_type')
-    Etok(alt_constructor,'| id : post_colon_type')
+    >>> pstream(_opt_alt_constructor(),'| id : POST_COLON_TYPE')
+    Etok(alt_constructor,'| id : POST_COLON_TYPE')
     """
     def f(acc):
         (((_,i),a),t)=acc
@@ -1202,7 +1210,7 @@ def not_period(tok):
     """boolean token test for non-period."""
     return not(tok.type == 'PERIOD')
 
-@memo
+#no memo parameter
 def not_end(tok):
     """boolean token test for not keyword 'end'"""
     return not(tok.value == 'end') and not_period(tok)
@@ -1244,8 +1252,8 @@ def field_identifier():
     The word 'proof' or '_' can be used as 
     anonymous field identifiers for props.
     
-    >>> pstream(field_identifier(),'x : post_colon_type')
-    Etok(field_identifier,'x : post_colon_type')
+    >>> pstream(field_identifier(),'x : POST_COLON_TYPE')
+    Etok(field_identifier,'x : POST_COLON_TYPE')
     
     >>> pstream(field_identifier(),'proof')
     Etok(PROOF,proof,'proof')
@@ -1265,8 +1273,8 @@ def field_identifier():
 def field():
     """Parser for one field of a structure
     
-    >>> pstream(field(),'a call,type,parameter x := term')
-    Etok(field,'a call , type , parameter x := term')
+    >>> pstream(field(),'a call,type,parameter x := TERM')
+    Etok(field,'a call , type , parameter x := TERM')
     """
     def f(acc):
         ((a,b),c)=acc
@@ -1277,8 +1285,8 @@ def field():
 def structure():
     """Parser for a structure declaration
     
-    >>> pstream(structure(),'notational structure with parameters { x : post_colon_type } with { parameter y := term }')
-    Etok(structure,'notational structure with parameter { x : post_colon_type } with { parameter y := term }')
+    >>> pstream(structure(),'notational structure with parameters { x : POST_COLON_TYPE } with { parameter y := TERM }')
+    Etok(structure,'notational structure with parameter { x : POST_COLON_TYPE } with { parameter y := TERM }')
     """
     def f(acc):
         ((((n,_),t),_),(_,b,_))=acc
@@ -1298,8 +1306,8 @@ proof_expr # implemented above
 def controlseq_term():
     """parser for terms expressed as control sequences
     
-    >>> pstream(controlseq_term(),'prim_term_controlseq { term }')
-    Etok(cs_brace,prim_term_controlseq,'prim_term_controlseq { term }')
+    >>> pstream(controlseq_term(),'PRIM_TERM_CONTROLSEQ { TERM }')
+    Etok(cs_brace,prim_term_controlseq,'PRIM_TERM_CONTROLSEQ { TERM }')
     """
     return cs_brace(get_lookup_parse('prim_term_controlseq'))
 
@@ -1334,8 +1342,8 @@ def tightest_suffix():
 def tightest_term():
     r"""Parser for a tightly bound term
     
-    >>> pstream(tightest_term(),r'33.456 prim_field_term_accessor\sub(3)')
-    Etok(tightest_term,'33.456 prim_field_term_accessor \sub ( 3 )')
+    >>> pstream(tightest_term(),r'33.456 PRIM_FIELD_TERM_ACCESSOR\sub(3)')
+    Etok(tightest_term,'33.456 PRIM_FIELD_TERM_ACCESSOR \sub ( 3 )')
     """
     def f(acc):
         return Etok(name='tightest_term',etoks=acc,raw=acc)
@@ -1371,8 +1379,8 @@ def annotated_term():
 def set_enum_term():
     """parser for set enumeration
     
-    >>> pstream(set_enum_term(),'{ plain_term, plain_term, plain_term }')
-    Etok(set_enum_term,'{ plain_term , plain_term , plain_term }')
+    >>> pstream(set_enum_term(),'{ PLAIN_TERM, PLAIN_TERM, PLAIN_TERM }')
+    Etok(set_enum_term,'{ PLAIN_TERM , PLAIN_TERM , PLAIN_TERM }')
     """
     def f(acc):
         (_,t,_)=acc
@@ -1384,8 +1392,8 @@ def set_enum_term():
 def set_comprehension_term():
     """Parser for set comprehension
     
-    >>> pstream(set_comprehension_term(),'{ plain_term, holding u,v \mid statement}')
-    Etok(set_comprehension_term,'{ plain_term , holding u , v \mid statement }')
+    >>> pstream(set_comprehension_term(),'{ PLAIN_TERM, holding u,v \mid STATEMENT}')
+    Etok(set_comprehension_term,'{ PLAIN_TERM , holding u , v \mid STATEMENT }')
     """
     def f(acc):
         (_,(((p,h),_),s),_)=acc 
@@ -1398,8 +1406,8 @@ def tuple_term():
     There must be at least one comma.
     (x) is parsed as x in parentheses.
     
-    >>> pstream(tuple_term(),'(plain_term,plain_term,plain_term)')
-    Etok(tuple_term,'( plain_term , plain_term , plain_term )')
+    >>> pstream(tuple_term(),'(PLAIN_TERM,PLAIN_TERM,PLAIN_TERM)')
+    Etok(tuple_term,'( PLAIN_TERM , PLAIN_TERM , PLAIN_TERM )')
     """
     def f(acc):
         (_,((p,_),ps),_)=acc
@@ -1411,8 +1419,8 @@ def tuple_term():
 def list_term():
     """Parser for lists: [a;b;c], possibly empty []
 
-    >>> pstream(list_term(),'[plain_term;plain_term;plain_term]')
-    Etok(list_term,'[ plain_term ; plain_term ; plain_term ]')
+    >>> pstream(list_term(),'[PLAIN_TERM;PLAIN_TERM;PLAIN_TERM]')
+    Etok(list_term,'[ PLAIN_TERM ; PLAIN_TERM ; PLAIN_TERM ]')
     """
     def f(acc):
         (_,ps,_)=acc
@@ -1425,8 +1433,8 @@ def make_term():
     """parser for make statement (structure constructor).
     
     DEBUG: I forget the purpose of the tightest_type.
-    >>> pstream(make_term(),'make { it : post_colon_type := term }')
-    Etok(make_term,'make { it : post_colon_type := term }')
+    >>> pstream(make_term(),'make { it : POST_COLON_TYPE := TERM }')
+    Etok(make_term,'make { it : POST_COLON_TYPE := TERM }')
     """
     #def fp(acc):
     #    ((a,b),c)=acc
@@ -1453,8 +1461,8 @@ def make_term():
 def paren_term():
     """parser for term in parentheses
     
-    >>> pstream(paren_term(),'(term)')
-    Etok(term,default,'( term )')
+    >>> pstream(paren_term(),'(TERM)')
+    Etok(term,backdoor1,'( TERM )')
     """
     def f(acc):
         (_,t,_)=acc
@@ -1468,8 +1476,8 @@ def delimited_term():
     (x), (x : A), make { x := 3 }, [1;2], 
     {3,4}, (5,6), {x : f(x)}
     
-    >>> pstream(delimited_term(),'(term)')
-    Etok(term,default,'( term )')
+    >>> pstream(delimited_term(),'(TERM)')
+    Etok(term,backdoor1,'( TERM )')
     """
     return first(paren_term() ,
             annotated_term() ,
@@ -1483,8 +1491,8 @@ def delimited_term():
 def alt_case():
     """Parser for a single case of a case term
     
-    >>> pstream(alt_case(),'| prop := plain_term')
-    Etok(alt_case,'| prop := plain_term')
+    >>> pstream(alt_case(),'| PROP := PLAIN_TERM')
+    Etok(alt_case,'| PROP := PLAIN_TERM')
     """
     def f(acc):
         (((_,p),_),t)=acc
@@ -1495,8 +1503,8 @@ def alt_case():
 def case_term():
     """Parser for a case term
     
-    >>> pstream(case_term(),'case | prop := plain_term end')
-    Etok(case_term,'case | prop := plain_term end')
+    >>> pstream(case_term(),'case | PROP := PLAIN_TERM end')
+    Etok(case_term,'case | PROP := PLAIN_TERM end')
     """
     def f(acc):
         ((_,a),_)=acc
@@ -1528,8 +1536,8 @@ def alt_match():
 def match_term():
     """Parser for a match term
     
-    >>> pstream(match_term(),'match plain_term with | plain_term := plain_term end')
-    Etok(match_term,'match plain_term with | plain_term := plain_term end')
+    >>> pstream(match_term(),'match PLAIN_TERM with | PLAIN_TERM := PLAIN_TERM end')
+    Etok(match_term,'match PLAIN_TERM with | PLAIN_TERM := PLAIN_TERM end')
     """
     def f(acc):
         ((((_,mp),_),b),_)=acc
@@ -1543,8 +1551,8 @@ def match_term():
 def match_function():
     """parser for a function with match statement
     
-    >>> pstream(match_function(),'function | plain_term := plain_term end')
-    Etok(match_function,'function | plain_term := plain_term end')
+    >>> pstream(match_function(),'function | PLAIN_TERM := PLAIN_TERM end')
+    Etok(match_function,'function | PLAIN_TERM := PLAIN_TERM end')
     """
     def f(acc):
         ((((_,t),o),b),_)=acc
@@ -1565,11 +1573,11 @@ def alt_term():
 def lambda_term():
     """Parser for lambda abstraction
     
-    >>> pstream(lambda_term(),'tdop_term \mapsto opentail_term')
-    Etok(mapsto,'tdop_term \mapsto opentail_term')
+    >>> pstream(lambda_term(),'TDOP_TERM \mapsto OPENTAIL_TERM')
+    Etok(mapsto,'TDOP_TERM \mapsto OPENTAIL_TERM')
     
-    >>> pstream(lambda_term(),'fun tightest_expr := opentail_term')
-    Etok(fun_term,'fun tightest_expr := opentail_term')
+    >>> pstream(lambda_term(),'fun TIGHTEST_EXPR := OPENTAIL_TERM')
+    Etok(fun_term,'fun TIGHTEST_EXPR := OPENTAIL_TERM')
     """
     def f1(acc):
         ((t,_),o)=acc
@@ -1589,8 +1597,8 @@ def lambda_term():
 def let_term():
     """Parser for let .... 
     
-    >>> pstream(let_term(),'let x := plain_term in opentail_term')
-    Etok(let,'let x := plain_term in opentail_term')
+    >>> pstream(let_term(),'let x := PLAIN_TERM in OPENTAIL_TERM')
+    Etok(let,'let x := PLAIN_TERM in OPENTAIL_TERM')
     """
     def f(acc):
         (((((_,p),_),t),_),o)=acc
@@ -1602,8 +1610,8 @@ def let_term():
 def if_then_else_term():
     """Parse 'if bool then A else B' 
     
-    >>> pstream(if_then_else_term(),'if prop then plain_term else opentail_term')
-    Etok(if_then_else_term,'if prop then plain_term else opentail_term')
+    >>> pstream(if_then_else_term(),'if PROP then PLAIN_TERM else OPENTAIL_TERM')
+    Etok(if_then_else_term,'if PROP then PLAIN_TERM else OPENTAIL_TERM')
     """
     def f(acc):
         (((((_,p),_),t),_),f)=acc
@@ -1621,8 +1629,8 @@ def opentail_term():
     
     Specifically, this includes lambdas, let, if_then, tdop
     
-    >>> pstream(opentail_term(),'let x := plain_term in opentail_term')
-    Etok(let,'let x := plain_term in opentail_term')
+    >>> pstream(opentail_term(),'let x := PLAIN_TERM in OPENTAIL_TERM')
+    Etok(let,'let x := PLAIN_TERM in OPENTAIL_TERM')
     """
     return first(c.lazy_call(lambda_term) ,
             c.lazy_call(let_term) ,
@@ -1634,8 +1642,8 @@ def opentail_term():
 def where_suffix():
     """suffix to Haskell 'where'
     
-    >>> pstream(where_suffix(),'where { x : post_colon_type := term ; y := term }')
-    Etok(where_suffix,'where { x : post_colon_type := term ; y := term }')
+    >>> pstream(where_suffix(),'where { x : POST_COLON_TYPE := TERM ; y := TERM }')
+    Etok(where_suffix,'where { x : POST_COLON_TYPE := TERM ; y := TERM }')
     """
     #def f_inner(acc):
     #    ((a,b),c)=acc
@@ -1657,8 +1665,8 @@ def where_suffix():
 def where_term():
     """Parser for term with (possible) Haskell style where suffix
     
-    >>> pstream(where_term(),'tdop_term where {x : post_colon_type := term }')
-    Etok(where_term,'tdop_term where { x : post_colon_type := term }')
+    >>> pstream(where_term(),'TDOP_TERM where {x : POST_COLON_TYPE := TERM }')
+    Etok(where_term,'TDOP_TERM where { x : POST_COLON_TYPE := TERM }')
     """
     def f(acc):
         return Etok('where_term',etoks=acc,raw=acc)
@@ -1668,8 +1676,8 @@ def where_term():
 def term_op():
     """Parser for symbolic operators
     
-    >>> pstream(term_op(),'prim_term_op_controlseq { term } {term }')
-    Etok(cs_brace,prim_term_op_controlseq,'prim_term_op_controlseq { term } { term }')
+    >>> pstream(term_op(),'PRIM_TERM_OP_CONTROLSEQ { TERM } {TERM }')
+    Etok(cs_brace,prim_term_op_controlseq,'PRIM_TERM_OP_CONTROLSEQ { TERM } { TERM }')
     """
     return first(get_lookup_parse('prim_term_op') ,
             cs_brace(get_lookup_parse('prim_term_op_controlseq'))
@@ -1683,8 +1691,8 @@ def term_ops():
 def definite_term():
     """term with a definite article, subsuming where_term
     
-    >>> pstream(definite_term(),'the prim_definite_noun')
-    Etok(prim_definite_noun,default,'the prim_definite_noun')
+    >>> pstream(definite_term(),'the PRIM_DEFINITE_NOUN')
+    Etok(prim_definite_noun,backdoor1,'the PRIM_DEFINITE_NOUN')
     """
     def f(acc):
         (_,t)=acc
@@ -1785,8 +1793,8 @@ def tdop_term():
     * term operators.  (precedence > 0) (this case).
     This allows us to distinguish terms from props and types.
     
-    >>> pstream(tdop_term(),'x prim_term_op y')
-    Etok(tdop_term,'x prim_term_op y')
+    >>> pstream(tdop_term(),'x PRIM_TERM_OP y')
+    Etok(tdop_term,'x PRIM_TERM_OP y')
     """
     def f(acc):
         (((p,o),ao),tp)=acc
@@ -1879,8 +1887,8 @@ def tdop_rel_prop():
     output contains the list [x<z,y<z,z<w] (coded as Etoks)
     No parentheses allowed in chain.
     
-    >>> pstream(tdop_rel_prop(),'x,y,z prim_binary_relation_op u prim_binary_relation_op x')
-    Etok(tdop_rel_prop,'x , y , z prim_binary_relation_op u prim_binary_relation_op x')
+    >>> pstream(tdop_rel_prop(),'x,y,z PRIM_BINARY_RELATION_OP u PRIM_BINARY_RELATION_OP x')
+    Etok(tdop_rel_prop,'x , y , z PRIM_BINARY_RELATION_OP u PRIM_BINARY_RELATION_OP x')
     """
     def f(acc):
         (t,ls)=acc 
@@ -1894,8 +1902,8 @@ def tdop_rel_prop():
 def prop_op():
     """Parser for propositional connectives
     
-    >>> pstream(prop_op(),'prim_propositional_op')
-    Etok(prim_propositional_op,default,'prim_propositional_op')
+    >>> pstream(prop_op(),'PRIM_PROPOSITIONAL_OP')
+    Etok(prim_propositional_op,backdoor1,'PRIM_PROPOSITIONAL_OP')
     """
     return first(
             get_lookup_parse('prim_propositional_op') ,
@@ -1915,8 +1923,8 @@ def tdop_prop():
     
     output etoks: binder_props in even positions, ops in odd positions
     
-    >>> pstream(tdop_prop(),'binder_prop prim_propositional_op binder_prop')
-    Etok(tdop_prop,'binder_prop prim_propositional_op binder_prop')
+    >>> pstream(tdop_prop(),'BINDER_PROP PRIM_PROPOSITIONAL_OP BINDER_PROP')
+    Etok(tdop_prop,'BINDER_PROP PRIM_PROPOSITIONAL_OP BINDER_PROP')
     """
     def f(acc):
         (b,m)=acc
@@ -1933,8 +1941,8 @@ def identifier_prop():
 def annotated_prop():
     """Parser for prop, annotated as prop
     
-    >>> pstream(annotated_prop(),'(prop : Prop)')
-    Etok(annotated_prop,'( prop : prop )')
+    >>> pstream(annotated_prop(),'(PROP : Prop)')
+    Etok(annotated_prop,'( PROP : prop )')
     """
     def f(acc):
         (_,((p,_),_),_) =acc
@@ -1983,8 +1991,8 @@ def app_prop():
 def lambda_predicate():
     """parser for lambda term with values in prop
     
-    >>> pstream(lambda_predicate(),'fun tightest_expr : Prop := (statement)')
-    Etok(lambda_predicate,'fun tightest_expr : prop := ( statement )')
+    >>> pstream(lambda_predicate(),'fun TIGHTEST_EXPR : Prop := (STATEMENT)')
+    Etok(lambda_predicate,'fun TIGHTEST_EXPR : prop := ( STATEMENT )')
     """
     def f(acc):
         #return acc
@@ -1999,8 +2007,8 @@ def binder_prop():
     """Recursive parser for props with (optional) binders (universal, etc.)
     Subsumes various other kinds of props.
     
-    >>> pstream(binder_prop(),'prim_binder_prop tightest_expr , A')
-    Etok(binder_prop,'prim_binder_prop tightest_expr , A')
+    >>> pstream(binder_prop(),'PRIM_BINDER_PROP TIGHTEST_EXPR , A')
+    Etok(binder_prop,'PRIM_BINDER_PROP TIGHTEST_EXPR , A')
     """
     def f(acc):
         (((b,a),_),b2)=acc
@@ -2023,8 +2031,8 @@ def prop():
     The classifier is a sort of meta sort, which is currently ignored.
     It might be a word such as 'predicate'
     
-    >>> pstream(prop(),'binder_prop')
-    Etok(tdop_prop,'binder_prop')
+    >>> pstream(prop(),'BINDER_PROP')
+    Etok(tdop_prop,'BINDER_PROP')
     """
     def f(acc):
         (_,t)=acc 
@@ -2047,8 +2055,8 @@ def has_pred():
     and the list of has_pred, but the parse should be unambiguous
     because of the articles.
     
-    >>> pstream(has_pred(),'the prim_possessed_noun and the prim_possessed_noun')
-    Etok(has_pred,'the prim_possessed_noun and the prim_possessed_noun')
+    >>> pstream(has_pred(),'the PRIM_POSSESSED_NOUN and the PRIM_POSSESSED_NOUN')
+    Etok(has_pred,'the PRIM_POSSESSED_NOUN and the PRIM_POSSESSED_NOUN')
     """
     def f1(acc):
         t = [p for (_,p) in acc[0::2]] # drop commas, articles
@@ -2065,8 +2073,8 @@ enot = next_word('not').treat(Etok.etok,'not')
 def is_aPred():
     """Parser for nominal predicates
     
-    >>> pstream(is_aPred(),'not a tightest_type')
-    Etok(indefinite_pred,'not a tightest_type')
+    >>> pstream(is_aPred(),'not a TIGHTEST_TYPE')
+    Etok(indefinite_pred,'not a TIGHTEST_TYPE')
     """
     def f1(acc):
         ((n,_),g)=acc 
@@ -2081,14 +2089,14 @@ def is_aPred():
 def is_pred():
     """Parser for adjectival predicates
     
-    >>> pstream(is_pred(),'not prim_adjective')
-    Etok(is_adjective,'not prim_adjective')
+    >>> pstream(is_pred(),'not PRIM_ADJECTIVE')
+    Etok(is_adjective,'not PRIM_ADJECTIVE')
     
-    >>> pstream(is_pred(),'not pairwise prim_adjective_multisubject')
-    Etok(is_adjective_multisubject,'not pairwise prim_adjective_multisubject')
+    >>> pstream(is_pred(),'not pairwise PRIM_ADJECTIVE_MULTISUBJECT')
+    Etok(is_adjective_multisubject,'not pairwise PRIM_ADJECTIVE_MULTISUBJECT')
     
-    >>> pstream(is_pred(),'having the prim_possessed_noun')
-    Etok(is_with,'having the prim_possessed_noun')
+    >>> pstream(is_pred(),'having the PRIM_POSSESSED_NOUN')
+    Etok(is_with,'having the PRIM_POSSESSED_NOUN')
     """
     def f1(acc):
         return Etok(name='is_adjective',etoks=acc,raw=acc)
@@ -2164,8 +2172,8 @@ def plain_pred_pseudoterm():
 def pseudoterm_without_attribute():
     """Recursive parser for various pseudoterms
     
-    >>> pstream(pseudoterm_without_attribute(),'x of type tightest_type')
-    Etok(annotated,'x of type tightest_type')
+    >>> pstream(pseudoterm_without_attribute(),'x of type TIGHTEST_TYPE')
+    Etok(annotated,'x of type TIGHTEST_TYPE')
     
     >>> pstream(attribute(pseudoterm_without_attribute()),'x')
     Etok(attribute,'x')
@@ -2233,14 +2241,14 @@ def symbol_statement():
     
     Debug: should parse blocks of binders in single pass.
     
-    >>> pstream(symbol_statement(),'binder_prop')
-    Etok(tdop_prop,'binder_prop')
+    >>> pstream(symbol_statement(),'BINDER_PROP')
+    Etok(tdop_prop,'BINDER_PROP')
     
-    >>> pstream(symbol_statement(),'binder_prop')
-    Etok(tdop_prop,'binder_prop')
+    >>> pstream(symbol_statement(),'BINDER_PROP')
+    Etok(tdop_prop,'BINDER_PROP')
     
-    >>> pstream(symbol_statement(),'forall x, binder_prop')
-    Etok(forall_symbol_statement,'forall x , binder_prop')
+    >>> pstream(symbol_statement(),'forall x, BINDER_PROP')
+    Etok(forall_symbol_statement,'forall x , BINDER_PROP')
     """
     def f_forall(acc):
         (((_,a),_),s)=acc
@@ -2362,8 +2370,8 @@ def inductive_decl():
     
     Identifier must be located internally because of recursion.
         
-    >>> pstream(inductive_decl(),'inductive integer | id : post_colon_type end')
-    Etok(inductive_decl,'inductive integer | id : post_colon_type end')
+    >>> pstream(inductive_decl(),'inductive integer | id : POST_COLON_TYPE end')
+    Etok(inductive_decl,'inductive integer | id : POST_COLON_TYPE end')
     """
     def f(acc):
         (((((_,i),a),s),c1),_)=acc
@@ -2382,7 +2390,7 @@ def mutual_inductive_decl_item():
         if pa:
             pa = pa[1]
         return Etok('mutual_inductive_decl_item',etoks=(w[0::2],pa),raw=acc)
-    return (pre + atomic().plus_comma() + 
+    return (pre + c.plus_comma(atomic()) + 
             (lit('param') + args_template()).possibly() + period
             ).commit(pre).treat(f,'mutual_inductive_decl_item')
 
@@ -2395,7 +2403,7 @@ def mutual_inductive_def_item():
         if pa:
             pa = pa[1]
         return Etok('mutual_inductive_def_item',etoks=(w[0::2],pa),raw=acc)
-    return (pre + atomic().plus_comma() + 
+    return (pre + c.plus_comma(atomic()) + 
             (lit('param') + args_template()).possibly() + period
             ).commit(pre).treat(f,'mutual_inductive_def_item')
 
@@ -2442,8 +2450,8 @@ def satisfy_item():
     DEBUG: A pseudoterm might be too general.
     We want expressions like (G:group) or group G ...
     
-    >>> pstream(satisfy_item(),'Every (G: post_colon_type) satisfies binder_prop.')
-    Etok(satisfy_item,'every ( G : post_colon_type ) satisfy binder_prop .')
+    >>> pstream(satisfy_item(),'Every (G: POST_COLON_TYPE) satisfies BINDER_PROP.')
+    Etok(satisfy_item,'every ( G : POST_COLON_TYPE ) satisfy BINDER_PROP .')
     """
     def f(acc):
         (((p,f),s),_)=acc
@@ -2503,13 +2511,18 @@ def let_annotation():
         Let G be a fixed group
         Let (H G : group)
         Fix (x : R)
-        
-    Issues: No treatment for now, but return to this later.   
+         
     """
+    def f1(acc):
+        return Etok(name='let_annotation',etoks=acc,raw=acc,rule='1')
+    def f2(acc):
+        return Etok(name='let_annotation',etoks=acc,raw=acc,rule='2')
+    def f3(acc):
+        return Etok(name='let_annotation',etoks=acc,raw=acc,rule='3')
     return first(
-        (first_word( 'fix let') + annotated_vars()) ,
-        (let_annotation_prefix() + general_type()) , 
-        (let_annotation_prefix() + (rawtype|rawprop))
+        (first_word( 'fix let') + annotated_vars()).treat(f1,'let_annotation1') ,
+        (let_annotation_prefix() + general_type()).treat(f2,'let_annotation2') , 
+        (let_annotation_prefix() + (rawtype|rawprop)).treat(f3,'let_annotation3')
         )
 
 @memo
@@ -2530,8 +2543,8 @@ def assumption():
     """Parser for assumptions in theorems and axioms.
     There are two varieties:  'We assume that'  or type annotations.
     
-    >>> pstream(assumption(),'We assume that binder_prop.')
-    Etok(assumption,'we assume that binder_prop .')
+    >>> pstream(assumption(),'We assume that BINDER_PROP.')
+    Etok(assumption,'we assume that BINDER_PROP .')
     """
     def f(acc):
         ((_,s),_)=acc
@@ -2554,8 +2567,8 @@ def axiom():
     
     Sentences starting with let, fix, assumption_prefix are assumptions.
     
-    >>> pstream(axiom(),'Conjecture. We assume that binder_prop.  Then binder_prop.')
-    Etok(axiom,'conjecture . we assume that binder_prop . then binder_prop .')
+    >>> pstream(axiom(),'Conjecture. We assume that BINDER_PROP.  Then BINDER_PROP.')
+    Etok(axiom,'conjecture . we assume that BINDER_PROP . then BINDER_PROP .')
     """
     def f(acc):
         (((((_,aa),_),s),_),ms) = acc
@@ -2571,8 +2584,8 @@ def axiom():
 def theorem():
     """Parser for theorem and proof.
     
-    >>> pstream(theorem(),'Theorem 1. affirm_proof')
-    Etok(theorem,'theorem 1 . affirm_proof')
+    >>> pstream(theorem(),'Theorem 1. AFFIRM_PROOF')
+    Etok(theorem,'theorem 1 . AFFIRM_PROOF')
     """
     def f(acc):
         ((_,aa),p)=acc
@@ -2599,7 +2612,6 @@ def any_controlseq(): #was controlseq
     """
     return c.next_type('CONTROLSEQ').treat(Etok.etok)
 
-@memo
 def controlseq(s): #was the_controlseq
     """Parser for a particular control sequence 's'.
     s includes the backslash."""
@@ -2664,8 +2676,8 @@ class Proof_step:
         menhir/ocaml doc describes an ambiguity here.
         I'm hoping it goes away now that plain_term is implemented.'
         
-        >>> pstream(Proof_step.by_method(),'by induction on tdop_term. ')
-        Etok(proof-step,'by induction on tdop_term')
+        >>> pstream(Proof_step.by_method(),'by induction on TDOP_TERM. ')
+        Etok(proof-step,'by induction on TDOP_TERM')
         """
         return (next_word('by') + 
                 (first_phrase(['contradiction','case analysis']) |
@@ -2715,22 +2727,22 @@ class Proof_step:
 
     def goal_proof():
         """ 
-        >>> pstream(Proof_step.goal_proof(),'We prove that head_statement (by theorem 3). proof_script ...')
-        Etok(proof-step,'we prove that head_statement ( by theorem 3 ) . proof_script')
+        >>> pstream(Proof_step.goal_proof(),'We prove that it is wrong that STATEMENT (by theorem 3). proof_script ...')
+        Etok(proof-step,'we prove that it is wrong that STATEMENT ( by theorem 3 ) . proof_script')
         """
         return (Proof_step.goal_prefix() + statement() + Proof_step.by_ref() + period +
                 get_lookup_parse('proof_script')
                 ).treat(Proof_step.kill,'goal_proof')
     
     def statement_proof():
-        return (then_prefix() + statement() + Parse.by_ref() + period +
-                (next_word('moreover') + statement() + Parse.by_ref() + period).many()
+        return (then_prefix() + statement() + Proof_step.by_ref() + period +
+                (next_word('moreover') + statement() + Proof_step.by_ref() + period).many()
                 ).treat(Proof_step.kill,'statement_proof')
 
     def case():
         """ 
-        >>> pstream(Proof_step.case(),'Case head_statement.')
-        Etok(proof-step,'case head_statement .')
+        >>> pstream(Proof_step.case(),'Case it is wrong that STATEMENT.')
+        Etok(proof-step,'case it is wrong that STATEMENT .')
         """
         return (next_word('case') + statement() + period + Proof_step.opt_proof()
                 ).treat(Proof_step.kill,'case')
@@ -2782,8 +2794,8 @@ class Pattern:
         (or word) gives a synonym as a parenthetical.
         (word pattern) is an optional recursive word pattern.
         
-        >>> pstream(Pattern.word_extended(),'unsupported (or empty) (word_pattern)')
-        Etok(word_extended,'unsupported ( or empty ) ( word_pattern )')
+        >>> pstream(Pattern.word_extended(),'unsupported (or empty) (WORD_PATTERN)')
+        Etok(word_extended,'unsupported ( or empty ) ( WORD_PATTERN )')
         """
         def f(acc):
             ((w,o),wp)=acc
@@ -2821,7 +2833,7 @@ class Pattern:
             ((w,vws),v)=acc
             vws = [w]+vws
             if v:
-                vws = vws + [v]
+                vws = lib.fflatten(vws + [v])
             return Etok('word_pattern',etoks=vws,raw=acc)
         return (Pattern.words_extended() + 
                 (Pattern._var() + Pattern.words_extended()).many() + 
@@ -3057,8 +3069,8 @@ class Macro:
     def function_copula():
         """Parser for function_copula with possible type annotation
         
-        >>> pstream(Macro.function_copula(),': post_colon_type := ...')
-        Etok(function_copula,': post_colon_type :=')
+        >>> pstream(Macro.function_copula(),': POST_COLON_TYPE := ...')
+        Etok(function_copula,': POST_COLON_TYPE :=')
         """
         def f2(acc):
             (o,_)=acc 
@@ -3135,11 +3147,11 @@ class Macro:
         """ 
         Parser for a type definition.
         
-        >>> pstream(Macro.type_def(),'We define x ## y : Type to be tightest_type')
-        Etok(type_def,'we define x ## y : type to be tightest_type')
+        >>> pstream(Macro.type_def(),'We define x ## y : Type to be TIGHTEST_TYPE')
+        Etok(type_def,'we define x ## y : type to be TIGHTEST_TYPE')
         
-        >>> pstream(Macro.type_def(),'We define x ## y to be the type tightest_type')
-        Etok(type_def,'we define x ## y to be the type tightest_type')
+        >>> pstream(Macro.type_def(),'We define x ## y to be the type TIGHTEST_TYPE')
+        Etok(type_def,'we define x ## y to be the type TIGHTEST_TYPE')
         """
         def f1(acc):
             ((((((_,h),_),_),_),_),t)=acc
@@ -3170,17 +3182,18 @@ class Macro:
         """ 
         Parser for function definitions.
         
-        >>> pstream(Macro.function_def(),'We define x ## y := where_term')
-        Etok(function_def,'we define x ## y := where_term')
+        >>> pstream(Macro.function_def(),'We define x ## y := the PRIM_DEFINITE_NOUN')
+        Etok(function_def,'we define x ## y := the PRIM_DEFINITE_NOUN')
         """
         def f(acc):
             #return acc
-            ((((((_,h),_),_),_),p))=acc 
+            (((((_,h),_),_),p))=acc 
             return Etok('function_def',etoks=(h,p),raw=acc)
         return (
             Macro.opt_define() + Macro.function_head() + 
             Macro.function_copula() + lit('equal').possibly() +
-            next_word('the').possibly() + plain_term()
+            #next_word('the').possibly() + N.B. plain_definite_noun includes 'the' already
+            plain_term()
             ).treat(f,'function_def')
     
     def predicate_head():
@@ -3194,8 +3207,8 @@ class Macro:
     def predicate_def():
         """Parser for predicate definitions
         
-        >>> pstream(Macro.predicate_def(),'We write x >> y iff head_statement')
-        Etok(predicate_def,'we write x >> y iff head_statement')
+        >>> pstream(Macro.predicate_def(),'We write x >> y iff it is wrong that STATEMENT')
+        Etok(predicate_def,'we write x >> y iff it is wrong that STATEMENT')
         """
         def f(acc):
             (((_,h),_),s)=acc 
@@ -3208,8 +3221,8 @@ class Macro:
     def binder_def():
         """Parser for definition of new binders (quantifiers)
         
-        >>> pstream(Macro.binder_def(),'Let the binder ## (x : post_colon_type), P denote head_statement ')
-        Etok(binder_def,'let the binder ## ( x : post_colon_type ) , P denote head_statement')
+        >>> pstream(Macro.binder_def(),'Let the binder ## (x : POST_COLON_TYPE), P denote it is wrong that STATEMENT ')
+        Etok(binder_def,'let the binder ## ( x : POST_COLON_TYPE ) , P denote it is wrong that STATEMENT')
         """
         def f(acc):
             ((((((_,s),(_,(v,t),_)),_),v2),_),p)=acc 
@@ -3269,8 +3282,8 @@ class Macro:
         before the copula. 
 
         
-        >>> pstream(Macro.definition(),'Definition XX.  We say x >> y iff head_statement.')
-        Etok(definition,'definition XX . we say x >> y iff head_statement .')
+        >>> pstream(Macro.definition(),'Definition XX.  We say x >> y iff it is wrong that STATEMENT.')
+        Etok(definition,'definition XX . we say x >> y iff it is wrong that STATEMENT .')
         """
         def f(acc):
             ((p,a),d)=acc
@@ -3307,8 +3320,8 @@ class Macro:
         The expansion of a macro must be a plain_term,
         but a definition may contain bound variables.
         
-        >>> pstream(Macro.macro(),'In this section, we write x << y iff head_statement.')
-        Etok(macro,'in this section , we write x << y iff head_statement .')
+        >>> pstream(Macro.macro(),'In this section, we write x << y iff it is wrong that STATEMENT.')
+        Etok(macro,'in this section , we write x << y iff it is wrong that STATEMENT .')
         """
         sep = semicolon + next_word('and').possibly()
         def f(acc):
@@ -3338,7 +3351,7 @@ def utterance():
     """
     return first(
         section_label() ,
-        namespace() , 
+        # not implemented. namespace() , 
         Instruction.instruction() ,
         synonym_item() , 
         declaration() ,

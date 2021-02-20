@@ -50,20 +50,26 @@ tokens = (
 # literals:'L_PAREN','R_PAREN','L_BRACK','R_BRACK','L_BRACE','R_BRACE','PERIOD','COMMA','SEMI',
 
 #output must not terminate in 's'; mangle with 'sz'
+# changed 2/20/2021. Allow -ss ending. Do not iterate.
 singularize_patterns = [
     (re.compile(s),e) for s,e in [
-        (r'(.*[^s])ss+','sz'),
-        (r'(.*[^aeiou]o)es',''),
-        (r'(.*[^aeiou])ies','y'),
-        (r'(.*i[sz]e)s$',''),
-        (r'(.*ch|.*sh|.*x|.*z)es',''),
-        (r'(.*[^s])s+es','sz'),
-        (r'(.*[^s])s+',''),
+        (r'(.*[^s]ss+)',''),  #masses -> mass
+        (r'(.*[^aeiou]o)es',''), # toes -> to, mangoes -> mango
+        (r'(.*ous)',''), # obvious -> obvious
+        (r'(.*[^aeiou])ies','y'), # tries -> try
+        (r'(.*[yi][sz]e)s',''), # analyzes ->  analyze
+        (r'(.*ch|.*sh|.*x|.*z|.*ss)es',''), # fixes -> fix
+        (r'(.*se)s',''), # cases -> case 
+        (r'(.*[^s])s',''), # rocks -> rock
         (r'(.*)','')
         ]
     ]
 
 def singularize(s):
+    """
+    >>> [singularize(s) for s in ['obvious','zeros','cases','does','mangoes','masses','mass','toes','series','flies','bodies','buses','analyzes','fixes','wishes','rocks','f','noses']]
+    ['obvious', 'zero', 'case', 'do', 'mango', 'mass', 'mass', 'to', 'sery', 'fly', 'body', 'buse', 'analyze', 'fix', 'wish', 'rock', 'f', 'nose']
+    """
     s = s.lower()
     if len(s) <= 3 or not(s.endswith('s')) or s in word_lists.singular:
         return s
@@ -71,6 +77,7 @@ def singularize(s):
         match = p.fullmatch(s)
         if match:
             return match.group(1)+e
+    return s
 
 
 t_ignore_COMMENT = '%.*'
@@ -189,7 +196,12 @@ tokenizer = lex.lex()
 
 
 
-
+if __name__ == "__main__":
+    import doctest
+    from tokenlib import Item
+    doctest.testmod(optionflags=doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE)
+#    doctest.testmod(verbose=True, optionflags=doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE)
+#    doctest.testmod()
 
 
 
