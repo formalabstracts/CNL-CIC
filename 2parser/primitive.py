@@ -97,29 +97,35 @@ def all_tree(p,etok):
     """Recursively check predicate p is true on etok tree"""
     return p(etok) and all(p(e) for e in lib.fflatten(etok.etoks) if e)
     
-def collect_tree(etok,f):
-    """Recursively call f on etok tree. No return.
+def collect(etok,f):
+    """Recursively call f on etok tree.
+    Immutable on etok iff f(etok) does not mutate etok.
+    No return.
     State can be stored in f to collect data.
     """
-    f(etok)
-    for e in lib.fflatten(etok.etoks):
-        if e:
-            collect_tree(e,f)
+    if etok:
+        f(etok)
+        for e in lib.fflatten(etok.etoks):
+            collect(e,f)
     pass
 
 def collect_list(etok,f=None):
-    """Specialization of collect_tree.
-    Collect f from etok tree into a list
+    """Specialization of collect.
+    Collect f from etok tree into a list(A), discarding None.
     
     f:Etok -> A 
     
     >>> list(set(collect_list(pstream(r.tdop_rel_prop(),'x,y,z PRIM_BINARY_RELATION_OP u PRIM_BINARY_RELATION_OP x'))))
-    ['app_term', 'VAR', 'prim_binary_relation_op', 'app_args', 'tdop_rel_prop', 'tightest_term']
+    ['VAR', 'app_term', 'app_args', 'tightest_term', 'tdop_rel_prop', 'prim_binary_relation_op']
     """
     data=[]
     if not(f):
         f= (lambda e: e.name)
-    collect_tree(etok,(lambda e: data.append(f(e))))
+    def app(e):
+        fe = f(e)
+        if fe:
+            data.append(fe)
+    collect(etok,app)
     return data
 
 def collect_name(etok,s):
@@ -130,12 +136,11 @@ def collect_name(etok,s):
 
     ## get duplicates because binary relation processing does de-chaining.
     """
-    data = []
     def action(e):
         if e.name==s:
-            data.append(e)
-    collect_tree(etok,action)
-    return data
+            return e
+        return None
+    return collect_list(etok,action)
     
 
 class Prim_data:
