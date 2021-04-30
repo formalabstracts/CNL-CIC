@@ -1,0 +1,129 @@
+\documentclass[12pt]{article}
+\usepackage{pmmeta}
+\pmcanonicalname{JordansTotientFunction}
+\pmcreated{}
+\pmmodified{}
+\pmmodifier{}{}
+\pmowner{mathcam}{2727}
+\pmformalizer{miinguyen}{}  % Note this new field
+\pmtitle{Jordan's totient function}
+\pmrecord{39}{30010}
+\pmprivacy{1}
+\pmauthor{miinguyen}{}
+\pmtype{Definition}
+\pmcomment{trigger rebuild}
+\pmclassification{msc}{11-00}
+\pmclassification{msc}{46M15}
+\pmclassification{msc}{18C15}
+
+\endmetadata
+
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+
+\usepackage{cnl}
+\usepackage{xcolor}
+
+% TITLE AUTHOR DATE
+\title{Number Theory,\\ Jordan's totient function}
+\date{March 05, 2019}
+\author{My Nguyen (miinguyen)}
+
+
+
+\begin{document}
+\parskip=\baselineskip
+
+% Local Defs for Coprime definition 
+\def\natdiv#1#2{{#1}\mathrel{|}{#2}}
+\def\natpow#1#2{{#1}^{#2}}
+
+\begin{cnl}
+\Cnlinput{../TeX2CNL/package/cnlinit}
+
+\bigskip
+
+\lsection{Prime divisor number}
+
+In this section, let $d,\ m$ be integers.
+
+\dfn{
+Assume that $m,\ d$ are integers. Then we say that $d$ \df{divides} $m$ iff $d\ne 0$ and there exists an integer $r$ such that $m= d\*r$.
+}
+	
+\dfn{
+We write  $\natdiv{d}{m}$ iff $d$ divides $m$.	
+}
+
+\dfn{
+We say  $d$ is a \df{divisor} of $m$ iff $d$ divides $m$. 
+}
+
+\dfn{
+Assume that $p$ is an integer greater than $1$.  Then we say that $p$
+is a \df{prime} iff each divisor of $p$ is either equal to $1$ or equal to $p$.
+}
+
+
+\dfn{
+Assume that $p$ is an integer greater than $1$.  Then we say that $p$
+is a \df{prime divisor} of $n$ iff $p$ is a prime and $p$ is a divisor of $n$.
+}
+
+
+\lsection{List}
+In this section, let $\alpha$ be a type.
+
+%def of list of type alpha
+\dfn{
+Let \df{list} of $alpha$ be the inductive type
+\begin{envMatch}
+\firstmatchitem $\nullbrack$ &$:$& $\h{list}$
+\matchitem $\h{cons}$ &$:$& $\alpha\to\h{list}\to\h{list}$\texstop
+\end{envMatch}\cnlstop
+}
+
+
+%function return list of all prime divisors of n 
+\dfn{
+Let \df{prime-div-list} $(n : \Nat)$ $: \Nat \to \h{list}\ \alpha\ \assign$ \par\function
+\begin{envMatch}
+\firstmatchitem $0$ &$\assign$& $\nullbrack$
+\matchitem $(succ\ p)$ &$\assign$& if $\natdiv{p}{n}$ and $p$ is a prime and $p \leq n$ then $p \cons$ \h{prime-div-list} $n$\texstop
+\end{envMatch}\cnlstop
+This exists by recursion.
+}
+
+
+\lsection{Jordan's totient function}
+In this section, let $\alpha$ be a type.
+Let $R$ be type of real number. %need concept of real number
+
+
+%give definition of product
+\dfn{
+Let \df{prod-Jordan-func}\ $: \h{list}\ \alpha\ \to R \assign$ \par\function
+\begin{envMatch}
+\firstmatchitem $\nullbrack$ &$\assign$& $1$
+\matchitem $a \cons A$ &$\assign$& $(1-\natpow{a}{-k}) \* \h{prod-Jordan-func}\ A$\texstop
+\end{envMatch}\cnlstop
+This exists by recursion.
+}
+
+
+
+\dfn{Assume $k$ and $n$ are natural numbers. Then \df{Jordan's totient function} $J_k(n)$ is equal to $\natpow{n}{k} \* \h{prod-Jordan-func}\ (\h{prime-div-list}\ n)$ where the product is over prime divisor $p$ of $n$.}
+
+\begin{remark}
+   The explicite formula of Jordan's totient function is 
+    $$J_k(n) = n^k \prod_{p|n} ( 1-p^{-k})$$
+    where the product is over prime divisor $p$ of $n$.
+\end{remark}
+
+\end{cnl}
+%%%%%
+%%%%%
+\end{document}
